@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 37496,
+ "stop_reason": "end_turn",
+ "session_id": "6c4fe819-3997-4a86-9c38-e97021a4a45f",
+ "total_cost_usd": 0.08581489999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1745,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3537,
+  "output_tokens_details": {
+   "thinking_tokens": 285
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1745,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3537,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1745,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1745
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2331,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00024410000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3537,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1745,
+   "webSearchRequests": 0,
+   "costUSD": 0.08557079999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 285,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Make `str()` on the `pytest.raises` context variable stop hiding the exception message\n\n## Objective\n\n**Problem.** In pytest 4.6.2, `pytest.raises(...)` binds an exception-info object to `e` in `with pytest.raises(...) as e`. Calling `str()` on that object returns a location-style summary that contains only the first line of the message:\n\n```\n<console>:3: LookupError: A\n```\n\nUsers expect the full message, which is what `str(exc)` returns after an ordinary `try/except`:\n\n```\nA\nB\nC\n```\n\nThe documented way to get the message is `str(e.value)`. The reporter says the different behavior is a gotcha and asks for it to be removed.\n\n**Who is affected.** Test authors who assert on exception messages through the `pytest.raises` context variable, for example `assert \"B\" in str(e)`. With the current behavior, an assertion on any line after the first fails. Worse, a substring assertion can pass because it matches the file or location prefix instead of the message.\n\n**What success looks like.** `str()` on the context variable no longer returns a truncated, location-prefixed string that users mistake for the exception message. Two fixes are possible, and the maintainers must choose one (see Open Questions):\n\n- **Option A (equivalence):** `str(e)` returns exactly `str(e.value)`.\n- **Option B (no misleading `__str__`):** the custom string form is removed, so `str(e)` falls back to `repr(e)`. That output is clearly an info-object repr, not a message, and users are pushed toward `e.value`.\n\nEither way, the result must be documented, and the behavior change must be handled according to the project's compatibility policy.\n\n### User stories / acceptance criteria\n\n- As a test author, when I call `str()` on the `pytest.raises` context variable, I never get a string that looks like the exception message but is silently truncated to its first line.\n- As a test author, `str(e.value)` keeps returning the full exception message, unchanged.\n- As a test author upgrading pytest, I can find this behavior change in the changelog and docs, along with the recommended idiom (`str(e.value)`, or `match=`).\n\n## Assumptions\n\n1. The object bound by `pytest.raises(...) as e` is pytest's exception-info object (`ExceptionInfo`). Its `__str__` produces the `path:lineno: ExcType: first-line` format shown in the issue.\n2. The first-line truncation is caused by `__str__` using a short, location-based representation. It is not caused by f-strings, by the `LookupError` type, or by macOS. Any exception whose message spans multiple lines is affected.\n3. The reporter's Python is 3.6 or later, since the example uses f-strings. The bug does not depend on the Python version.\n4. `repr(e)` and `e.value`, and the other public attributes of the info object (`type`, `tb`, `match()`, `getrepr()`, etc.), must keep their current behavior unless the chosen option says otherwise.\n5. Changing `str()` on a public object is a user-visible behavior change. It may require a deprecation period, or must land in a major release, under pytest's backward-compatibility policy.\n6. The many unrelated packages in the reporter's `pip list` (moto, boto, pandas, pytest-cov, etc.) do not affect this behavior.\n7. Other internal callers inside pytest may rely on the current `str()` output, for example in reporting or in `match()`. Those callers must be identified and kept working.\n\n## Tech Stack\n\n- Python (supported versions for the target pytest release: **unknown**)\n- pytest, reported against 4.6.2. The target version/branch for the change is **unknown**.\n- Relevant plugin/runtime deps from the report: pluggy 0.12.0, py 1.8.0. Their relevance is unconfirmed.\n\n## Commands\n\nThe issue gives no commands. All of the following are **unknown** and must come from the pytest repository's contributor docs or CI config:\n\n```\nBuild:  unknown\nTest:   unknown\nLint:   unknown\nDocs:   unknown\n```\n\n## Project Structure\n\nNot visible from the issue. **Unknown**:\n\n- Location of the `ExceptionInfo` implementation and its `__str__`/`__repr__`\n- Location of the `pytest.raises` implementation\n- Location of tests for `ExceptionInfo` / `pytest.raises`\n- Location of the user docs that describe `pytest.raises` and `excinfo.value`\n- Changelog mechanism, for example per-issue fragments (**unknown**)\n\n## Code Style\n\nThe repository's style is not visible. Follow the conventions of the existing pytest codebase and its configured formatter/linter, both **unknown**.\n\nThe behavior to pin down, using only the reporter's example:\n\n```python\n# Reference behavior (plain Python)\ntry:\n    raise LookupError(\"A\\nB\\nC\")\nexcept LookupError as exc:\n    assert str(exc) == \"A\\nB\\nC\"\n\n# Target behavior under Option A\nwith pytest.raises(LookupError) as e:\n    raise LookupError(\"A\\nB\\nC\")\nassert str(e) == str(e.value) == \"A\\nB\\nC\"\n\n# Target behavior under Option B\nwith pytest.raises(LookupError) as e:\n    raise LookupError(\"A\\nB\\nC\")\nassert str(e) == repr(e)          # not the message, not a truncated location line\nassert str(e.value) == \"A\\nB\\nC\"  # unchanged\n```\n\n## Testing Strategy\n\n- **Framework:** pytest's own test suite. The exact layout and invocation are **unknown**.\n- **Unit tests** on the exception-info object:\n  - A multi-line message with `str(e)` follows the chosen option.\n  - A single-line message with `str(e)` follows the chosen option. This is a regression guard for the common case.\n  - `str(e.value)` is unchanged for single- and multi-line messages.\n  - `repr(e)` is unchanged, unless Option B redefines what `str()` falls back to.\n  - An exception with an empty message, and a non-`str` argument such as `LookupError(42)`, behave consistently under the chosen option.\n- **Integration tests:**\n  - The `pytest.raises(..., match=...)` behavior is unchanged for multi-line messages.\n  - Failure reporting output for a test that raises is unchanged. This guards against internal callers of `str(excinfo)`.\n- **Deprecation tests (if a deprecation path is chosen):** calling `str()` on the info object emits the agreed warning type and text.\n- **Coverage expectation:** **unknown**, follow the project's existing policy. Every changed code path must be covered by a new or updated test.\n\n## Boundaries\n\n- **Always:**\n  - Keep `e.value` semantics exactly as they are.\n  - Add tests that reproduce the issue's example: multi-line message, `str()` on the context variable.\n  - Add a changelog entry and update the `pytest.raises` docs to state the `str()` behavior and recommend `str(e.value)` / `match=`.\n  - Run the full test suite before submitting.\n- **Ask first:**\n  - Which option to take (A, B, or keep and document only).\n  - Whether to ship with a deprecation warning first or as a direct change in a major release.\n  - Changing `repr()` of the info object.\n  - Changing any internal pytest code that consumes `str(excinfo)`.\n  - Adding dependencies.\n- **Never:**\n  - Change the exception object itself, or how exceptions are raised or caught.\n  - Silently change failure-report formatting as a side effect.\n  - Remove or weaken existing tests without approval.\n  - Backport a breaking behavior change to a maintenance branch without a maintainer decision.\n\n## Success Criteria\n\n1. For `pytest.raises(LookupError) as e` around `raise LookupError(\"A\\nB\\nC\")`, `str(e)` no longer returns `\"<location>: LookupError: A\"`. It returns either `\"A\\nB\\nC\"` (Option A) or `repr(e)` (Option B), per the decision.\n2. `str(e.value) == \"A\\nB\\nC\"` still holds.\n3. `match=` on multi-line messages behaves exactly as before.\n4. pytest's own failure/traceback output for raised exceptions is byte-identical to before, for the existing test cases in the suite.\n5. The documentation for `pytest.raises` explicitly describes what `str(e)` returns and points to `e.value` for the exception and its message.\n6. A changelog entry references this issue and describes the behavior change. If a deprecation is chosen, it also gives the deprecation timeline.\n7. All existing tests pass, and the new tests from the Testing Strategy pass.\n\n## Open Questions\n\n1. **Which fix should we make?** Option A (`str(e) == str(e.value)`), Option B (drop the custom `__str__` so `str()` falls back to `repr()`), or no code change, only clearer docs? Option A matches user intuition but makes the info object partially impersonate the exception. Option B removes the gotcha without implying equivalence.\n2. **Compatibility path:** must this go through a deprecation warning in a minor release first, or can it land directly in the next major release? Which release or branch is the target?\n3. Do any **internal pytest callers** or known plugins depend on the current `path:lineno: ExcType: first-line` output of `str(excinfo)`? If so, should they move to an explicit method rather than `str()`?\n4. Should the current location-style summary stay available through an explicitly named method for users who rely on it? Does such a method already exist on the object (**unknown**)?\n5. If Option A is chosen, should `repr(e)` also change, or stay as is?\n6. What are the repository's build, test, lint, and docs commands, and where do the relevant source, test, doc, and changelog files live? All are unknown from the issue.",
+ "ttft_ms": 4848,
+ "type": "result",
+ "duration_ms": 36954,
+ "uuid": "be3e2be7-85e7-4896-a32b-339116421b85",
+ "ttft_stream_ms": 1593,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 205,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 145,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1593,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

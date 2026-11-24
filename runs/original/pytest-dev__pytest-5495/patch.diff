@@ -1,0 +1,17 @@
+diff --git a/src/_pytest/assertion/util.py b/src/_pytest/assertion/util.py
+index 762e5761d..57c7a8234 100755
+--- a/src/_pytest/assertion/util.py
++++ b/src/_pytest/assertion/util.py
+@@ -128,7 +128,11 @@ def assertrepr_compare(config, op, left, right):
+             if istext(left) and istext(right):
+                 explanation = _diff_text(left, right, verbose)
+             else:
+-                if issequence(left) and issequence(right):
++                if (
++                    issequence(left)
++                    and issequence(right)
++                    and not (isinstance(left, bytes) and isinstance(right, bytes))
++                ):
+                     explanation = _compare_eq_sequence(left, right, verbose)
+                 elif isset(left) and isset(right):
+                     explanation = _compare_eq_set(left, right, verbose)

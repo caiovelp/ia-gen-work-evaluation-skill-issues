@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14908,
+ "stop_reason": "end_turn",
+ "session_id": "4b664630-202b-4015-95ad-34268fd3cce6",
+ "total_cost_usd": 0.039084900000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1341,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1409,
+  "output_tokens_details": {
+   "thinking_tokens": 239
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1341,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1409,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1341,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1341
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1554,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001689,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1409,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1341,
+   "webSearchRequests": 0,
+   "costUSD": 0.038916000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 239,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`lambdify` mistranslates expressions that contain an identity matrix. The generated code prints `Identity(n)` as `I`, and the lambdified function's globals bind `I` to Python's complex number `1j`. As a result, adding `Identity(n)` to a matrix argument adds `1j` to every element instead of adding the identity matrix.\n\n## Steps to reproduce\n\n1. Import NumPy and SymPy (`symbols`, `MatrixSymbol`, `Identity`, `lambdify`).\n2. Define an integer symbol `n = symbols('n', integer=True)`.\n3. Define a square matrix symbol `A = MatrixSymbol(\"A\", n, n)`.\n4. Create a NumPy array `a = np.array([[1, 2], [3, 4]])`.\n5. Lambdify the expression `A + Identity(n)` with `A` as the argument: `f = lambdify(A, A + Identity(n))`.\n6. Call `f(a)` and look at the result.\n7. Optionally, inspect the generated source with `inspect.getsource(f)` and the value of `f.__globals__['I']`.\n\n## Observed behavior\n\n`f(a)` returns `1j` added to every element:\n\n```python\narray([[1.+1.j, 2.+1.j],\n       [3.+1.j, 4.+1.j]])\n```\n\nThe generated source shows that `Identity(n)` was printed as `I`:\n\n```python\ndef _lambdifygenerated(A):\n    return (I + A)\n```\n\nIn the function's globals, `I` is the complex number `1j`:\n\n```python\n>>> f.__globals__['I']\n1j\n```\n\n## Expected behavior\n\n`f(a)` should add the identity matrix to the array and return:\n\n```python\narray([[2, 2], [3, 5]])\n```\n\nThe reporter also states that the code printer should support identity matrices. For unsupported expressions that could be misinterpreted, it should raise an error instead of silently producing wrong code.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the function silently returns a wrong result.\n\n## Test case\n\nMinimal test based on the reproduction in the report. The SymPy import line is not shown in the report and is assumed here.\n\n```python\nimport numpy as np\nfrom sympy import symbols, MatrixSymbol, Identity, lambdify\n\nn = symbols('n', integer=True)\nA = MatrixSymbol(\"A\", n, n)\na = np.array([[1, 2], [3, 4]])\n\nf = lambdify(A, A + Identity(n))\n\n# Expected per the report: array([[2, 2], [3, 5]])\nassert (f(a) == np.array([[2, 2], [3, 5]])).all()\n```\n\n## Code example\n\nFrom the original report:\n\n```python\n>>> import numpy as np\n>>> n = symbols('n', integer=True)\n>>> A = MatrixSymbol(\"A\", n, n)\n>>> a = np.array([[1, 2], [3, 4]])\n>>> f = lambdify(A, A + Identity(n))\n>>> f(a)\narray([[1.+1.j, 2.+1.j],\n       [3.+1.j, 4.+1.j]])\n```\n\n```python\n>>> import inspect\n>>> print(inspect.getsource(f))\ndef _lambdifygenerated(A):\n    return (I + A)\n>>> f.__globals__['I']\n1j\n```\n\n## Version and environment\n\nNot provided in the original report. The report shows the code uses SymPy (`lambdify`, `MatrixSymbol`, `Identity`) with NumPy.",
+ "ttft_ms": 5817,
+ "type": "result",
+ "duration_ms": 14476,
+ "uuid": "7fa39ca7-a087-45b2-b721-6ef5e5fd4678",
+ "ttft_stream_ms": 3110,
+ "time_to_request_ms": 310,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 15,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 23,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 219,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 12,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 25,
+ "time_to_request_cpu_ms": 305,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 10,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 3111,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

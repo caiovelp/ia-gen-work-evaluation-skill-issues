@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26239,
+ "stop_reason": "end_turn",
+ "session_id": "9d779a03-1ad5-49c1-b44c-7106751d362b",
+ "total_cost_usd": 0.07895350000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 3310,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2560,
+  "output_tokens_details": {
+   "thinking_tokens": 112
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3310,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2560,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 3310,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3310
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3897,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0004027,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2560,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 3310,
+   "webSearchRequests": 0,
+   "costUSD": 0.0785508,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 112,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Assertion rewriting must not treat a non-string leading constant as a module docstring\n\n## Objective\n\nWhen pytest's assertion rewriter processes a test module whose first statement is an expression with a numeric constant (for example a bare `0` or `123`), collection fails with:\n\n```\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:695: in run\n    if self.is_rewrite_disabled(doc):\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:760: in is_rewrite_disabled\n    return \"PYTEST_DONT_REWRITE\" in docstring\nE   TypeError: argument of type 'int' is not iterable\n```\n\nThe rewriter takes the value of the module's first expression statement as the docstring and checks it for the `PYTEST_DONT_REWRITE` marker. It does this even when the value is not a string. Python itself only treats a string literal as a module docstring. A numeric constant is an ordinary expression statement.\n\n**Users:** anyone whose test modules start with a non-string constant expression. Such modules may be generated, legacy, or written that way by accident. The reporter hit this while running `pytest -k xxx` over a large suite.\n\n**Goal:** these modules collect and run normally, with assertion rewriting applied as usual. Only a real string docstring can disable rewriting through `PYTEST_DONT_REWRITE`.\n\n**Acceptance criteria:**\n- A test module whose first statement is an integer literal is collected without error, and its tests run.\n- In that module, `assert` statements are still rewritten and give pytest's detailed assertion failure output.\n- A module whose real string docstring contains `PYTEST_DONT_REWRITE` still has rewriting disabled.\n- A module with a normal string docstring that lacks the marker is still rewritten.\n\n## Assumptions\n\n1. The bug is in pytest's assertion rewriting module (`_pytest/assertion/rewrite.py`), specifically in `AssertionRewriter.run` and `is_rewrite_disabled`, as the traceback shows.\n2. The reporter is on pytest 7.4.0 and Python 3.8, according to the pip output and the traceback paths. The defect probably also exists on the current main branch, but that is not verified.\n3. The trigger is a module whose first statement is a numeric constant expression. The reporter did not provide the file contents, so this is inferred from the error and the title.\n4. Other non-string constants in docstring position may hit the same code path. Examples are floats, complex numbers, `None`, `True`/`False`, `...`, and bytes. Most of these would fail the same way, and bytes would be checked with incorrect semantics. All of them should be treated as \"not a docstring\".\n5. `-k` is incidental. Any collection of the affected module triggers the error.\n6. The operating system is not stated. Paths suggest Linux (`/usr/local/lib/python3.8`), but `pywinauto` and `comtypes` are installed. The bug is assumed to be OS-independent.\n7. The non-ASCII directory names in the test path are unrelated to the bug.\n\n## Tech Stack\n\n- Language: Python. The reporter uses 3.8; the set of supported Python versions in the target branch is unknown.\n- Project: pytest, using the `ast` module from the standard library.\n- Reported version: pytest 7.4.0.\n- Other dependencies: unknown and not relevant to this fix.\n\n## Commands\n\nUnknown, since there is no repository access. The following need to be filled in from the repository:\n- Test: unknown (likely an invocation of pytest's own test suite on the assertion-rewrite tests)\n- Lint: unknown\n- Build: unknown\n- Changelog entry procedure: unknown\n\n## Project Structure\n\nOnly what the traceback shows is known:\n- `_pytest/assertion/rewrite.py` \u2192 assertion rewriter (`AssertionRewriter.run`, `is_rewrite_disabled`, `_rewrite_test`, `rewrite_asserts`)\n- `_pytest/python.py`, `_pytest/runner.py`, `_pytest/pathlib.py` \u2192 collection and import path (context only, should not need changes)\n\nThese locations are unknown: the test file for assertion rewriting, and the changelog directory or format.\n\n## Code Style\n\nUnknown. Follow the existing conventions in `_pytest/assertion/rewrite.py`. No snippet can be shown without repository access.\n\n## Testing Strategy\n\n- Framework: pytest's own test suite (exact file and location unknown).\n- Add regression tests at the level of the assertion rewriter:\n  - Module source starting with an integer constant expression. Expect rewriting to succeed with no exception, and asserts to be rewritten.\n  - Optionally, parametrize over other non-string constants in first position (float, `None`, `True`, `...`, bytes).\n  - Keep or confirm existing tests for a string docstring with `PYTEST_DONT_REWRITE` (rewrite disabled) and a string docstring without it (rewrite enabled).\n- Optionally add an integration-level test: a test file starting with a number is collected and passes or fails with rewritten assertion output.\n- Coverage expectations: unknown. At minimum, the new branch must be covered.\n\n## Boundaries\n\n- **Always:** keep `PYTEST_DONT_REWRITE` behavior unchanged for real string docstrings. Add a regression test that reproduces the `TypeError`. Follow existing code style and changelog conventions.\n- **Ask first:** changing the signature or public behavior of `is_rewrite_disabled`, which plugins might call. Changing how docstrings are detected beyond the \"must be a string\" rule. Changing the supported Python versions.\n- **Never:** disable rewriting for modules that start with non-string constants. Swallow the exception without fixing the detection. Change unrelated collection or import logic.\n\n## Success Criteria\n\n- Collecting a module whose first statement is `0` (or any integer literal) no longer raises `TypeError` and produces no collection error.\n- Tests in that module run, and a failing `assert` shows rewritten, introspected output.\n- Behavior is unchanged for modules with a real string docstring, with or without `PYTEST_DONT_REWRITE`, and for modules with no docstring.\n- New regression tests fail before the change and pass after it.\n- The full existing assertion-rewrite test suite passes.\n\n## Open Questions\n\n1. Can the reporter share the first lines of `test_socks_user_011.py` to confirm what the leading expression is: an integer, another constant, or something else?\n2. Does the defect reproduce on the current main branch, or only on 7.4.0? Which branches should get the fix (backport policy)?\n3. Should every non-string constant in docstring position be handled (float, `None`, bool, `...`, bytes), or only the reported int case? The recommendation is all of them.\n4. Should a bytes constant in first position be explicitly treated as \"not a docstring\", given that `\"PYTEST_DONT_REWRITE\" in b\"...\"` raises a different `TypeError`?\n5. Is `is_rewrite_disabled` considered public API? Should it also defend against non-string input, or should only the caller filter?\n6. What are the project's exact test and lint commands, its changelog format, and the location of the assertion-rewrite tests?",
+ "ttft_ms": 3225,
+ "type": "result",
+ "duration_ms": 25557,
+ "uuid": "80f920e8-1945-4c19-a02b-84b1bfeaa426",
+ "ttft_stream_ms": 2071,
+ "time_to_request_ms": 304,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 18,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 238,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 310,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2071,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

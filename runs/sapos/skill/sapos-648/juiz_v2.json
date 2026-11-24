@@ -1,0 +1,1 @@
+{"comportamentos": ["restore :scholarship as the first column of config.subform.columns in ScholarshipDurationsController, so the field is shown and accepted on save in the Matrícula subform: present"], "justificativa": "The candidate patch makes the same code change as the official fix and differs only in the explanatory comment.", "veredito": "resolve"}

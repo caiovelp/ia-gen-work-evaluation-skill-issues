@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 5570,
+ "stop_reason": "end_turn",
+ "session_id": "e82f09ca-e996-4f03-a645-dcf53e29b85e",
+ "total_cost_usd": 0.0167868,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1066,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 400,
+  "output_tokens_details": {
+   "thinking_tokens": 103
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1066,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 400,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1066,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1066
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1238,
+   "outputTokens": 254,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002508,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 235,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 400,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1066,
+   "webSearchRequests": 0,
+   "costUSD": 0.016536000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 103,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1066,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nPermitir que membros do comit\u00ea vejam as notas individuais atribu\u00eddas pelos outros membros do comit\u00ea.\n\n## Descri\u00e7\u00e3o\nAtualmente, os membros do comit\u00ea n\u00e3o veem as notas individuais dos demais membros. A solicita\u00e7\u00e3o \u00e9 que um membro do comit\u00ea possa visualizar essas notas. Pela solu\u00e7\u00e3o proposta, essa visibilidade deve ser opcional e configur\u00e1vel, e n\u00e3o um comportamento fixo.\n\n## Vers\u00e3o do produto\nN\u00e3o informado na issue original.\n\n## Justificativa\nA funcionalidade foi solicitada pela Raquel, do PPGEET. A issue n\u00e3o explica por que o comit\u00ea precisa ver as notas dos outros membros.\n\n## Caso de uso ou cen\u00e1rio\nN\u00e3o informado na issue original.\n\n## Poss\u00edvel solu\u00e7\u00e3o\nAdicionar \u00e0 fase uma configura\u00e7\u00e3o que define se as notas individuais dos outros membros do comit\u00ea s\u00e3o exibidas ou n\u00e3o.",
+ "ttft_ms": 1988,
+ "type": "result",
+ "duration_ms": 4332,
+ "uuid": "a4e9019b-14cf-4348-8a9d-b5fd6e51cf3f",
+ "ttft_stream_ms": 918,
+ "time_to_request_ms": 293,
+ "time_to_request_phases_ms": {
+  "other": 4,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "conversation_append": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "init_frame_send": 4,
+  "engine_pickup": 1,
+  "loop_entry": 3,
+  "message_prep": 1,
+  "model_config_wait": 249,
+  "autocompact": 1,
+  "request_announcements": 4,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 237,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 2,
+  "ambient_wait_ms": 1,
+  "render_ms": 1,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 0,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 0,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 919,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

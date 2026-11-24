@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10096,
+ "stop_reason": "end_turn",
+ "session_id": "c440555b-f5b8-41f0-a625-a173ca99d238",
+ "total_cost_usd": 0.033726099999999995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1581,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1044,
+  "output_tokens_details": {
+   "thinking_tokens": 171
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1581,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1044,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1581,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1581
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1791,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001901,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1044,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1581,
+   "webSearchRequests": 0,
+   "costUSD": 0.033535999999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 171,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`parse_mathematica` in `sympy.parsing.mathematica` cannot parse Greek characters such as `\u03bb`, and possibly other non-ASCII characters. It raises `SyntaxError: unable to create a single AST for the expression`. The deprecated `mathematica` function in the same module parses the same input without error. Since SymPy 1.11, `parse_mathematica` replaces `mathematica`, so this is a regression for users who migrate.\n\n## Steps to reproduce\n\n1. Install SymPy 1.11.\n2. Run the following in Python:\n   ```python\n   from sympy.parsing.mathematica import parse_mathematica\n   parse_mathematica('\u03bb')\n   ```\n3. For comparison, run the deprecated parser on the same input:\n   ```python\n   from sympy.parsing.mathematica import mathematica\n   mathematica('\u03bb')\n   ```\n\n## Observed behavior\n\n- `parse_mathematica('\u03bb')` raises `SyntaxError: unable to create a single AST for the expression`.\n- `mathematica('\u03bb')` (deprecated) returns `\u03bb`.\n\n## Expected behavior\n\n`parse_mathematica('\u03bb')` should parse the Greek character successfully and return `\u03bb`, as the deprecated `mathematica('\u03bb')` does.\n\n## Stack trace / error output\n\nFrom the report (the traceback was truncated by the reporter):\n```\nTraceback (most recent call last):\n...\nFile \"<string>\", line unknown\nSyntaxError: unable to create a single AST for the expression\n```\n\nOutput of the deprecated parser for the same input:\n```\nOut[]: \n\u03bb\n```\n\n## Test case\n\nMinimal test derived from the reproduction snippet. It checks that the new parser accepts the input and agrees with the deprecated parser:\n```python\nfrom sympy.parsing.mathematica import mathematica, parse_mathematica\n\ndef test_parse_mathematica_greek_character():\n    # Currently raises SyntaxError: unable to create a single AST for the expression\n    assert parse_mathematica('\u03bb') == mathematica('\u03bb')\n```\n\n## Code example\n\nDeprecated parser (works):\n```python\nfrom sympy.parsing.mathematica import mathematica\nmathematica('\u03bb')\n# \u03bb\n```\n\nNew parser (fails):\n```python\nfrom sympy.parsing.mathematica import parse_mathematica\nparse_mathematica('\u03bb')\n# SyntaxError: unable to create a single AST for the expression\n```\n\n## Version and environment\n\n- SymPy 1.11 (the version in which `mathematica` was deprecated in favor of `parse_mathematica`)\n- Python version, OS and other environment details: Not provided in the original report.",
+ "ttft_ms": 3214,
+ "type": "result",
+ "duration_ms": 9559,
+ "uuid": "c1174ab3-aaeb-4d41-ad36-2a02ba943421",
+ "ttft_stream_ms": 1452,
+ "time_to_request_ms": 236,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 198,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 33,
+ "time_to_request_cpu_ms": 190,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1452,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

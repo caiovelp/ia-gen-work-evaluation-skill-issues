@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8324,
+ "stop_reason": "end_turn",
+ "session_id": "ada8ade7-2dc5-47c9-b02e-42dbee0b6ada",
+ "total_cost_usd": 0.026189499999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1371,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 752,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1371,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 752,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1371,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1371
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1600,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017350000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 752,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1371,
+   "webSearchRequests": 0,
+   "costUSD": 0.026015999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAllow `QuerySet.bulk_create()` to return primary keys (IDs) when `update_conflicts` is used.\n\n## Description\nAt present, `bulk_create()` does not set primary keys on the returned objects when a conflict-handling flag is enabled (`ignore_conflicts` or `update_conflicts`). This behavior is documented for `bulk_create`.\n\nThe reporter accepts that `ignore_conflicts` is a special case. When a row is ignored, PostgreSQL may not return its ID (a Stack Overflow thread is referenced). That reason does not hold for `update_conflicts`.\n\nExample:\n\n```python\nMyModel.objects.bulk_create([MyModel(...)], update_conflicts=True, update_fields=[...], unique_fields=[...])\n```\n\nThis generates a query without a `RETURNING my_model.id` clause:\n\n```sql\nINSERT INTO \"my_model\" (...)\nVALUES (...)\n\tON CONFLICT(...) DO UPDATE ...\n```\n\nThe reporter tested this manually on PostgreSQL. With `RETURNING my_model.id` added, the query is valid and returns the ID.\n\nThe reporter also found the place in the Django source where `returning_fields` is removed when conflict handling is enabled. The original request links to it but does not quote the code.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nUsing `bulk_create` as a bulk upsert is much more useful if the IDs of the inserted or updated rows come back. With `update_conflicts`, every row is either inserted or updated, so the reason for dropping IDs under `ignore_conflicts` does not apply. PostgreSQL also accepts a `RETURNING` clause on such a query.\n\n## Use case or scenario\nA developer calls `bulk_create()` with `update_conflicts=True`, `update_fields` and `unique_fields` to perform a bulk upsert. Afterwards they need the primary keys of the affected objects. Right now those primary keys are not set.\n\n## Possible solution\nHandle the two conflict modes differently in the code that currently removes `returning_fields`. Keep `returning_fields`, and so the `RETURNING` clause, when `update_conflicts` is used. Keep dropping them for `ignore_conflicts`.",
+ "ttft_ms": 7755,
+ "type": "result",
+ "duration_ms": 7779,
+ "uuid": "12475536-cfa5-4ba3-9a8b-335aeb351fa3",
+ "ttft_stream_ms": 1457,
+ "time_to_request_ms": 222,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 187,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 209,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1458,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

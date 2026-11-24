@@ -1,0 +1,48 @@
+diff --git a/app/models/professor.rb b/app/models/professor.rb
+index 40ce8f8e..f666d2cd 100644
+--- a/app/models/professor.rb
++++ b/app/models/professor.rb
+@@ -44,6 +44,7 @@ class Professor < ApplicationRecord
+   validate :changed_to_different_user
+ 
+   before_destroy :handle_user_role_removal
++  after_update :propagate_name_to_user, if: :saved_change_to_name?
+ 
+   ADVISEMENT_POINTS_OF_LEVEL_PATTERN =
+     /\Aadvisement_points_of_level(\d+)(_order)?\z/
+@@ -143,6 +144,11 @@ class Professor < ApplicationRecord
+   end
+ 
+   private
++    def propagate_name_to_user
++      return if user.blank?
++      user.update_column(:name, name) if user.name != name
++    end
++
+     def handle_user_role_removal
+       return unless user.present?
+ 
+diff --git a/app/models/student.rb b/app/models/student.rb
+index ef23dc6b..c1b2c235 100644
+--- a/app/models/student.rb
++++ b/app/models/student.rb
+@@ -40,6 +40,7 @@ class Student < ApplicationRecord
+   accepts_nested_attributes_for :student_majors, allow_destroy: true
+ 
+   before_save :set_birth_state_by_birth_city
++  after_update :propagate_name_to_user, if: :saved_change_to_name?
+ 
+   def has_user?
+     return true unless self.user_id.nil?
+@@ -110,6 +111,11 @@ class Student < ApplicationRecord
+     end
+ 
+   private
++    def propagate_name_to_user
++      return if user.blank?
++      user.update_column(:name, name) if user.name != name
++    end
++
+     def handle_user_role_removal
+       return unless user.present?
+ 

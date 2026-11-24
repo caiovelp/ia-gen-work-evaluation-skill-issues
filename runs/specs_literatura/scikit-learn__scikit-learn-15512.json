@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14509,
+ "stop_reason": "end_turn",
+ "session_id": "8ae2a28d-8944-4a5e-8761-97911acda382",
+ "total_cost_usd": 0.0427132,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1762,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1420,
+  "output_tokens_details": {
+   "thinking_tokens": 183
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1762,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1420,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1762,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1762
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1972,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002092,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1420,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1762,
+   "webSearchRequests": 0,
+   "costUSD": 0.042504,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 183,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`AffinityPropagation` does not return the documented values when it does not converge. The documentation says: \"When the algorithm does not converge, it returns an empty array as cluster_center_indices and -1 as label for each training sample.\" In the example below the algorithm does not converge (`max_iter=2`), yet it returns a cluster center and non-negative labels. The only way the reporter has found to detect non-convergence is the `verbose` option, which is inconvenient in a larger script. Checking `max_iter == n_iter_` is unreliable. Without a reliable signal, a user may not know the clustering never converged. The reporter is unsure whether the behavior or the documentation is wrong.\n\n## Steps to reproduce\n\n1. Create a pandas DataFrame with three samples: `[[1,0,0,0,0,0],[0,1,1,1,0,0],[0,0,1,0,0,1]]`.\n2. Fit `AffinityPropagation(affinity='euclidean', verbose=True, copy=False, max_iter=2)` on it. With `max_iter=2`, the algorithm does not converge.\n3. Print `af.cluster_centers_indices_` and `af.labels_`.\n\n## Observed behavior\n\n- `cluster_centers_indices_` is `[2]`.\n- `labels_` is `[0, 0, 0]`.\n\nNothing in the returned attributes shows that the clustering did not converge.\n\n## Expected behavior\n\nAs documented for the non-converged case:\n\n- `cluster_centers_indices_` is an empty array.\n- `labels_` is `[-1, -1, -1]`.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised. The verbose output is not included in the report.\n\n## Test case\n\nMinimal test derived from the reporter's example and the documented behavior:\n\n```python\nfrom sklearn.cluster import AffinityPropagation\nimport pandas as pd\n\ndef test_affinity_propagation_non_convergence_return_values():\n    data = pd.DataFrame([[1,0,0,0,0,0],[0,1,1,1,0,0],[0,0,1,0,0,1]])\n    af = AffinityPropagation(affinity='euclidean', verbose=True, copy=False, max_iter=2).fit(data)\n\n    # Documented: empty array of cluster center indices and -1 labels when not converged\n    assert len(af.cluster_centers_indices_) == 0\n    assert list(af.labels_) == [-1, -1, -1]\n```\n\n## Code example\n\n```python\nfrom sklearn.cluster import AffinityPropagation\nimport pandas as pd\n\ndata = pd.DataFrame([[1,0,0,0,0,0],[0,1,1,1,0,0],[0,0,1,0,0,1]])\naf = AffinityPropagation(affinity='euclidean', verbose=True, copy=False, max_iter=2).fit(data)\n\nprint(af.cluster_centers_indices_)\nprint(af.labels_)\n```\n\n## Version and environment\n\n- OS / machine: Linux-4.15.0-52-generic-x86_64-with-debian-stretch-sid\n- Python: 3.6.7 | packaged by conda-forge | (default, Nov 21 2018, 02:32:25) [GCC 4.8.2 20140120 (Red Hat 4.8.2-15)]\n- BLAS: MKL (`SCIPY_MKL_H=None, HAVE_CBLAS=None`; cblas_libs: `mkl_rt, pthread`)\n- sklearn: 0.20.3\n- numpy: 1.15.4\n- scipy: 1.2.0\n- pandas: 0.23.4\n- Cython: 0.29.2\n- pip: 18.1\n- setuptools: 40.6.3",
+ "ttft_ms": 4529,
+ "type": "result",
+ "duration_ms": 13409,
+ "uuid": "2516325c-1545-4ed1-9255-572a0678ca45",
+ "ttft_stream_ms": 2416,
+ "time_to_request_ms": 298,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 254,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 229,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2416,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

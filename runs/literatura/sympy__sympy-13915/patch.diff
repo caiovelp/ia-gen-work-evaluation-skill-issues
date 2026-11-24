@@ -1,0 +1,16 @@
+diff --git a/sympy/core/mul.py b/sympy/core/mul.py
+index 4f01eeedb..ecba80b39 100755
+--- a/sympy/core/mul.py
++++ b/sympy/core/mul.py
+@@ -391,6 +391,11 @@ def _gather(c_powers):
+             return new_c_powers
+ 
+         # in c_powers
++        # an undefined base (e.g. zoo + x) can't cancel against itself
++        for b, e in c_powers:
++            if b.is_Add and b.has(S.ComplexInfinity) and \
++                    sum(ee for bb, ee in c_powers if bb == b) == 0:
++                return [S.NaN], [], None
+         c_powers = _gather(c_powers)
+ 
+         # and in num_exp

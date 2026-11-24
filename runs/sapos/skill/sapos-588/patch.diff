@@ -1,0 +1,81 @@
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index b776311e..954dd50c 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -262,13 +262,15 @@ class Ability
+     if roles[Role::ROLE_ALUNO]
+       can :assertion_pdf, Assertion
+       can :generate_assertion, Assertion do |assertion, matricula_aluno|
+-        assertion.student_can_generate && matricula_aluno.in?(user.student.enrollments.pluck(:enrollment_number))
++        assertion.student_can_generate &&
++          matricula_aluno.in?(user.student.enrollments.pluck(:enrollment_number)) &&
++          !Ability.avulso_enrollment_number?(matricula_aluno)
+       end
+     end
+     if roles[Role::ROLE_PROFESSOR]
+       can :assertion_pdf, Assertion
+-      can :generate_assertion, Assertion do |assertion|
+-        assertion.student_can_generate
++      can :generate_assertion, Assertion do |assertion, matricula_aluno|
++        assertion.student_can_generate && !Ability.avulso_enrollment_number?(matricula_aluno)
+       end
+     end
+     cannot [:destroy, :update, :create], NotificationLog
+@@ -304,5 +306,19 @@ class Ability
+     else
+       cannot [:show, :enroll, :save_enroll], :student_enrollment
+     end
++
++    # Only managers may issue documents for "avulso" students
++    unless roles[:manager]
++      cannot [:academic_transcript_pdf, :grades_report_pdf], Enrollment do |enrollment|
++        enrollment.avulso?
++      end
++    end
++  end
++
++  def self.avulso_enrollment_number?(enrollment_number)
++    return false if enrollment_number.blank?
++    Enrollment.joins(:enrollment_status)
++      .where(enrollment_number: enrollment_number, enrollment_statuses: { name: Enrollment::AVULSO_STATUS_NAME })
++      .exists?
+   end
+ end
+diff --git a/app/models/enrollment.rb b/app/models/enrollment.rb
+index 7c32a046..6e52149d 100644
+--- a/app/models/enrollment.rb
++++ b/app/models/enrollment.rb
+@@ -57,6 +57,12 @@ class Enrollment < ApplicationRecord
+   month_year_date :admission_date
+ 
+ 
++  AVULSO_STATUS_NAME = "Avulso"
++
++  def avulso?
++    enrollment_status&.name == AVULSO_STATUS_NAME
++  end
++
+   def to_label
+     return enrollment_number if student.nil?
+     "#{enrollment_number} - #{student.name}"
+diff --git a/app/views/enrollments/_show_documents_table.html.erb b/app/views/enrollments/_show_documents_table.html.erb
+index d631324f..688eab60 100644
+--- a/app/views/enrollments/_show_documents_table.html.erb
++++ b/app/views/enrollments/_show_documents_table.html.erb
+@@ -13,6 +13,8 @@
+   </thead>
+   <tbody class="records">
+   <% count = 0 %>
++  <% allowed_assertions = allowed_assertions.select { |a| can?(:generate_assertion, a, enrollment.enrollment_number) } %>
++  <% if can?(:grades_report_pdf, enrollment) %>
+   <tr class="record">
+     <td><%= t("pdf_content.enrollment.grades_report.link") %></td>
+     <% if can? :override_report_signature_type, Enrollment %>
+@@ -23,6 +25,7 @@
+       <td><%= link_to "Gerar", grades_report_pdf_enrollment_path(id: enrollment.id, format: :pdf), target: "_blank", method: :get %></td>
+     <% end %>
+   </tr>
++  <% end %>
+   <% if can?(:academic_transcript_pdf, enrollment) %>
+     <tr class="record">
+       <td><%= t("pdf_content.enrollment.academic_transcript.link") %></td>

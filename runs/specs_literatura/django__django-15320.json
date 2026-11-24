@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15828,
+ "stop_reason": "end_turn",
+ "session_id": "6ba92dd0-ce46-49c9-985e-331a8d555bf5",
+ "total_cost_usd": 0.044285000000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1356,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1663,
+  "output_tokens_details": {
+   "thinking_tokens": 372
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1356,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1663,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1356,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1356
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1565,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016900000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1663,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1356,
+   "webSearchRequests": 0,
+   "costUSD": 0.044116,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 372,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`Subquery.as_sql()` generates invalid SQL. Instead of wrapping the inner query in parentheses, it strips the first and last characters of the SQL and then adds the parentheses. For example, `SELECT ... \"apps_app\"` becomes `(ELECT ... \"apps_app)`. The reporter says this regression started with a specific commit, but the original text does not identify that commit. The output is correct when `Subquery(...).query.subquery` is set to `True` before calling `as_sql()`.\n\n## Steps to reproduce\n\n1. Use a model `App` (in an app named `apps`) whose table `apps_app` has the columns `id` and `name`.\n2. Create a subquery: `q = Subquery(App.objects.all())`.\n3. Print `str(q.query)`. The SQL is valid.\n4. Call `q.as_sql(q.query.get_compiler('default'), connection)` and inspect the returned SQL.\n5. For comparison, set `q.query.subquery = True` and call `as_sql()` again.\n\n## Observed behavior\n\n- `str(q.query)` returns valid SQL:\n  `'SELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app\"'`\n- `q.as_sql(...)` returns invalid SQL. The leading `S` and the trailing `\"` are missing:\n  `('(ELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app)', ())`\n- After `q.query.subquery = True` is set, `q.as_sql(...)` returns the correct result:\n  `('(SELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app\")', ())`\n\n## Expected behavior\n\n`Subquery.as_sql()` should return the complete inner SQL wrapped in parentheses, without requiring `query.subquery` to be set manually:\n\n`('(SELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app\")', ())`\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the problem is the malformed SQL string shown above.\n\n## Test case\n\nThis minimal test case is derived from the reporter's snippet. It assumes the `App` model described in the report.\n\n```python\nfrom django.db import connection\nfrom django.db.models import Subquery\nfrom apps.models import App\n\nq = Subquery(App.objects.all())\nsql, params = q.as_sql(q.query.get_compiler('default'), connection)\n\n# Expected (currently fails: actual is '(ELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app)')\nassert sql == '(SELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app\")'\nassert params == ()\n```\n\n## Code example\n\nThis is the reporter's original snippet. It uses `Subquery` but does not show where it is imported from.\n\n```python\nfrom django.db import connection\nfrom apps.models import App\n\nq = Subquery(App.objects.all())\nprint(str(q.query))\n# Output SQL is valid:\n# 'SELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app\"'\n\nprint(q.as_sql(q.query.get_compiler('default'), connection))\n# Output SQL is invalid (no S letter at the beginning and \" symbol at the end):\n# ('(ELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app)', ())\n\nq.query.subquery = True\nprint(q.as_sql(q.query.get_compiler('default'), connection))\n# Outputs correct result\n# ('(SELECT \"apps_app\".\"id\", \"apps_app\".\"name\" FROM \"apps_app\")', ())\n```\n\n## Version and environment\n\nNot provided in the original report. The reporter says the behavior is a regression introduced by a specific commit, but the commit is not identified in the text. The Django version, database backend, and Python version are not stated.",
+ "ttft_ms": 5782,
+ "type": "result",
+ "duration_ms": 15120,
+ "uuid": "d8cfab74-9e43-4c5c-8e1f-fbe123d0a0af",
+ "ttft_stream_ms": 1490,
+ "time_to_request_ms": 258,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 222,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 138,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1491,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

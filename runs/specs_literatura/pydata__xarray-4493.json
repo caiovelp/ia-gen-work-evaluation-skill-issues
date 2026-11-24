@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22047,
+ "stop_reason": "end_turn",
+ "session_id": "1e795f7b-85b4-4d00-9192-347ba7b984a1",
+ "total_cost_usd": 0.0691673,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2068,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2611,
+  "output_tokens_details": {
+   "thinking_tokens": 168
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2068,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2611,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2068,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2068
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2278,
+   "outputTokens": 335,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003953,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 312,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2611,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2068,
+   "webSearchRequests": 0,
+   "costUSD": 0.068772,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 168,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWrapping a dask-backed (chunked) `DataArray` in a `(dims, data)` tuple, either in `Dataset.update` or in the `Dataset` constructor, makes xarray compute the dask array eagerly. The resulting variable holds a `numpy.ndarray` instead of a dask array, so it is no longer chunked. This report merges two issues that show the same behavior:\n\n1. `Dataset.update` with a `{\"name\": (dims, chunked_DataArray)}` mapping loses chunking.\n2. `xr.Dataset(dict(a=(dims, chunked_DataArray)))` loses chunking. The reporter asks whether this is intentional, e.g. why `xr.Dataset(dict(a=('d0', xr.DataArray(da.random.random(10)))))` causes the dask array to compute.\n\nPassing the chunked `DataArray` directly, without a `(dims, ...)` tuple, keeps it lazy.\n\n## Steps to reproduce\n\n**Scenario A: `Dataset.update`**\n\n1. Create a chunked DataArray: `foo = xr.DataArray(np.random.randn(3, 3), dims=(\"x\", \"y\")).chunk()`.\n2. Build a Dataset from it: `ds = xr.Dataset({\"foo\": foo, \"bar\": (\"x\", [1, 2, 3])})`. Inspect `ds`. `foo` is chunked.\n3. Build an update mapping that uses tuples: `update_dict = {\"foo\": ((\"x\", \"y\"), ds.foo[1:, :]), \"bar\": (\"x\", ds.bar[1:])}`. `update_dict[\"foo\"][1]` is still chunked.\n4. Call `ds.update(update_dict)`.\n5. Inspect `ds`. `foo` is no longer chunked.\n\n**Scenario B: `Dataset` constructor**\n\n1. Create a dask array: `x = da.random.randint(1, 10, size=(100, 25))`.\n2. Build a Dataset by passing the DataArray directly: `ds = xr.Dataset(dict(a=xr.DataArray(x, dims=('x', 'y'))))`. `type(ds.a.data)` is `dask.array.core.Array`.\n3. Build a second Dataset from the same DataArray, wrapped in a tuple that redefines the dimensions: `ds2 = xr.Dataset(dict(a=(('x', 'y'), ds.a)))`.\n4. Check `type(ds2.a.data)`. It is `numpy.ndarray`.\n\n## Observed behavior\n\n- Scenario A: after `ds.update(update_dict)`, `ds.foo` is no longer chunked. Its dask values have been evaluated eagerly.\n- Scenario B: `type(ds2.a.data)` is `numpy.ndarray`. The dask array was computed when the Dataset was constructed.\n\n## Expected behavior\n\n- Scenario A: `ds.foo` should still be chunked (dask-backed) after `Dataset.update`.\n- Scenario B: `ds2.a.data` should still be a dask array, as it is for `ds.a.data`. Constructing a Dataset should not trigger computation.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised. The problem is silent eager computation. Output from the report:\n\n```\n>>> type(ds.a.data)\ndask.array.core.Array\n>>> type(ds2.a.data)\nnumpy.ndarray\n```\n\n## Test case\n\nMinimal checks derived from the report's snippets (imports added for completeness):\n\n```python\nimport numpy as np\nimport dask.array as da\nimport xarray as xr\n\n\ndef test_update_preserves_chunks():\n    foo = xr.DataArray(np.random.randn(3, 3), dims=(\"x\", \"y\")).chunk()\n    ds = xr.Dataset({\"foo\": foo, \"bar\": (\"x\", [1, 2, 3])})\n    assert isinstance(ds.foo.data, da.Array)\n\n    update_dict = {\"foo\": ((\"x\", \"y\"), ds.foo[1:, :]), \"bar\": (\"x\", ds.bar[1:])}\n    assert isinstance(update_dict[\"foo\"][1].data, da.Array)\n\n    ds.update(update_dict)\n    assert isinstance(ds.foo.data, da.Array)  # fails: foo is no longer chunked\n\n\ndef test_constructor_with_dims_tuple_preserves_dask():\n    x = da.random.randint(1, 10, size=(100, 25))\n    ds = xr.Dataset(dict(a=xr.DataArray(x, dims=(\"x\", \"y\"))))\n    assert isinstance(ds.a.data, da.Array)\n\n    ds2 = xr.Dataset(dict(a=((\"x\", \"y\"), ds.a)))\n    assert isinstance(ds2.a.data, da.Array)  # fails: data is numpy.ndarray\n```\n\n## Code example\n\nScenario A, from the report:\n\n```python\nfoo = xr.DataArray(np.random.randn(3, 3), dims=(\"x\", \"y\")).chunk()  # foo is chunked\nds = xr.Dataset({\"foo\": foo, \"bar\": (\"x\", [1, 2, 3])})  # foo is still chunked here\nds  # you can verify that foo is chunked\n\nupdate_dict = {\"foo\": ((\"x\", \"y\"), ds.foo[1:, :]), \"bar\": (\"x\", ds.bar[1:])}\nupdate_dict[\"foo\"][1]  # foo is still chunked\n\nds.update(update_dict)\nds  # now foo is no longer chunked\n```\n\nScenario B, from the report:\n\n```python\nimport dask.array as da\nimport xarray as xr\nx = da.random.randint(1, 10, size=(100, 25))\nds = xr.Dataset(dict(a=xr.DataArray(x, dims=('x', 'y'))))\ntype(ds.a.data)\n# dask.array.core.Array\n\n# Recreate the dataset with the same array, but also redefine the dimensions\nds2 = xr.Dataset(dict(a=(('x', 'y'), ds.a)))\ntype(ds2.a.data)\n# numpy.ndarray\n```\n\nOne-liner from the report: `xr.Dataset(dict(a=('d0', xr.DataArray(da.random.random(10)))))` causes the dask array to compute.\n\n## Version and environment\n\nScenario A (from `xr.show_versions()`):\n\n- xarray: 0.16.0\n- dask: 2.20.0\n- distributed: 2.20.0\n- numpy: 1.18.5\n- pandas: 1.0.5\n- scipy: 1.5.0\n- h5py: 2.10.0\n- matplotlib: 3.2.2\n- setuptools: 49.2.0.post20200714\n- pip: 20.1.1\n- pytest: 5.4.3\n- IPython: 7.16.1\n- python: 3.8.3 (default, Jul 2 2020, 11:26:31) [Clang 10.0.0], 64-bit\n- OS: Darwin, OS-release 19.6.0, machine x86_64, processor i386\n- LANG / LOCALE: en_US.UTF-8\n- libhdf5: 1.10.6\n- netCDF4, h5netcdf, zarr, cftime, bottleneck, pint, etc.: None\n\nScenario B: Not provided in the original report.",
+ "ttft_ms": 3007,
+ "type": "result",
+ "duration_ms": 20144,
+ "uuid": "3f5fdd99-c23a-4350-b66f-3c5e5713f347",
+ "ttft_stream_ms": 1292,
+ "time_to_request_ms": 272,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 3,
+  "init_message": 14,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 303,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1293,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

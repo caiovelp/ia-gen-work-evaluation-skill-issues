@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8949,
+ "stop_reason": "end_turn",
+ "session_id": "0b3f83b2-71d2-4bca-bb82-592f3f3009ea",
+ "total_cost_usd": 0.030398,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1209,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1028,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1209,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1028,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1209,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1209
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1415,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000158,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1028,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1209,
+   "webSearchRequests": 0,
+   "costUSD": 0.030240000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`SI._collect_factor_and_dimension()` does not recognize that the argument of `exp()` is dimensionless when that argument is a unit expression whose dimension reduces to dimensionless (here `second / (ohm * farad)`). It raises a `ValueError` instead.\n\n## Steps to reproduce\n1. Import `exp`, `sympy.physics.units` and the `SI` unit system.\n2. Build `expr = units.second / (units.ohm * units.farad)`.\n3. Call `SI._collect_factor_and_dimension(expr)` and take the dimension (index `[1]`).\n4. Confirm with `SI.get_dimension_system().is_dimensionless(dim)` that the dimension is dimensionless. The assertion passes.\n5. Build `buggy_expr = 100 + exp(expr)`.\n6. Call `SI._collect_factor_and_dimension(buggy_expr)`.\n\n## Observed behavior\nStep 6 raises a `ValueError`. The error says the dimension of `exp(second/(farad*ohm))` is `Dimension(time/(capacitance*impedance))` and that it should be `Dimension(1)`. This happens even though the dimension system confirms in step 4 that `time/(capacitance*impedance)` is dimensionless.\n\n## Expected behavior\n`SI._collect_factor_and_dimension()` should detect that the exponent `second/(farad*ohm)` is dimensionless and process `100 + exp(expr)` without raising an error.\n\n## Stack trace / error output\n```\nValueError: Dimension of \"exp(second/(farad*ohm))\" is Dimension(time/(capacitance*impedance)), but it should be Dimension(1)\n```\n(Full traceback not provided in the original report.)\n\n## Test case\n```python\nfrom sympy import exp\nfrom sympy.physics import units\nfrom sympy.physics.units.systems.si import SI\n\ndef test_collect_factor_and_dimension_dimensionless_exponent():\n    expr = units.second / (units.ohm * units.farad)\n    dim = SI._collect_factor_and_dimension(expr)[1]\n    assert SI.get_dimension_system().is_dimensionless(dim)\n\n    buggy_expr = 100 + exp(expr)\n    # Currently raises ValueError; expected to succeed\n    SI._collect_factor_and_dimension(buggy_expr)\n```\n\n## Code example\n```python\nfrom sympy import exp\nfrom sympy.physics import units\nfrom sympy.physics.units.systems.si import SI\n\nexpr = units.second / (units.ohm * units.farad)\ndim = SI._collect_factor_and_dimension(expr)[1]\n\nassert SI.get_dimension_system().is_dimensionless(dim)\n\nbuggy_expr = 100 + exp(expr)\nSI._collect_factor_and_dimension(buggy_expr)\n\n# results in ValueError: Dimension of \"exp(second/(farad*ohm))\" is Dimension(time/(capacitance*impedance)), but it should be Dimension(1)\n```\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 8297,
+ "type": "result",
+ "duration_ms": 8327,
+ "uuid": "80bfb627-64c1-4128-984a-9615e2fe1e68",
+ "ttft_stream_ms": 1345,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 203,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1345,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

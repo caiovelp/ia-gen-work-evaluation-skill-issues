@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15294,
+ "stop_reason": "end_turn",
+ "session_id": "d7b3ee6c-997b-4383-9067-450f52e900ba",
+ "total_cost_usd": 0.050302,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1936,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1729,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1936,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1729,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1936,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1936
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2145,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00022600000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1729,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1936,
+   "webSearchRequests": 0,
+   "costUSD": 0.050076,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nWhen a fixture changes the current working directory, pytest shows the failing test's file path relative to the *new* directory, not the original one. The failure location appears as `../test_path_error.py:29` instead of `test_path_error.py:29`. Editors and compilation buffers don't know about the directory change, so they can't jump to the error. The path should stay relative to the original directory. The same thing happens when using `monkeypatch.chdir(out_dir)` instead of `os.chdir`.\n\n## Steps to reproduce\n1. Create a project directory (in the report: `~/src/pytest_path_error/`) containing `test_path_error.py` and `noxfile.py` from the Code example section below.\n2. From that directory, run `nox`. This installs `pytest>=5.3` into a Python 3.7 virtualenv and runs `pytest`. Running `pytest` directly runs the same test.\n3. The fixture `private_dir` creates a subdirectory `ddd` and `chdir`s into it before the test runs.\n4. The test `test_show_wrong_path` fails with `assert False`.\n5. Look at the file location reported for the failure.\n\n## Observed behavior\nThe failure location is shown relative to the directory the fixture changed into (`ddd`):\n\n```\n../test_path_error.py:29: AssertionError\n```\n\nAn editor or compilation mode working from the original directory (`~/src/pytest_path_error/`) cannot resolve this path, so you can't jump to the error.\n\n## Expected behavior\nThe failure location should be shown relative to the original directory, regardless of any `chdir` done in a fixture:\n\n```\ntest_path_error.py:29: AssertionError\n```\n\n## Stack trace / error output\n```\n-*- mode: compilation; default-directory: \"~/src/pytest_path_error/\" -*-\nCompilation started at Fri Jan 10 00:05:52\n\nnox\nnox > Running session test\nnox > Creating virtual environment (virtualenv) using python3.7 in .nox/test\nnox > pip install pytest>=5.3\nnox > pip freeze\nattrs==19.3.0\nimportlib-metadata==1.3.0\nmore-itertools==8.0.2\npackaging==20.0\npluggy==0.13.1\npy==1.8.1\npyparsing==2.4.6\npytest==5.3.2\nsix==1.13.0\nwcwidth==0.1.8\nzipp==0.6.0\nnox > pytest \n================================= test session starts =================================\nplatform linux -- Python 3.7.5, pytest-5.3.2, py-1.8.1, pluggy-0.13.1\nrootdir: /home/lhn/src/pytest_path_error\ncollected 1 item                                                                      \n\ntest_path_error.py F                                                            [100%]\n\n====================================== FAILURES =======================================\n________________________________ test_show_wrong_path _________________________________\n\nprivate_dir = 'ddd'\n\n    def test_show_wrong_path(private_dir):\n>       assert False\nE       assert False\n\n../test_path_error.py:29: AssertionError\n================================== 1 failed in 0.03s ==================================\nnox > Command pytest  failed with exit code 1\nnox > Session test failed.\n\nCompilation exited abnormally with code 1 at Fri Jan 10 00:06:01\n```\n\n## Test case\n`test_path_error.py` from the report is a minimal reproducing test. When run from the directory that contains it, the failure location should read `test_path_error.py:29: AssertionError`, but it reads `../test_path_error.py:29: AssertionError`.\n\n```python\nimport os\nimport errno\nimport shutil\n\nimport pytest\n\n\n@pytest.fixture\ndef private_dir():  # or (monkeypatch)\n    out_dir = 'ddd'\n\n    try:\n        shutil.rmtree(out_dir)\n    except OSError as ex:\n        if ex.errno != errno.ENOENT:\n            raise\n    os.mkdir(out_dir)\n\n    old_dir = os.getcwd()\n    os.chdir(out_dir)\n    yield out_dir\n    os.chdir(old_dir)\n\n    # Same issue if using:\n    # monkeypatch.chdir(out_dir)\n\n\ndef test_show_wrong_path(private_dir):\n    assert False\n```\n\n## Code example\n`noxfile.py` used to run the test:\n\n```python\nimport nox\n\n@nox.session(python='3.7')\ndef test(session):\n    session.install('pytest>=5.3')\n    session.run('pip', 'freeze')\n    session.run('pytest')\n```\n\n## Version and environment\n- Platform: Linux\n- Python: 3.7.5\n- pytest: 5.3.2\n- py: 1.8.1\n- pluggy: 0.13.1\n- Other installed packages (`pip freeze`): attrs 19.3.0, importlib-metadata 1.3.0, more-itertools 8.0.2, packaging 20.0, pyparsing 2.4.6, six 1.13.0, wcwidth 0.1.8, zipp 0.6.0\n- Run via `nox` in a virtualenv (`.nox/test`); output viewed in an editor compilation buffer with default directory `~/src/pytest_path_error/`\n- pytest rootdir: `/home/lhn/src/pytest_path_error`",
+ "ttft_ms": 14757,
+ "type": "result",
+ "duration_ms": 14782,
+ "uuid": "a9ad98da-f572-4044-88da-aed7e5649791",
+ "ttft_stream_ms": 1555,
+ "time_to_request_ms": 265,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 29,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 8,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 202,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 181,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 14,
+  "cpu_ms": 39,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1555,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

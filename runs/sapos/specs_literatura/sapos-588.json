@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 11798,
+ "stop_reason": "end_turn",
+ "session_id": "be71d2f7-3286-4c8b-b3e9-1e06a8381483",
+ "total_cost_usd": 0.0294103,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1463,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 858,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1463,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 858,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1463,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1463
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1608,
+   "outputTokens": 755,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0005383,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 731,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 858,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1463,
+   "webSearchRequests": 0,
+   "costUSD": 0.028872000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1463,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nUsu\u00e1rios com perfil de professor (e possivelmente de aluno) conseguem gerar no Sapos documentos assinados digitalmente, como boletins, para alunos avulsos. Isso n\u00e3o deveria ser poss\u00edvel. S\u00f3 a coordena\u00e7\u00e3o ou a secretaria deveriam poder emitir declara\u00e7\u00f5es, hist\u00f3rico ou boletim para alunos avulsos (por exemplo, a pr\u00f3pria declara\u00e7\u00e3o de aluno avulso). A issue tamb\u00e9m pede que o problema seja validado, verificando quais restri\u00e7\u00f5es existem hoje.\n\n## Passos para reproduzir\nCom base nas informa\u00e7\u00f5es da issue (passos exatos n\u00e3o foram detalhados):\n1. Entrar no Sapos com um usu\u00e1rio de perfil professor (ou aluno).\n2. Abrir a visualiza\u00e7\u00e3o de alunos e localizar um aluno avulso.\n3. Clicar no \u00edcone de hist\u00f3rico ou de boletim do aluno avulso (\u00edcones mostrados na captura de tela da issue).\n4. Outro caminho: clicar no \u00edcone de \"olhinho\" de um aluno avulso e, na tabela de declara\u00e7\u00f5es, tentar gerar um documento (captura de tela anexada \u00e0 issue).\n\n## Comportamento observado\nAo que parece, professores conseguem gerar boletins assinados digitalmente para alunos avulsos direto no Sapos. A issue n\u00e3o confirma se o mesmo acontece com usu\u00e1rios de perfil aluno, nem com hist\u00f3rico ou declara\u00e7\u00f5es.\n\n## Comportamento esperado\nO Sapos n\u00e3o deve emitir nenhum documento assinado digitalmente para aluno avulso quando quem pede \u00e9 um usu\u00e1rio com perfil de aluno ou professor. S\u00f3 a coordena\u00e7\u00e3o ou a secretaria devem poder emitir declara\u00e7\u00f5es, hist\u00f3rico ou boletim para alunos avulsos.\n\n## Stack trace / sa\u00edda de erro\nN\u00e3o informado na issue original.\n\n## Caso de teste\nCaso de teste m\u00ednimo derivado do comportamento esperado:\n- **Dado** um aluno avulso cadastrado no Sapos\n- **Quando** um usu\u00e1rio com perfil professor ou aluno tenta gerar um boletim, hist\u00f3rico ou declara\u00e7\u00e3o para esse aluno (pelos \u00edcones da visualiza\u00e7\u00e3o de alunos ou pela tabela de declara\u00e7\u00f5es acessada pelo \"olhinho\")\n- **Ent\u00e3o** o sistema n\u00e3o deve gerar nenhum documento assinado digitalmente\n- **E** quando um usu\u00e1rio da coordena\u00e7\u00e3o ou da secretaria faz a mesma a\u00e7\u00e3o, o documento deve ser gerado normalmente\n\n## Exemplo de c\u00f3digo\nN\u00e3o informado na issue original.\n\n## Vers\u00e3o e ambiente\nN\u00e3o informado na issue original.",
+ "ttft_ms": 8354,
+ "type": "result",
+ "duration_ms": 8387,
+ "uuid": "bd38db00-dc47-4eaa-aa3a-51b22d0e4313",
+ "ttft_stream_ms": 1453,
+ "time_to_request_ms": 462,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 18,
+  "input_hooks": 5,
+  "conversation_append": 1,
+  "tool_pool_refresh": 3,
+  "init_message": 34,
+  "init_frame_send": 14,
+  "engine_pickup": 5,
+  "loop_entry": 15,
+  "message_prep": 4,
+  "model_config_wait": 305,
+  "autocompact": 7,
+  "request_announcements": 14,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 3,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 87,
+ "time_to_request_cpu_ms": 553,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 20,
+  "major_faults": 0,
+  "setup_ms": 1,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 4,
+  "render_ms": 3,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 1,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 1,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 2,
+  "headers_ms": 1,
+  "cache_break_record_ms": 1,
+  "plans_ms": 2,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 2,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1453,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

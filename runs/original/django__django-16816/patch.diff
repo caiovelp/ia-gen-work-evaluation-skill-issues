@@ -1,0 +1,20 @@
+diff --git a/django/contrib/admin/checks.py b/django/contrib/admin/checks.py
+index 0fefe65e48..4568c1eba5 100755
+--- a/django/contrib/admin/checks.py
++++ b/django/contrib/admin/checks.py
+@@ -896,11 +896,11 @@ class ModelAdminChecks(BaseModelAdminChecks):
+         elif hasattr(obj, item):
+             return []
+         try:
+-            field = obj.model._meta.get_field(item)
+-        except FieldDoesNotExist:
++            field = getattr(obj.model, item)
++        except AttributeError:
+             try:
+-                field = getattr(obj.model, item)
+-            except AttributeError:
++                field = obj.model._meta.get_field(item)
++            except FieldDoesNotExist:
+                 return [
+                     checks.Error(
+                         "The value of '%s' refers to '%s', which is not a "

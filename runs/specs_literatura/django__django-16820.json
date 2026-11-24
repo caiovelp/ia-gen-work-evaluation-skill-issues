@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10077,
+ "stop_reason": "end_turn",
+ "session_id": "211d80f4-e638-4e53-ba87-0033cc38351a",
+ "total_cost_usd": 0.023073899999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1086,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 702,
+  "output_tokens_details": {
+   "thinking_tokens": 189
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1086,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 702,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1086,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1086
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1294,
+   "outputTokens": 417,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00033790000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 390,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 702,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1086,
+   "webSearchRequests": 0,
+   "costUSD": 0.022736,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 189,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nSquashing migrations that transition a model from `Meta.index_together` to `Meta.indexes` does not remove the `index_together` deprecation warnings. The reporter considers this a release blocker for 4.2: without it, the only way to get rid of the warnings is to rewrite migrations by hand.\n\n## Steps to reproduce\nThe original report gives no exact steps. Based on its description:\n1. Have a model whose migration history uses `Meta.index_together`.\n2. Change the model to use `Meta.indexes` instead, and create the corresponding migration.\n3. Squash the migrations that cover the `index_together` \u2192 `indexes` transition.\n4. Run code that loads the squashed migrations.\n\n## Observed behavior\nThe `index_together` deprecation warnings are still emitted after squashing. The only way to remove them is to rewrite the migrations manually.\n\n## Expected behavior\nSquashing migrations that include the `Meta.index_together` \u2192 `Meta.indexes` transition should produce squashed migrations that no longer trigger the `index_together` deprecation warnings.\n\n## Stack trace / error output\nNot provided in the original report. The exact deprecation warning text is not included.\n\n## Test case\nNot provided in the original report.\n\n## Code example\nNot provided in the original report.\n\n## Version and environment\n- The reporter flags this as a release blocker for version 4.2. The project is presumably Django, given the `Meta.index_together` and `Meta.indexes` options.\n- The report refers to an earlier comment for context, but that comment is not included.\n- No other environment details are provided.",
+ "ttft_ms": 3624,
+ "type": "result",
+ "duration_ms": 7797,
+ "uuid": "c588a97e-3cfb-45f6-81fe-978e60d3dc6a",
+ "ttft_stream_ms": 1536,
+ "time_to_request_ms": 237,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 203,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 137,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1537,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

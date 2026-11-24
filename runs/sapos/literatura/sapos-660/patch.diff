@@ -1,0 +1,15 @@
+diff --git a/app/controllers/course_classes_controller.rb b/app/controllers/course_classes_controller.rb
+index 0a1ea476..68cb6e1c 100644
+--- a/app/controllers/course_classes_controller.rb
++++ b/app/controllers/course_classes_controller.rb
+@@ -12,6 +12,10 @@ class CourseClassesController < ApplicationController
+   before_action :remove_constraint_to_show_enrollment_column, only: [:edit]
+ 
+   active_scaffold :course_class do |config|
++    # Keep the current filter in the pagination/sort links instead of relying
++    # on a (possibly stale) session copy of the search
++    config.store_user_settings = false
++
+     config.columns.add :class_enrollments_count
+ 
+     config.action_links.add "class_schedule_pdf",

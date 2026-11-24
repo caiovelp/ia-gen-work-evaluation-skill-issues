@@ -1,0 +1,25 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 78c4f47b5b..9b697ea0a1 100755
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -1929,6 +1929,11 @@ class Query(BaseExpression):
+         """
+         group_by = list(self.select)
+         if self.annotation_select:
++            # Avoid grouping by aliases that clash with joined column names.
++            column_names = set()
++            for join in list(self.alias_map.values())[1:]:  # Skip base table.
++                model = join.join_field.related_model
++                column_names.update(f.column for f in model._meta.concrete_fields)
+             for alias, annotation in self.annotation_select.items():
+                 signature = inspect.signature(annotation.get_group_by_cols)
+                 if 'alias' not in signature.parameters:
+@@ -1940,7 +1945,7 @@ class Query(BaseExpression):
+                     warnings.warn(msg, category=RemovedInDjango40Warning)
+                     group_by_cols = annotation.get_group_by_cols()
+                 else:
+-                    if not allow_aliases:
++                    if not allow_aliases or alias in column_names:
+                         alias = None
+                     group_by_cols = annotation.get_group_by_cols(alias=alias)
+                 group_by.extend(group_by_cols)

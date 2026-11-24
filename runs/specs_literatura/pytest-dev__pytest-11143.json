@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 17924,
+ "stop_reason": "end_turn",
+ "session_id": "0a0b0fc4-b282-4c69-b728-ae7725461231",
+ "total_cost_usd": 0.0731107,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 3690,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2159,
+  "output_tokens_details": {
+   "thinking_tokens": 372
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3690,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2159,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 3690,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3690
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3897,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0004027,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2159,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 3690,
+   "webSearchRequests": 0,
+   "costUSD": 0.072708,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 372,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nCollection fails with `TypeError: argument of type 'int' is not iterable` when the first expression in a test file is a number. pytest's assertion rewriter appears to treat the number as the module docstring, then runs a `\"PYTEST_DONT_REWRITE\" in docstring` check against an `int`.\n\n## Steps to reproduce\n\n1. Have a test module whose first expression is a number. The reporter's file was `testcases/\u57fa\u7ebf/\u4ee3\u7406\u7b56\u7565/SOCKS\u4e8c\u7ea7\u4ee3\u7406\u8fed\u4ee3\u4e8c/\u5728\u7ebf\u7528\u6237/\u5728\u7ebf\u7528\u6237\u66f4\u65b0/\u4e0a\u7ebf\u7528\u6237/test_socks_user_011.py`. Its contents were not included in the report.\n2. Run pytest with a keyword filter: `pytest -k xxx`.\n3. Observe that collection of that module fails.\n\n## Observed behavior\n\nCollection of the module errors out with `TypeError: argument of type 'int' is not iterable`. The error comes from `is_rewrite_disabled` in `_pytest/assertion/rewrite.py`, which is called while pytest imports and rewrites the module.\n\n## Expected behavior\n\nThe report does not state this explicitly. The title implies that pytest should not treat a number as the module docstring, and that the module should be collected and its assertions rewritten without error.\n\n## Stack trace / error output\n\n```\n==================================== ERRORS ====================================\n_ ERROR collecting testcases/\u57fa\u7ebf/\u4ee3\u7406\u7b56\u7565/SOCKS\u4e8c\u7ea7\u4ee3\u7406\u8fed\u4ee3\u4e8c/\u5728\u7ebf\u7528\u6237/\u5728\u7ebf\u7528\u6237\u66f4\u65b0/\u4e0a\u7ebf\u7528\u6237/test_socks_user_011.py _\n/usr/local/lib/python3.8/site-packages/_pytest/runner.py:341: in from_call\n    result: Optional[TResult] = func()\n/usr/local/lib/python3.8/site-packages/_pytest/runner.py:372: in <lambda>\n    call = CallInfo.from_call(lambda: list(collector.collect()), \"collect\")\n/usr/local/lib/python3.8/site-packages/_pytest/python.py:531: in collect\n    self._inject_setup_module_fixture()\n/usr/local/lib/python3.8/site-packages/_pytest/python.py:545: in _inject_setup_module_fixture\n    self.obj, (\"setUpModule\", \"setup_module\")\n/usr/local/lib/python3.8/site-packages/_pytest/python.py:310: in obj\n    self._obj = obj = self._getobj()\n/usr/local/lib/python3.8/site-packages/_pytest/python.py:528: in _getobj\n    return self._importtestmodule()\n/usr/local/lib/python3.8/site-packages/_pytest/python.py:617: in _importtestmodule\n    mod = import_path(self.path, mode=importmode, root=self.config.rootpath)\n/usr/local/lib/python3.8/site-packages/_pytest/pathlib.py:565: in import_path\n    importlib.import_module(module_name)\n/usr/local/lib/python3.8/importlib/__init__.py:127: in import_module\n    return _bootstrap._gcd_import(name[level:], package, level)\n<frozen importlib._bootstrap>:1014: in _gcd_import\n    ???\n<frozen importlib._bootstrap>:991: in _find_and_load\n    ???\n<frozen importlib._bootstrap>:975: in _find_and_load_unlocked\n    ???\n<frozen importlib._bootstrap>:671: in _load_unlocked\n    ???\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:169: in exec_module\n    source_stat, co = _rewrite_test(fn, self.config)\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:352: in _rewrite_test\n    rewrite_asserts(tree, source, strfn, config)\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:413: in rewrite_asserts\n    AssertionRewriter(module_path, config, source).run(mod)\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:695: in run\n    if self.is_rewrite_disabled(doc):\n/usr/local/lib/python3.8/site-packages/_pytest/assertion/rewrite.py:760: in is_rewrite_disabled\n    return \"PYTEST_DONT_REWRITE\" in docstring\nE   TypeError: argument of type 'int' is not iterable\n```\n\n## Test case\n\nNot provided in the original report. The title says the trigger is a test file whose first expression is a number, but the report includes no file contents.\n\n## Code example\n\nNot provided in the original report.\n\n## Version and environment\n\n- pytest 7.4.0\n- Python 3.8, based on the `/usr/local/lib/python3.8/site-packages/` paths in the traceback\n- Operating system: not explicitly stated in the original report\n- Other installed packages that may be relevant: pluggy 1.2.0, iniconfig 2.0.0, packaging 23.1, exceptiongroup 1.1.1, tomli 2.0.1, py 1.11.0, pytest-check 2.1.5, pytest-html 3.2.0, pytest-metadata 3.0.0, pytest-rerunfailures 11.1.2, allure-pytest 2.13.2\n- The original report includes the full package list as `pip install` output.",
+ "ttft_ms": 5256,
+ "type": "result",
+ "duration_ms": 17476,
+ "uuid": "5e84a08d-984f-4cc7-8383-a4a837a9c6ea",
+ "ttft_stream_ms": 1488,
+ "time_to_request_ms": 272,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 24,
+ "time_to_request_cpu_ms": 308,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1489,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

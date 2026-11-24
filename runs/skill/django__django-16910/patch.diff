@@ -1,0 +1,21 @@
+diff --git a/django/db/models/sql/query.py b/django/db/models/sql/query.py
+index 781dfd5499..e477a5dddd 100755
+--- a/django/db/models/sql/query.py
++++ b/django/db/models/sql/query.py
+@@ -779,11 +779,14 @@ class Query(BaseExpression):
+         # Only include fields mentioned in the mask.
+         for field_name, field_mask in mask.items():
+             field = opts.get_field(field_name)
+-            field_select_mask = select_mask.setdefault(field, {})
++            # Reverse relations are keyed by their forward field, matching
++            # what the compiler looks up.
++            key = field.field if field.auto_created and not field.concrete else field
++            field_select_mask = select_mask.setdefault(key, {})
+             if field_mask:
+                 if not field.is_relation:
+                     raise FieldError(next(iter(field_mask)))
+-                related_model = field.remote_field.model._meta.concrete_model
++                related_model = field.path_infos[-1].to_opts.concrete_model
+                 self._get_only_select_mask(
+                     related_model._meta, field_mask, field_select_mask
+                 )

@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 26398,
+ "stop_reason": "end_turn",
+ "session_id": "72e4b057-1774-4f54-bbaf-a9c7b30b96a3",
+ "total_cost_usd": 0.1006729,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 5574,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2794,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 5574,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2794,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 5574,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 5574
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1784,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001929,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2794,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 5574,
+   "webSearchRequests": 0,
+   "costUSD": 0.10048,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 5574,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Tratamento de `term` ausente em `form_autocompletes#form_field`\n\n## Objetivo\n\nHoje `GET /form_autocompletes/form_field` retorna HTTP 500 quando a requisi\u00e7\u00e3o autenticada n\u00e3o traz o par\u00e2metro `term`.\n\nO que acontece:\n\n- `Admissions::FormAutocompletesController#form_field` repassa `params[:term]` sem valida\u00e7\u00e3o para `Admissions::FormField.full_search_name`.\n- Com `substring: true`, o m\u00e9todo executa `name.include?(nil)` em `app/models/admissions/form_field.rb:276`.\n- Isso levanta `TypeError: no implicit conversion of nil into String`.\n- O erro tamb\u00e9m dispara uma notifica\u00e7\u00e3o de exce\u00e7\u00e3o por e-mail.\n\nO que queremos:\n\n- Uma requisi\u00e7\u00e3o sem `term` (ausente ou em branco) n\u00e3o pode gerar HTTP 500.\n- Ela tamb\u00e9m n\u00e3o pode disparar notifica\u00e7\u00e3o de exce\u00e7\u00e3o.\n- A resposta deve ser previs\u00edvel: uma lista vazia ou um erro de requisi\u00e7\u00e3o inv\u00e1lida. A escolha est\u00e1 em Perguntas em Aberto.\n\nUsu\u00e1rios afetados:\n\n- Usu\u00e1rios autenticados que consomem o autocomplete de campos de formul\u00e1rio de admiss\u00f5es.\n- Indiretamente, a equipe que recebe os e-mails de exce\u00e7\u00e3o.\n\nCrit\u00e9rios de aceita\u00e7\u00e3o (hist\u00f3rias):\n\n- Como usu\u00e1rio autenticado, ao chamar o endpoint sem `term`, recebo uma resposta n\u00e3o-500, sem que uma exce\u00e7\u00e3o seja registrada ou notificada.\n- Como usu\u00e1rio autenticado, ao chamar o endpoint com `term` v\u00e1lido, o comportamento atual da busca continua igual.\n\n## Premissas\n\n1. O comportamento correto para `term` ausente ou em branco ainda n\u00e3o foi decidido entre duas op\u00e7\u00f5es:\n   - (a) responder com lista vazia;\n   - (b) responder com erro de requisi\u00e7\u00e3o inv\u00e1lida (ex.: HTTP 400).\n\n   A issue sugere as duas. Esta spec assume (a) como padr\u00e3o provis\u00f3rio, por ser mais compat\u00edvel com o uso t\u00edpico de autocomplete. Precisa de confirma\u00e7\u00e3o.\n2. Valor \"em branco\" (string vazia ou s\u00f3 espa\u00e7os) recebe o mesmo tratamento que par\u00e2metro ausente.\n3. O formato atual da resposta do endpoint (JSON, HTML etc.) e o contrato com o front-end devem ser mantidos. A issue n\u00e3o informa o formato.\n4. O par\u00e2metro `in_letter` e o caminho `substring: false` est\u00e3o fora do escopo principal. A issue s\u00f3 mostra a falha no caminho de substring. Ver Perguntas em Aberto.\n5. A corre\u00e7\u00e3o vale igualmente para Rails 7.1 e 7.2, j\u00e1 que o problema n\u00e3o \u00e9 regress\u00e3o de upgrade.\n6. A exig\u00eancia de autentica\u00e7\u00e3o do endpoint n\u00e3o muda.\n\n## Stack Tecnol\u00f3gica\n\n- Ruby on Rails. A issue confirma que o problema ocorre no Rails 7.1 e no 7.2.\n- Vers\u00e3o do Ruby, framework de testes e demais depend\u00eancias: N\u00e3o informado na issue original.\n- Mecanismo de notifica\u00e7\u00e3o de exce\u00e7\u00e3o por e-mail (gem ou servi\u00e7o): N\u00e3o informado na issue original.\n\n## Comandos\n\nN\u00e3o informado na issue original.\n\n- Build: desconhecido\n- Testes: desconhecido\n- Lint: desconhecido\n- Servidor de desenvolvimento: desconhecido\n\n## Estrutura do Projeto\n\nArquivos citados na issue:\n\n```\napp/controllers/admissions/form_autocompletes_controller.rb  \u2192 Controller com a action form_field\napp/models/admissions/form_field.rb                          \u2192 Model com full_search_name (linha 276: include?)\n```\n\n- Localiza\u00e7\u00e3o dos testes (ex.: `spec/` ou `test/`): N\u00e3o informado na issue original.\n- Arquivo de rotas e defini\u00e7\u00e3o exata da rota `/form_autocompletes/form_field`: N\u00e3o informado na issue original.\n\n## Estilo de C\u00f3digo\n\nN\u00e3o informado na issue original. Seguir as conven\u00e7\u00f5es j\u00e1 presentes nos arquivos citados.\n\nTrecho atual do controller, como refer\u00eancia de estilo (citado na issue):\n\n```ruby\n@form_fields = Admissions::FormField.full_search_name(\n  field: params[:term],\n  in_letter: params[:in_letter] || false,\n  substring: true,\n  limit: 10\n)\n```\n\n## Estrat\u00e9gia de Testes\n\n- Framework (RSpec, Minitest etc.): N\u00e3o informado na issue original.\n- N\u00edveis de teste esperados:\n  - **Requisi\u00e7\u00e3o/controller:** chamada autenticada a `GET /form_autocompletes/form_field` com:\n    - `term` ausente;\n    - `term` vazio (`\"\"`);\n    - `term` s\u00f3 com espa\u00e7os;\n    - `term` v\u00e1lido (regress\u00e3o).\n\n    Verificar o status HTTP e o corpo da resposta.\n  - **Model/unidade:** se a normaliza\u00e7\u00e3o ficar em `full_search_name`, cobrir `field: nil` e `field: \"\"` com `substring: true`, confirmando que nenhum `TypeError` \u00e9 levantado.\n- Cobertura m\u00ednima esperada: N\u00e3o informado na issue original.\n\n## Limites\n\n- **Sempre:**\n  - Manter a exig\u00eancia de autentica\u00e7\u00e3o do endpoint.\n  - Preservar o resultado da busca para `term` v\u00e1lido.\n  - Incluir testes que reproduzam o cen\u00e1rio da issue (sem `term`).\n- **Perguntar antes:**\n  - Mudar o contrato da resposta (status HTTP, formato do corpo).\n  - Tornar `limit` configur\u00e1vel via par\u00e2metro de requisi\u00e7\u00e3o.\n  - Alterar `full_search_name` de forma que afete outros chamadores.\n  - Adicionar depend\u00eancias.\n- **Nunca:**\n  - Silenciar o `TypeError` com `rescue` gen\u00e9rico.\n  - Desativar a notifica\u00e7\u00e3o de exce\u00e7\u00e3o para esconder o problema.\n  - Remover ou afrouxar a autentica\u00e7\u00e3o da rota.\n\n## Crit\u00e9rios de Sucesso\n\n1. Sem `term`, a chamada autenticada a `GET /form_autocompletes/form_field` retorna status diferente de 500. O status e o corpo s\u00e3o os definidos na decis\u00e3o da Premissa 1 (provisoriamente: sucesso com lista vazia).\n2. O mesmo resultado vale para `term` vazio e para `term` s\u00f3 com espa\u00e7os.\n3. Nenhum desses cen\u00e1rios levanta `TypeError` nem gera notifica\u00e7\u00e3o de exce\u00e7\u00e3o por e-mail.\n4. Com `term` v\u00e1lido, os resultados, a ordem e o limite de 10 itens continuam iguais aos de hoje.\n5. H\u00e1 testes automatizados para os itens 1\u20134, e eles passam no Rails 7.1 e no 7.2 (ou na vers\u00e3o em uso, se s\u00f3 uma estiver ativa).\n\n## Perguntas em Aberto\n\n1. Para `term` ausente ou em branco, a resposta deve ser lista vazia (200) ou erro de requisi\u00e7\u00e3o inv\u00e1lida (ex.: 400)? O front-end depende de algum desses comportamentos?\n2. Onde deve ficar a corre\u00e7\u00e3o?\n   - No controller: guarda antes da busca.\n   - Em `full_search_name`: normalizar `field` para string vazia.\n   - Nos dois.\n\n   H\u00e1 outros chamadores de `full_search_name` que hoje passam `nil`?\n3. Se a normaliza\u00e7\u00e3o for para string vazia em `full_search_name`, `name.include?(\"\")` \u00e9 verdadeiro para todo nome. Nesse caso a busca devolveria os primeiros N campos, n\u00e3o uma lista vazia. Esse \u00e9 o comportamento desejado?\n4. O caminho com `substring: false` tamb\u00e9m falha com `field` nil? Deve entrar no escopo?\n5. Sobre o `limit` (\"vale checar tamb\u00e9m o `limit`, que hoje vem fixo do controller\"), o que se espera?\n   - Mant\u00ea-lo fixo em 10?\n   - Aceit\u00e1-lo como par\u00e2metro, com valida\u00e7\u00e3o e teto?\n   - Ou s\u00f3 garantir que `full_search_name` trate um `limit` inv\u00e1lido?\n6. `params[:in_letter]` tamb\u00e9m deve ser validado ou normalizado (ex.: string `\"false\"` vs. booleano)?\n7. Qual \u00e9 o formato da resposta do endpoint (JSON, HTML parcial) e qual \u00e9 o contrato esperado pelo consumidor?\n8. Qual framework de testes o projeto usa, e quais comandos rodam a su\u00edte e o lint?",
+ "ttft_ms": 26041,
+ "type": "result",
+ "duration_ms": 26061,
+ "uuid": "b04c845f-88df-41b4-8232-07eef0376783",
+ "ttft_stream_ms": 1921,
+ "time_to_request_ms": 405,
+ "time_to_request_phases_ms": {
+  "other": 5,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 35,
+  "input_hooks": 4,
+  "conversation_append": 0,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "init_frame_send": 3,
+  "engine_pickup": 1,
+  "loop_entry": 3,
+  "message_prep": 1,
+  "model_config_wait": 326,
+  "autocompact": 2,
+  "request_announcements": 4,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 346,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 16,
+  "cpu_ms": 49,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 18,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 9,
+  "render_ms": 2,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 0,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 0,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1921,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

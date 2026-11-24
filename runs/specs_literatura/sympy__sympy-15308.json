@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10983,
+ "stop_reason": "end_turn",
+ "session_id": "e264bc44-a441-43e3-a98d-72fea4152661",
+ "total_cost_usd": 0.0300953,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1073,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1068,
+  "output_tokens_details": {
+   "thinking_tokens": 349
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1073,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1068,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1073,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1073
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1288,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014330000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1068,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1073,
+   "webSearchRequests": 0,
+   "costUSD": 0.029952,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 349,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nThe LaTeX printer does not handle the trace of a matrix expression. `latex(trace(A**2))` returns `'Trace(A**2)'`. This shows two problems:\n1. `Trace` is not recognized by the LaTeX printer.\n2. The inner expression `A**2` is not printed with the LaTeX printer. It should be printed as `A^2`.\n\n## Steps to reproduce\n1. Define a square matrix symbol: `A = MatrixSymbol(\"A\", n, n)`.\n2. Call `latex(trace(A**2))`.\n3. Inspect the returned string.\n\n(The original report does not show the imports or how `n` is defined.)\n\n## Observed behavior\n`latex(trace(A**2))` returns:\n```\n'Trace(A**2)'\n```\n- `Trace` is output as plain text, not as LaTeX.\n- The inner expression is output as `A**2`, not as LaTeX. Whatever printer is used does not fall back to the LaTeX printer for the argument.\n\n## Expected behavior\n- The LaTeX printer should recognize `Trace` and produce LaTeX output for it.\n- The inner expression should be printed with the LaTeX printer, giving `A^2` rather than `A**2`.\n\nThe original report does not give the exact expected LaTeX string for the trace itself.\n\n## Stack trace / error output\nNot provided in the original report. No exception is raised; the problem is incorrect output.\n\n## Test case\nA minimal check based on the reproduction in the report (imports and the definition of `n` are not shown in the original report):\n```py\nA = MatrixSymbol(\"A\", n, n)\nresult = latex(trace(A**2))\n# Observed: result == 'Trace(A**2)'\n# Expected: Trace is rendered as LaTeX, and the inner expression\n# is rendered by the LaTeX printer (A^2, not A**2)\nassert result != 'Trace(A**2)'\nassert 'A**2' not in result\n```\n\n## Code example\n```py\n>>> A = MatrixSymbol(\"A\", n, n)\n>>> latex(trace(A**2))\n'Trace(A**2)'\n```\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 5458,
+ "type": "result",
+ "duration_ms": 10547,
+ "uuid": "3d5ab9f9-f97a-4eff-aa69-68bcab68827d",
+ "ttft_stream_ms": 1369,
+ "time_to_request_ms": 253,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 18,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 204,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 220,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1369,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

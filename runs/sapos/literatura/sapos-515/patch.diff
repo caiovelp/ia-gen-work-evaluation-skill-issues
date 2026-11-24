@@ -1,0 +1,42 @@
+diff --git a/app/models/admissions/form_condition.rb b/app/models/admissions/form_condition.rb
+index db38faf8..5d3f6cad 100644
+--- a/app/models/admissions/form_condition.rb
++++ b/app/models/admissions/form_condition.rb
+@@ -109,6 +109,13 @@ class Admissions::FormCondition < ActiveRecord::Base
+     self.form_conditions = other.form_conditions.map(&:dup)
+   end
+ 
++  def comparison_type(field, first, second)
++    type = field.get_type
++    return type unless type == "string"
++    numeric = ->(v) { Float(v.to_s.strip.tr(",", ".")) rescue nil }
++    (numeric.call(first).nil? || numeric.call(second).nil?) ? type : "number"
++  end
++
+   def compare(first, second, field)
+     case self.condition
+     when CONTAINS
+@@ -122,19 +129,19 @@ class Admissions::FormCondition < ActiveRecord::Base
+     when NEQ
+       first != second
+     when GE
+-      type = field.get_type
++      type = comparison_type(field, first, second)
+       Admissions::FilledFormField.convert_value(first, type) >=
+         Admissions::FilledFormField.convert_value(second, type)
+     when LE
+-      type = field.get_type
++      type = comparison_type(field, first, second)
+       Admissions::FilledFormField.convert_value(first, type) <=
+         Admissions::FilledFormField.convert_value(second, type)
+     when GT
+-      type = field.get_type
++      type = comparison_type(field, first, second)
+       Admissions::FilledFormField.convert_value(first, type) >
+         Admissions::FilledFormField.convert_value(second, type)
+     when LT
+-      type = field.get_type
++      type = comparison_type(field, first, second)
+       Admissions::FilledFormField.convert_value(first, type) <
+         Admissions::FilledFormField.convert_value(second, type)
+     when NULL

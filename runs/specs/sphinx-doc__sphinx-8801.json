@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27938,
+ "stop_reason": "end_turn",
+ "session_id": "cccaf889-e241-465e-9c8d-719c2a2a4d68",
+ "total_cost_usd": 0.06292,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 933,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2721,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 933,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2721,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 933,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 933
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1517,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001652,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2721,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 933,
+   "webSearchRequests": 0,
+   "costUSD": 0.0627548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: autodoc \u2014 Inherited annotation-only members with doc comments are treated as \"undocumented\"\n\n## Assumptions\n\n1. The bug lives in `sphinx.ext.autodoc`. The exact module, function and line are unknown because I have no repository access.\n2. \"HEAD of 3.x\" means the fix targets the Sphinx 3.x maintenance branch. Forward-porting to later branches is not covered here.\n3. An \"annotation-only member\" is a class-level name declared with a type annotation and no value, such as `attr1: int`. It appears in `__annotations__` but not in the class `__dict__`.\n4. A `#:` doc comment on such a member counts as documentation. This already works for members declared on the documented class itself: `Bar.attr2` shows up without `:undoc-members:`.\n5. `Foo.attr1`, when documented directly via `.. autoclass:: example.Foo` with `:members:`, presumably shows correctly. The issue does not confirm this.\n6. The reported failure is limited to doc comments (`#:`) on inherited annotation-only members. Other documentation forms are not reported:\n   - docstring-after-attribute (`\"\"\"...\"\"\"` on the next line)\n   - entries from `__slots__` dicts\n7. The expected result for `Bar.attr1` matches what users get today with `:undoc-members:`: the attribute is rendered with its type annotation (`int`) and its doc comment (`docstring`). The only difference is that the attribute is included without `:undoc-members:`.\n8. The reporter's environment (macOS, Python 3.9.1) is incidental. The bug is assumed to be platform-independent.\n\n## Objective\n\nWhen a user documents a class with `:members:` and `:inherited-members:`, autodoc should treat an annotation-only attribute inherited from a superclass as **documented** if it has a doc comment in the superclass source. It should then include it in the output without `:undoc-members:`.\n\n**User:** Sphinx users who document class hierarchies with type-annotated attributes. This pattern is common with dataclass-style or typed classes.\n\n**Current behavior:** `Bar.attr1`, declared in `Foo` as `attr1: int  #: docstring`, is omitted. It appears only when `:undoc-members:` is added, so autodoc considers it undocumented.\n\n**Expected behavior:** `Bar.attr1` appears in the output with `:members:` and `:inherited-members:` alone.\n\n### Acceptance criteria (user-level)\n\nReproduction input:\n\n```python\n# example.py\nclass Foo:\n    \"\"\"docstring\"\"\"\n    attr1: int  #: docstring\n\n\nclass Bar(Foo):\n    \"\"\"docstring\"\"\"\n    attr2: str  #: docstring\n```\n\n```rst\n.. autoclass:: example.Bar\n   :members:\n   :inherited-members:\n```\n\n- AC1: The output for `example.Bar` includes `attr1` with its doc comment `docstring`, with no `:undoc-members:`.\n- AC2: The output for `example.Bar` still includes `attr2` with its doc comment, as it does today.\n- AC3: An inherited annotation-only attribute **without** any doc comment is still omitted unless `:undoc-members:` is given. Undocumented members must not leak into the output.\n- AC4: Without `:inherited-members:`, `Bar`'s output does not include `attr1`. Existing semantics are preserved.\n- AC5: The rendered entry for `attr1` carries the same type annotation and content as it does today under `:undoc-members:`.\n\n## Tech Stack\n\n- Python (reporter on 3.9.1; the range of supported Python versions for the 3.x branch is unknown)\n- Sphinx 3.x branch, `sphinx.ext.autodoc`\n- Other dependencies and versions: unknown\n\n## Commands\n\nUnknown. The issue gives no build, test or lint commands, and I cannot see the repository.\n\n- Build docs: unknown\n- Test: unknown (likely pytest-based, but unverified)\n- Lint: unknown\n\n## Project Structure\n\nUnknown. The issue references only:\n\n- `example.py`: user module from the reproduction\n- `index.rst`: user doc source from the reproduction\n\nThe location of autodoc's source, its tests and its test fixture roots is unknown.\n\n## Code Style\n\nUnknown. Follow existing conventions in the autodoc codebase. No style examples are available from the issue.\n\n## Testing Strategy\n\n- **Regression test (required):** A test that reproduces the issue's `Foo`/`Bar` example and asserts AC1 and AC2. Framework, location and fixture mechanism are unknown and must follow existing autodoc tests.\n- **Negative tests:** Cover AC3 (undocumented inherited annotation-only member stays hidden) and AC4 (no `:inherited-members:` means no inherited attribute).\n- **Edge cases worth covering**, subject to Open Questions:\n  - multi-level inheritance (`Baz(Bar(Foo))`)\n  - a superclass defined in a different module from the subclass\n  - a subclass that overrides/re-annotates the inherited attribute\n  - a superclass attribute that has both an annotation and a value (`attr: int = 1  #: doc`), as a control case\n- **Existing tests:** The full autodoc test suite must still pass. The command is unknown.\n- Coverage expectations: unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue's example.\n  - Keep `:undoc-members:` semantics unchanged for genuinely undocumented members.\n  - Preserve behavior of non-inherited annotation-only members.\n  - Run the existing autodoc test suite.\n- **Ask first:**\n  - Changing which members are considered \"documented\" in cases beyond inherited annotation-only attributes.\n  - Changing the public behavior or signature of any autodoc API or event, such as `autodoc-skip-member`.\n  - Changing the order of inherited members in output.\n  - Adding dependencies.\n- **Never:**\n  - Make inherited members always visible regardless of documentation.\n  - Remove or weaken existing tests.\n  - Fix this only on a branch other than 3.x without agreement.\n\n## Success Criteria\n\n1. Building docs from the issue's `example.py` and `index.rst` renders `Bar.attr1` with its doc comment, without `:undoc-members:` (AC1).\n2. `Bar.attr2` continues to render as before (AC2).\n3. Undocumented inherited annotation-only attributes remain hidden without `:undoc-members:` (AC3).\n4. Inherited attributes remain hidden without `:inherited-members:` (AC4).\n5. The rendered `attr1` entry matches its current rendering under `:undoc-members:`, including the type `int` (AC5).\n6. A regression test encoding criteria 1\u20134 exists and passes, and the existing autodoc test suite passes.\n\n## Open Questions\n\n1. Does `.. autoclass:: example.Foo` with `:members:` currently render `attr1` correctly? This would confirm the bug is specific to inheritance (Assumption 5).\n2. Should other documentation forms on inherited annotation-only attributes also be covered? Candidates are docstring-after-attribute (`\"\"\"...\"\"\"` on the following line) and `__slots__` dict docs, or only `#:` comments as reported.\n3. When a superclass lives in a different module from the subclass, must its doc comments still be picked up? Expected yes, but please confirm.\n4. If a subclass re-annotates an inherited attribute without a doc comment (e.g., `attr1: int` in `Bar`), should the superclass's doc comment be used, or should the member be treated as undocumented?\n5. If both the superclass and subclass provide doc comments for the same attribute, which wins? Presumably the subclass.\n6. Does `autodoc_inherit_docstrings` (if applicable in 3.x) affect whether inherited doc comments should be used? Should setting it to `False` hide `Bar.attr1` again?\n7. Which branch or branches should receive the fix: 3.x only, or also later branches?\n8. What are the project's test, build and lint commands, and where do autodoc tests and their fixtures live?",
+ "ttft_ms": 27369,
+ "type": "result",
+ "duration_ms": 27396,
+ "uuid": "1b7093b0-1325-4098-a3d7-ffd1ff611283",
+ "ttft_stream_ms": 1719,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 205,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 123,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1719,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

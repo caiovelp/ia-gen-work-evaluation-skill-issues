@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 37571,
+ "stop_reason": "end_turn",
+ "session_id": "60ff9a22-848a-44dc-bb2d-cd664793ee40",
+ "total_cost_usd": 0.0808814,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 736,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3699,
+  "output_tokens_details": {
+   "thinking_tokens": 540
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 736,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3699,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 736,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 736
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1326,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001426,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3699,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 736,
+   "webSearchRequests": 0,
+   "costUSD": 0.0807388,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 540,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Valid JSON for Read-Only `JSONField` Values in the Django Admin\n\n## Objective\n\nWhen a model `JSONField` is shown read-only in the Django admin, its value is rendered as a Python literal instead of JSON. For example, `{\"foo\": \"bar\"}` appears as `{'foo': 'bar'}`. That output is not valid JSON, cannot be copied back into a JSON input, and does not match what users see when the field is editable.\n\n**Goal:** Read-only `JSONField` values in the admin are rendered as valid JSON. Rendering goes through the same serialization path the editable form field uses (the form `JSONField`'s `prepare_value`), so the read-only and editable views stay consistent.\n\n**Users:** Django admin users viewing `JSONField` data, and developers who mark `JSONField`s as `readonly_fields`.\n\n**Proposed approach (from the issue, to be validated):** Add a special case for `JSONField` in `django.contrib.admin.utils.display_for_field` that delegates to the form `JSONField`'s `prepare_value`. The issue says not to call `json.dumps` directly, because `prepare_value` already handles the `InvalidJSONInput` case.\n\n### Acceptance criteria\n\n1. A read-only `JSONField` holding `{\"foo\": \"bar\"}` displays as `{\"foo\": \"bar\"}` (double quotes, valid JSON). It does not display as `{'foo': 'bar'}`.\n2. All JSON value types render as valid JSON:\n   - nested objects\n   - lists\n   - strings\n   - numbers\n   - booleans (`true`/`false`, not `True`/`False`)\n   - JSON `null` inside structures (`null`, not `None`)\n3. Serialization uses the form field's `prepare_value`, not a direct `json.dumps` call, so `InvalidJSONInput` values are handled the way the form field handles them.\n4. A custom `encoder` configured on the model `JSONField` is respected, matching how the editable form field serializes.\n5. An empty value (`None` / SQL NULL) behaves as it does for other fields: it shows the admin's empty value display. See Open Questions about JSON `null` versus SQL NULL.\n6. Output is still HTML-escaped wherever the admin currently escapes `display_for_field` output. No new XSS vector is introduced.\n7. Display of all non-`JSONField` fields is unchanged.\n8. Regression tests cover the cases above and pass, and the existing admin test suites still pass.\n\n## Assumptions\n\n1. The bug is in `django.contrib.admin.utils.display_for_field`, as the issue states. Read-only admin fields (and possibly changelist cells) get their display string from this function.\n2. The current behaviour comes from a fall-through branch that calls `str()` (or similar) on the Python value, which produces the `repr`-style dict.\n3. The form field `django.forms.JSONField` exposes `prepare_value`, which serializes Python values to JSON and passes `InvalidJSONInput` through unchanged.\n4. The model `JSONField` carries an optional `encoder`, which must reach the form field used for serialization.\n5. The fix belongs in Django core (`django.contrib.admin`), not in user code or a third-party package.\n6. Existing ordering in `display_for_field` stays in place: choices/flatchoices first, then booleans, then the empty-value handling. The `JSONField` case is added without disturbing these.\n7. No database or migration changes are required.\n8. The Django version, Python version, and supported database backends are those of the current development branch. The exact versions are unknown.\n\n## Tech Stack\n\n- Python and Django (exact versions unknown)\n- Components involved:\n  - `django.contrib.admin.utils` (`display_for_field`)\n  - `django.db.models.JSONField`\n  - `django.forms.JSONField` (`prepare_value`, `InvalidJSONInput`)\n- No new dependencies.\n\n## Commands\n\nThe repository is not visible, so all commands are unknown.\n\n- Build: unknown (a pure-Python change is likely; no build step expected)\n- Test: unknown. The project's test runner and the admin-related test module labels need confirming.\n- Lint: unknown. The project's configured linters/formatters need confirming.\n- Dev: unknown\n\n## Project Structure\n\nOnly the following module is known from the issue:\n\n- `django/contrib/admin/utils.py` \u2192 contains `display_for_field` (the change site)\n\nThese locations are unknown:\n\n- the model `JSONField` and the form `JSONField` source files\n- the tests for `display_for_field` / admin utils\n- the tests for admin read-only field rendering\n- the release notes / docs location for a bugfix entry\n\n## Code Style\n\nThe project's style guide and an example snippet are unknown (repository not visible). Follow the conventions of the surrounding code in `django/contrib/admin/utils.py`, including:\n\n- the existing `isinstance` / field-type dispatch style used in `display_for_field`\n- import style\n- line length and formatting as enforced by the project's linters\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework and runner. The exact invocation is unknown.\n- **Unit level (`display_for_field`):** call it directly with a `JSONField` and these values:\n  - a dict\n  - a nested dict/list\n  - a list\n  - a string\n  - a number\n  - a boolean\n  - a structure containing JSON `null`\n  - `None` (empty value)\n  - an `InvalidJSONInput` instance\n  - a value that needs a custom `encoder` (e.g., a type the default encoder cannot serialize)\n- **Integration level (admin):** render a change view where a `JSONField` is in `readonly_fields`. Assert:\n  - the rendered content shows valid JSON\n  - the output is HTML-escaped as before\n- **Regression:** existing admin utils and admin view tests pass unchanged. Non-`JSONField` displays are unaffected.\n- **Coverage:** every new branch in `display_for_field` is exercised by at least one test.\n\n## Boundaries\n\n**Always:**\n- Use the form field's `prepare_value` for serialization (per the issue).\n- Respect the model field's `encoder`.\n- Preserve HTML escaping of admin output.\n- Add regression tests.\n- Keep behaviour for other field types unchanged.\n\n**Ask first:**\n- Changing display behaviour in the changelist (`list_display`) as well as read-only change-form fields, if both share `display_for_field`.\n- Changing how `None` / JSON `null` is displayed.\n- Pretty-printing or indentation choices.\n- Touching `display_for_value` or other admin utilities.\n- Adding release notes or changing the public API.\n\n**Never:**\n- Call `json.dumps` directly in place of `prepare_value`.\n- Introduce unescaped HTML output.\n- Add dependencies.\n- Change database or model field behaviour.\n- Remove or weaken existing tests.\n\n## Success Criteria\n\n- `display_for_field` returns valid JSON (parseable with a JSON parser) for every JSON-serializable value of a model `JSONField`. The verified example is `{\"foo\": \"bar\"}` \u2192 `{\"foo\": \"bar\"}`.\n- `InvalidJSONInput` values are rendered the same way the form `JSONField.prepare_value` renders them, without raising.\n- Values that need the field's custom `encoder` serialize successfully using that encoder.\n- An empty value (`None`) renders as the configured empty value display, unless the Open Questions decide otherwise.\n- The admin change view with a read-only `JSONField` shows JSON-formatted, HTML-escaped content.\n- New tests fail before the change and pass after it. The full existing admin test suite passes.\n\n## Open Questions\n\n1. **Scope of surfaces:** `display_for_field` is likely used by both read-only change-form fields and changelist columns. Should the changelist display also switch to JSON, or should only read-only fields change?\n2. **JSON `null` vs SQL NULL:** A top-level JSON `null` stored in the field likely reaches `display_for_field` as Python `None`, the same as SQL NULL. Should it show the empty value display or the literal `null`? Is distinguishing them in scope?\n3. **Constructing the form field:** Should `prepare_value` be invoked on a form field obtained from the model field's `formfield()`, or on a directly instantiated `forms.JSONField(encoder=field.encoder)`? This matters for custom `JSONField` subclasses that override `formfield()`.\n4. **Formatting:** Should the read-only output match the editable widget exactly, including any non-ASCII handling and spacing? Or is compact JSON acceptable? Should pretty-printing or indentation be considered (probably out of scope)?\n5. **`InvalidJSONInput` reachability:** In which real admin flows can a read-only field's value be an `InvalidJSONInput`? Is a direct unit test sufficient to cover it?\n6. **Serialization errors:** If the encoder fails (e.g., an unserializable value with no suitable encoder), should the display fall back to the previous `str()` output, or should the error propagate?\n7. **Subclasses:** Should subclasses of `JSONField` (including third-party ones) get the new behaviour via an `isinstance` check?\n8. **Process:** Is a release note required, and should the fix be backported to supported release branches?\n9. **Unknown tooling:** What are the project's exact test, lint, and build commands, and where do the relevant test modules live?",
+ "ttft_ms": 6609,
+ "type": "result",
+ "duration_ms": 37006,
+ "uuid": "0412cf05-961f-4635-895b-635119c9d1a1",
+ "ttft_stream_ms": 1577,
+ "time_to_request_ms": 287,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 18,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 226,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 261,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 14,
+  "cpu_ms": 22,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1577,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

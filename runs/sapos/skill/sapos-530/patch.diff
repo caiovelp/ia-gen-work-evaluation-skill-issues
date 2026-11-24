@@ -1,0 +1,103 @@
+diff --git a/app/helpers/application_helper.rb b/app/helpers/application_helper.rb
+index 6a88384e..bb4522ff 100644
+--- a/app/helpers/application_helper.rb
++++ b/app/helpers/application_helper.rb
+@@ -101,13 +101,14 @@ module ApplicationHelper
+                      extra: extra })
+   end
+ 
+-  def code_mirror_text_area_widget(column, id, type, options, set_size = false, line_wrapping = false)
++  def code_mirror_text_area_widget(column, id, type, options, set_size = false, line_wrapping = false, toolbar = false)
+     set_size_str = set_size ?
+       ".setSize(null, '#{(set_size.is_a?(TrueClass) ? options[:value].count("\n") + 2 : set_size)}em')" :
+       ""
+     block = text_area(:record, :sql_query, options)
+-    block + "<script>
+-    CodeMirror.fromTextArea(document.getElementById('#{id}'),
++    toolbar_html = toolbar ? code_mirror_format_toolbar(id) : "".html_safe
++    toolbar_html + block + "<script>
++    window.cm_#{id} = CodeMirror.fromTextArea(document.getElementById('#{id}'),
+      {mode: '#{type}',
+       indentWithTabs: true,
+       smartIndent: true,
+@@ -120,6 +121,23 @@ module ApplicationHelper
+     </script>".html_safe
+   end
+ 
++  def code_mirror_format_toolbar(id)
++    buttons = [
++      ["<b>", "</b>", "<b>N</b>", "Negrito"],
++      ["<i>", "</i>", "<i>I</i>", "Itálico"],
++      ['<p style="text-align: center">', "</p>", "&#8801;", "Centralizar"],
++      ['<p style="text-align: justify">', "</p>", "&#9776;", "Justificar"]
++    ]
++    content_tag(:div, class: "cm-format-toolbar", role: "toolbar", "aria-label": "Formatação de texto") do
++      buttons.map do |open_tag, close_tag, label, title|
++        content_tag(:button, label.html_safe, type: "button", title: title, "aria-label": title,
++          onclick: "(function(){var cm=window.cm_#{id};var s=cm.getSelection();var o=#{open_tag.to_json};var c=#{close_tag.to_json};" \
++                   "if(s.indexOf(o)===0&&s.slice(-c.length)===c){cm.replaceSelection(s.slice(o.length,s.length-c.length),'around');}" \
++                   "else{cm.replaceSelection(o+s+c,'around');}cm.focus();})()")
++      end.join.html_safe
++    end
++  end
++
+   def code_mirror_view_widget(id, type, value, set_size = false, line_wrapping = false)
+     set_size_str = set_size ?
+       ".setSize(null, '#{(set_size.is_a?(TrueClass) ? value.count("\n") + 2 : set_size)}em')" :
+diff --git a/app/helpers/assertions_helper.rb b/app/helpers/assertions_helper.rb
+index eb450ce8..4749e659 100644
+--- a/app/helpers/assertions_helper.rb
++++ b/app/helpers/assertions_helper.rb
+@@ -18,7 +18,8 @@ module AssertionsHelper
+           I18n.t("active_scaffold.notification.body_template_default_liquid"),
+       ),
+       set_size=35,
+-      line_wrapping=true
++      line_wrapping=true,
++      toolbar=true
+     )
+   end
+ 
+diff --git a/app/helpers/assertions_pdf_helper.rb b/app/helpers/assertions_pdf_helper.rb
+index 22bb8154..7cb8f71f 100644
+--- a/app/helpers/assertions_pdf_helper.rb
++++ b/app/helpers/assertions_pdf_helper.rb
+@@ -2,18 +2,30 @@
+ 
+ # app/helpers/assertions_pdf_helper.rb
+ module AssertionsPdfHelper  
++  ALIGN_TAG = /<(?:p|div)\s+(?:style="text-align:\s*(left|center|right|justify);?"|align="(left|center|right|justify)")\s*>(.*?)<\/(?:p|div)>/mi
++
++  # Splits the text into [align, text] segments, honoring <p style="text-align: center">
++  def assertion_text_segments(text)
++    segments = []
++    rest = text.to_s
++    while (m = ALIGN_TAG.match(rest))
++      before = m.pre_match
++      segments << [:justify, before] unless before.strip.empty?
++      segments << [(m[1] || m[2]).downcase.to_sym, m[3].strip]
++      rest = m.post_match
++    end
++    segments << [:justify, rest] unless rest.strip.empty?
++    segments
++  end
++
+   def assertion_box_text_print(pdf, text, box_width, box_height)
+     pdf.move_down 30
+     pdf.font("Times-Roman", size: 12) do
+       pdf.fill_color "000000"
+-      lines = pdf.text_box text, at: [(pdf.bounds.width - box_width) / 2, pdf.cursor], width: box_width, height: box_height, align: :justify, inline_format: true, dry_run: true
+-
+-      while lines.size > 0
+-        not_printed_text_length = lines.map { |line| line[:text].length }.sum
+-        text = text[-not_printed_text_length..-1]
+-
+-        pdf.start_new_page
+-        lines = pdf.text_box text, at: [(pdf.bounds.width - box_width) / 2, pdf.cursor], width: box_width, height: box_height, align: :justify, inline_format: true, dry_run: true
++      pdf.bounding_box([(pdf.bounds.width - box_width) / 2, pdf.cursor], width: box_width) do
++        assertion_text_segments(text).each do |align, segment|
++          pdf.text segment, align: align, inline_format: true
++        end
+       end
+     end
+   end

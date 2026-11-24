@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25424,
+ "stop_reason": "end_turn",
+ "session_id": "02ebfb9c-51cd-49b4-9c4e-83588af84bcd",
+ "total_cost_usd": 0.05543539999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 777,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2410,
+  "output_tokens_details": {
+   "thinking_tokens": 130
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 777,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2410,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 777,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 777
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1361,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001486,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2410,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 777,
+   "webSearchRequests": 0,
+   "costUSD": 0.05528679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 130,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Log Exceptions Handled in `Signal.send_robust()`\n\n## Objective\n\n`Signal.send_robust()` catches exceptions raised by signal receivers and returns them in its result list. It currently does not log them. Unless the caller inspects the return value, the failures are invisible.\n\n**Goal:** When `send_robust()` catches an exception from a receiver, it logs it with `logger.exception()` in the `except` clause. The exception and its traceback then reach users' error-handling tools (e.g. Sentry) through standard logging.\n\n**Rationale (from issue):**\n- Django already logs exceptions in similar situations, such as missing template variables.\n- Developers should handle *expected* exceptions with a `try` inside the receiver. Anything that reaches `send_robust()`'s handler is unexpected and worth surfacing.\n\n**Users:**\n- Developers who use `send_robust()` and want visibility into receiver failures.\n- Operators who rely on log-based error aggregation.\n\n**User story:** As a developer, when one of my signal receivers raises during `send_robust()`, I want an error-level log record with the traceback. That way I can find and fix the failure without changing how my code handles the return value.\n\n## Assumptions\n\n1. The existing behaviour of `send_robust()` is unchanged. It still catches `Exception`, still continues to the remaining receivers, and still returns `(receiver, exception)` tuples.\n2. Logging is added only to `send_robust()`, not to `send()`. `send()` propagates exceptions, so the caller sees them already.\n3. The log call is `logger.exception(...)` inside the existing `except` clause. That makes the level ERROR and attaches the traceback (`exc_info`).\n4. The logger is a module-level `logging.getLogger(...)` following Django's existing logger naming convention. The exact name is not given in the issue (see Open Questions).\n5. The message identifies the failing receiver, and possibly the signal/sender, so the log entry is actionable.\n6. Log records are emitted through Python's standard `logging` module only. No new dependencies are added.\n7. If an async variant of `send_robust()` exists in the target version, it should behave the same way. This is unverified (see Open Questions).\n\n## Tech Stack\n\n- Python, standard library `logging`.\n- Django's signal dispatch module. The exact file path is **unknown** (not stated in the issue).\n- Python and Django versions: **unknown**.\n\n## Commands\n\n| Purpose | Command |\n|---|---|\n| Build | Unknown (not stated in issue) |\n| Test (full) | Unknown |\n| Test (signals/dispatch only) | Unknown |\n| Lint / format | Unknown |\n\n## Project Structure\n\n| Item | Location |\n|---|---|\n| `Signal` class / `send_robust()` implementation | Unknown \u2014 Django's dispatch module; exact path not visible |\n| Tests for signal dispatch | Unknown |\n| Logging documentation (list of Django loggers) | Unknown |\n| Signals documentation (`send_robust()` reference) | Unknown |\n| Release notes for the target version | Unknown |\n\n## Code Style\n\n- Follow the existing conventions of the dispatch module and Django's codebase. These are not visible here.\n- Use a module-level logger, not the root logger.\n- Use lazy `%`-style logging arguments (e.g. `logger.exception(\"... %r ...\", receiver)`) rather than pre-formatted strings, consistent with standard `logging` practice.\n- Keep the change minimal: one logger definition and one logging call in the `except` clause.\n\n## Testing Strategy\n\n- **Framework:** Django's test suite. The runner command is unknown.\n- **Level:** Unit tests on `Signal.send_robust()`.\n- **Cases:**\n  1. A receiver that raises produces exactly one ERROR-level record on the chosen logger. The record's `exc_info` contains the raised exception, and its message identifies the receiver.\n  2. The return value still contains `(receiver, exception)` for the failing receiver.\n  3. Later receivers are still called after one raises.\n  4. Receivers that succeed produce no log records.\n  5. With multiple failing receivers, there is one log record per failure.\n  6. If an async `send_robust` variant exists, the same assertions apply to it.\n- **Technique:** Capture logs with `assertLogs(<logger name>, \"ERROR\")`, or equivalent.\n- **Regression:** Existing signal/dispatch tests pass unchanged.\n\n## Boundaries\n\n- **Always:**\n  - Preserve `send_robust()`'s return contract and its exception-swallowing behaviour.\n  - Add tests for the new logging.\n  - Document the new logger and the behaviour change in the docs and release notes.\n- **Ask first:**\n  - Choosing or creating a new logger name.\n  - Logging in `send()` or anywhere other than `send_robust()`.\n  - Changing the log level from ERROR.\n  - Adding configuration to disable the logging.\n- **Never:**\n  - Re-raise exceptions from `send_robust()`.\n  - Change which exceptions are caught.\n  - Add third-party dependencies.\n  - Log at a level that bypasses the user's logging configuration.\n\n## Success Criteria\n\n- [ ] When a receiver raises an `Exception` subclass during `send_robust()`, exactly one ERROR-level log record is emitted on the designated Django logger.\n- [ ] That record includes the traceback (`exc_info` set) and identifies the receiver.\n- [ ] `send_robust()` return values and the receiver invocation order are identical to current behaviour.\n- [ ] No log records are emitted when all receivers succeed.\n- [ ] `send()` behaviour is unchanged.\n- [ ] New tests cover the cases above, and the existing test suite passes.\n- [ ] Documentation lists the logger and describes the logging in `send_robust()`, and a release note mentions the change.\n\n## Open Questions\n\n1. **Logger name:** Which logger should be used? Possible choices are a new logger such as `django.dispatch`, or an existing Django logger. If it is new, it must be added to the logging docs.\n2. **Message content:** Should the message include the signal and sender in addition to the receiver? What is the exact wording?\n3. **Async variant:** Does the target Django version have an async `send_robust`, and should it log identically?\n4. **Opt-out:** Do users need a way to suppress this logging beyond standard logger configuration? The current assumption is no.\n5. **Default logging config:** Will Django's default `LOGGING` configuration emit these records anywhere, for example to the console or to admin emails? Is that acceptable as the default?\n6. **Target version:** Which release is this for, so the release notes go in the right place?\n7. **Commands and paths:** Which test runner command, module path, and docs locations apply? None are given in the issue.",
+ "ttft_ms": 3202,
+ "type": "result",
+ "duration_ms": 24937,
+ "uuid": "912d32b6-bf9d-4698-b1d3-db820dcfa027",
+ "ttft_stream_ms": 2080,
+ "time_to_request_ms": 688,
+ "time_to_request_phases_ms": {
+  "other": 35,
+  "system_prompt": 2,
+  "resume_other": 1,
+  "process_user_input": 7,
+  "input_attachments": 22,
+  "input_hooks": 6,
+  "tool_pool_refresh": 4,
+  "init_message": 22,
+  "engine_pickup": 3,
+  "message_prep": 2,
+  "model_config_wait": 561,
+  "autocompact": 6,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 4,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 57,
+ "time_to_request_cpu_ms": 547,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 28,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2081,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

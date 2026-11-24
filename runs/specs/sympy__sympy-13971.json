@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27637,
+ "stop_reason": "end_turn",
+ "session_id": "5e1fbaa1-c4f2-4fad-927c-0883510e7ada",
+ "total_cost_usd": 0.060238599999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 797,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2642,
+  "output_tokens_details": {
+   "thinking_tokens": 137
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 797,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2642,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 797,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 797
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1383,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001518,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2642,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 797,
+   "webSearchRequests": 0,
+   "costUSD": 0.060086799999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 137,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: LaTeX Printing of Sequences (`SeqFormula` and Related) Without Escaped Square Brackets\n\n## Objective\n\n**Problem.** In Jupyter, SymPy renders a sequence as LaTeX with backslash-escaped square brackets:\n\n```python\nimport sympy as sp\nk, m, n = sp.symbols('k m n', integer=True)\nsp.init_printing()\n\nsp.SeqFormula(n**2, (n, 0, sp.oo))\n```\n\nThe current LaTeX output is:\n\n```\n\\left\\[0, 1, 4, 9, \\ldots\\right\\]\n```\n\nIn LaTeX, `\\[` and `\\]` mean \"start/end display math\". They are not bracket delimiters, so `\\left\\[` and `\\right\\]` are invalid as sized delimiters. The notebook output appears to display correctly, but pasting this string into a Markdown cell (MathJax/KaTeX) does not render. The unescaped form does render:\n\n```\n[0, 1, 4, 9, \\ldots ]\n```\n\n**Goal.** The LaTeX printer should emit valid, portable LaTeX for sequences. Square-bracket delimiters must be written as `\\left[` ... `\\right]` (or plain `[` ... `]`), never `\\left\\[` ... `\\right\\]`.\n\n**Users.** SymPy users who:\n- copy LaTeX output from Jupyter into Markdown or other LaTeX documents, or\n- consume `sp.latex(...)` output programmatically.\n\n**Resolution of the issue's either/or question.** The printer should stop escaping the brackets. Changing how `\\]` renders is a MathJax/Jupyter concern outside SymPy's control. Also, `\\]` has standard LaTeX semantics that make the current output incorrect.\n\n**Acceptance criteria:**\n1. `sp.latex(sp.SeqFormula(n**2, (n, 0, sp.oo)))` returns a string containing `\\left[` and `\\right]`, and contains no `\\left\\[` and no `\\right\\]`.\n2. The expected output for criterion 1 is `\\left[0, 1, 4, 9, \\ldots\\right]`. The exact spacing and dots must be confirmed against current printer output; only the delimiters should change.\n3. The returned string renders correctly in Jupyter Markdown cells (MathJax). Rendering in a standard LaTeX math environment is a secondary check.\n4. The same fix applies to every sequence type that shares this printing path. Candidates include `SeqPer`, `SeqFormula`, `SeqAdd`, `SeqMul`, and finite or negative-start sequences (leading `\\ldots`). The exact set is unknown and must be confirmed.\n5. Existing tests that assert the old escaped form are updated to the new form. No unrelated printer output changes.\n\n## Assumptions\n\n1. The escaped brackets come from SymPy's LaTeX printer, specifically a sequence-printing method. They do not come from Jupyter, MathJax, or `init_printing` post-processing.\n2. Jupyter's rich display uses the same LaTeX string as `sp.latex(...)`. Fixing the printer therefore fixes the notebook display.\n3. `\\left[` / `\\right]` is the preferred replacement over bare `[` / `]`. This keeps auto-sizing consistent with other SymPy delimiters such as `\\left(` and `\\left\\{`.\n4. Other printers (str, pretty/unicode, MathML) are unaffected and out of scope.\n5. Other SymPy objects that print square brackets (e.g., intervals, matrices, lists) may have the same bug. They are out of scope unless the same code path is involved, but they should be checked (see Open Questions).\n\n## Tech Stack\n\n- Python, SymPy (affected version unknown, not stated in the issue).\n- Jupyter / IPython display with MathJax rendering (versions unknown).\n\n## Commands\n\n- Build: unknown (pure Python package; no build step stated).\n- Test: unknown. Likely the project's pytest-based runner restricted to the LaTeX printing tests; exact command not visible.\n- Lint: unknown.\n- Manual reproduction: run the snippet from the Objective in Jupyter and in a plain Python session with `print(sp.latex(...))`.\n\n## Project Structure\n\nUnknown. Assumed but unverified:\n- The LaTeX printer module lives under SymPy's printing package.\n- Its tests sit in that package's test directory.\n\nThe exact file and function names must be located in the repository before planning.\n\n## Code Style\n\nUnknown from the issue. Follow the existing conventions of the LaTeX printer module, especially how other methods emit `\\left` / `\\right` delimiters.\n\n## Testing Strategy\n\n- **Unit tests** in the existing LaTeX printer test suite. Assert exact output strings for:\n  - `SeqFormula` infinite on the right (the issue's example)\n  - an infinite-on-the-left or negative-range sequence (leading `\\ldots`)\n  - a finite sequence\n  - `SeqPer`\n  - `SeqAdd` / `SeqMul`, if they share the code path\n- **Regression guard:** a test asserting that `\\left\\[` and `\\right\\]` do not appear in sequence LaTeX output.\n- **Manual check:** paste the output into a Jupyter Markdown cell and confirm it renders.\n- **Coverage:** no specific target stated. All changed lines must be covered by the new or updated tests.\n\n## Boundaries\n\n- **Always:**\n  - Keep the change limited to sequence delimiters in the LaTeX printer.\n  - Update any existing tests that encode the old escaped form.\n  - Run the printing test suite before committing.\n- **Ask first:**\n  - Changing delimiters for other bracketed objects (intervals, lists, matrices).\n  - Switching from `\\left[` to bare `[`.\n  - Changing anything in str, pretty, or MathML printers.\n  - Changing `init_printing` behaviour.\n- **Never:**\n  - Work around the bug in Jupyter or MathJax configuration.\n  - Delete failing tests instead of updating them.\n  - Change the sequence contents or `\\ldots` placement.\n\n## Success Criteria\n\n- [ ] `sp.latex(sp.SeqFormula(n**2, (n, 0, sp.oo)))` contains `\\left[` and `\\right]`, and contains neither `\\left\\[` nor `\\right\\]`.\n- [ ] Every sequence class that uses the shared printing path produces unescaped bracket delimiters, verified by unit tests.\n- [ ] The output pasted into a Jupyter Markdown cell renders as `[0, 1, 4, 9, \u2026]`.\n- [ ] The full LaTeX printer test suite passes, with updated expectations only where the old escaped brackets appeared.\n- [ ] No output changes for non-sequence objects.\n\n## Open Questions\n\n1. Which SymPy version is affected, and is this still reproducible on the current main branch?\n2. Which sequence classes share the faulty code path (`SeqFormula`, `SeqPer`, `SeqAdd`, `SeqMul`, others)?\n3. Is `\\left[ \u2026 \\right]` acceptable, or does the project prefer bare `[ \u2026 ]` for sequences?\n4. Do other printers or objects emit `\\left\\[` / `\\right\\]` and need the same fix? Should that happen in this change or a follow-up?\n5. Do any downstream consumers or doc examples depend on the current escaped output, making this a user-visible change worth a release note?",
+ "ttft_ms": 2599,
+ "type": "result",
+ "duration_ms": 26493,
+ "uuid": "c1a7f3bf-b0d7-4eba-81d1-91c13ba82302",
+ "ttft_stream_ms": 1374,
+ "time_to_request_ms": 307,
+ "time_to_request_phases_ms": {
+  "other": 22,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 3,
+  "init_message": 24,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 222,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 51,
+ "time_to_request_cpu_ms": 337,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1374,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

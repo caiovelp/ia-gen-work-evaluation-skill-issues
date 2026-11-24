@@ -1,0 +1,15 @@
+# Glossário
+
+- **Gerador** — LLM que reescreve a issue original com a skill para o Grupo A. Aqui: Claude Opus 5.5, só fase Specify, vendo só o texto da issue. (ADR 0005)
+- **Resolvedor** — agente que tenta corrigir a issue no repositório. Aqui: Claude Code headless com Sonnet 5.5 no container do SWE-bench. (ADR 0002)
+- **Grupo A (skill)** — issue reescrita pelo Gerador com a skill Spec-Driven Development. (ADR 0004)
+- **Grupo B (baseline)** — `problem_statement` original do SWE-bench Lite, sem reescrita. Não é "reescrita sem skill". (ADR 0004)
+- **Resultados parciais** — piloto pareado, 1 execução por issue por grupo, tabela descritiva, sem teste estatístico. (ADR 0004)
+- **Vazamento (do Gerador)** — arquivo ou função/classe tocado pelo patch oficial que aparece na versão A e não aparece na original. (ADR 0005)
+- **Resolvida** — patch do Resolvedor passa em todos os FAIL_TO_PASS e PASS_TO_PASS da instância no avaliador oficial do SWE-bench. Patch vazio (agente concluiu que não havia o que mudar) conta como não resolvida. (ADR 0003)
+- **Grupo C (literatura)** — issue reescrita pelo Gerador com os critérios da literatura do tipo dela: Bettenburg et al. (2008) para bug, Heck & Zaidman (2017, QC1) para feature. Só para issues classificadas bug/feature. (ADR 0009)
+- **Tipo da issue** — bug, feature, neither ou discard, pela skill de classificação do mestrado (Herzig et al. 2013, zero-shot). Na análise por tipo, neither e discard aparecem juntos como "nenhum dos dois". (ADR 0008)
+- **Item extraído da original** — a seção correspondente do texto do Grupo C não está marcada "Not provided in the original". Inclui item **deduzido** (ex.: comportamento esperado tirado do título), não só item escrito pelo autor. É julgamento do Opus, não do Caio. (slide "O que o Grupo C conseguiu tirar da issue original")
+- **Tarefa (SAPOS)** — issue fechada do SAPOS com commit base, patch de teste, patch de código (fix oficial) e ao menos um teste FAIL_TO_PASS verificado em container. (ADR 0011)
+- **Diff acumulado** — plano B para montar a correção quando o cherry-pick dos commits da issue conflita: diff entre a base e o último commit da issue, só nos arquivos que esses commits tocam. Pode trazer mudanças de outras issues nesses arquivos. (ADR 0011)
+- **Patch vazio** — o agente terminou sem mudar nenhum arquivo; conta como não resolvida. (ADR 0003, ADR 0011)

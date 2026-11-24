@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 35636,
+ "stop_reason": "end_turn",
+ "session_id": "3b6419ea-789f-4b55-86f8-fa2966b299c8",
+ "total_cost_usd": 0.0799105,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1048,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3524,
+  "output_tokens_details": {
+   "thinking_tokens": 534
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1048,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3524,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1048,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1048
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1632,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017570000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3524,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1048,
+   "webSearchRequests": 0,
+   "costUSD": 0.0797348,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 534,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Include the invalid value in ModelChoiceField's `invalid_choice` validation error\n\n## Objective\n\nWhen a Django form's `ModelChoiceField` rejects a submitted value, its error message is generic: *\"Select a valid choice. That choice is not one of the available choices.\"* It does not say which value was rejected.\n\nOther fields already name the value:\n- `ChoiceField` does, per the issue.\n- `ModelMultipleChoiceField` does. The issue quotes its message: *\"Select a valid choice. %(value)s is not one of the available choices.\"*\n\n**Goal:** `ModelChoiceField` should include the offending value in its `invalid_choice` error, matching its sibling fields. Two changes are needed:\n1. Pass the invalid value as a `value` parameter when raising the `ValidationError` with code `invalid_choice`.\n2. Change the default `invalid_choice` message to use `%(value)s`.\n\n**Users:**\n- Developers using Django forms who want useful error messages.\n- Developers who customize `error_messages['invalid_choice']` and want `%(value)s` interpolated, as other choice fields allow.\n- End users of those forms.\n\n**User stories / acceptance:**\n- When I submit a value that is not in the field's queryset, the error message contains that value.\n- When I set a custom `invalid_choice` message with `%(value)s`, it is filled with the submitted value.\n- When I set a custom `invalid_choice` message without `%(value)s`, it renders exactly as before, with no error or change.\n- The error code stays `invalid_choice`.\n\n## Assumptions\n\n1. The target is Django's own codebase, and `ModelChoiceField` / `ModelMultipleChoiceField` are the classes quoted in the issue. Their file location is not given in the issue and is **unknown**. It is presumably the forms/models module.\n2. `ModelChoiceField` currently raises `ValidationError(..., code='invalid_choice')` without `params`. This is inferred from the issue's description, not seen in code.\n3. The new default message should match `ModelMultipleChoiceField`'s wording exactly: `'Select a valid choice. %(value)s is not one of the available choices.'` This keeps the message consistent and lets it reuse the existing translation string.\n4. The `value` param is the value that failed lookup. If a model instance was submitted and converted to its key or `to_field_name` before lookup, the converted key is used. The current conversion logic is not visible, so this is to be confirmed (see Open Questions).\n5. Values that count as \"empty\" still return `None` or raise `required`. They do not trigger `invalid_choice`, so their behavior is unchanged.\n6. Lookup failures caused by invalid types or values (e.g. a non-integer for an integer pk) should also raise `invalid_choice` with the value. This assumes those failures already map to `invalid_choice` today.\n7. `ModelMultipleChoiceField` already passes `value` for its own `invalid_choice` path and needs no change. Its inheritance of messages and validation from `ModelChoiceField` must not regress.\n8. Changing the default message text is acceptable as a minor behavior change and should be documented in release notes and the forms field reference docs.\n9. A `ValidationError` with a params dict formats safely even when the message has no placeholders. Custom messages without `%(value)s` therefore keep working.\n\n## Tech Stack\n\n- Python and Django. The exact versions supported by the target branch are **unknown**.\n- Django forms framework (`ChoiceField`, `ModelChoiceField`, `ModelMultipleChoiceField`, `ValidationError`).\n- Django's i18n (`gettext_lazy` as `_`) for the default message.\n\n## Commands\n\nThe issue does not include these, so all are **unknown**:\n- Build: unknown (none expected for a pure-Python change)\n- Test: unknown (Django's own test runner invocation and the relevant test module labels are not given)\n- Lint: unknown\n- Dev: not applicable\n\n## Project Structure\n\nPaths are not visible in the issue and are **unknown**. Expected areas of change:\n- Source module defining `ModelChoiceField` (unknown path)\n- Tests for model form fields / `ModelChoiceField` error messages (unknown path)\n- Documentation for `ModelChoiceField` error message keys in the forms fields reference (unknown path)\n- Release notes for the target version (unknown path)\n- Translation catalogs: no manual edits expected. Reusing the existing `ModelMultipleChoiceField` string avoids a new msgid.\n\n## Code Style\n\n- Follow Django's existing conventions as shown in the issue:\n  - `default_error_messages` dicts with `_()`-wrapped strings\n  - Implicit string concatenation across lines\n  - Curly quotes where Django uses them\n- Raise errors as `ValidationError(message, code='...', params={...})`, consistent with how `ChoiceField` reports `%(value)s`.\n- No code snippet from the actual implementation is visible, so no further style samples are given.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. Runner command and locations are unknown.\n- **Level:** unit tests on the form field, plus a form-level test if existing tests use that pattern.\n- **Cases to cover:**\n  1. `clean()` with a pk not in the queryset: the message contains that pk and the code is `invalid_choice`.\n  2. `clean()` with a value of invalid type for the pk field: an `invalid_choice` error that includes the value. The expected behavior is to be confirmed.\n  3. `to_field_name` set, value not found: the message contains the submitted value.\n  4. Custom `error_messages={'invalid_choice': '... %(value)s ...'}`: the placeholder is interpolated.\n  5. Custom `invalid_choice` message without a placeholder: it renders verbatim.\n  6. `ModelMultipleChoiceField` invalid-choice and `invalid_pk_value` behavior is unchanged (regression).\n  7. Update any existing tests that assert the old default text `\"That choice is not one of the available choices.\"` for `ModelChoiceField`.\n- **Coverage expectation:** every new or changed branch in the raise path is covered. The project's numeric threshold is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep the error code `invalid_choice`.\n  - Keep the message translatable.\n  - Match the wording of `ModelMultipleChoiceField` and `ChoiceField`.\n  - Add or adjust tests alongside the change.\n  - Document the changed default message.\n- **Ask first:**\n  - Using message wording that differs from `ModelMultipleChoiceField`'s.\n  - Changing how values are normalized before lookup (e.g. instance-to-key conversion).\n  - Changing `ModelMultipleChoiceField` or `ChoiceField`.\n  - Backporting to stable branches.\n- **Never:**\n  - Change which inputs are accepted or rejected.\n  - Expose data beyond the submitted value, such as queryset contents or other rows.\n  - Hand-edit compiled or translated locale files.\n  - Remove existing tests instead of updating them.\n\n## Success Criteria\n\n- [ ] An invalid `ModelChoiceField` submission yields a `ValidationError` with code `invalid_choice` and `params` containing `value`.\n- [ ] The default rendered message reads `Select a valid choice. <value> is not one of the available choices.`\n- [ ] Custom `invalid_choice` messages with `%(value)s` are interpolated. Those without it render unchanged.\n- [ ] Valid choices, empty values, and `required` handling behave exactly as before.\n- [ ] `ModelMultipleChoiceField` behavior and messages are unchanged, and its tests pass.\n- [ ] All existing form and model-form tests pass, with assertions on the old default text updated.\n- [ ] Docs and release notes mention that `ModelChoiceField`'s `invalid_choice` message now includes `%(value)s`.\n\n## Open Questions\n\n1. **Value representation for instances.** If a model instance (not in the queryset) is passed, should `%(value)s` show the extracted key (pk or `to_field_name` value) or the instance's `str()`? The extracted key would be consistent with what was looked up.\n2. **Wording and translations.** Is reusing `ModelMultipleChoiceField`'s exact message string acceptable, so existing translations apply? Or does the project want quoted output, e.g. `\u201c%(value)s\u201d`, as in `invalid_pk_value`?\n3. **Version policy.** Is this a new-feature-level change for the next release only, or eligible for backport?\n4. **Release notes.** Should the release notes explicitly call out the changed default text as a minor backwards-incompatible change, for users whose tests assert the old message?\n5. **Paths and commands.** Where are the source module, test modules, docs page, and release notes file, and what is the test command? All are unknown from the issue.",
+ "ttft_ms": 6319,
+ "type": "result",
+ "duration_ms": 34922,
+ "uuid": "69989587-60a6-4b11-ad65-8aff7e3ae590",
+ "ttft_stream_ms": 870,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 220,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 119,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 870,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

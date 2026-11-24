@@ -1,0 +1,103 @@
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index 2903b899..e01713c4 100755
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -667,6 +667,8 @@ class AssertionRewriter(ast.NodeVisitor):
+         if not mod.body:
+             # Nothing to do.
+             return
++        self._module_node = mod
++        self._all_shadowed = None
+         # Insert some special imports at the top of the module but after any
+         # docstrings and __future__ imports.
+         aliases = [
+@@ -833,6 +835,10 @@ class AssertionRewriter(ast.NodeVisitor):
+                 lineno=assert_.lineno,
+             )
+ 
++        unrolled = self._unroll_all(assert_)
++        if unrolled is not None:
++            return unrolled
++
+         self.statements = []
+         self.variables = []
+         self.variable_counter = itertools.count()
+@@ -878,6 +884,78 @@ class AssertionRewriter(ast.NodeVisitor):
+             set_location(stmt, assert_.lineno, assert_.col_offset)
+         return self.statements
+ 
++    def _unroll_all(self, assert_):
++        """Unroll ``assert all(<genexp or listcomp>)`` into a for loop with
++        an inner assert, so the failing element gets a detailed report.
++
++        Returns None if the assertion has an unsupported shape, or if
++        ``all`` might be shadowed in the module.
++        """
++        test = assert_.test
++        if not (
++            isinstance(test, ast.Call)
++            and isinstance(test.func, ast.Name)
++            and test.func.id == "all"
++            and len(test.args) == 1
++            and not test.keywords
++            and isinstance(test.args[0], (ast.GeneratorExp, ast.ListComp))
++            and not getattr(test, "starargs", None)
++            and not getattr(test, "kwargs", None)
++        ):
++            return None
++        comp = test.args[0]
++        if any(getattr(g, "is_async", 0) for g in comp.generators):
++            return None
++        if self._all_is_shadowed():
++            return None
++        # Innermost: the assert on the element.
++        body = [ast.Assert(comp.elt, assert_.msg)]
++        for gen in reversed(comp.generators):
++            for cond in reversed(gen.ifs):
++                body = [ast.If(cond, body, [])]
++            body = [ast.For(gen.target, gen.iter, body, [])]
++        stmts = []
++        for stmt in body:
++            for node in ast.walk(stmt):
++                if "lineno" in node._attributes:
++                    ast.copy_location(node, assert_)
++            stmts.append(stmt)
++        return self._visit_unrolled(stmts)
++
++    def _visit_unrolled(self, stmts):
++        """Rewrite inner Assert nodes of the unrolled loop."""
++        result = []
++        for stmt in stmts:
++            if isinstance(stmt, ast.Assert):
++                result.extend(self.visit_Assert(stmt))
++                continue
++            for field in ("body",):
++                setattr(stmt, field, self._visit_unrolled(getattr(stmt, field)))
++            result.append(stmt)
++        return result
++
++    def _all_is_shadowed(self):
++        mod = getattr(self, "_module_node", None)
++        if mod is None:
++            return True
++        cached = getattr(self, "_all_shadowed", None)
++        if cached is None:
++            cached = False
++            for node in ast.walk(mod):
++                if isinstance(node, ast.Name) and node.id == "all":
++                    if not isinstance(node.ctx, ast.Load):
++                        cached = True
++                elif getattr(node, "name", None) == "all" or (
++                    getattr(node, "arg", None) == "all"
++                ):
++                    # def/class/except-as/argument named ``all``
++                    cached = True
++                elif isinstance(node, ast.alias):
++                    if (node.asname or node.name.split(".")[0]) == "all":
++                        cached = True
++            self._all_shadowed = cached
++        return cached
++
+     def warn_about_none_ast(self, node, module_path, lineno):
+         """
+         Returns an AST issuing a warning if the value of node is `None`.

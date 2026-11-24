@@ -1,0 +1,24 @@
+diff --git a/app/models/enrollment_hold.rb b/app/models/enrollment_hold.rb
+index 165f9a25..f0b16f02 100644
+--- a/app/models/enrollment_hold.rb
++++ b/app/models/enrollment_hold.rb
+@@ -41,11 +41,18 @@ class EnrollmentHold < ApplicationRecord
+       errors.add(:base, :before_admission_date)
+     end
+     dismissal = enrollment.dismissal
+-    if dismissal.present? && self.end_date > dismissal.date
++    if dismissal.present? && self.end_date > dismissal.date &&
++        !dismissal_by_giving_up?(dismissal)
+       errors.add(:base, :after_dismissal_date)
+     end
+   end
+ 
++  def dismissal_by_giving_up?(dismissal)
++    name = dismissal.dismissal_reason&.name
++    return false if name.blank?
++    I18n.transliterate(name.strip).casecmp?("desistencia")
++  end
++
+   def start_date
+     ys = YearSemester.new(year: year, semester: semester)
+     ys.semester_begin

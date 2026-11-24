@@ -1,0 +1,74 @@
+diff --git a/app/controllers/admissions/admission_phases_controller.rb b/app/controllers/admissions/admission_phases_controller.rb
+index 04ddc077..a48ed085 100644
+--- a/app/controllers/admissions/admission_phases_controller.rb
++++ b/app/controllers/admissions/admission_phases_controller.rb
+@@ -16,6 +16,7 @@ class Admissions::AdmissionPhasesController < ApplicationController
+ 
+     form_columns = [
+       :name, :member_form, :shared_form, :consolidation_form, :candidate_form, :can_edit_candidate,
++      :committee_can_see_other_members,
+       :candidate_can_edit, :candidate_can_see_member, :candidate_can_see_shared,
+       :candidate_can_see_consolidation,
+       :approval_condition, :keep_in_phase_condition, :admission_phase_committees,
+diff --git a/app/models/admissions/admission_phase.rb b/app/models/admissions/admission_phase.rb
+index 6506145f..95f1f170 100644
+--- a/app/models/admissions/admission_phase.rb
++++ b/app/models/admissions/admission_phase.rb
+@@ -246,7 +246,10 @@ class Admissions::AdmissionPhase < ActiveRecord::Base
+         ) && (phase_form[:mode] == :candidate)
+       end
+       if committee_permission_user.present?
+-        next false if phase_form[:mode] == :member && phase_form[:user_id] != committee_permission_user.id
++        if phase_form[:mode] == :member && phase_form[:user_id] != committee_permission_user.id
++          next false unless self.committee_can_see_other_members
++          can_edit_form = false
++        end
+         if phase_form[:mode] == :candidate
+           can_edit_form = can_edit_override || current_phase.try(:can_edit_candidate)
+         end
+diff --git a/config/locales/admissions/admission_phase.pt-BR.yml b/config/locales/admissions/admission_phase.pt-BR.yml
+index cc880776..3591cb55 100644
+--- a/config/locales/admissions/admission_phase.pt-BR.yml
++++ b/config/locales/admissions/admission_phase.pt-BR.yml
+@@ -17,6 +17,7 @@ pt-BR:
+         admission_phase_results: Resultados da fase
+         admission_phase_evaluations: Avaliações do comitê
+         admission_process_phases: Editais de seleção
++        committee_can_see_other_members: "Comitê pode ver formulários individuais de outros membros"
+         candidate_form: "Formulário de candidato"
+         candidate_can_edit: "Candidato pode editar"
+         candidate_can_see_member: "Candidato pode ver preenchimento de formulário individual"
+diff --git a/db/migrate/20241210000000_add_committee_can_see_members_to_admission_phases.rb b/db/migrate/20241210000000_add_committee_can_see_members_to_admission_phases.rb
+new file mode 100644
+index 00000000..e8c1853f
+--- /dev/null
++++ b/db/migrate/20241210000000_add_committee_can_see_members_to_admission_phases.rb
+@@ -0,0 +1,7 @@
++# frozen_string_literal: true
++
++class AddCommitteeCanSeeMembersToAdmissionPhases < ActiveRecord::Migration[7.0]
++  def change
++    add_column :admission_phases, :committee_can_see_other_members, :boolean, default: false, null: false
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 489b3ff4..0f64b227 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_12_08_052442) do
++ActiveRecord::Schema[7.0].define(version: 2024_12_10_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -128,6 +128,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_12_08_052442) do
+     t.boolean "candidate_can_see_member", default: false, null: false
+     t.boolean "candidate_can_see_shared", default: false, null: false
+     t.boolean "candidate_can_see_consolidation", default: false, null: false
++    t.boolean "committee_can_see_other_members", default: false, null: false
+     t.index ["approval_condition_id"], name: "index_admission_phases_on_approval_condition_id"
+     t.index ["candidate_form_id"], name: "index_admission_phases_on_candidate_form_id"
+     t.index ["consolidation_form_id"], name: "index_admission_phases_on_consolidation_form_id"

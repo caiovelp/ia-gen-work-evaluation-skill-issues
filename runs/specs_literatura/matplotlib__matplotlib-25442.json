@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13097,
+ "stop_reason": "end_turn",
+ "session_id": "35ea5a06-22d1-49c8-b132-dcb3a92037e5",
+ "total_cost_usd": 0.040213,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1759,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1296,
+  "output_tokens_details": {
+   "thinking_tokens": 92
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1759,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1296,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1759,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1759
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1970,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00021300000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1296,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1759,
+   "webSearchRequests": 0,
+   "costUSD": 0.04,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 92,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen matplotlib 3.7.1 is used with `mplcursors`, clicking a few data points raises `AttributeError: 'NoneType' object has no attribute 'canvas'`. After the first occurrence, every new data-point selection raises the same traceback. Otherwise the cursor works. Matplotlib 3.7.0 and lower do not have this problem.\n\n## Steps to reproduce\n\n1. Use matplotlib 3.7.1 with the QtAgg backend and `mplcursors` installed. Installing through conda or pip gives the same result.\n2. Run the script shown under \"Code example.\" It draws a scatter plot of 10 points and attaches an `mplcursors` cursor.\n3. In the plot window, click several data points one after another to select them.\n4. Watch the terminal. After a few clicks the traceback appears.\n5. Click another data point. The same traceback appears again on each new selection.\n\n## Observed behavior\n\nAfter a few data points have been selected, an `AttributeError: 'NoneType' object has no attribute 'canvas'` traceback is printed to the terminal. From then on, every new data-point selection prints the same traceback. Apart from these errors, `mplcursors` works.\n\n## Expected behavior\n\nNo terminal output when selecting data points. This is how it behaves with matplotlib 3.7.0 and lower.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"C:\\Users\\MrAni\\Python\\miniconda3\\lib\\site-packages\\matplotlib\\cbook\\__init__.py\", line 304, in process\n    func(*args, **kwargs)\n  File \"C:\\Users\\MrAni\\Python\\miniconda3\\lib\\site-packages\\matplotlib\\offsetbox.py\", line 1550, in on_release\n    if self._check_still_parented() and self.got_artist:\n  File \"C:\\Users\\MrAni\\Python\\miniconda3\\lib\\site-packages\\matplotlib\\offsetbox.py\", line 1560, in _check_still_parented\n    self.disconnect()\n  File \"C:\\Users\\MrAni\\Python\\miniconda3\\lib\\site-packages\\matplotlib\\offsetbox.py\", line 1568, in disconnect\n    self.canvas.mpl_disconnect(cid)\n  File \"C:\\Users\\MrAni\\Python\\miniconda3\\lib\\site-packages\\matplotlib\\offsetbox.py\", line 1517, in <lambda>\n    canvas = property(lambda self: self.ref_artist.figure.canvas)\nAttributeError: 'NoneType' object has no attribute 'canvas'\n```\n\n## Test case\n\nThe original report does not include an automated test case. The script under \"Code example\" can be used as a manual test:\n\n- **Run:** execute the script, then click several data points in the plot window.\n- **Pass:** nothing is printed to the terminal.\n- **Fail:** the `AttributeError` traceback above is printed.\n\n## Code example\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport mplcursors as mpl\n\nx = np.arange(1, 11)\ny1 = x\n\nplt.scatter(x, y1)\n\nmpl.cursor()\nplt.show()\n```\n\n## Version and environment\n\n- **Matplotlib:** 3.7.1 (affected). 3.7.0 and lower work fine.\n- **Backend:** QtAgg\n- **Python:** 3.9.16\n- **Operating system:** Windows 11 and Windows 10\n- **Installation:** conda. A pip install gives the same result.\n- **mplcursors version:** Not provided in the original report.\n- **Jupyter:** Not provided in the original report.",
+ "ttft_ms": 2636,
+ "type": "result",
+ "duration_ms": 12622,
+ "uuid": "9aaf4fde-6f0d-441f-89ac-81e35c1cac1f",
+ "ttft_stream_ms": 1534,
+ "time_to_request_ms": 247,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 189,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1534,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

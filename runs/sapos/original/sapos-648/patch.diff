@@ -1,0 +1,13 @@
+diff --git a/app/controllers/scholarship_durations_controller.rb b/app/controllers/scholarship_durations_controller.rb
+index 912f9e5b..49a3c430 100644
+--- a/app/controllers/scholarship_durations_controller.rb
++++ b/app/controllers/scholarship_durations_controller.rb
+@@ -70,7 +70,7 @@ class ScholarshipDurationsController < ApplicationController
+     config.columns[:scholarship_suspensions].allow_add_existing = false
+ 
+     config.subform.columns = [
+-      :enrollment, :start_date, :end_date, :cancel_date, :obs
++      :scholarship, :enrollment, :start_date, :end_date, :cancel_date, :obs
+     ]
+ 
+     config.actions.exclude :deleted_records

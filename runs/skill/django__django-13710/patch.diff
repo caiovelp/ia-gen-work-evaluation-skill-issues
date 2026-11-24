@@ -1,0 +1,49 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index dadd4acfa1..1e5fab917e 100755
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -2037,10 +2037,13 @@ class InlineModelAdmin(BaseModelAdmin):
+         self.opts = self.model._meta
+         self.has_registered_model = admin_site.is_registered(self.model)
+         super().__init__()
++        if self.verbose_name_plural is None:
++            if self.verbose_name is None:
++                self.verbose_name_plural = self.model._meta.verbose_name_plural
++            else:
++                self.verbose_name_plural = format_lazy('{}s', self.verbose_name)
+         if self.verbose_name is None:
+             self.verbose_name = self.model._meta.verbose_name
+-        if self.verbose_name_plural is None:
+-            self.verbose_name_plural = self.model._meta.verbose_name_plural
+ 
+     @property
+     def media(self):
+diff --git a/docs/ref/contrib/admin/index.txt b/docs/ref/contrib/admin/index.txt
+index fc1eab44f1..629f49ad71 100755
+--- a/docs/ref/contrib/admin/index.txt
++++ b/docs/ref/contrib/admin/index.txt
+@@ -2459,7 +2459,8 @@ The ``InlineModelAdmin`` class adds or customizes:
+ .. attribute:: InlineModelAdmin.verbose_name_plural
+ 
+     An override to the ``verbose_name_plural`` found in the model's inner
+-    ``Meta`` class.
++    ``Meta`` class. If this isn't given and the :attr:`.InlineModelAdmin.verbose_name`
++    is defined, Django will use :attr:`.InlineModelAdmin.verbose_name` + ``'s'``.
+ 
+ .. attribute:: InlineModelAdmin.can_delete
+ 
+diff --git a/docs/releases/4.0.txt b/docs/releases/4.0.txt
+index 7ae566d43a..805a3332e8 100755
+--- a/docs/releases/4.0.txt
++++ b/docs/releases/4.0.txt
+@@ -79,6 +79,10 @@ Minor features
+ 
+ * The navigation sidebar now has a quick filter toolbar.
+ 
++* :attr:`.InlineModelAdmin.verbose_name_plural` now defaults to
++  :attr:`.InlineModelAdmin.verbose_name` + ``'s'`` when only ``verbose_name``
++  is set.
++
+ * The new context variable ``model`` which contains the model class for each
+   model is added to the :meth:`.AdminSite.each_context` method.
+ 

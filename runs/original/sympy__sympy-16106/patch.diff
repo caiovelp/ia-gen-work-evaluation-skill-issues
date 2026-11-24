@@ -1,0 +1,49 @@
+diff --git a/sympy/printing/mathml.py b/sympy/printing/mathml.py
+index 1aa0ee01a..500ecdd01 100755
+--- a/sympy/printing/mathml.py
++++ b/sympy/printing/mathml.py
+@@ -5,6 +5,7 @@
+ from __future__ import print_function, division
+ 
+ from sympy import sympify, S, Mul
++from sympy.core.containers import Tuple
+ from sympy.core.function import _coeff_isneg
+ from sympy.core.compatibility import range, string_types, default_sort_key
+ from sympy.printing.conventions import split_super_sub, requires_partial
+@@ -443,6 +444,17 @@ def _print_Function(self, e):
+             x.appendChild(self._print(arg))
+         return x
+ 
++    def _print_IndexedBase(self, e):
++        return self._print(e.label)
++
++    def _print_Indexed(self, e):
++        x = self.dom.createElement('apply')
++        x.appendChild(self.dom.createElement('selector'))
++        x.appendChild(self._print(e.base))
++        for i in e.indices:
++            x.appendChild(self._print(i))
++        return x
++
+     def _print_Basic(self, e):
+         x = self.dom.createElement(self.mathml_tag(e))
+         for arg in e.args:
+@@ -1006,6 +1018,18 @@ def _print_polylog(self, expr, exp=None):
+         mrow.appendChild(brac)
+         return mrow
+ 
++    def _print_IndexedBase(self, e):
++        return self._print(e.label)
++
++    def _print_Indexed(self, e):
++        x = self.dom.createElement('msub')
++        x.appendChild(self._print(e.base))
++        if len(e.indices) == 1:
++            x.appendChild(self._print(e.indices[0]))
++        else:
++            x.appendChild(self._print(Tuple(*e.indices)))
++        return x
++
+     def _print_Basic(self, e):
+         mrow = self.dom.createElement('mrow')
+         mi = self.dom.createElement('mi')

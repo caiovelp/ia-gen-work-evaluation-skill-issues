@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12285,
+ "stop_reason": "end_turn",
+ "session_id": "23d2cd38-682d-4d90-be39-f08b3e4afc47",
+ "total_cost_usd": 0.0395693,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1566,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1342,
+  "output_tokens_details": {
+   "thinking_tokens": 139
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1566,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1342,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1566,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1566
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1778,
+   "outputTokens": 31,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001933,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1342,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1566,
+   "webSearchRequests": 0,
+   "costUSD": 0.039376,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 139,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWith `autodoc_typehints = \"description\"`, autodoc duplicates `*args` and `**kwargs` in the \"Parameters\" list of an `__init__` method that documents them as `:param *args:` and `:param **kwargs:`. One set of entries has the description but no type. The other has the type but no description and loses the `*`/`**` prefix. The class-level \"Parameters\" list also shows `args` and `kwargs` without their `*`/`**` prefix.\n\n## Steps to reproduce\n\n1. Enable the Sphinx autodoc extension and set `autodoc_typehints = \"description\"`.\n2. Define the class shown in **Code example**. Its `__init__` has type hints for `x`, `*args` and `**kwargs` and documents them as `:param x:`, `:param *args:` and `:param **kwargs:`.\n3. Document the class with autodoc and build the documentation.\n4. Look at the \"Parameters\" sections for the class and for `__init__`.\n\n## Observed behavior\n\nWith Sphinx 4.2.0, the output is:\n\n```\nClass docstring.\n\n   Parameters:\n      * **x** (*int*) --\n\n      * **args** (*int*) --\n\n      * **kwargs** (*int*) --\n\n   Return type:\n      None\n\n   __init__(x, *args, **kwargs)\n\n      Init docstring.\n\n      Parameters:\n         * **x** (*int*) -- Some integer\n\n         * ***args** --\n\n           Some integer\n\n         * ****kwargs** --\n\n           Some integer\n\n         * **args** (*int*) --\n\n         * **kwargs** (*int*) --\n\n      Return type:\n         None\n```\n\n- In the `__init__` section, `*args` and `**kwargs` each appear twice. The `*args`/`**kwargs` entries have the description but no type. The `args`/`kwargs` entries have the type `(int)` but no description and no `*`/`**` prefix.\n- In the class section, the parameters appear as `args` and `kwargs`, without the `*`/`**` prefix.\n\n## Expected behavior\n\nEach of `*args` and `**kwargs` should appear once, with its `*`/`**` prefix, its type and its description:\n\n```\n  Class docstring.\n\n   Parameters:\n      * **x** (*int*) --\n\n      * ***args** (*int*) --\n\n      * ****kwargs** (*int*) --\n\n   Return type:\n      None\n\n   __init__(x, *args, **kwargs)\n\n      Init docstring.\n\n      Parameters:\n         * **x** (*int*) -- Some integer\n\n         * ***args** (*int*) --\n\n           Some integer\n\n         * ****kwargs** (*int*) --\n\n           Some integer\n\n      Return type:\n         None\n```\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the problem is in the rendered output.\n\n## Test case\n\nNot provided in the original report. The class in **Code example** plus the setting `autodoc_typehints = \"description\"` is the minimal reproduction input. The expected rendered output is shown under **Expected behavior**.\n\n## Code example\n\n```python\nclass _ClassWithDocumentedInitAndStarArgs:\n    \"\"\"Class docstring.\"\"\"\n\n    def __init__(self, x: int, *args: int, **kwargs: int) -> None:\n        \"\"\"Init docstring.\n\n        :param x: Some integer\n        :param *args: Some integer\n        :param **kwargs: Some integer\n        \"\"\"\n```\n\nConfiguration:\n\n```python\nautodoc_typehints = \"description\"\n```\n\n## Version and environment\n\n- Sphinx 4.2.0\n- Extension: `sphinx.ext.autodoc` with `autodoc_typehints = \"description\"`\n- Python version, OS and other environment details: Not provided in the original report.",
+ "ttft_ms": 3021,
+ "type": "result",
+ "duration_ms": 11651,
+ "uuid": "3d988647-3eb0-4adc-a052-df45db585ee3",
+ "ttft_stream_ms": 1432,
+ "time_to_request_ms": 291,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 18,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 230,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 26,
+ "time_to_request_cpu_ms": 274,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1432,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

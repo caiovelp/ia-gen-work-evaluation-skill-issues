@@ -1,0 +1,49 @@
+diff --git a/src/_pytest/assertion/rewrite.py b/src/_pytest/assertion/rewrite.py
+index 2903b899..655528bf 100755
+--- a/src/_pytest/assertion/rewrite.py
++++ b/src/_pytest/assertion/rewrite.py
+@@ -833,6 +833,10 @@ class AssertionRewriter(ast.NodeVisitor):
+                 lineno=assert_.lineno,
+             )
+ 
++        unrolled = self._unroll_all(assert_)
++        if unrolled is not None:
++            return unrolled
++
+         self.statements = []
+         self.variables = []
+         self.variable_counter = itertools.count()
+@@ -878,6 +882,33 @@ class AssertionRewriter(ast.NodeVisitor):
+             set_location(stmt, assert_.lineno, assert_.col_offset)
+         return self.statements
+ 
++    def _unroll_all(self, assert_):
++        """Unroll ``assert all(pred for x in it)`` into a for loop of asserts."""
++        test = assert_.test
++        if not (
++            isinstance(test, ast.Call)
++            and isinstance(test.func, ast.Name)
++            and test.func.id == "all"
++            and len(test.args) == 1
++            and not test.keywords
++            and isinstance(test.args[0], ast.GeneratorExp)
++            and len(test.args[0].generators) == 1
++        ):
++            return None
++        gen = test.args[0]
++        comp = gen.generators[0]
++        if getattr(comp, "is_async", 0):
++            return None
++        inner = ast.Assert(gen.elt, assert_.msg)
++        ast.copy_location(inner, assert_)
++        body = self.visit_Assert(inner)
++        for cond in reversed(comp.ifs):
++            body = [ast.copy_location(ast.If(cond, body, []), assert_)]
++        loop = ast.For(comp.target, comp.iter, body, [])
++        ast.copy_location(loop, assert_)
++        ast.fix_missing_locations(loop)
++        return [loop]
++
+     def warn_about_none_ast(self, node, module_path, lineno):
+         """
+         Returns an AST issuing a warning if the value of node is `None`.

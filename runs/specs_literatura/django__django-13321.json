@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21853,
+ "stop_reason": "end_turn",
+ "session_id": "2e84ca3a-fc8d-4ac2-bd96-4e6d20f9c3d6",
+ "total_cost_usd": 0.07753710000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2790,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2745,
+  "output_tokens_details": {
+   "thinking_tokens": 217
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2790,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2745,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2790,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2790
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2991,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003091000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2745,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2790,
+   "webSearchRequests": 0,
+   "costUSD": 0.077228,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 217,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nAfter upgrading a staging server to Django 3.1, every request from a browser that still holds an old, apparently invalid session crashes with an unhandled exception during session decoding. Signature verification fails with `BadSignature`. Django then falls back to the legacy decoder, which raises `binascii.Error: Incorrect padding`. The reporter cannot log in with Chrome at all, while Firefox works. The reporter notes the issue looks similar to another existing issue, but the link was not preserved.\n\n## Steps to reproduce\n\n1. Run a site on a Django version earlier than 3.1 and have an active session in a browser (here, Chrome). The exact previous version is not stated.\n2. Upgrade the server to Django 3.1. In the reporter's setup, this is a staging server running Gunicorn behind an nginx proxy.\n3. In the same browser, which still holds the old session, browse to any URL, e.g. `/overview/`.\n4. Try to log in.\n\n## Observed behavior\n\n- Every request from Chrome, on any URL, fails with \"Internal Server Error\" (e.g. `Internal Server Error: /overview/`).\n- Logging in with Chrome is impossible because every attempt to access the site crashes.\n- Logging in with Firefox works fine.\n- The problem occurs only on the staging site.\n- The crash is triggered when `request.user` is evaluated (via `request.user.is_authenticated` in `django/contrib/auth/mixins.py` and `django_otp/middleware.py`). This reads `request.session[SESSION_KEY]` and loads the session from the database backend (`db.py`). `decode()` then raises `BadSignature`, and the fallback `_legacy_decode()` raises `binascii.Error: Incorrect padding`. That exception propagates uncaught.\n\n## Expected behavior\n\nInvalid or undecodable session data should not crash the request. The user should still be able to access the site and log in.\n\n## Stack trace / error output\n\n```\nInternal Server Error: /overview/\nTraceback (most recent call last):\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/base.py\", line 215, in _get_session\nreturn self._session_cache\nAttributeError: 'SessionStore' object has no attribute '_session_cache'\nDuring handling of the above exception, another exception occurred:\nTraceback (most recent call last):\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/base.py\", line 118, in decode\nreturn signing.loads(session_data, salt=self.key_salt, serializer=self.serializer)\nFile \"/usr/local/lib/python3.8/site-packages/django/core/signing.py\", line 135, in loads\nbase64d = TimestampSigner(key, salt=salt).unsign(s, max_age=max_age).encode()\nFile \"/usr/local/lib/python3.8/site-packages/django/core/signing.py\", line 201, in unsign\nresult = super().unsign(value)\nFile \"/usr/local/lib/python3.8/site-packages/django/core/signing.py\", line 184, in unsign\nraise BadSignature('Signature \"%s\" does not match' % sig)\ndjango.core.signing.BadSignature: Signature \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\" does not match\nDuring handling of the above exception, another exception occurred:\nTraceback (most recent call last):\nFile \"/usr/local/lib/python3.8/site-packages/django/core/handlers/exception.py\", line 47, in inner\nresponse = get_response(request)\nFile \"/usr/local/lib/python3.8/site-packages/django/core/handlers/base.py\", line 179, in _get_response\nresponse = wrapped_callback(request, *callback_args, **callback_kwargs)\nFile \"/usr/local/lib/python3.8/site-packages/django/views/generic/base.py\", line 73, in view\nreturn self.dispatch(request, *args, **kwargs)\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/auth/mixins.py\", line 50, in dispatch\nif not request.user.is_authenticated:\nFile \"/usr/local/lib/python3.8/site-packages/django/utils/functional.py\", line 240, in inner\nself._setup()\nFile \"/usr/local/lib/python3.8/site-packages/django/utils/functional.py\", line 376, in _setup\nself._wrapped = self._setupfunc()\nFile \"/usr/local/lib/python3.8/site-packages/django_otp/middleware.py\", line 38, in _verify_user\nuser.otp_device = None\nFile \"/usr/local/lib/python3.8/site-packages/django/utils/functional.py\", line 270, in __setattr__\nself._setup()\nFile \"/usr/local/lib/python3.8/site-packages/django/utils/functional.py\", line 376, in _setup\nself._wrapped = self._setupfunc()\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/auth/middleware.py\", line 23, in <lambda>\nrequest.user = SimpleLazyObject(lambda: get_user(request))\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/auth/middleware.py\", line 11, in get_user\nrequest._cached_user = auth.get_user(request)\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/auth/__init__.py\", line 174, in get_user\nuser_id = _get_user_session_key(request)\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/auth/__init__.py\", line 58, in _get_user_session_key\nreturn get_user_model()._meta.pk.to_python(request.session[SESSION_KEY])\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/base.py\", line 65, in __getitem__\nreturn self._session[key]\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/base.py\", line 220, in _get_session\nself._session_cache = self.load()\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/db.py\", line 44, in load\nreturn self.decode(s.session_data) if s else {}\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/base.py\", line 122, in decode\nreturn self._legacy_decode(session_data)\nFile \"/usr/local/lib/python3.8/site-packages/django/contrib/sessions/backends/base.py\", line 126, in _legacy_decode\nencoded_data = base64.b64decode(session_data.encode('ascii'))\nFile \"/usr/local/lib/python3.8/base64.py\", line 87, in b64decode\nreturn binascii.a2b_base64(s)\nbinascii.Error: Incorrect padding\n```\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nNot provided in the original report.\n\n## Version and environment\n\n- Django: 3.1, upgraded from an earlier, unspecified version\n- Python: 3.8, according to the paths in the traceback (`/usr/local/lib/python3.8/...`)\n- Session backend: database (`django/contrib/sessions/backends/db.py`, according to the traceback)\n- Third-party packages: `django_otp` (its middleware appears in the traceback)\n- Server: staging site running Gunicorn behind an nginx proxy\n- Browsers: Chrome fails (holds an old session), Firefox works\n- OS: Not provided in the original report",
+ "ttft_ms": 3605,
+ "type": "result",
+ "duration_ms": 21311,
+ "uuid": "10f4c616-2c15-4ece-986a-8beda704337b",
+ "ttft_stream_ms": 1447,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 13,
+  "input_hooks": 4,
+  "tool_pool_refresh": 3,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 199,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 9,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 323,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1447,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

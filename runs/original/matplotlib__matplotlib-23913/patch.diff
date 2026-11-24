@@ -1,0 +1,33 @@
+diff --git a/lib/matplotlib/legend.py b/lib/matplotlib/legend.py
+index 9e5b903d59..c0fb0c31f1 100755
+--- a/lib/matplotlib/legend.py
++++ b/lib/matplotlib/legend.py
+@@ -261,6 +261,9 @@ alignment : {'center', 'left', 'right'}, default: 'center'
+     The alignment of the legend title and the box of entries. The entries
+     are aligned as a single block, so that markers always lined up.
+ 
++draggable : bool, default: False
++    Whether the legend can be dragged with the mouse.
++
+ borderpad : float, default: :rc:`legend.borderpad`
+     The fractional whitespace inside the legend border, in font-size units.
+ 
+@@ -342,7 +345,8 @@ class Legend(Artist):
+         title_fontproperties=None,  # properties for the legend title
+         alignment="center",       # control the alignment within the legend box
+         *,
+-        ncol=1  # synonym for ncols (backward compatibility)
++        ncol=1,  # synonym for ncols (backward compatibility)
++        draggable=False  # whether the legend can be dragged with the mouse
+     ):
+         """
+         Parameters
+@@ -574,6 +578,8 @@ class Legend(Artist):
+         else:
+             raise ValueError(f"Invalid labelcolor: {labelcolor!r}")
+ 
++        self.set_draggable(state=draggable)
++
+     def _set_artist_props(self, a):
+         """
+         Set the boilerplate props for artists added to axes.

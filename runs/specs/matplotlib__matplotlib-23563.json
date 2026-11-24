@@ -1,0 +1,132 @@
+{
+ "duration_api_ms": 37880,
+ "stop_reason": "end_turn",
+ "session_id": "86aab438-0417-4e86-8631-390bfe79332a",
+ "total_cost_usd": 0.09904849999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2707,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3809,
+  "output_tokens_details": {
+   "thinking_tokens": 698
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2707,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3297,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00034170000000000007,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3809,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2707,
+   "webSearchRequests": 0,
+   "costUSD": 0.09870679999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 698,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Failed `Axes3D.plot` call must not leave a broken `Line3D` that breaks later draws\n\n## Objective\n\n**Problem.** In matplotlib 3.5.0, calling `Axes3D.plot(xs, ys, zs, ...)` with a `zs` whose shape does not match `xs`/`ys` raises:\n\n```\ninput operand has more dimensions than allowed by the axis remapping\n```\n\nAfter that, every later draw fails with:\n\n```\nAttributeError: 'Line3D' object has no attribute '_verts3d'\n```\n\nThe traceback ends in `mpl_toolkits/mplot3d/art3d.py`, line 215, `Line3D.draw`, at `xs3d, ys3d, zs3d = self._verts3d`. This happens even when the next calls use valid scalar inputs and a new figure. Only restarting the Python/IPython process clears it.\n\n**Working hypothesis (to be confirmed during investigation, not asserted as fact):**\n\n1. The failing `plot` call creates a 2D line and attaches it to the axes.\n2. It converts the line to `Line3D`.\n3. It then raises while setting the 3D properties, before `_verts3d` is assigned.\n4. The half-built artist stays attached to the axes. Its figure also stays registered with pyplot.\n5. Each later `plt.show()` redraws all open figures, including the broken one, so the error repeats in every session until restart.\n\nThe numpy message matches a failed broadcast of a 2-D `zs` to the 1-D shape of `xs`.\n\n**Who is affected.** Users of `mplot3d`, especially in interactive sessions (IPython, PyCharm, Jupyter) where figures persist between cell runs.\n\n**What success looks like:**\n\n- An invalid `zs` gives one clear, immediate error at the `plot` call.\n- The axes and figure are left in a consistent state.\n- Later valid plotting and `plt.show()` work without restarting the interpreter.\n\n**User stories:**\n\n- As a user, when I pass mismatched `zs` to `ax.plot`, I get an error that tells me the shapes are incompatible.\n- As a user, after such an error, I can fix my inputs, plot again and show figures without an `AttributeError` from an unrelated, earlier artist.\n\n## Assumptions\n\n1. The root cause is in the `mplot3d` toolkit: either `Axes3D.plot` or the 2D\u21923D line conversion in `art3d` (the traceback points to `art3d.py` / `Line3D.draw`). The issue does not point to the PyCharm backend.\n2. The reporter's \"numpy array for `x_s_0[n]`\" case is equivalent to passing a `zs` (or `xs`/`ys`) element that is an array rather than a scalar. This produces a ragged or 2-D `zs` that cannot be broadcast to the shape of `xs`.\n3. The error persists because the broken figure is still registered with pyplot and gets redrawn by later `plt.show()` calls. It is not a global-state corruption inside matplotlib.\n4. The first error (\"input operand has more dimensions\u2026\") is correct behaviour for invalid input and should still be raised. Its wording may be improved. Only the leftover broken state is the bug.\n5. The fix targets the current development branch, not just 3.5.0. Whether the bug still reproduces on `main` is unverified.\n6. `fig.gca(projection='3d')` in the reporter's code is deprecated API but not relevant to the bug. `fig.add_subplot(projection='3d')` should reproduce it equally.\n\n## Tech Stack\n\n- Python (reporter: 3.8.12; supported versions for the target branch: unknown)\n- matplotlib with the `mpl_toolkits.mplot3d` toolkit (reported on 3.5.0)\n- NumPy (version unknown)\n\n## Commands\n\nUnknown. The repository is not visible. Expected categories:\n\n- Build/install (editable): unknown\n- Test (mplot3d subset): unknown\n- Lint: unknown\n\n## Project Structure\n\nOnly what the traceback shows:\n\n- `lib/.../mpl_toolkits/mplot3d/axes3d.py` \u2192 `Axes3D`, including `plot` and `draw`\n- `lib/.../mpl_toolkits/mplot3d/art3d.py` \u2192 3D artists, including `Line3D` (`draw` reads `self._verts3d`)\n- Test location for mplot3d: unknown (presumably a `tests/` directory inside `mpl_toolkits/mplot3d`; to be confirmed)\n\n## Code Style\n\nUnknown. Follow the existing conventions in `art3d.py` and `axes3d.py`. No code from the repository is visible here.\n\n## Testing Strategy\n\n- **Framework:** unknown (presumably pytest, as used by matplotlib; to be confirmed).\n- **Regression test (unit level, mplot3d tests):**\n  1. Create a 3D axes and record the number of lines it holds.\n  2. Call `ax.plot` with mismatched `zs` and assert that it raises.\n  3. Assert the axes holds no new line (or no line without valid 3D data).\n  4. Call `fig.canvas.draw()` (Agg) and assert that it succeeds.\n  5. Plot valid data on the same axes and draw again successfully.\n- **Candidate minimal reproducer (unverified, derived from the error message):**\n\n  ```python\n  fig = plt.figure()\n  ax = fig.add_subplot(projection='3d')\n  ax.plot([0, 1], [0, 1], [[0, 1], [0, 1]])  # expected to raise\n  fig.canvas.draw()                           # currently expected to raise AttributeError on _verts3d\n  ```\n\n- **Related paths to check:**\n  - other ways of building a `Line3D` with bad `zs`: the `Line3D(...)` constructor, `set_data_3d`, `set_3d_properties`;\n  - the 2D\u21923D conversion helper used by `plot`.\n\n  These should either validate before mutating state or leave the artist drawable.\n- **Coverage expectation:** unknown project threshold. At minimum, the new test must fail on the current code and pass after the fix.\n\n## Boundaries\n\n- **Always:**\n  - Keep raising an error for invalid `zs`.\n  - Add a regression test that reproduces the persistent-failure scenario.\n  - Keep the public `Axes3D.plot` / `Line3D` signatures unchanged.\n- **Ask first:**\n  - Changing the exception type or message raised for invalid input.\n  - Changing `Line3D` behaviour for valid inputs, e.g. how `zs` is broadcast.\n  - Making `Line3D.draw` silently tolerate missing data instead of preventing the bad state.\n  - Any change outside `mpl_toolkits/mplot3d`.\n- **Never:**\n  - Swallow the input error silently.\n  - Change pyplot's figure-management behaviour to work around this bug.\n  - Add backend-specific (PyCharm/interagg) workarounds.\n  - Remove or loosen existing tests.\n\n## Success Criteria\n\n1. `ax.plot(xs, ys, zs)` with `zs` not broadcastable to the shape of `xs` raises an exception at call time. Preferably it is a `ValueError` whose message mentions the shape mismatch; exact type and wording are an open question.\n2. After that exception, `ax.get_lines()` (or the axes' artist list) contains no `Line3D` without valid 3D vertex data.\n3. After that exception, `fig.canvas.draw()` on the same figure completes without `AttributeError`.\n4. After that exception, a valid `ax.plot` on the same axes followed by a draw renders correctly.\n5. Valid 3D line plotting is unchanged:\n   - scalar `zs`, 1-D `zs` matching `xs`, and the `zdir` variants still behave as before;\n   - the existing mplot3d test suite passes.\n6. The regression test fails on the unfixed code and passes on the fixed code.\n\n## Open Questions\n\n1. Does the bug still reproduce on the current development branch, or was it fixed after 3.5.0?\n2. Which fix strategy is preferred?\n   - (a) Validate and broadcast `zs` before the line is added to the axes or converted to `Line3D`.\n   - (b) On failure, remove the partially created line(s) from the axes.\n   - (c) Make the `Line3D` constructor and conversion assign valid `_verts3d` before anything else, so a failure never leaves the attribute missing.\n   - Or a combination of these.\n3. Should the error for mismatched shapes become a matplotlib-raised `ValueError` with a clearer message, or is the raw NumPy broadcast error acceptable?\n4. Is a ragged or 2-D `zs` ever meant to be valid for `Axes3D.plot`, for example to plot several lines at once as 2D `plot` does with 2-D inputs? If so, the expected behaviour changes from \"raise\" to \"support\".\n5. Should `xs`/`ys` mismatches be covered too? They fail in the 2D `plot` path, before any 3D conversion.\n6. What are the exact build, test and lint commands and the mplot3d test file location in this repository?\n7. Should the fix be backported to a maintenance branch (e.g. 3.5.x)?",
+ "ttft_ms": 11367,
+ "type": "result",
+ "duration_ms": 40316,
+ "uuid": "a455a8d6-1f5d-4781-95aa-51a37caf11fa",
+ "ttft_stream_ms": 4607,
+ "time_to_request_ms": 3411,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 296,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 3059,
+  "tool_schema_build": 13,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 257,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 4607,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

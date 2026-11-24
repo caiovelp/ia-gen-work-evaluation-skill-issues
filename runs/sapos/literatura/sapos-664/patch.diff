@@ -1,0 +1,26 @@
+diff --git a/app/views/admissions/filled_form/edit/_as_student_photo.html.erb b/app/views/admissions/filled_form/edit/_as_student_photo.html.erb
+index 6e7d70cc..579a6db5 100644
+--- a/app/views/admissions/filled_form/edit/_as_student_photo.html.erb
++++ b/app/views/admissions/filled_form/edit/_as_student_photo.html.erb
+@@ -3,7 +3,7 @@
+   filled_field_mode = :file
+   column = Admissions::FilledFormFieldsController.active_scaffold_config.columns[:file]
+   options = active_scaffold_input_options(column, scope, :object => field.object)
+-  options[:required] = configuration["required"] ? true : false
++  options[:required] = configuration["required"] && !field.object.file.present? ? true : false
+   basename = options[:name][..-("file".size + 3)]
+   data_url = ""
+   if field.object.file.file.present? && field.object.file.file.file.respond_to?(:medium_hash)
+diff --git a/app/views/admissions/filled_form/edit/_generic_file_field.html.erb b/app/views/admissions/filled_form/edit/_generic_file_field.html.erb
+index 5ed64ad3..0cc71128 100644
+--- a/app/views/admissions/filled_form/edit/_generic_file_field.html.erb
++++ b/app/views/admissions/filled_form/edit/_generic_file_field.html.erb
+@@ -3,7 +3,7 @@
+   scope = field.object_name["record".size..]
+   column = Admissions::FilledFormFieldsController.active_scaffold_config.columns[:file]
+   options = active_scaffold_input_options(column, scope, :object => field.object)
+-  options[:required] = configuration["required"] ? true : false
++  options[:required] = configuration["required"] && !field.object.file.present? ? true : false
+   file_id = "file_#{SecureRandom.random_number(1_000_000)}"
+   options[:class] = filled_class
+ %>

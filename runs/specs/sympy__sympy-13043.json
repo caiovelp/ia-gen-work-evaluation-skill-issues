@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34209,
+ "stop_reason": "end_turn",
+ "session_id": "79d82c5c-3df6-44c9-b409-4bc93ee2fd4c",
+ "total_cost_usd": 0.0677227,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 726,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3045,
+  "output_tokens_details": {
+   "thinking_tokens": 463
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 726,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3045,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 726,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 726
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1309,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001439,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3045,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 726,
+   "webSearchRequests": 0,
+   "costUSD": 0.0675788,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 463,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Deterministic output for `decompose(..., separate=True)` in `intpoly`\n\n## Objective\n\n`decompose()` in the `intpoly` module returns `list(poly_dict.values())` when called with `separate=True`. The order of that list comes from dictionary and hashing internals. It is not part of any defined contract, so it can change when unrelated core code changes. The issue reporter is already seeing test failures after core changes because of this.\n\n**Goal:** give `decompose(..., separate=True)` a well-defined result that does not depend on hashing, dictionary insertion order or core internals. Callers and tests should not break when those internals change.\n\n**Users:**\n- Internal callers of `decompose` in `intpoly`, such as the polytope integration routines. These are assumed and need to be confirmed.\n- Developers changing the core, who need the `intpoly` tests to stay stable.\n- Any external users who call `decompose` directly.\n\n**Acceptance criteria (user-story form):**\n- As a core developer, I can change hashing or ordering internals without `intpoly` tests failing because of element order.\n- As a caller of `decompose(expr, separate=True)`, I get either:\n  - a result whose order is documented and reproducible, or\n  - a result type that does not imply any order.\n\n  The docstring states which one.\n- As a maintainer, every test of `separate=True` asserts against the documented contract and does not rely on incidental order.\n\n## Assumptions\n\n1. The module is SymPy's polytope integration module. Its exact path is believed to be `sympy/integrals/intpoly.py`, but this is **unverified**.\n2. With `separate=False`, `decompose` returns a dict mapping degree to the homogeneous component of that degree. That behavior is not in question and stays unchanged.\n3. With `separate=True`, `decompose` returns the individual constituent terms or monomials, which are the values of an internal dict.\n4. The internal callers of `separate=True` only iterate over the result. Either they sum per-term contributions, so order does not matter for correctness, or they use it in ways that must be confirmed.\n5. The test failures come from order comparisons of the form `assert decompose(...) == [a, b, c]`, not from wrong mathematical content.\n6. Removing or renaming `decompose` is out of scope. Only the return contract of `separate=True` is being fixed.\n\n## Tech Stack\n\n- Python, as part of SymPy. The supported Python and SymPy versions are **unknown**.\n- Candidate ordering utilities (for example SymPy's canonical sort key or degree-based ordering) are available in the codebase. Which one to use is an open question.\n\n## Commands\n\nThe exact commands are **unknown**; the issue does not specify them. Placeholders:\n\n```\nTest (intpoly only): UNKNOWN \u2014 likely the project's standard test runner targeted at the intpoly test file\nFull test suite:      UNKNOWN\nLint / code quality:  UNKNOWN\nDoctests:             UNKNOWN \u2014 decompose's docstring examples must also pass\n```\n\n## Project Structure\n\n**Unknown.** The issue only names \"intpoly\". Expected locations, not verified:\n\n```\n<intpoly module>            \u2192 contains decompose() and its internal callers\n<intpoly test module>       \u2192 tests for decompose / polytope integration\n```\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the `intpoly` module and of SymPy in general.\n\nRequirements on the change itself:\n- Keep the public signature `decompose(expr, separate=False)` unchanged. The argument names should be confirmed against the source.\n- Update the docstring to state the ordering or type contract of the `separate=True` return value explicitly.\n- Docstring examples must show output that is stable under the new contract.\n\n## Testing Strategy\n\n- **Unit tests:**\n  - Assert the `separate=True` result according to the chosen contract:\n    - **If ordered:** compare against an explicitly ordered expected list, for inputs whose order is non-trivial (mixed degrees, several terms of the same degree, multiple variables).\n    - **If unordered (set):** compare as sets, and assert the return type.\n  - Tests must not depend on incidental dict or hash order.\n- **Regression:** existing polytope integration tests that use `decompose` internally must still produce the same numerical or symbolic integrals.\n- **Order-independence check:** if feasible, run the relevant tests under different hash seeds or with varied input term order, and confirm identical results.\n- **Doctests:** the `decompose` docstring examples pass.\n- **Coverage expectation:** **unknown**. At minimum, every branch of `separate=True` is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep `separate=False` behavior unchanged.\n  - Keep integration results mathematically unchanged.\n  - Document the return contract in the docstring.\n  - Run the `intpoly` tests and doctests before committing.\n- **Ask first:**\n  - Changing the return type of `separate=True` (list \u2192 set, or any other type), since it may break external callers.\n  - Adding a deprecation path.\n  - Changing any internal caller beyond what the new contract requires.\n- **Never:**\n  - \"Fix\" tests by matching whatever order the current core happens to produce.\n  - Remove failing tests without approval.\n  - Change core hashing or ordering to satisfy `intpoly`.\n\n## Success Criteria\n\n1. The result of `decompose(expr, separate=True)` is either:\n   - a sequence with a documented, deterministic order, identical across runs, hash seeds and Python versions; or\n   - an unordered collection (e.g. a set) whose type makes the lack of order explicit.\n2. The `decompose` docstring states which of these holds and gives an example consistent with it.\n3. All `intpoly` tests and doctests pass, and none assert on incidental ordering.\n4. Polytope integration results are unchanged for the existing test inputs.\n5. The test failures reported after the core changes no longer occur because of `decompose` ordering. This needs verification by the reporter or against their branch, which is unknown.\n6. `separate=False` output is unchanged.\n\n## Open Questions\n\n1. **What is `separate=True` used for?** Which internal callers and known external users depend on it, and does any of them depend on element order?\n2. **Ordered list or set?**\n   - Option A: sort the list by a defined key. Candidates:\n     - total degree, then a canonical tie-breaker;\n     - SymPy's default sort key;\n     - lexicographic monomial order with a defined generator order.\n   - Option B: return a set, which is a return-type change and needs a compatibility decision.\n   - Option C: drop `separate=True` and have callers use the dict's values from `separate=False`. This raises the question of whether `separate=True` returns individual monomials rather than per-degree components, in which case C is not equivalent.\n3. **Backward compatibility:** if the return type changes, is a deprecation cycle needed, or is `decompose` considered internal or private?\n4. **Ordering key details**, if ordering is chosen:\n   - How should terms of equal degree be ordered?\n   - Should the generator order follow the expression's free symbols, sorted by name, or be passed in?\n5. **Coefficients:** for inputs where a monomial has a numeric coefficient, are coefficients kept in the returned elements? This matters for sort-key and set semantics, since duplicates would collapse in a set.\n6. **The reporter's failing tests:** which tests fail after the core change, and on which branch or PR? This is needed to confirm success criterion 5.\n7. **Project commands and paths:** what are the exact test commands, test file location and supported Python/SymPy versions?\n8. **Maintainer preference:** do the CC'd maintainers (@ArifAhmed1995, @certik) prefer a particular contract?",
+ "ttft_ms": 6450,
+ "type": "result",
+ "duration_ms": 33327,
+ "uuid": "1cc9fe3b-5613-4e6a-a9f0-a1dc28f2fd48",
+ "ttft_stream_ms": 1154,
+ "time_to_request_ms": 298,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 38,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 278,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 23,
+  "cpu_ms": 62,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1155,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

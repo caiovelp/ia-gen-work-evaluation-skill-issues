@@ -1,0 +1,51 @@
+diff --git a/app/controllers/concerns/shared_pdf_concern.rb b/app/controllers/concerns/shared_pdf_concern.rb
+index cfd6bb7b..5ff01d20 100644
+--- a/app/controllers/concerns/shared_pdf_concern.rb
++++ b/app/controllers/concerns/shared_pdf_concern.rb
+@@ -57,7 +57,7 @@ module SharedPdfConcern
+     )
+   end
+ 
+-  def render_enrollments_grades_report_pdf(enrollment, filename = "grades_report.pdf", signature_override = nil)
++  def render_enrollments_grades_report_pdf(enrollment, filename = "grades_report.pdf", signature_override = nil, force_override = false)
+     class_enrollments = enrollment.class_enrollments
+       .where(situation: ClassEnrollment::APPROVED)
+       .joins(:course_class)
+@@ -74,7 +74,8 @@ module SharedPdfConcern
+         class_enrollments: class_enrollments,
+         accomplished_phases: accomplished_phases,
+         deferrals: deferrals,
+-        signature_override: signature_override
++        signature_override: signature_override,
++        force_override: force_override
+       }
+     )
+   end
+diff --git a/app/controllers/notifications_controller.rb b/app/controllers/notifications_controller.rb
+index 56b69c1b..83cf003b 100644
+--- a/app/controllers/notifications_controller.rb
++++ b/app/controllers/notifications_controller.rb
+@@ -166,7 +166,9 @@ class NotificationsController < ApplicationController
+         if attachments[:grades_report_pdf]
+           enrollment = Enrollment.find(message[:enrollments_id])
+           attachments[:grades_report_pdf][:file_contents] =
+-            render_enrollments_grades_report_pdf(enrollment)
++            render_enrollments_grades_report_pdf(
++              enrollment, "grades_report.pdf", :no_signature, true
++            )
+         end
+       end
+       notification_result
+diff --git a/app/views/enrollments/grades_report_pdf.pdf.prawn b/app/views/enrollments/grades_report_pdf.pdf.prawn
+index 5cf4ff6c..0c6b65df 100644
+--- a/app/views/enrollments/grades_report_pdf.pdf.prawn
++++ b/app/views/enrollments/grades_report_pdf.pdf.prawn
+@@ -12,7 +12,7 @@ new_document(
+     )
+   ),
+   pdf_type: :grades_report,
+-  override: can?(:override_report_signature_type, @enrollment) ? { signature_type: @signature_override }.compact : nil
++  override: (@force_override || can?(:override_report_signature_type, @enrollment)) ? { signature_type: @signature_override }.compact : nil
+ ) do |pdf|
+   enrollment_student_header(pdf, enrollment: @enrollment)
+ 

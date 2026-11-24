@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22577,
+ "stop_reason": "end_turn",
+ "session_id": "4a478767-acfb-4ce1-877a-f96fda7da61f",
+ "total_cost_usd": 0.05325219999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1031,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2198,
+  "output_tokens_details": {
+   "thinking_tokens": 220
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1031,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2198,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1031,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1031
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1624,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001734,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2198,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1031,
+   "webSearchRequests": 0,
+   "costUSD": 0.053078799999999995,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 220,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct migration serialization of class methods on nested classes used as `Field.default`\n\n## Objective\n\nWhen a model field's `default` is a class method defined on a **nested class**, the migration autodetector writes a dotted reference that skips the enclosing class. The generated migration then fails when it is imported or applied.\n\n**Reported example:**\n\n- Model `Profile` defines a nested `Capability(models.TextChoices)` with `@classmethod default(cls)`.\n- The field is `ArrayField(..., default=Capability.default)`.\n- The migration contains `default=appname.models.Capability.default`.\n- The correct reference is `appname.models.Profile.Capability.default`.\n\n**Users:** Django developers who define choices classes, or other helper classes, inside a model and use their class methods as callable defaults.\n\n**Goal:** The migration writer produces an importable reference for class methods at any nesting depth. The generated migration then loads and applies without manual edits.\n\n### Acceptance criteria\n\n- A class method on a class nested inside a model serializes to `<module>.<Outer>.<Inner>.<method>`.\n- A class method on a top-level class still serializes exactly as it does today, so existing migrations see no changes.\n- Deeper nesting, such as `Outer.Mid.Inner.method`, serializes with the full nested path.\n- The generated migration imports the correct module and evaluates without `AttributeError`.\n- Running `makemigrations` again on an unchanged model detects no changes.\n\n## Assumptions\n\n1. The defect is in Django's migration serialization of bound class methods. It most likely builds the path from the class's `__name__` instead of its qualified name, `__qualname__`. This is inferred from the symptom and not verified against source.\n2. The bug does not depend on `ArrayField` or PostgreSQL. The issue uses `ArrayField`, but any field with `default=<nested class>.<classmethod>` should reproduce it.\n3. The bug does not depend on `TextChoices`. Any nested class with a `@classmethod` should reproduce it.\n4. Only the serialized form changes. The runtime behavior of defaults is unaffected.\n5. Plain functions and static methods are out of scope unless they are found to have the same defect. Callables defined in local scopes (`<locals>`) remain non-serializable, as they are today.\n6. The fix targets Django's main development branch. Whether it is backported is not decided here.\n\n## Tech Stack\n\n- Django, version not specified in the issue (unknown).\n- The example uses `django.contrib.postgres.fields.ArrayField` and `models.TextChoices`.\n- Python 3.9+ is implied by the `list[str]` annotation. The exact minimum is unknown.\n\n## Commands\n\nThe issue does not state these, so they are unknown. Placeholders:\n\n- Test: unknown. This is likely Django's test runner targeting the migrations test suite; to be confirmed.\n- Lint/format: unknown.\n- Reproduce: `python manage.py makemigrations`, then `python manage.py migrate` in a project containing the example model.\n\n## Project Structure\n\nThe issue does not show this, so it is unknown.\n\n- Code: the migration serializer module is suspected (path unknown).\n- Tests: the existing migration-writer/serializer tests are expected to be the right place (path unknown).\n\n## Code Style\n\nNo project code is visible. Follow Django's existing conventions in the serializer and its tests. A reproduction model, taken from the issue:\n\n```python\nclass Profile(models.Model):\n    class Capability(models.TextChoices):\n        BASIC = (\"BASIC\", \"Basic\")\n        PROFESSIONAL = (\"PROFESSIONAL\", \"Professional\")\n\n        @classmethod\n        def default(cls) -> list[str]:\n            return [cls.BASIC]\n\n    capabilities = ArrayField(\n        models.CharField(choices=Capability.choices, max_length=30, blank=True),\n        null=True,\n        default=Capability.default,\n    )\n```\n\n## Testing Strategy\n\n**Unit tests at the serializer level:**\n\n- Serializing a class method on a nested class yields the full qualified path and the correct import set.\n- Serializing a class method on a top-level class yields the unchanged output, as a regression guard.\n- A round-trip check: the serialized string evaluates, with its imports, back to the same callable.\n\n**Optional integration test:**\n\n- A model shaped like the example, run through the autodetector and writer, produces the correct `AddField` default.\n\n**Database coverage:**\n\n- No PostgreSQL-specific test is required if assumption 2 holds.\n\n**Coverage:**\n\n- Expectations are unknown. Follow project norms.\n\n## Boundaries\n\n**Always:**\n\n- Add regression tests that reproduce the reported output before changing behavior.\n- Keep output for top-level classes byte-identical.\n- Follow the existing serializer patterns.\n\n**Ask first:**\n\n- Changing serialization of other callable kinds, such as functions, static methods, and `functools.partial`.\n- Changing the error behavior for non-importable callables.\n- Backporting the fix.\n\n**Never:**\n\n- Alter the semantics of existing migration files.\n- Add dependencies.\n- Make the fix specific to `ArrayField` or PostgreSQL.\n\n## Success Criteria\n\n- For the example model, `makemigrations` emits `default=appname.models.Profile.Capability.default`.\n- The generated migration applies successfully with `migrate`.\n- New tests fail before the change and pass after it.\n- The full migrations test suite passes, and no existing serializer outputs change.\n\n## Open Questions\n\n1. Which Django version(s) are affected, and should the fix be backported?\n2. Should static methods and plain functions on nested classes be audited and fixed in the same change?\n3. Should a class method on a class defined inside a function (`<locals>` in its qualified name) raise a clear serialization error, matching the handling of other local callables?\n4. Is an end-to-end autodetector test wanted, or are serializer-level tests sufficient?",
+ "ttft_ms": 3262,
+ "type": "result",
+ "duration_ms": 21858,
+ "uuid": "6529fd8f-76f1-414c-98be-8e5f1d875f3f",
+ "ttft_stream_ms": 1611,
+ "time_to_request_ms": 295,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 37,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 215,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 318,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 26,
+  "cpu_ms": 60,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1611,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

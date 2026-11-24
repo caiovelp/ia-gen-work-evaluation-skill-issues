@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 5593,
+ "stop_reason": "end_turn",
+ "session_id": "c9042fd4-2f79-4425-8706-b59bb1e7252e",
+ "total_cost_usd": 0.017633799999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1221,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 385,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1221,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 385,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1221,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1221
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1453,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015780000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 385,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1221,
+   "webSearchRequests": 0,
+   "costUSD": 0.017476,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAdd a single-character short option for `pytest --collect-only`.\n\n## Description\nThe `--collect-only` command-line option of pytest is long to type. This request proposes adding a one-character short alias for it.\n\nThe author has not chosen which character should be used. They invite others to vote (thumbs up/down) on whether the feature would be useful and to suggest a character. The author notes that the change itself should be easy to implement. Before that, they want to find out whether other users would find it useful.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nThe author runs `pytest --collect-only` very often, and the long option name is tedious to type each time. A one-character shortcut would make this frequently used command faster to enter.\n\n## Use case or scenario\nA user runs `pytest --collect-only` many times during their work, for example to see which tests pytest collects. Each time they must type the full `--collect-only` argument. With a one-character short option, they could run the same command with much less typing.\n\n## Possible solution\nAssign a one-character short option (for example `-X`, where the actual character is still to be decided) as an alias for `--collect-only`. The original request does not specify which character to use and leaves that choice to community suggestions.",
+ "ttft_ms": 4682,
+ "type": "result",
+ "duration_ms": 4701,
+ "uuid": "982ffe78-8857-42e9-90f9-392a1054ff08",
+ "ttft_stream_ms": 1096,
+ "time_to_request_ms": 282,
+ "time_to_request_phases_ms": {
+  "other": 21,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 309,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1096,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,37 @@
+diff --git a/app/controllers/email_templates_controller.rb b/app/controllers/email_templates_controller.rb
+index e89f6eee..c17e9feb 100644
+--- a/app/controllers/email_templates_controller.rb
++++ b/app/controllers/email_templates_controller.rb
+@@ -11,7 +11,7 @@ class EmailTemplatesController < ApplicationController
+   active_scaffold :"email_template" do |config|
+     config.list.sorting = { name: "ASC" }
+ 
+-    columns = [:name, :to, :subject, :body, :enabled]
++    columns = [:name, :to, :reply_to, :subject, :body, :enabled]
+     config.create.columns = columns
+     config.update.columns = columns
+     config.list.columns = [:name, :enabled]
+diff --git a/config/locales/email_template.pt-BR.yml b/config/locales/email_template.pt-BR.yml
+index 8429c999..5f6787d6 100644
+--- a/config/locales/email_template.pt-BR.yml
++++ b/config/locales/email_template.pt-BR.yml
+@@ -8,6 +8,7 @@ pt-BR:
+         name: "Nome"
+         body: "Template do Corpo"
+         to: "Template do Destinatário"
++        reply_to: "Template do Responder Para"
+         subject: "Template do Assunto"
+         enabled: "Habilitado"
+ 
+diff --git a/config/locales/notification_log.pt-BR.yml b/config/locales/notification_log.pt-BR.yml
+index 8521b343..49e7fce0 100644
+--- a/config/locales/notification_log.pt-BR.yml
++++ b/config/locales/notification_log.pt-BR.yml
+@@ -7,6 +7,7 @@ pt-BR:
+       notification_log:
+         body: "Corpo"
+         to: "Para"
++        reply_to: "Responder Para"
+         subject: "Assunto"
+         created_at: "Data de Execução"
+         notification: "Notificação"

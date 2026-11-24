@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30485,
+ "stop_reason": "end_turn",
+ "session_id": "c3f95718-6fdf-4d09-b997-2081c771c608",
+ "total_cost_usd": 0.0735362,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1461,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3038,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1461,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3038,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1461,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1461
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2049,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00021740000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3038,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1461,
+   "webSearchRequests": 0,
+   "costUSD": 0.07331879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Complete expansion of `TensorProduct` when factors carry scalar coefficients\n\n## Assumptions\n\n1. This is the SymPy project. The affected code is `TensorProduct._eval_expand_tensorproduct()` in `quantum/tensorproduct.py`. The issue names that path; I take the full path to be `sympy/physics/quantum/tensorproduct.py`, but I have not confirmed it against a checkout.\n2. Root cause, as the reporter states it:\n   - `TensorProduct.__new__` pulls commutative (scalar) factors out of its arguments.\n   - When it does, it returns `Mul(c_factors, TensorProduct(...))` rather than a bare `TensorProduct`.\n   - The recursion check in `_eval_expand_tensorproduct()` only recurses when the result is a `TensorProduct` instance, so it stops after the first `Add` factor.\n3. `TensorProduct.__new__` can also return a non-`TensorProduct` value with no `TensorProduct` inside it. For example, `TensorProduct(U-U, U+V)` returns `0`. The fix must handle that case without errors.\n4. The intended fix changes only `_eval_expand_tensorproduct()`. The `TensorProduct.__new__` constructor keeps its current behaviour, including pulling scalars out.\n5. The output form for fully expanded expressions should not change. It should be a sum of terms, each a scalar coefficient times a `TensorProduct` of non-`Add` factors.\n6. Other code that relies on `expand(tensorproduct=True)` should be fixed by this change without editing it. The issue names `qapply()`; there may be others.\n7. The reporter's code fragment, which elides its surrounding loop with `...`, is a proposed direction. It is not a required implementation.\n\n## Objective\n\n`TensorProduct(...).expand(tensorproduct=True)` must fully distribute over **every** tensor factor that is an `Add`, in a single call. This must hold even when the factors' summands have scalar coefficients.\n\nCurrent behaviour, quoted from the issue:\n\n```python\nfrom sympy import *\nfrom sympy.physics.quantum import *\nU = Operator('U')\nV = Operator('V')\nP = TensorProduct(2*U - V, U + V)\nprint(P.expand(tensorproduct=True))\n# actual:   2*Ux(U + V) - Vx(U + V)        (second factor not expanded)\n```\n\nExpected behaviour:\n\n```\n2*UxU + 2*UxV - VxU - VxV                  (order/printing may differ)\n```\n\n**Users affected:**\n- Users of `sympy.physics.quantum` who expand tensor products.\n- Users of code that depends on that expansion, such as `qapply()`.\n\n**Current workaround:** call `.expand(tensorproduct=True)` repeatedly until the result stops changing. That is not acceptable inside algorithms.\n\n**Success means:** one call to `expand(tensorproduct=True)` returns a result that does not change if you call it again (a fixed point).\n\n## Tech Stack\n\n- Python, SymPy, and specifically the `sympy.physics.quantum` subpackage.\n- The supported Python and SymPy versions are not known from the issue.\n\n## Commands\n\nThe exact commands are not known. I have no repository access and the issue does not give them. These are the commands I would use for a SymPy project; confirm them before relying on them:\n\n| Purpose | Command |\n|---|---|\n| Test | **unknown**; likely the SymPy test runner pointed at the quantum tensorproduct tests |\n| Lint | **unknown** |\n| Build | **unknown**; a pure-Python change, so a build step is probably not needed |\n\n## Project Structure\n\n| Path | Status |\n|---|---|\n| `quantum/tensorproduct.py` (presumed `sympy/physics/quantum/tensorproduct.py`) | Location of `TensorProduct.__new__` and `TensorProduct._eval_expand_tensorproduct` |\n| Tests for tensorproduct | **Unknown path**; presumed to sit in a `tests/` directory next to the module, e.g. `sympy/physics/quantum/tests/test_tensorproduct.py` (unconfirmed) |\n| Tests for `qapply` | **Unknown path** |\n\n## Code Style\n\n- Follow the existing style of `tensorproduct.py`. I cannot see it.\n- The only code shown in the issue is the reporter's proposed fragment. It uses:\n  - `args_cnc()`, to split commutative from non-commutative parts;\n  - `Mul(*c_part) * Mul(*nc_part)`, to rebuild each term.\n- No other style conventions are known.\n\n## Testing Strategy\n\n- **Framework:** SymPy's existing test framework. The runner command is unknown (see Commands).\n- **Level:** unit tests against `TensorProduct` expansion, plus at least one regression test through `qapply()`, because the issue names it as affected.\n- **Required regression cases:**\n  1. `TensorProduct(2*U - V, U + V).expand(tensorproduct=True)` equals `2*TP(U,U) + 2*TP(U,V) - TP(V,U) - TP(V,V)`.\n  2. Three or more tensor factors, each an `Add` with scalar coefficients. All factors must expand fully in one call.\n  3. A factor that is zero after construction, e.g. `TensorProduct(U - U, U + V)`. Expansion returns `0` without raising.\n  4. A purely scalar overall coefficient, e.g. `TensorProduct(3*U, U + V)`. The coefficient is kept and the `Add` factor is expanded.\n  5. Inputs with no scalar coefficients, e.g. `TensorProduct(U + V, U + V)`. The output must be the same as before the fix (non-regression).\n  6. Idempotence: for every case above, `e.expand(tensorproduct=True)` is equal to `e.expand(tensorproduct=True).expand(tensorproduct=True)`.\n  7. A `qapply()` case whose correct result depends on full tensor-product expansion. The specific input is unknown; see Open Questions.\n- **Coverage:** every new branch in `_eval_expand_tensorproduct()` is exercised:\n  - the result contains a `TensorProduct`;\n  - the result is a scalar times a `TensorProduct`;\n  - the result contains no `TensorProduct` (e.g. `0`).\n\n## Boundaries\n\n- **Always:**\n  - Add the regression tests above alongside the fix.\n  - Run the existing quantum test suite before submitting.\n  - Keep the change local to `_eval_expand_tensorproduct()`.\n- **Ask first:**\n  - Changing `TensorProduct.__new__`, including how it pulls out scalars or returns `Mul`/`0`.\n  - Changing the printed or canonical form of expanded results.\n  - Touching `qapply()` or other callers directly.\n  - Changing how expansion treats non-commutative coefficients.\n- **Never:**\n  - Change the public signature of `expand` or its `tensorproduct` hint.\n  - Hide the bug by having callers loop `expand`; that is the workaround, not the fix.\n  - Delete or weaken existing tests.\n\n## Success Criteria\n\n1. Cases 1 through 6 in Testing Strategy pass.\n2. A single `expand(tensorproduct=True)` call on any `TensorProduct` returns an expression containing no `TensorProduct` with an `Add` among its arguments.\n3. `TensorProduct(U - U, U + V).expand(tensorproduct=True)` returns `0` without an exception.\n4. All existing tests in the quantum subpackage pass. The test command is unknown.\n5. At least one `qapply()` regression test that failed or gave an incompletely expanded result before the fix now passes.\n\n## Open Questions\n\n1. What are the exact repository paths, and the commands to run the quantum tests and the linter?\n2. Can someone give a concrete `qapply()` input that shows the bug, to use as the regression test (case 7)?\n3. Can tensor factors include non-commutative scalar-like coefficients, or anything other than operators and commutative scalars? The fix assumes the `TensorProduct` is the only non-commutative factor in each term. Does that hold for every input `TensorProduct.__new__` can produce?\n4. Is the reporter's fragment correct when the constructor returns a `Mul` with a `TensorProduct` and also other non-commutative factors? The fragment only recurses when `len(nc_part) == 1`; what happens otherwise?\n5. Should the fix also handle nested `TensorProduct`s, or `Add`s that only appear after recursive expansion, or is that out of scope?\n6. Is a fixed ordering of terms or printed form expected in the output, or is symbolic equality enough for the tests?\n7. Do other code paths have the same check, \"the constructor result is a `TensorProduct` instance\"? Possible places are other `_eval_expand_*` methods or `tensor_product_simp`. Should they be fixed in the same change?",
+ "ttft_ms": 29782,
+ "type": "result",
+ "duration_ms": 29816,
+ "uuid": "6d33fabb-f7bc-48dc-adc0-11710767966e",
+ "ttft_stream_ms": 1535,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 16,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 216,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 265,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 12,
+  "cpu_ms": 27,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1535,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

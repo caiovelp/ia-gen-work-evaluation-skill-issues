@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32727,
+ "stop_reason": "end_turn",
+ "session_id": "8ea2dc1b-2cb2-4a96-b1b3-9b10ea385527",
+ "total_cost_usd": 0.0688504,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 774,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3082,
+  "output_tokens_details": {
+   "thinking_tokens": 269
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 774,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3082,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 774,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 774
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1356,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001476,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3082,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 774,
+   "webSearchRequests": 0,
+   "costUSD": 0.06870280000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 269,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Invalidate Password Reset Tokens When a User's Email Changes\n\n## Objective\n\n**Problem.** A password reset token stays valid after the account's email address changes. This is the sequence:\n\n1. An account exists with email `foo@\u2026`.\n2. Someone requests a password reset for that email. The token is issued and not yet used.\n3. The account owner changes the email address on the account.\n4. Someone uses the original reset link and token.\n5. **Expected:** the token is rejected. **Actual:** the token is accepted and the password can be reset.\n\n**Why it matters.** The email address on file defines who controls the account. After it changes, a reset link sent to the old address should no longer grant access. Today, whoever controls the old mailbox can still take over the account.\n\n**Users affected.**\n- End users whose accounts can be reset through emailed tokens.\n- Developers who use the framework's `PasswordResetTokenGenerator`, including those with custom user models.\n\n**Proposed direction (from the issue, not yet approved).**\n- Include the user's email address in the data hashed by `PasswordResetTokenGenerator._make_hash_value()`. Any change to the email then produces a different hash, so earlier tokens fail the check.\n- The design must handle the fact that `AbstractBaseUser` does not require an email field.\n- An alternative raised in the issue: move the hash-value contribution onto the user model, similar to `get_session_auth_hash()`.\n\n**Acceptance criteria (user stories).**\n- As an account owner, after I change my email, any reset token issued before the change is rejected.\n- As an account owner whose email has not changed, a valid, unexpired, unused reset token still works.\n- As a developer with a custom user model that has no email field, token generation and checking still work without errors.\n\n## Assumptions\n\n1. The codebase is Django, or a framework with the same `django.contrib.auth` design. This is inferred from `PasswordResetTokenGenerator`, `_make_hash_value()`, `AbstractBaseUser` and `get_session_auth_hash()`.\n2. `_make_hash_value(user, timestamp)` already folds user state into the hash. That state includes the password hash and last-login timestamp, so a password change or login already invalidates tokens. Adding the email follows the same pattern.\n3. The email field should be resolved through the model's configured email-field name, not a hard-coded `email` attribute. Assumed accessor: the `get_email_field_name()` pattern on `AbstractBaseUser`. Not verified.\n4. A missing email field, or an email value of `None`, is treated as an empty string in the hash.\n5. The email value is hashed as stored, with no case or whitespace normalization.\n6. After this change, all outstanding reset tokens become invalid on upgrade, because the hash input changes for every user. This is assumed acceptable for short-lived reset tokens if it is documented in release notes. See Open Questions.\n7. The token format, timeout setting and public API of `make_token()` / `check_token()` stay the same.\n8. Third-party subclasses that override `_make_hash_value()` keep their own behavior and are not changed by this work.\n\n## Tech Stack\n\n- **Language/framework:** Python, Django auth (`django.contrib.auth`). This is assumed; versions are unknown.\n- **Components named in the issue:** `PasswordResetTokenGenerator`, `_make_hash_value()`, `AbstractBaseUser`, `get_session_auth_hash()`.\n- **Exact module paths and supported Python/Django versions:** unknown.\n\n## Commands\n\n| Purpose | Command |\n|---|---|\n| Build | Unknown (not provided in the issue) |\n| Test (full suite) | Unknown |\n| Test (auth/token tests only) | Unknown |\n| Lint / format | Unknown |\n\n## Project Structure\n\n| Item | Location |\n|---|---|\n| `PasswordResetTokenGenerator` source | Unknown (assumed: the auth app's tokens module) |\n| `AbstractBaseUser` source | Unknown (assumed: the auth app's base user module) |\n| Existing token tests | Unknown (assumed: the auth tests package) |\n| Release notes / docs for the auth token behavior | Unknown |\n\n## Code Style\n\n- Follow the existing conventions of the module containing `PasswordResetTokenGenerator`. The real code was not visible, so no snippet is given here.\n- Resolve the email via the user model's configured email-field name. Do not assume an attribute called `email`.\n- Keep changes minimal and local to the hash-value computation, unless the model-method alternative is approved.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework (unknown; assumed Django's test runner / `TestCase`).\n- **Location:** alongside the existing password-reset token tests (path unknown).\n- **Level:** unit tests on the token generator, plus at least one test that exercises the full reset flow if such tests already exist.\n\n**Required cases.**\n1. **Regression.** Generate a token, change the user's email, save, then call `check_token`. The result must be `False`.\n2. **Control.** Generate a token, change nothing, then call `check_token`. The result must be `True`.\n3. **Custom user without an email field.** Token generation and checking must succeed with no `AttributeError`.\n4. **Email set to `None` or empty.** Token generation and checking must succeed.\n5. **Custom email field name.** Use a custom user model whose email field name is not `email`. Changing that field must invalidate the token.\n6. **Existing invalidation still works.** Changing the password or `last_login` still invalidates tokens. This covers the existing tests.\n\n**Coverage expectation:** the new branches have 100% coverage, specifically the email present, absent and `None` paths.\n\n## Boundaries\n\n- **Always:**\n  - Run the full auth test suite before committing.\n  - Keep `make_token` / `check_token` signatures unchanged.\n  - Handle user models without an email field.\n  - Add a regression test for the reported sequence.\n- **Ask first:**\n  - Moving the hash contribution onto the user model (the `get_session_auth_hash()`-style alternative).\n  - Normalizing the email (case or whitespace).\n  - Any change to the token format, algorithm or timeout.\n  - Adding a migration or deprecation path for tokens issued before the upgrade.\n  - Documentation or release-note wording about invalidating outstanding tokens.\n- **Never:**\n  - Weaken existing invalidation inputs (password hash, last login, timestamp).\n  - Hard-code the `email` attribute name.\n  - Remove or loosen existing failing tests without approval.\n  - Change security-sensitive comparison logic (for example, constant-time compare).\n\n## Success Criteria\n\n1. Following the issue's sequence (request reset, change email, use token), `check_token` returns `False` and the reset view rejects the link.\n2. Tokens for users whose email has not changed still validate within the timeout.\n3. User models without an email field, or with a `None` / empty email, generate and validate tokens without errors.\n4. User models with a custom email field name are covered. Changing that field invalidates tokens.\n5. All existing auth/token tests pass unchanged.\n6. The behavior change is documented: email changes invalidate reset tokens, and outstanding tokens are invalidated on upgrade. Wording and location must be approved.\n\n## Open Questions\n\n1. **Hash change or model method?** Should the fix only add the email to `_make_hash_value()`? Or should the hash contribution be moved onto the user model (like `get_session_auth_hash()`) so custom user models can control which fields invalidate tokens?\n2. **Upgrade impact.** Is it acceptable that every outstanding reset token is invalidated when this ships? Or is a transition period required, for example accepting tokens under the legacy hash for one timeout window?\n3. **Email normalization.** Should a case-only change (`Foo@\u2026` to `foo@\u2026`) invalidate tokens? Should the email be normalized before hashing?\n4. **Missing email.** For users without an email field, or with a null email, is substituting an empty string the desired behavior?\n5. **Scope.** Should other identity fields also invalidate tokens, such as username or `USERNAME_FIELD` changes? Or is this strictly about email?\n6. **Release target.** Which versions or branches should receive this fix? Is it treated as a security fix requiring a backport?\n7. **Documentation.** Where are the commands, test paths and release-note files for this project?",
+ "ttft_ms": 4557,
+ "type": "result",
+ "duration_ms": 31560,
+ "uuid": "5faec1ef-cd28-4b08-b9af-3495ecb84d8e",
+ "ttft_stream_ms": 1675,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 218,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 255,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1675,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

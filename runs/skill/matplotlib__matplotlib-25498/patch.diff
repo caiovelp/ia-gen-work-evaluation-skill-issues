@@ -1,0 +1,14 @@
+diff --git a/lib/matplotlib/colorbar.py b/lib/matplotlib/colorbar.py
+index d3d53e3d98..d0702600d7 100755
+--- a/lib/matplotlib/colorbar.py
++++ b/lib/matplotlib/colorbar.py
+@@ -507,6 +507,9 @@ class Colorbar:
+         self.mappable = mappable
+         self.set_alpha(mappable.get_alpha())
+         self.cmap = mappable.cmap
++        if mappable.norm is not self.norm and mappable.get_array() is not None:
++            # a replaced norm may not be scaled yet
++            mappable.autoscale_None()
+         if mappable.norm != self.norm:
+             self.norm = mappable.norm
+             self._reset_locator_formatter_scale()

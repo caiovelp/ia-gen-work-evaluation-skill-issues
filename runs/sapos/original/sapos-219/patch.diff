@@ -1,0 +1,53 @@
+diff --git a/app/controllers/admissions/process_base_controller.rb b/app/controllers/admissions/process_base_controller.rb
+index c7fd9194..7bd086b5 100644
+--- a/app/controllers/admissions/process_base_controller.rb
++++ b/app/controllers/admissions/process_base_controller.rb
+@@ -9,8 +9,18 @@ class Admissions::ProcessBaseController < ApplicationController
+   skip_before_action :authenticate_user!
+   skip_before_action :prepare_background
+   before_action :set_show_background
++  around_action :switch_locale
+ 
+   protected
++    def switch_locale(&action)
++      available = I18n.available_locales.map(&:to_s)
++      requested = params[:locale].presence
++      session[:admission_locale] = requested if requested && available.include?(requested)
++      locale = session[:admission_locale]
++      locale = I18n.default_locale unless locale && available.include?(locale.to_s)
++      I18n.with_locale(locale, &action)
++    end
++
+     def find_admission_process(param_id)
+       @admission_process =
+         Admissions::AdmissionProcess.open.find_by(simple_url: params[param_id]) ||
+diff --git a/app/views/admissions/admissions/index.html.erb b/app/views/admissions/admissions/index.html.erb
+index c4d39ecb..118df5f8 100644
+--- a/app/views/admissions/admissions/index.html.erb
++++ b/app/views/admissions/admissions/index.html.erb
+@@ -2,6 +2,13 @@
+   <div class="active-scaffold default-theme">
+     <div class="active-scaffold-header">
+       <h2><%= I18n.t("admissions.admissions.index.title") %></h2>
++      <% if I18n.available_locales.size > 1 %>
++        <div class="locale-selector">
++          <% I18n.available_locales.each do |l| %>
++            <%= link_to l.to_s, url_for(locale: l), class: ("current" if l.to_s == I18n.locale.to_s) %>
++          <% end %>
++        </div>
++      <% end %>
+     </div>
+     <div class="admission-inner">
+       <% if flash[:alert] %>
+diff --git a/config/application.rb b/config/application.rb
+index 38ce92cc..02d2ddaa 100644
+--- a/config/application.rb
++++ b/config/application.rb
+@@ -51,6 +51,7 @@ module Sapos
+     # config.i18n.default_locale = :de
+     config.i18n.enforce_available_locales = false
+     config.i18n.default_locale = "pt-BR"
++    config.i18n.fallbacks = ["pt-BR"]
+ 
+     # Configure the default encoding used in templates for Ruby 1.9.
+     config.encoding = "utf-8"

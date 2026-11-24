@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8229,
+ "stop_reason": "end_turn",
+ "session_id": "72a5646b-3532-4376-abb8-69cc30bf7ec0",
+ "total_cost_usd": 0.0255589,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1256,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 767,
+  "output_tokens_details": {
+   "thinking_tokens": 206
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1256,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 767,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1256,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1256
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1464,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001629,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 767,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1256,
+   "webSearchRequests": 0,
+   "costUSD": 0.025396,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 206,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAfter upgrading from Django 2.2 to 3.0, passing a named 2-tuple as the argument to a `__range` queryset filter raises a `TypeError`. The same code works on 2.2.\n\nAccording to the reporter, `django.db.models.sql.query.Query.resolve_lookup_value` resolves lookups in each tuple element and then rebuilds the tuple. It keeps the original type (the named tuple) but passes an iterator to its constructor. Named tuples cannot be built from a single iterator argument, so construction fails with missing arguments.\n\n## Steps to reproduce\n1. Use Django 3.0.\n2. Define a named tuple with two fields.\n3. Pass an instance of it as the value of a `__range` lookup in a queryset filter.\n4. Evaluate the queryset.\n5. Run the same code on Django 2.2 for comparison.\n\n## Observed behavior\nOn Django 3.0 the filter raises:\n`TypeError: __new__() missing 1 required positional argument: 'far'`\n\nThe named tuple is rebuilt from an iterator instead of from its individual elements, so the constructor receives too few positional arguments.\n\n## Expected behavior\nA named 2-tuple should be accepted as a `__range` argument, as it was on Django 2.2.\n\n## Stack trace / error output\n```\nTypeError: __new__() missing 1 required positional argument: 'far'\n```\nThe full stack trace was not provided in the original report.\n\n## Test case\nNot provided in the original report.\n\n## Code example\nNot provided in the original report.\n\n## Version and environment\n- Works on: Django 2.2\n- Fails on: Django 3.0\n- Python version, database backend and OS: Not provided in the original report.",
+ "ttft_ms": 3333,
+ "type": "result",
+ "duration_ms": 7671,
+ "uuid": "282b3499-7f6e-4797-862a-63fa41b7ac24",
+ "ttft_stream_ms": 1533,
+ "time_to_request_ms": 267,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 20,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 243,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 29,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1533,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

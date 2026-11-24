@@ -1,0 +1,264 @@
+diff --git a/.claude/skills/homologacao/SKILL.md b/.claude/skills/homologacao/SKILL.md
+new file mode 100644
+index 00000000..d5047375
+--- /dev/null
++++ b/.claude/skills/homologacao/SKILL.md
+@@ -0,0 +1,30 @@
++---
++name: homologacao
++description: Compara o app antes e depois de uma mudança em homologação (telas, PDFs, planilhas) contra o mesmo banco. Use para homologar upgrades.
++---
++
++# homologacao
++
++Scripts em `.claude/skills/homologacao/scripts/` (Python 3, só biblioteca padrão; telas via `curl`/URLs, PDFs via `pdftotext` do poppler, planilhas `.xlsx` lidas com `zipfile`). Nenhuma dependência nova.
++
++## Procedimento
++1. Use **o mesmo banco** nos dois estados (restaure a mesma cópia/mantenha o mesmo banco; nunca versione dumps).
++2. Estado "antes": suba o app no commit anterior e capture:
++   ```
++   python3 .claude/skills/homologacao/scripts/capture.py antes urls.txt
++   ```
++   `urls.txt` tem uma URL por linha (`tela <url>`, `pdf <url>`, `xlsx <url>`). Autenticação: variável `HOMOLOGACAO_COOKIE`.
++   Saídas em `tmp/homologacao/<rotulo>/` (ignorado pelo git).
++3. Estado "depois": repita com o rótulo `depois`.
++4. Compare:
++   ```
++   python3 .claude/skills/homologacao/scripts/compare.py antes depois
++   ```
++   Exit 0 = sem diferenças; 1 = diferenças listadas. Telas: HTML normalizado (tokens CSRF, hashes de assets, timestamps removidos); PDFs: texto; planilhas: conteúdo das células.
++
++## Verifique o próprio comparador
++- Compare dois estados idênticos (capture duas vezes o mesmo app): deve reportar zero diferenças. Se reportar, falta normalização (ruído).
++- Compare contra uma diferença conhecida (altere um texto): deve ser detectada. Comparador que nunca acusa nada não prova nada.
++
++## Dados sensíveis
++Capturas contêm dados reais: nunca commitar, nem colar em prompts. Apague ao terminar.
+diff --git a/.claude/skills/homologacao/scripts/capture.py b/.claude/skills/homologacao/scripts/capture.py
+new file mode 100755
+index 00000000..993e7022
+--- /dev/null
++++ b/.claude/skills/homologacao/scripts/capture.py
+@@ -0,0 +1,59 @@
++#!/usr/bin/env python3
++"""Uso: capture.py <rotulo> <arquivo_urls>. Saída em tmp/homologacao/<rotulo>/."""
++import hashlib, os, subprocess, sys, zipfile, re, urllib.request
++
++def fetch(url):
++    req = urllib.request.Request(url)
++    cookie = os.environ.get("HOMOLOGACAO_COOKIE")
++    if cookie:
++        req.add_header("Cookie", cookie)
++    with urllib.request.urlopen(req) as r:
++        return r.read()
++
++def normalize_html(b):
++    s = b.decode("utf-8", "replace")
++    s = re.sub(r'(name="authenticity_token" value=")[^"]*', r'\1X', s)
++    s = re.sub(r'(name="csrf-token" content=")[^"]*', r'\1X', s)
++    s = re.sub(r'-[0-9a-f]{32,64}(\.(css|js|png|svg))', r'\1', s)
++    s = re.sub(r'\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d', 'TS', s)
++    return s
++
++def xlsx_text(b, path):
++    with open(path + ".xlsx", "wb") as f:
++        f.write(b)
++    out = []
++    with zipfile.ZipFile(path + ".xlsx") as z:
++        for n in sorted(z.namelist()):
++            if n.startswith("xl/worksheets/") or n == "xl/sharedStrings.xml":
++                out.append("## " + n)
++                out.append(re.sub(r">\s*<", ">\n<", z.read(n).decode("utf-8", "replace")))
++    return "\n".join(out)
++
++def pdf_text(b, path):
++    with open(path + ".pdf", "wb") as f:
++        f.write(b)
++    return subprocess.run(["pdftotext", "-layout", path + ".pdf", "-"], capture_output=True, text=True, check=True).stdout
++
++def main():
++    label, urls = sys.argv[1], sys.argv[2]
++    outdir = os.path.join("tmp", "homologacao", label)
++    os.makedirs(outdir, exist_ok=True)
++    for line in open(urls, encoding="utf-8"):
++        line = line.strip()
++        if not line or line.startswith("#"):
++            continue
++        kind, url = line.split(None, 1)
++        name = hashlib.sha1(url.encode()).hexdigest()[:12]
++        path = os.path.join(outdir, name)
++        body = fetch(url)
++        if kind == "pdf":
++            text = pdf_text(body, path)
++        elif kind == "xlsx":
++            text = xlsx_text(body, path)
++        else:
++            text = normalize_html(body)
++        with open(path + ".txt", "w", encoding="utf-8") as f:
++            f.write(url + "\n" + text)
++        print(kind, url, "->", path + ".txt")
++
++main()
+diff --git a/.claude/skills/homologacao/scripts/compare.py b/.claude/skills/homologacao/scripts/compare.py
+new file mode 100755
+index 00000000..2fa417da
+--- /dev/null
++++ b/.claude/skills/homologacao/scripts/compare.py
+@@ -0,0 +1,24 @@
++#!/usr/bin/env python3
++"""Uso: compare.py <rotulo_antes> <rotulo_depois>. Exit 1 se houver diferença."""
++import difflib, os, sys
++
++base = os.path.join("tmp", "homologacao")
++a, b = (os.path.join(base, x) for x in sys.argv[1:3])
++fa = {f for f in os.listdir(a) if f.endswith(".txt")}
++fb = {f for f in os.listdir(b) if f.endswith(".txt")}
++if not fa and not fb:
++    print("Nenhuma captura encontrada; comparador não validou nada.")
++    sys.exit(2)
++diffs = 0
++for f in sorted(fa ^ fb):
++    print("Somente em um dos lados:", f)
++    diffs += 1
++for f in sorted(fa & fb):
++    la = open(os.path.join(a, f), encoding="utf-8").read().splitlines()
++    lb = open(os.path.join(b, f), encoding="utf-8").read().splitlines()
++    d = list(difflib.unified_diff(la, lb, "antes/" + f, "depois/" + f, lineterm=""))
++    if d:
++        diffs += 1
++        print("\n".join(d[:200]))
++print(f"{diffs} diferença(s) em {len(fa | fb)} captura(s).")
++sys.exit(1 if diffs else 0)
+diff --git a/.claude/skills/safe-refactor/SKILL.md b/.claude/skills/safe-refactor/SKILL.md
+new file mode 100644
+index 00000000..fb13890a
+--- /dev/null
++++ b/.claude/skills/safe-refactor/SKILL.md
+@@ -0,0 +1,22 @@
++---
++name: safe-refactor
++description: Mede uma mudança (atualização de gem, refatoração) pela suíte local, comparando antes e depois. Use ao atualizar dependências ou refatorar código.
++---
++
++# safe-refactor
++
++Execute, nesta ordem:
++
++1. **Ler o changelog** de cada versão entre a atual e a alvo. Liste mudanças de comportamento e deprecações.
++   - Armadilha: confira a **versão resolvida no `Gemfile.lock`** (`bundle exec gem list <gem>`), não a declarada no `Gemfile`; o bundler pode resolver outra.
++2. **Cobrir a lacuna**: escreva specs novas para o comportamento que o changelog diz que muda e que a suíte não cobre. Não altere specs existentes.
++3. **Rodar antes**: `bundle exec rspec --format json --out tmp/antes.json` (e também `--format progress`).
++4. **Mudar**: aplique a mudança (`bundle update <gem>`, edição de código).
++5. **Rodar depois**: `bundle exec rspec --format json --out tmp/depois.json`.
++6. **Comparar**:
++   ```
++   ruby -rjson -e 'f=->(p){JSON.parse(File.read(p))["examples"].to_h{|e|[e["id"],e["status"]]}}; a=f["tmp/antes.json"]; d=f["tmp/depois.json"]; (a.keys|d.keys).each{|k| puts "#{k}: #{a[k].inspect} -> #{d[k].inspect}" if a[k]!=d[k]}'
++   ```
++   Sem saída = sem diferenças. Verifique também novos warnings de deprecação.
++
++Repita com a skill `suite-mariadb` para os pontos cegos do SQLite. Reporte a comparação antes/depois.
+diff --git a/.claude/skills/suite-mariadb/SKILL.md b/.claude/skills/suite-mariadb/SKILL.md
+new file mode 100644
+index 00000000..ae08fbe7
+--- /dev/null
++++ b/.claude/skills/suite-mariadb/SKILL.md
+@@ -0,0 +1,29 @@
++---
++name: suite-mariadb
++description: Sobe um MariaDB local igual ao de produção (versão e collation) e roda a suíte contra ele. Use para validar o que o SQLite não detecta.
++---
++
++# suite-mariadb
++
++Requer Docker (outro mecanismo é aceitável, desde que versão e collation sejam as de produção).
++
++1. Descubra em produção: `SELECT VERSION();` e `SHOW VARIABLES LIKE 'collation%'; SHOW CREATE DATABASE <db>;` (sem copiar dados).
++2. Suba o servidor, com a versão e collation de produção (exemplos; ajuste):
++   ```
++   docker run -d --name sapos-mariadb -e MARIADB_ROOT_PASSWORD=local -p 3307:3306 \
++     mariadb:<VERSAO_PRODUCAO> --character-set-server=utf8mb4 --collation-server=<COLLATION_PRODUCAO>
++   ```
++3. Confirme a collation **materializada** (não só a declarada):
++   ```
++   SELECT TABLE_NAME, TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA='<db>';
++   SELECT TABLE_NAME, COLUMN_NAME, COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='<db>' AND COLLATION_NAME IS NOT NULL;
++   ```
++   Armadilha: o default do servidor ou do `CREATE DATABASE` pode diferir do que as tabelas/colunas de fato têm após migrations; compare com produção.
++4. Rode a suíte sem editar `config/database.yml` (perguntar antes de mudá-lo): use `DATABASE_URL`:
++   ```
++   export DATABASE_URL="mysql2://root:local@127.0.0.1:3307/sapos_test"
++   RAILS_ENV=test bundle exec rails db:create db:schema:load
++   RAILS_ENV=test bundle exec rspec
++   ```
++5. Compare falhas com a execução em SQLite (veja `safe-refactor`). Falhas só no MariaDB são pontos cegos.
++6. Limpeza: `docker rm -f sapos-mariadb`.
+diff --git a/.gitignore b/.gitignore
+index 885ca1ce..a3f12f70 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -61,3 +61,6 @@ nbproject/
+ .DS_Store
+ /.env
+ .vscode/
++
++# Capturas de homologação (dados reais; nunca versionar)
++/tmp/homologacao/
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 00000000..1a5d4a50
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,46 @@
++# AGENTS.md — instruções para agentes de IA
++
++Fonte única de instruções para agentes (o `CLAUDE.md` apenas importa este arquivo; não use symlink, não funciona no Windows).
++Conteúdo de domínio e de uso do sistema fica na wiki do projeto: **referencie, não copie**.
++<!-- TODO: informar a URL da wiki e as páginas relevantes (não informadas na issue). -->
++
++## Convenções de trabalho
++- Aplicação Rails (7.2). Idioma de docs, commits e skills: português.
++- Rodar a suíte: `bundle exec rspec` (SQLite local). Antes de mudar algo, rode a suíte e guarde o resultado.
++- Mudanças medidas: use a skill `safe-refactor`. Suíte em MariaDB: skill `suite-mariadb`. Comparação em homologação: skill `homologacao`.
++- Não modifique testes existentes para fazê-los passar; adicione novos.
++- Perguntar antes de: adicionar dependências, mudar CI, mudar `config/database.yml`.
++
++## Atualização de dependências
++1. Leia o changelog de cada gem/versão intermediária.
++2. Confira a **versão realmente resolvida** em `Gemfile.lock` (`bundle exec gem list <gem>`), não a do `Gemfile`.
++3. Cubra com spec a lacuna que o changelog indicar antes de atualizar.
++4. Rode a suíte antes e depois e compare (SQLite e MariaDB).
++5. Remova monkey-patches que a nova versão tornou desnecessários; revise os listados abaixo.
++
++## Pontos cegos da suíte (SQLite × MariaDB)
++Desenvolvimento/teste usam SQLite; produção usa MariaDB. A suíte em SQLite não pega:
++- collation e comparação de maiúsculas/acentos (case-insensitive no MariaDB, não no SQLite);
++- tipos e limites de colunas (`text`, `varchar`, truncamento, strict mode);
++- ordenação (`ORDER BY`) e `GROUP BY` com colunas não agregadas;
++- chaves estrangeiras e `add_foreign_key` (ver patch abaixo);
++- funções SQL específicas de cada banco.
++Use a skill `suite-mariadb` para validar. Cuidado: collation *materializada* no banco pode diferir da *declarada* no schema/config.
++
++## Monkey-patches sensíveis a upgrade (`config/initializers/`)
++- `fix_rails7_date_format.rb` — restaura `Date#to_s` com o formato `:default` (Rails 7.0+/7.2).
++- `fix_rails61_active_scaffold_dependent_error.rb` — erro de filho inválido no ActiveScaffold (Rails ≥ 6.1).
++- `fix_url_for.rb` — `url_for` em controllers com namespace (ex.: `Admissions::`).
++- `active_scaffold_disable_null_comparators.rb` — `ActiveScaffold::Helpers::SearchColumnHelpers`.
++- `recordselect_patch.rb` — `AbstractMysqlAdapter::Column` (depende de internals do adapter MySQL).
++- `schema_plus_alternative.rb` — `ActiveRecord::Migration#add_foreign_key`.
++- `can_destroy.rb` — `ActiveRecord::Base#can_destroy?` (usa reflexão de associações).
++- `types.rb` — registro do tipo `:text`.
++- `prawn-grouping.rb` — cópia local de gem Prawn::Grouping (verificar com versões do Prawn).
++- `datetime.rb` — formatos padrão de Date/Time.
++
++## Dados sensíveis
++- Nunca commitar credenciais, dumps, `.env`, nem capturas de homologação com dados reais.
++- Nada de dados pessoais (alunos, CPFs, e-mails, notas) em logs, prompts, capturas ou commits.
++- Capturas e saídas da skill `homologacao` ficam fora do git (`tmp/homologacao/` está ignorado).
++- Credenciais de banco/homologação vêm de variáveis de ambiente, nunca de arquivos versionados.
+diff --git a/CLAUDE.md b/CLAUDE.md
+new file mode 100644
+index 00000000..43c994c2
+--- /dev/null
++++ b/CLAUDE.md
+@@ -0,0 +1 @@
++@AGENTS.md

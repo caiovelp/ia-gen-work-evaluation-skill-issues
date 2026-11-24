@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13214,
+ "stop_reason": "end_turn",
+ "session_id": "ca0515f3-53b2-40e4-8a1c-a4d23fc57bfe",
+ "total_cost_usd": 0.041986100000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1514,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1484,
+  "output_tokens_details": {
+   "thinking_tokens": 149
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1514,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1484,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1514,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1514
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1716,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018610000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1484,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1514,
+   "webSearchRequests": 0,
+   "costUSD": 0.041800000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 149,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nCalling `get_facecolors()` on the `Poly3DCollection` returned by `Axes3D.plot_surface()` raises `AttributeError: 'Poly3DCollection' object has no attribute '_facecolors2d'`.\n\n## Steps to reproduce\n\n1. Create a grid and surface data with NumPy:\n   ```python\n   y, x = np.ogrid[1:10:100j, 1:10:100j]\n   z2 = np.cos(x)**3 - np.sin(y)**2\n   ```\n2. Create a figure and add a 3D subplot with `fig.add_subplot(111, projection='3d')`.\n3. Plot the surface with a colormap: `r = ax.plot_surface(x, y, z2, cmap='hot')`.\n4. Call `r.get_facecolors()` on the returned object.\n\n## Observed behavior\n\nThe call to `r.get_facecolors()` fails with `AttributeError: 'Poly3DCollection' object has no attribute '_facecolors2d'`.\n\n## Expected behavior\n\nThe report does not state this explicitly. Its title and wording imply that `get_facecolors()` should return the surface's face colors without raising an `AttributeError`.\n\n## Stack trace / error output\n\n```\nAttributeError                            Traceback (most recent call last)\n<ipython-input-13-de0f41d662cd> in <module>()\n----> 1 r.get_facecolors()\n\n/home/oliver/.virtualenvs/mpl/local/lib/python2.7/site-packages/mpl_toolkits/mplot3d/art3d.pyc in get_facecolors(self)\n    634\n    635     def get_facecolors(self):\n--> 636         return self._facecolors2d\n    637     get_facecolor = get_facecolors\n    638\n\nAttributeError: 'Poly3DCollection' object has no attribute '_facecolors2d'\n```\n\n## Test case\n\nMinimal test case derived from the reproduction snippet in the report:\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom mpl_toolkits.mplot3d import Axes3D  # noqa: F401 (registers the '3d' projection)\n\n\ndef test_plot_surface_get_facecolors():\n    y, x = np.ogrid[1:10:100j, 1:10:100j]\n    z2 = np.cos(x)**3 - np.sin(y)**2\n    fig = plt.figure()\n    ax = fig.add_subplot(111, projection='3d')\n    r = ax.plot_surface(x, y, z2, cmap='hot')\n    # Currently raises AttributeError: 'Poly3DCollection' object has no attribute '_facecolors2d'\n    r.get_facecolors()\n```\n\n## Code example\n\nOriginal reproduction script from the report:\n\n```python\nimport numpy as np\nimport matplotlib.tri as mtri\nimport matplotlib.pyplot as plt\nfrom mpl_toolkits.mplot3d import Axes3D\n\ny,x = np.ogrid[1:10:100j, 1:10:100j]\nz2 = np.cos(x)**3 - np.sin(y)**2\nfig = plt.figure()\nax = fig.add_subplot(111, projection='3d')\nr = ax.plot_surface(x,y,z2, cmap='hot')\nr.get_facecolors()\n```\n\nThe failing line in `mpl_toolkits/mplot3d/art3d.py`, as shown in the traceback:\n\n```python\ndef get_facecolors(self):\n    return self._facecolors2d\nget_facecolor = get_facecolors\n```\n\n## Version and environment\n\n- Matplotlib: tested with 1.3.1 and 1.4.2 (fails on both).\n- Python: 2.7, according to the virtualenv path in the traceback (`.../lib/python2.7/site-packages/...`).\n- The traceback came from an IPython session (`<ipython-input-13-...>`).\n- OS: Not provided in the original report.\n- The issue was forwarded from the matplotlib users mailing list (thread with the same title).",
+ "ttft_ms": 4179,
+ "type": "result",
+ "duration_ms": 13813,
+ "uuid": "4f864db4-7443-4c41-9ae0-fc38a4a3297f",
+ "ttft_stream_ms": 2518,
+ "time_to_request_ms": 1481,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 1435,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 475,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2518,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

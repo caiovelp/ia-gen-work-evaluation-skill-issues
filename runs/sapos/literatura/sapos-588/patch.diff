@@ -1,0 +1,70 @@
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index b776311e..b1c58793 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -141,6 +141,9 @@ class Ability
+     end
+ 
+     # Keep this at the end or :read STUDENT_MODELS will override it
++    cannot [:academic_transcript_pdf, :grades_report_pdf], Enrollment do |enrollment|
++      enrollment.avulso?
++    end unless roles[:manager]
+     cannot :academic_transcript_pdf, Enrollment do |enrollment|
+       enrollment.dismissal&.dismissal_reason&.thesis_judgement != DismissalReason::APPROVED
+     end unless roles[:manager]
+@@ -262,13 +265,15 @@ class Ability
+     if roles[Role::ROLE_ALUNO]
+       can :assertion_pdf, Assertion
+       can :generate_assertion, Assertion do |assertion, matricula_aluno|
+-        assertion.student_can_generate && matricula_aluno.in?(user.student.enrollments.pluck(:enrollment_number))
++        assertion.student_can_generate &&
++          matricula_aluno.in?(user.student.enrollments.pluck(:enrollment_number)) &&
++          !Enrollment.avulso_number?(matricula_aluno)
+       end
+     end
+     if roles[Role::ROLE_PROFESSOR]
+       can :assertion_pdf, Assertion
+-      can :generate_assertion, Assertion do |assertion|
+-        assertion.student_can_generate
++      can :generate_assertion, Assertion do |assertion, matricula_aluno|
++        assertion.student_can_generate && !Enrollment.avulso_number?(matricula_aluno)
+       end
+     end
+     cannot [:destroy, :update, :create], NotificationLog
+@@ -298,9 +303,12 @@ class Ability
+     if roles.include?(Role::ROLE_ALUNO) && user.student.present?
+       can [:show, :enroll, :save_enroll], :student_enrollment
+       can :academic_transcript_pdf, Enrollment do |enrollment|
+-        enrollment.dismissal&.dismissal_reason&.thesis_judgement === DismissalReason::APPROVED && enrollment.student_id === user.student.id
++        enrollment.dismissal&.dismissal_reason&.thesis_judgement === DismissalReason::APPROVED &&
++          enrollment.student_id === user.student.id && !enrollment.avulso?
++      end
++      can :grades_report_pdf, Enrollment do |enrollment|
++        enrollment.student_id == user.student.id && !enrollment.avulso?
+       end
+-      can :grades_report_pdf, Enrollment, student_id: user.student.id
+     else
+       cannot [:show, :enroll, :save_enroll], :student_enrollment
+     end
+diff --git a/app/models/enrollment.rb b/app/models/enrollment.rb
+index 7c32a046..8a6aac65 100644
+--- a/app/models/enrollment.rb
++++ b/app/models/enrollment.rb
+@@ -216,6 +216,17 @@ class Enrollment < ApplicationRecord
+     false
+   end
+ 
++  def avulso?
++    enrollment_status&.name == "Avulso"
++  end
++
++  def self.avulso_number?(enrollment_number)
++    return false if enrollment_number.blank?
++    joins(:enrollment_status)
++      .where(enrollment_number: enrollment_number, enrollment_statuses: { name: "Avulso" })
++      .exists?
++  end
++
+   def should_have_user?
+     return false unless self.student.can_have_new_user?
+     return false unless self.enrollment_status.user

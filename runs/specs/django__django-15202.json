@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25990,
+ "stop_reason": "end_turn",
+ "session_id": "5e79b646-927e-4437-9e15-32b08f0108ed",
+ "total_cost_usd": 0.0585058,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 798,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2555,
+  "output_tokens_details": {
+   "thinking_tokens": 97
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 798,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2555,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 798,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 798
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1390,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015099999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2555,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 798,
+   "webSearchRequests": 0,
+   "costUSD": 0.0583548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 97,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: URLField raises ValidationError (not ValueError) for malformed IPv6-like URLs\n\n## Assumptions\n\n1. The issue is in Django. The traceback paths `django/forms/fields.py` and `django/core/validators.py` support this.\n2. The `ValueError` comes from Python's `urllib.parse.urlsplit`. That function raises `ValueError(\"Invalid IPv6 URL\")` when the netloc has unbalanced `[` / `]` brackets. The call happens inside the URL validator invoked at `django/core/validators.py` line 130 (`__call__`), which is presumably `URLValidator`.\n3. `URLValidator` is the validator `forms.URLField` uses by default. It reaches `urlsplit` during its own validation logic, not through `URLField.to_python`. The traceback goes through `run_validators`, not `to_python`.\n4. The expected contract is Django's general rule: `Field.clean()` reports invalid user input only by raising `django.core.exceptions.ValidationError`, never other exception types.\n5. The error to raise is the validator's existing \"invalid\" message and code. No new message or code is introduced.\n6. The fuzzer harness (`basic_fuzzer.py`, `fuzzers.py`) is external and is not part of this change.\n7. The Django version and the line numbers in the traceback are unknown. They may not match the current main branch.\n8. Other `urlsplit` / `urlparse` call sites may have the same problem. One example is `URLField.to_python`, which may already handle `ValueError`; this is not verified. These sites are in scope only if they are reachable from `forms.URLField.clean()`.\n\n## Objective\n\nCalling `forms.URLField().clean('////]@N.AN')` currently raises an uncaught `ValueError: Invalid IPv6 URL`. That breaks the forms contract and causes a 500 error in any view that validates user-submitted URLs. The call must instead raise a `ValidationError` carrying the field's/validator's standard \"invalid URL\" error.\n\n**Users affected:**\n- Django developers using `forms.URLField`, or `URLValidator` directly.\n- Their end users, who can trigger this with arbitrary input.\n\n**Acceptance criteria:**\n- `forms.URLField().clean('////]@N.AN')` raises `ValidationError`, not `ValueError`.\n- The raised error uses the existing \"invalid\" error code and message (\"Enter a valid URL.\" or whatever the current message is). No new message or code is added.\n- Calling the URL validator directly on the same input also raises `ValidationError`. This applies if the validator is confirmed to be the source.\n- Valid URLs, including valid bracketed IPv6 URLs such as `http://[::1]/`, still validate unchanged.\n- Existing invalid-URL tests still pass with the same error codes.\n\n## Tech Stack\n\n- Python, version unknown. `urllib.parse` behavior around bracket validation has changed across Python versions.\n- Django, version and branch unknown.\n- No new dependencies.\n\n## Commands\n\n- Build: unknown. No build step is visible in the issue.\n- Test: unknown. Django's test runner invocation is not shown in the issue.\n- Lint: unknown.\n- Reproduction (from the issue, as a Python snippet):\n  ```python\n  from django import forms\n  forms.URLField().clean('////]@N.AN')\n  ```\n  Settings configuration may be required to run this outside a project. The exact setup is unknown.\n\n## Project Structure\n\nFiles known from the traceback:\n\n```\ndjango/forms/fields.py      \u2192 Field.clean (line ~151), Field.run_validators (line ~136)\ndjango/core/validators.py   \u2192 validator __call__ (line ~130) that calls urllib.parse.urlsplit\n```\n\nTest file locations are unknown. They are likely the existing tests for form fields and validators, but the paths are not visible.\n\n## Code Style\n\nNo repository code is visible. Follow the existing conventions in `django/core/validators.py`:\n- Raise `ValidationError(self.message, code=self.code, ...)` consistently with surrounding validator code. The exact parameters are unknown and should be copied from neighboring raises in the same method.\n- The fix should be minimal and local. Do not refactor unrelated validation logic.\n\n## Testing Strategy\n\n- Framework: Django's own test suite. Runner and file paths are unknown.\n- Add regression tests:\n  - Form-field level: `URLField().clean('////]@N.AN')` raises `ValidationError` with the \"invalid\" code.\n  - Validator level: the URL validator raises `ValidationError` for the same input. Add this only if it is confirmed that the validator raises the `ValueError`.\n  - Optionally add closely related inputs that trigger the same `urlsplit` error, such as unbalanced `[` or `]` in the netloc. These should be confirmed against `urlsplit` behavior on the supported Python versions.\n- Negative and regression checks: valid IPv6 URLs and existing valid and invalid URL cases keep their current outcomes.\n- Coverage expectation: every reachable `urlsplit`/`urlparse` call in the `URLField.clean()` path is covered by a case that makes it raise `ValueError`.\n\n## Boundaries\n\n- **Always:**\n  - Convert `ValueError` from URL parsing into `ValidationError` using the existing message and code.\n  - Add regression tests.\n  - Keep behavior for valid URLs unchanged.\n- **Ask first:**\n  - Changing error messages or codes.\n  - Changing which URLs are accepted beyond turning crashes into validation errors.\n  - Modifying `URLField.to_python` or model `URLField`, if they are not on the failing path.\n  - Backporting to release branches.\n- **Never:**\n  - Catch broad `Exception`.\n  - Swallow the error and accept the input as valid.\n  - Change the fuzzer harness.\n  - Alter `urllib` behavior or monkeypatch the standard library.\n\n## Success Criteria\n\n1. The reproduction snippet raises `django.core.exceptions.ValidationError` with code `\"invalid\"`.\n2. No `ValueError` escapes `forms.URLField().clean()` for inputs where `urlsplit` raises `ValueError`.\n3. The new regression tests pass. All existing form-field and validator tests pass unchanged.\n4. Valid URLs, including bracketed IPv6 hosts, validate exactly as before.\n\n## Open Questions\n\n1. Which Django version or branch should be fixed? Should the fix be backported? Line numbers in the traceback may be outdated.\n2. Is the raising `__call__` at `validators.py:130` definitely `URLValidator.__call__`? Which `urlsplit` call in it fails: the one before or after the scheme/regex checks?\n3. Should the fix also cover other `urlsplit`/`urlparse` call sites that can raise `ValueError`, such as `URLField.to_python`, `EmailValidator`, or model `URLField`? Or should it stay strictly on the reported path?\n4. Which Python versions must be supported? `urlsplit`'s bracket validation has changed across versions, so the set of inputs that raise `ValueError` may differ.\n5. Should the `ValidationError` include `params={'value': value}` like other raises in the validator? This depends on the current code's convention.\n6. What are the exact test command and test file locations to use?",
+ "ttft_ms": 2750,
+ "type": "result",
+ "duration_ms": 25456,
+ "uuid": "aba074d7-15b3-4f84-88bb-85cab3f1fd11",
+ "ttft_stream_ms": 1727,
+ "time_to_request_ms": 291,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 234,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 270,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1727,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

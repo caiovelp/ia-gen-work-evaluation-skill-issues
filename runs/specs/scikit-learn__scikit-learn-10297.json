@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31723,
+ "stop_reason": "end_turn",
+ "session_id": "4d40d9d2-2b76-453c-96bf-d445221e8847",
+ "total_cost_usd": 0.0726929,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1216,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3095,
+  "output_tokens_details": {
+   "thinking_tokens": 136
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1216,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3095,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1216,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1216
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1801,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001941,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3095,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1216,
+   "webSearchRequests": 0,
+   "costUSD": 0.0724988,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 136,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Add `store_cv_values` support to `RidgeClassifierCV`\n\n## Objective\n\n`sklearn.linear_model.RidgeClassifierCV` does not accept a `store_cv_values` constructor parameter. Its documentation still describes a `cv_values_` attribute that depends on `store_cv_values=True` and `cv=None`. Passing the parameter fails:\n\n```\nTypeError: __init__() got an unexpected keyword argument 'store_cv_values'\n```\n\n**Goal:** `RidgeClassifierCV` should accept a boolean `store_cv_values` parameter, as its regression counterpart `RidgeCV` does. When the flag is enabled and efficient Leave-One-Out cross-validation is used (`cv=None`), the fitted estimator should expose `cv_values_`. The code and the docs will then agree.\n\n**Users:** scikit-learn users who fit `RidgeClassifierCV` and want to inspect the per-sample, per-alpha cross-validation values, for example to plot them or to choose alpha themselves.\n\n**User story:** As a user, I can call `RidgeClassifierCV(alphas=..., store_cv_values=True).fit(X, y)` on classification targets. I can then read `cv_values_` with a documented shape, without getting a `TypeError`.\n\n### Acceptance criteria\n\n1. `RidgeClassifierCV.__init__` accepts `store_cv_values` (bool). Its default keeps current behaviour, which is assumed to be `False`.\n2. With `store_cv_values=True` and `cv=None`, after `fit`:\n   - `cv_values_` exists.\n   - Its shape matches the documented contract: `[n_samples, n_alphas]` for a single response, or `[n_samples, n_responses, n_alphas]` for several responses. For a classifier, \"responses\" are the binarized class columns (see Open Questions).\n3. With `store_cv_values=False`, which is the default, `cv_values_` is not set. Behaviour and results stay the same as before the change.\n4. With `store_cv_values=True` and a non-`None` `cv`, the estimator behaves the same way `RidgeCV` does in that situation (see Open Questions).\n5. `get_params()` / `set_params()` round-trip `store_cv_values`. `clone()` preserves it.\n6. The docstring for `RidgeClassifierCV` documents the `store_cv_values` parameter. The existing `cv_values_` attribute description stays accurate.\n7. A changelog / what's-new entry records the fix, if the project requires one for this kind of change.\n\n### Note on the reproducer\n\nThe script in the issue passes a continuous target (`y = np.random.normal(size=n)`) to a classifier. Once `store_cv_values` is accepted, that script would probably fail later, at `fit`, with a label-type error. That failure is expected classifier behaviour and is **out of scope**. Tests for this spec must use valid classification targets.\n\n## Assumptions\n\n1. `RidgeCV` already supports `store_cv_values` and `cv_values_`. `RidgeClassifierCV` shares a common CV base with it, but its constructor does not forward the parameter. *(Inferred from the issue's documentation quote, not verified in code.)*\n2. The default value of `store_cv_values` is `False`, matching `RidgeCV`.\n3. `cv_values_` for the classifier is computed on the internal binarized/encoded targets (one column per class, or one column for binary problems). It is not computed on the original labels.\n4. The `normalize` parameter used in the issue exists in the targeted version and does not interact with this change.\n5. The fix targets the current development branch, not a backport to 0.19.x.\n6. This is a single capability, so Phase 0 (capability map) does not apply.\n\n## Tech Stack\n\n- Python, NumPy, SciPy, scikit-learn. The issue reports Python 3.6.3, NumPy 1.13.3, SciPy 0.19.1 and scikit-learn 0.19.1.\n- The supported version range on the target branch is **unknown**.\n\n## Commands\n\nAll commands are **unknown**, because the repository is not visible. The following need confirming:\n\n- Build/install (in-place dev build): unknown\n- Test (targeted to ridge tests): unknown\n- Lint/style check: unknown\n- Docs build: unknown\n\n## Project Structure\n\nExact paths are **unknown**. Expected locations, to be confirmed:\n\n- The module defining `RidgeClassifierCV`, `RidgeCV` and their shared CV base, inside `sklearn.linear_model`: path unknown\n- Tests for the ridge estimators: path unknown\n- What's-new / changelog file for the target release: path unknown\n\n## Code Style\n\nUnknown, because no repository code is visible. Follow the conventions already used in the existing `RidgeCV` constructor and docstring, which use NumPy-style docstrings with `Parameters` / `Attributes` sections. Keep parameter naming, ordering style and docstring wording consistent with `RidgeCV`'s `store_cv_values` documentation.\n\n## Testing Strategy\n\n- **Framework:** the project's existing unit test framework. The name and command are unknown.\n- **Level:** unit tests next to the existing ridge tests.\n- **Cases to cover:**\n  - Construction with `store_cv_values=True` does not raise.\n  - Binary classification, `cv=None`, `store_cv_values=True`: `cv_values_` exists with shape `(n_samples, n_alphas)`, or whatever single-column layout is decided (see Open Questions).\n  - Multiclass classification, `cv=None`, `store_cv_values=True`: `cv_values_` has shape `(n_samples, n_classes, n_alphas)`.\n  - Default (`store_cv_values=False`): `cv_values_` is absent, and predictions match those of an estimator built without the parameter.\n  - `store_cv_values=True` with an explicit `cv`: behaviour matches `RidgeCV`, whether that is an error or the flag being ignored.\n  - `get_params` / `clone` include and preserve `store_cv_values`.\n- **Regression:** the existing ridge test suite passes unchanged.\n- **Coverage expectation:** the new parameter path is exercised. Any numeric coverage threshold is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep backward compatibility, so that the default behaviour of `RidgeClassifierCV` is unchanged.\n  - Mirror `RidgeCV` semantics for `store_cv_values`.\n  - Update the docstrings.\n  - Add tests.\n  - Run the ridge test suite before committing.\n- **Ask first:**\n  - Changing `RidgeCV`'s behaviour or the shared base class signature in ways that affect other estimators.\n  - Renaming `store_cv_values` or `cv_values_`.\n  - Adding deprecations.\n  - Changing the documented shape of `cv_values_`.\n- **Never:**\n  - Change the classifier's target validation to accept continuous `y`.\n  - Remove or weaken existing tests.\n  - Alter numerical results for the default configuration.\n\n## Success Criteria\n\n- `RidgeClassifierCV(alphas=..., store_cv_values=True).fit(X, y_class)` succeeds with valid class labels and `cv=None`.\n- The fitted model exposes `cv_values_` with the agreed shape for both binary and multiclass targets.\n- With the default settings, nothing changes: there is no `cv_values_`, and predictions and `alpha_` are identical to before.\n- `store_cv_values` appears in `get_params()` and in the `RidgeClassifierCV` docstring.\n- The new tests pass, and the existing ridge tests still pass.\n\n## Open Questions\n\n1. **Shape for binary problems:** Should `cv_values_` be `(n_samples, n_alphas)` or `(n_samples, 1, n_alphas)` for binary classification? The answer depends on how the targets are binarized internally. Should the docstring spell this out for the classifier?\n2. **Non-`None` `cv`:** What should happen when `store_cv_values=True` is combined with an explicit `cv`? Should it raise a `ValueError`, as `RidgeCV` presumably does, or silently ignore the flag?\n3. **What the values mean:** For a classifier, should the docstring clarify that `cv_values_` contains LOO errors or predictions on the encoded targets, not on class labels?\n4. **Release target:** Which release should get the what's-new entry, and is a backport to 0.19.x wanted?\n5. **Commands and paths:** What are the repository's build, test and lint commands, and the exact file paths? All are currently unknown.\n6. **Reproducer:** Should the issue's reproducer be corrected in the issue thread? Its continuous `y` is a separate user error.",
+ "ttft_ms": 3208,
+ "type": "result",
+ "duration_ms": 30858,
+ "uuid": "b324ce4b-3b44-4066-9204-2f45068804a4",
+ "ttft_stream_ms": 1570,
+ "time_to_request_ms": 261,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 216,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 198,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1570,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

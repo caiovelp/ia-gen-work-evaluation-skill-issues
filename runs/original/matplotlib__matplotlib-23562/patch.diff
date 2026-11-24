@@ -1,0 +1,20 @@
+diff --git a/lib/mpl_toolkits/mplot3d/art3d.py b/lib/mpl_toolkits/mplot3d/art3d.py
+index 8fe6e7a9c1..736627cc84 100755
+--- a/lib/mpl_toolkits/mplot3d/art3d.py
++++ b/lib/mpl_toolkits/mplot3d/art3d.py
+@@ -867,9 +867,15 @@ class Poly3DCollection(PolyCollection):
+         self.stale = True
+ 
+     def get_facecolor(self):
++        # self._facecolors2d is not initialized until do_3d_projection
++        if not hasattr(self, '_facecolors2d'):
++            return super().get_facecolor()
+         return self._facecolors2d
+ 
+     def get_edgecolor(self):
++        # self._edgecolors2d is not initialized until do_3d_projection
++        if not hasattr(self, '_edgecolors2d'):
++            return super().get_edgecolor()
+         return self._edgecolors2d
+ 
+ 

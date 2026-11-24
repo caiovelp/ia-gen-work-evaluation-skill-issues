@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6033,
+ "stop_reason": "end_turn",
+ "session_id": "7e3d013b-8d73-4ed2-960d-f31f14962b31",
+ "total_cost_usd": 0.015995600000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1074,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 355,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1074,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 355,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1074,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1074
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1306,
+   "outputTokens": 330,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00029560000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 302,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 355,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1074,
+   "webSearchRequests": 0,
+   "costUSD": 0.015700000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAllow the `Permutation` constructor to accept non-disjoint cycles.\n\n## Description\nRight now, calling the `Permutation` constructor with non-disjoint cycles raises a `ValueError`. For example:\n\n```\nPermutation([[0,1],[0,1]])\n```\n\nThis raises a `ValueError`. The expected result is the identity permutation.\n\nRequested behavior: when the cycles are non-disjoint, the constructor should apply them in left-to-right order and return the resulting permutation.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nThe reporter sees no reason to forbid non-disjoint cycles. The resulting permutation should also be easy to compute.\n\n## Use case or scenario\nA user builds a permutation from cycles that share elements, such as `[[0,1],[0,1]]`. The user expects to get the composed permutation (here the identity), not an error.\n\n## Possible solution\nDo not raise a `ValueError` when the cycles are non-disjoint. Instead, apply the cycles in left-to-right order and return the resulting permutation.",
+ "ttft_ms": 4006,
+ "type": "result",
+ "duration_ms": 4038,
+ "uuid": "05c4098d-57df-4d51-a3a3-95f470799e02",
+ "ttft_stream_ms": 1486,
+ "time_to_request_ms": 301,
+ "time_to_request_phases_ms": {
+  "other": 22,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 22,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 224,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 46,
+ "time_to_request_cpu_ms": 334,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1486,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

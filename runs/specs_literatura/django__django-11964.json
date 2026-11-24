@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15932,
+ "stop_reason": "end_turn",
+ "session_id": "d41fa33d-a5b2-48ea-9c53-24bbb33e3ea2",
+ "total_cost_usd": 0.050759,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1837,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1792,
+  "output_tokens_details": {
+   "thinking_tokens": 182
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1837,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1792,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1837,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1837
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2045,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00021500000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1792,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1837,
+   "webSearchRequests": 0,
+   "costUSD": 0.050544,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 182,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen a model instance is created with a `TextChoices` (or `IntegerChoices`) enum member as the value of a `CharField`/`IntegerField` that uses `choices=...choices`, the field attribute on that freshly created instance keeps the enum member itself, not its underlying value. As a result, `str()` on the attribute returns `'MyChoice.FIRST_CHOICE'` instead of `'first'`. An instance retrieved from the database returns the plain value (`'first'`). The type and string representation of the field value therefore differ depending on whether the instance was just created or loaded from the database.\n\n## Steps to reproduce\n\n1. Define a `TextChoices` enum and a model with a `CharField` that uses it:\n   ```python\n   from django.db import models\n   from django.utils.translation import gettext_lazy as _\n\n   class MyChoice(models.TextChoices):\n       FIRST_CHOICE = \"first\", _(\"The first choice, it is\")\n       SECOND_CHOICE = \"second\", _(\"The second choice, it is\")\n\n   class MyObject(models.Model):\n       my_str_value = models.CharField(max_length=10, choices=MyChoice.choices)\n   ```\n2. Create an instance by passing the enum member: `MyObject.objects.create(my_str_value=MyChoice.FIRST_CHOICE)`.\n3. Call `str()` on `my_str_value` of the returned (freshly created) instance.\n4. Retrieve the same object from the database (e.g. `MyObject.objects.last()`) and call `str()` on its `my_str_value`.\n5. Compare the two results.\n\n## Observed behavior\n\n- On the freshly created instance, `str(my_object.my_str_value)` returns `'MyChoice.FIRST_CHOICE'`.\n- On the instance retrieved from the database, `str(my_object.my_str_value)` returns `'first'`. The corresponding test passes.\n\nAccording to the reporter, this inconsistency can cause unexpected issues. For example, when data is sent to an external API, a freshly created instance sends `MyEnum.MyValue`, while a retrieved instance sends `my_value`.\n\n## Expected behavior\n\nThe field value should behave the same on a freshly created instance and on a retrieved instance. `str(my_object.my_str_value)` should return the enum's value (`'first'`) in both cases.\n\n## Stack trace / error output\n\n```\n(django30-venv) \u279c django30 ./manage.py test\nCreating test database for alias 'default'...\nSystem check identified no issues (0 silenced).\nF.\n======================================================================\nFAIL: test_created_object_is_str (testing.tests.EnumTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n File \"/Users/mikailkocak/Development/django30/testing/tests.py\", line 14, in test_created_object_is_str\n\tself.assertEqual(str(my_object.my_str_value), \"first\")\nAssertionError: 'MyChoice.FIRST_CHOICE' != 'first'\n- MyChoice.FIRST_CHOICE\n+ first\n----------------------------------------------------------------------\nRan 2 tests in 0.002s\nFAILED (failures=1)\n```\n\n## Test case\n\n```python\nfrom django.test import TestCase\nfrom testing.pkg.models import MyObject, MyChoice\n\nclass EnumTest(TestCase):\n    def setUp(self) -> None:\n        self.my_object = MyObject.objects.create(my_str_value=MyChoice.FIRST_CHOICE)\n\n    def test_created_object_is_str(self):\n        my_object = self.my_object\n        self.assertIsInstance(my_object.my_str_value, str)\n        self.assertEqual(str(my_object.my_str_value), \"first\")   # fails\n\n    def test_retrieved_object_is_str(self):\n        my_object = MyObject.objects.last()\n        self.assertIsInstance(my_object.my_str_value, str)\n        self.assertEqual(str(my_object.my_str_value), \"first\")   # passes\n```\n\n## Code example\n\nModel used in the reproduction:\n\n```python\nfrom django.db import models\nfrom django.utils.translation import gettext_lazy as _\n\nclass MyChoice(models.TextChoices):\n    FIRST_CHOICE = \"first\", _(\"The first choice, it is\")\n    SECOND_CHOICE = \"second\", _(\"The second choice, it is\")\n\nclass MyObject(models.Model):\n    my_str_value = models.CharField(max_length=10, choices=MyChoice.choices)\n```\n\nThe report states that the same issue applies to `IntegerField` with `IntegerChoices`. No separate example was given for that case.\n\n## Version and environment\n\n- Django version: not stated explicitly. The tests were run in a virtualenv named `django30-venv`, in a project directory named `django30`.\n- Python version, OS, and database backend: Not provided in the original report.",
+ "ttft_ms": 3530,
+ "type": "result",
+ "duration_ms": 15297,
+ "uuid": "c3ccba4c-59e2-46a2-bd7b-7637754cdd55",
+ "ttft_stream_ms": 1552,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 279,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1552,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

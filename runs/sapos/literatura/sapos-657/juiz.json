@@ -1,0 +1,1 @@
+{"justificativa": "The patch syncs only Student#name to the User; the issue title (and the official fix) also covers Professor#name, which is left untouched. It also misses the case of linking an existing user to a record, which the official fix handles via saved_change_to_user_id.", "veredito": "parcial"}

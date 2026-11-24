@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9842,
+ "stop_reason": "end_turn",
+ "session_id": "c4bfe327-9f88-4953-baab-b98220ca0d5b",
+ "total_cost_usd": 0.0303928,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1167,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1045,
+  "output_tokens_details": {
+   "thinking_tokens": 36
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1167,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1045,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1167,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1167
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1373,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001488,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1045,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1167,
+   "webSearchRequests": 0,
+   "costUSD": 0.030244,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 36,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nRegression in the input validation of clustering metrics. `mutual_info_score` from `sklearn.metrics.cluster` raises `ValueError: could not convert string to float` when given string labels in an array of `object` dtype. The same labels as a plain NumPy string array work, but emit a warning. According to the reporter, both cases worked without a warning in scikit-learn 0.21.1.\n\n## Steps to reproduce\n\n1. Import `mutual_info_score` from `sklearn.metrics.cluster` and import `numpy`.\n2. Create an array of string labels with `object` dtype: `x = np.random.choice(['a', 'b'], size=20).astype(object)`.\n3. Call `mutual_info_score(x, x)`. A `ValueError` is raised.\n4. For comparison, create the same labels without converting to `object` dtype: `x = np.random.choice(['a', 'b'], size=20)`.\n5. Call `mutual_info_score(x, x)`. The call succeeds but emits a warning.\n\n## Observed behavior\n\n- With string labels of `object` dtype, `mutual_info_score` raises `ValueError: could not convert string to float: 'b'`.\n- With string labels of NumPy string dtype (no `.astype(object)`), `mutual_info_score` works but emits a warning. The original report does not give the warning text.\n\n## Expected behavior\n\n`mutual_info_score` should accept string labels in both cases (`object` dtype and NumPy string dtype) without an error and without a warning. This matches the behavior the reporter saw in scikit-learn 0.21.1.\n\n## Stack trace / error output\n\n```\nValueError: could not convert string to float: 'b'\n```\n\nThe original report does not include a full stack trace or the text of the warning from the second case.\n\n## Test case\n\nMinimal test derived from the report:\n\n```python\nimport numpy as np\nfrom sklearn.metrics.cluster import mutual_info_score\n\n# Case 1: object dtype string labels -> currently raises ValueError\nx = np.random.choice(['a', 'b'], size=20).astype(object)\nmutual_info_score(x, x)  # expected: no error, no warning\n\n# Case 2: NumPy string dtype labels -> currently works but emits a warning\nx = np.random.choice(['a', 'b'], size=20)\nmutual_info_score(x, x)  # expected: no warning\n```\n\n## Code example\n\nFrom the original report (the second snippet was edited by @ogrisel to remove `.astype(object)`):\n\n```python\nfrom sklearn.metrics.cluster import mutual_info_score\nimport numpy as np\n\nx = np.random.choice(['a', 'b'], size=20).astype(object)\nmutual_info_score(x, x)\n```\n\n```python\nx = np.random.choice(['a', 'b'], size=20)\nmutual_info_score(x, x)\n```\n\n## Version and environment\n\n- Last known working version: scikit-learn 0.21.1 (worked without a warning).\n- Affected version: Not provided in the original report.\n- NumPy version, Python version and OS: Not provided in the original report.",
+ "ttft_ms": 2007,
+ "type": "result",
+ "duration_ms": 9598,
+ "uuid": "0b1840c0-122d-4f94-b088-49df60fbd0e9",
+ "ttft_stream_ms": 1614,
+ "time_to_request_ms": 515,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 11,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 473,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 212,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1614,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

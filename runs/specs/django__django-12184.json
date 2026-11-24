@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29057,
+ "stop_reason": "end_turn",
+ "session_id": "f7efa203-eb16-480c-b6ca-7b78081ff285",
+ "total_cost_usd": 0.06715800000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 970,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2918,
+  "output_tokens_details": {
+   "thinking_tokens": 274
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 970,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2918,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 970,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 970
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1557,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016720000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2918,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 970,
+   "webSearchRequests": 0,
+   "costUSD": 0.0669908,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 274,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Optional named URL groups must not cause extra positional arguments in view calls\n\n## Objective\n\nA regression in Django 3.0 breaks views routed through `re_path()` patterns that contain an **optional named group**, when that group is absent from the request URL.\n\n**Reported case:**\n\n```python\n# URLConf\nre_path(r'^module/(?P<format>(html|json|xml))?/?$', views.modules, name='modules'),\n\n# View\ndef modules(request, format='html'):\n    ...\n    return render(...)\n```\n\n- With Django \u2264 2.2, requesting `/module/` called `modules(request)`. The view's default `format='html'` applied.\n- With Django 3.0, requesting `/module/` raises:\n  `TypeError: modules() takes from 1 to 2 positional arguments but 3 were given`\n  The error is raised from `django/core/handlers/base.py`, in `_get_response`, at `wrapped_callback(request, *callback_args, **callback_kwargs)`.\n\n**Observed mechanism (inferred from the error, not yet confirmed in source):**\n\n1. Because `format` is unmatched, it is dropped from the keyword arguments.\n2. Resolution then appears to fall back to passing all groups positionally. That includes the nested unnamed group `(html|json|xml)`.\n3. The view therefore receives `request, None, None`.\n\n**Users affected:** Django developers using regex URL patterns with optional named groups, especially named groups that contain nested unnamed groups, and relying on view default arguments.\n\n**What success looks like:**\n\n- When a pattern contains at least one named group, unnamed groups are never passed positionally. This matches the documented rule that named groups take precedence over unnamed groups.\n- An unmatched optional named group is omitted from kwargs, so the view's default value applies.\n\n## Assumptions\n\n1. This is a regression in Django's URL resolver introduced in 3.0. It is not a bug in the user's code.\n2. The intended behavior is \"if the regex has named groups, pass only kwargs and ignore unnamed groups.\" This rule should depend on whether named groups *exist in the pattern*, not on whether they *matched with a non-None value*.\n3. The 3.0 behavior of dropping `None`-valued named groups from kwargs is intentional, so view defaults apply. It should be kept.\n4. The fix belongs in URL resolution (regex pattern matching). It does not belong in the request handler that appears in the traceback.\n5. The fix only needs to cover `re_path()` / regex patterns. Path converters (`path()`) do not support optional groups in this way and are out of scope unless they are found to share the code path.\n6. The fix targets the main development branch and is a candidate for backport to the 3.0.x series as a regression fix.\n7. The user's Python version (3.6) is not relevant to the bug.\n\n## Tech Stack\n\n- Python and the Django framework.\n- Exact versions supported on the target branch: **unknown**.\n- Affected version: Django 3.0. Last known working version: Django 2.2.\n\n## Commands\n\nThe issue does not include any commands. All of the following are **unknown** and must be confirmed from the repository:\n\n- Build: unknown\n- Test, full suite: unknown\n- Test, URL resolver subset only: unknown\n- Lint: unknown\n\n## Project Structure\n\n- Known from the traceback: `django/core/handlers/base.py` and `django/core/handlers/exception.py`.\n- Location of the URL resolver / regex pattern matching code: **unknown**. It is likely under `django/urls/`, but this is unconfirmed.\n- Location of existing URL resolver tests and test URLConfs: **unknown**.\n- Location of the release notes for a 3.0.x regression fix: **unknown**.\n\n## Code Style\n\n- Follow existing Django conventions in the surrounding module. These conventions are not visible here and are **unknown**.\n- Keep the change minimal and localized to the argument-extraction logic.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner and invocation are **unknown**.\n- **Regression tests** should cover:\n  - An optional named group with a nested unnamed group, **not matched**. Example: `/module/` against the pattern above. Expected: `args == ()` and `kwargs == {}`. The view is called with only `request` and the default applies.\n  - The same pattern, **matched**. Example: `/module/json/`. Expected: `args == ()` and `kwargs == {'format': 'json'}`.\n  - An optional named group without nested groups, not matched. Expected: `args == ()` and `kwargs == {}`.\n  - A pattern with **only unnamed groups**. Expected: groups are still passed positionally. This behavior must be unchanged.\n  - A pattern **mixing named and unnamed groups**, with the named group matched. Expected: only kwargs are passed. This behavior must be unchanged.\n- **Test levels:**\n  - Unit tests at the resolver level, through `resolve()` returning `args`/`kwargs`.\n  - At least one end-to-end request through the test client to a view with a default argument. It should return 200, not raise `TypeError`.\n- **Reverse resolution:** confirm that `reverse('modules')` and `reverse('modules', kwargs={'format': 'json'})` behave the same as before the fix.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests that fail before the fix and pass after it.\n  - Keep the documented precedence rule: named groups make unnamed groups ignored.\n  - Run the full URL-related test suite.\n- **Ask first:**\n  - Changing the 3.0 behavior of omitting `None`-valued kwargs.\n  - Touching `path()` converter handling.\n  - Changing public APIs or the `ResolverMatch` structure.\n  - Backport decisions.\n- **Never:**\n  - Change the request handler (`base.py`) to work around the issue, for example by swallowing `TypeError`.\n  - Remove or loosen existing resolver tests.\n  - Change behavior for patterns containing only unnamed groups.\n\n## Success Criteria\n\n1. With the reported URLConf, `GET /module/` calls `modules(request)` with no extra positional arguments and returns a normal response.\n2. `GET /module/json/` calls `modules(request, format='json')`.\n3. `resolve('/module/')` yields `args == ()` and `kwargs == {}`.\n4. For any regex pattern that defines at least one named group, resolved `args` is always `()`, whether or not those named groups matched.\n5. Patterns with only unnamed groups still produce positional `args` equal to the matched groups. Existing tests pass unchanged.\n6. Named groups that did not match (value `None`) are still omitted from `kwargs`.\n7. The new regression tests are present and pass. The full existing test suite passes.\n8. A release note entry is added for the regression fix, if this project's practice requires one for a 3.0.x bugfix. The location of that note is unknown.\n\n## Open Questions\n\n1. Is omitting unmatched (`None`) named groups from kwargs the intended 3.0 behavior that must be preserved? Or should those groups be passed as `kwargs={'format': None}`, as in 2.2? Passing `None` would override the view's default, so this choice affects views.\n2. Does the same argument-extraction logic apply to nested/included resolvers (`include()` with a regex prefix)? If so, must those be covered by the same fix and tests?\n3. Should the fix be backported to the 3.0.x stable branch, and which release notes file should document it?\n4. Are there related code paths (e.g. `path()` route patterns, `LocalePrefixPattern`) that share this logic and need verification?\n5. What are the exact commands to run the URL resolver tests and the full suite in this repository?\n6. Should the documentation on named versus unnamed groups be clarified? Specifically, it could state that the presence of named groups in the pattern, not whether they matched, determines whether positional args are passed.",
+ "ttft_ms": 4025,
+ "type": "result",
+ "duration_ms": 28684,
+ "uuid": "055776a6-3a00-4d87-a3ce-a9a8c0cadb01",
+ "ttft_stream_ms": 1393,
+ "time_to_request_ms": 545,
+ "time_to_request_phases_ms": {
+  "other": 36,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 21,
+  "input_hooks": 6,
+  "tool_pool_refresh": 3,
+  "init_message": 23,
+  "engine_pickup": 3,
+  "message_prep": 2,
+  "model_config_wait": 419,
+  "autocompact": 5,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 2,
+  "client_creation": 5,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 29,
+ "time_to_request_cpu_ms": 587,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 32,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1394,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10242,
+ "stop_reason": "end_turn",
+ "session_id": "e325f9db-b19a-4ed7-b71a-08bed9381a67",
+ "total_cost_usd": 0.028974300000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1118,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 994,
+  "output_tokens_details": {
+   "thinking_tokens": 286
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1118,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 994,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1118,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1118
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1328,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001423,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 994,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1118,
+   "webSearchRequests": 0,
+   "costUSD": 0.028832000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 286,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`Intersection` gives different results when one of its arguments is duplicated. `Intersection({1},{1},{x})` evaluates to `EmptySet()`, but `Intersection({1},{x})` evaluates to `{1}`. Duplicate arguments should not change the result. Neither result is correct, because the outcome depends on whether `x` equals `1`.\n\n## Steps to reproduce\n\n1. In an interactive session where `x` is a symbol, evaluate `Intersection({1},{1},{x})`.\n2. Evaluate `Intersection({1},{x})`.\n3. Compare the two results.\n\n## Observed behavior\n\n```python\n>>> Intersection({1},{1},{x})\nEmptySet()\n>>> Intersection({1},{x})\n{1}\n```\n\n- With the duplicated argument `{1}`, the result is `EmptySet()`.\n- Without the duplicate, the result is `{1}`.\n- The results differ, and neither accounts for the case distinction on `x`.\n\n## Expected behavior\n\n- Both calls should return the same result, because duplicate arguments should not affect an intersection.\n- That result should be one of:\n  - `Piecewise(({1}, Eq(x, 1)), (S.EmptySet, True))`, or\n  - an unevaluated `Intersection`.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the problem is an incorrect result.\n\n## Test case\n\nThis minimal check is derived from the report's snippet. It uses the same names as the report's session, where `x` is a symbol.\n\n```python\n# Duplicate arguments must not change the result\nassert Intersection({1}, {1}, {x}) == Intersection({1}, {x})\n\n# Result should be either the Piecewise below or remain unevaluated\nassert Intersection({1}, {x}) == Piecewise(({1}, Eq(x, 1)), (S.EmptySet, True))  # or unevaluated\n```\n\n## Code example\n\n```python\n>>> Intersection({1},{1},{x})\nEmptySet()\n>>> Intersection({1},{x})\n{1}\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 4726,
+ "type": "result",
+ "duration_ms": 10115,
+ "uuid": "bff65306-2af8-42d4-8a3e-4e98d6ec4896",
+ "ttft_stream_ms": 1632,
+ "time_to_request_ms": 533,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 496,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 276,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1633,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

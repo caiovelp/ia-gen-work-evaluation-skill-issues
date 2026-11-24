@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31922,
+ "stop_reason": "end_turn",
+ "session_id": "a713b8fe-878e-4cfa-b7a6-c96dfc896ac2",
+ "total_cost_usd": 0.0745968,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1560,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3051,
+  "output_tokens_details": {
+   "thinking_tokens": 57
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1560,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3051,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1560,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1560
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2145,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00022600000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3051,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1560,
+   "webSearchRequests": 0,
+   "costUSD": 0.0743708,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 57,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Keep traceback file paths relative to the original invocation directory when a fixture changes the working directory\n\n## Objective\n\nWhen a test or fixture changes the current working directory (with `os.chdir()` or `monkeypatch.chdir()`), pytest's failure report shows the location of the failing test relative to the *new* directory. For example, it prints `../test_path_error.py:29: AssertionError` instead of `test_path_error.py:29: AssertionError`.\n\nEditors and IDEs that parse pytest output (such as Emacs compilation-mode, which runs with `default-directory: \"~/src/pytest_path_error/\"`) resolve paths against the directory pytest was launched from. Because the cwd change is invisible to them, they cannot jump to the error location.\n\n**Goal:** File paths in failure reports stay relative to the directory pytest was invoked from, even if the test or fixture changes the cwd before the report is produced.\n\n**Users:**\n- Developers who run pytest from editors or IDEs that link `file:line` locations.\n- CI log readers.\n- Anyone whose fixtures `chdir` into temporary or private directories, which is a common pattern.\n\n**Acceptance criteria (user-level):**\n- Given the reproducer below, running `pytest` from the directory that contains `test_path_error.py` prints `test_path_error.py:29: AssertionError`, not `../test_path_error.py:29: AssertionError`.\n- The same holds when the directory change is done through `monkeypatch.chdir(out_dir)` instead of `os.chdir`.\n\n**Reproducer (from the issue):**\n\n```python\nimport os\nimport errno\nimport shutil\n\nimport pytest\n\n\n@pytest.fixture\ndef private_dir():  # or (monkeypatch)\n    out_dir = 'ddd'\n\n    try:\n        shutil.rmtree(out_dir)\n    except OSError as ex:\n        if ex.errno != errno.ENOENT:\n            raise\n    os.mkdir(out_dir)\n\n    old_dir = os.getcwd()\n    os.chdir(out_dir)\n    yield out_dir\n    os.chdir(old_dir)\n\n    # Same issue if using:\n    # monkeypatch.chdir(out_dir)\n\n\ndef test_show_wrong_path(private_dir):\n    assert False\n```\n\n```diff\n+ Expected: test_path_error.py:29: AssertionError\n- Displayed: ../test_path_error.py:29: AssertionError\n```\n\n## Assumptions\n\n1. The affected code is pytest itself, not a plugin. The reporter environment was pytest 5.3.2, py 1.8.1, pluggy 0.13.1, Python 3.7.5, Linux.\n2. The bug is still present on the current development branch. This has not been verified.\n3. The wrong path comes from paths being made relative to `os.getcwd()` at the time the report or traceback is formatted. In the reproducer, that moment is while the fixture's `chdir` is still in effect, because teardown has not run yet when the longrepr is built. This is inferred from the symptom and has not been confirmed in code.\n4. \"Original directory\" means the cwd at the moment pytest was invoked. It does not mean `rootdir`. In the issue the two are the same (`/home/lhn/src/pytest_path_error`), but they can differ.\n5. The fix targets the \"long\" traceback location line (`path:lineno: ExceptionType`). Other path-bearing output is in scope only if it uses the same mechanism (see Open Questions).\n6. Absolute-path output modes (if any are configured) are unaffected. Only relative-path rendering changes.\n7. Behaviour when no cwd change happens must remain byte-for-byte identical.\n\n## Tech Stack\n\n- Python project: pytest.\n  - Supported Python versions for the target branch: unknown.\n- Relevant dependencies seen in the issue: `py` (1.8.1, provides `py.path.local`), `pluggy` (0.13.1).\n  - Whether the current code still uses `py.path` or `pathlib` for this: unknown.\n\n## Commands\n\nAll unknown, because the repository is not visible. To be filled in from the project's contributing docs or CI config:\n\n```\nBuild:   unknown\nTest:    unknown (pytest's own test suite; exact invocation, e.g. tox env, unknown)\nLint:    unknown\nDev:     unknown\n```\n\nReproduce (from the issue): run `pytest` in a directory containing only `test_path_error.py` above. The reporter used `nox` with a session that runs `pip install pytest>=5.3` and then `pytest`.\n\n## Project Structure\n\nUnknown. Locations of the following must be identified before planning:\n\n- The code that formats traceback entry locations (`path:lineno: ExcType`).\n- The code that computes relative paths for reporting.\n- The test files covering traceback/terminal reporting.\n- The changelog directory and its entry convention.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the pytest codebase (formatter, linters, type annotations, changelog fragment format), which must be checked in the repository.\n\n## Testing Strategy\n\n- **Framework:** pytest's own test suite. It likely uses the `testdir`/`pytester`-style fixture for running inner pytest sessions; the exact fixture name on the target branch is unknown.\n- **Required regression tests** (acceptance tests, written to fail before the fix):\n  1. A test module whose fixture uses `os.chdir()` into a subdirectory and then fails. The output contains `test_<name>.py:<line>: AssertionError` and does not contain `../test_<name>.py`.\n  2. The same scenario using `monkeypatch.chdir()`.\n  3. A control case without any cwd change. Output is unchanged from current behaviour.\n- **Possibly useful extra cases** (see Open Questions for whether they are in scope):\n  - A cwd change inside the test body itself rather than a fixture.\n  - A cwd change to a directory outside the rootdir.\n  - A cwd change that is not restored.\n  - The `--tb=short`, `--tb=line` and `--tb=native` traceback styles.\n- **Level:** Integration / functional tests through the terminal output. Unit tests are optional if a pure path-formatting helper is touched.\n- **Coverage expectation:** Unknown project threshold. At minimum, the new behaviour and the no-chdir control case are covered.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue before changing behaviour.\n  - Keep output identical when the cwd is not changed.\n  - Add a changelog entry per project convention.\n  - Run the full test suite before submitting.\n- **Ask first:**\n  - Changing which directory pytest considers the reference for relative paths beyond the \"invocation directory\" definition.\n  - Changing output of other reporters or path-bearing lines not covered by this issue.\n  - Changing public APIs (e.g. signatures of traceback/repr classes).\n  - Adding dependencies.\n- **Never:**\n  - Change user-visible behaviour of `monkeypatch.chdir` or forbid cwd changes in tests.\n  - Switch relative paths to absolute paths as a workaround without approval.\n  - Remove or loosen existing tests to make the change pass.\n\n## Success Criteria\n\n1. With the reproducer, run from its containing directory, the failure location line reads exactly `test_path_error.py:29: AssertionError`.\n2. Criterion 1 holds both with `os.chdir` in a fixture and with `monkeypatch.chdir` in a fixture.\n3. No `../` prefix appears in the reported location for files located under the invocation directory, regardless of cwd changes made by fixtures or tests.\n4. Runs with no cwd change produce unchanged output. The existing test suite passes.\n5. New regression tests exist and fail on the unfixed code.\n6. A changelog entry references the issue.\n\n## Open Questions\n\n1. What is the reference directory: the invocation cwd or `rootdir`? These differ when pytest is run from a subdirectory or with `--rootdir`. Which one do editor integrations expect?\n2. Which traceback styles are in scope (`long`, `short`, `line`, `native`)? Do `native` tracebacks, which come from Python's own formatting, need to change?\n3. Are other path-bearing outputs in scope? Examples: the short test summary info (`-r`) lines, collection error messages, warnings summary locations, and `--junitxml` file attributes.\n4. If a test changes into a directory outside the invocation directory and the failing file is also outside it, what should be shown: a relative path with `../` from the original directory, or an absolute path?\n5. Should a warning or note be shown when cwd changed during a test, or should the change be silent?\n6. Which branch or version should the fix target? Is a backport to a maintenance branch expected?\n7. Is this already fixed on the current development branch? It needs confirmation against the repository.\n8. What are the exact test, lint and changelog commands and conventions for the project? These are unknown from the issue.",
+ "ttft_ms": 2658,
+ "type": "result",
+ "duration_ms": 30541,
+ "uuid": "43784f99-6738-4e49-8c85-8caf4b08ea8c",
+ "ttft_stream_ms": 2022,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 207,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 22,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2022,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

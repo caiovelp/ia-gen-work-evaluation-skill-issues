@@ -1,0 +1,53 @@
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 34a3bab3f..7674b9309 100755
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -510,9 +510,48 @@ def traverse(e):
+         'old': lambda x: trigsimp_old(x, **opts),
+                    }[method]
+ 
++    if method == 'matching' and expr.has(exp):
++        expr = _exp_to_trig(expr)
+     return trigsimpfunc(expr)
+ 
+ 
++def _exp_to_trig(expr):
++    """Rewrite exp(I*x) as cos(x) + I*sin(x) when that gives a simpler
++    result after trigonometric simplification; sin(x)/x becomes sinc(x)."""
++    from sympy.functions.elementary.trigonometric import sinc
++    from sympy.simplify.simplify import bottom_up
++
++    def conv(e):
++        if isinstance(e, exp):
++            c = e.args[0].as_coefficient(I)
++            if c is not None:
++                return cos(c) + I*sin(c)
++        return e
++    new = bottom_up(expr, conv)
++    if new == expr:
++        return expr
++    new = futrig(expand_mul(new))
++    new = new.replace(
++        lambda m: m.is_Mul and any(isinstance(a, sin) and 1/a.args[0] in m.args
++                                   for a in m.args),
++        lambda m: _sinc_mul(m))
++    if new.has(exp) or count_ops(new) > count_ops(expr):
++        return expr
++    return new
++
++
++def _sinc_mul(m):
++    from sympy.functions.elementary.trigonometric import sinc
++    args = list(m.args)
++    for a in m.args:
++        if isinstance(a, sin) and 1/a.args[0] in args:
++            args.remove(a)
++            args.remove(1/a.args[0])
++            args.append(sinc(a.args[0]))
++            break
++    return Mul(*args)
++
++
+ def exptrigsimp(expr):
+     """
+     Simplifies exponential / trigonometric / hyperbolic functions.

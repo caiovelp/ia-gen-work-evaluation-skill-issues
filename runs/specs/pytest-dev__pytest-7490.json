@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29174,
+ "stop_reason": "end_turn",
+ "session_id": "dfbdc525-193a-4492-8a70-ae29539c6013",
+ "total_cost_usd": 0.1062055,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 6141,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2776,
+  "output_tokens_details": {
+   "thinking_tokens": 121
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 6141,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2776,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 6141,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 6141
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 6727,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0006867,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2776,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 6141,
+   "webSearchRequests": 0,
+   "costUSD": 0.1055188,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 121,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore dynamic `xfail` markers added during test execution (pytest 6 regression)\n\n## Objective\n\n**Problem.** In pytest 5.x, a test could add an `xfail` marker to itself at runtime with `request.node.add_marker(pytest.mark.xfail(...))`. If the test then failed, it was reported as **xfailed**, just like a test with a static `@pytest.mark.xfail`. In pytest 6.0.0rc0/rc1 the same test is reported as **failed** (`F`). This is a behavioral regression.\n\n**Reproducer (from the issue):**\n\n```python\n# file: test_foo.py\nimport pytest\n\n\ndef test_xfail_test(request):\n    mark = pytest.mark.xfail(reason=\"xfail\")\n    request.node.add_marker(mark)\n    assert 0\n```\n\n| Version | `pytest -rsx test_foo.py` result |\n|---|---|\n| 5.4.3 | `x`, summary line `XFAIL test_foo.py::test_xfail_test` with reason `xfail`, `1 xfailed` |\n| 6.0.0rc1 | `F`, `AssertionError` at `assert 0`, test counted as failed |\n\n**Users.** Test authors, for example in pandas, who decide at runtime whether a test is expected to fail. Typical inputs for that decision are parametrization values, fixture values, or the environment. They do this by adding an `xfail` marker from inside the test body or from a fixture.\n\n**Goal.** An `xfail` marker added dynamically to a test item before or during its call phase controls the test outcome the same way a statically applied `xfail` marker does, matching pytest 5.x behavior.\n\n## Assumptions\n\n1. The regression comes from pytest 6 evaluating `xfail` markers once, early (at setup or before the call), and caching the result. Markers added later, inside the test body, are therefore never seen. This is inferred from the symptoms and has not been verified against the source.\n2. The supported API is `node.add_marker(...)`, called on `request.node` or on an item reached in a hook or fixture. Other ways of mutating markers are out of scope.\n3. A dynamic `xfail` should honor the same arguments as a static one: `reason`, `condition`, `raises`, `strict`, and `run`. The issue only exercises `reason`.\n4. `run=False` cannot apply retroactively once the test body is already executing. For a marker added inside the body, only the outcome-reporting arguments matter.\n5. A dynamic `xfail` added during the call phase applies to the call-phase outcome. Whether it should also affect setup or teardown outcomes is not required here (see Open Questions).\n6. The `--runxfail` option should treat dynamic `xfail` markers like static ones, meaning they are ignored.\n7. The fix targets the pytest 6.0.x line, before or at the final 6.0.0 release, and is covered by a changelog entry.\n8. OS and Python version do not matter. The report used macOS 10.14.5 and Python 3.7.6.\n\n## Tech Stack\n\n- Project: pytest (Python). Supported Python versions for the 6.0 line: **unknown**, not given in the issue.\n- Related package from the report: pluggy 0.13.0.\n- Affected area: the `xfail` / skipping marker evaluation and reporting logic. The exact module is **unknown** because the repository is not visible.\n\n## Commands\n\nAll **unknown**, since the repository is not visible. Only the user-level reproduction command is known:\n\n```\nReproduce: pytest -rsx test_foo.py\nBuild:     unknown\nTest:      unknown (presumably the project's own pytest/tox setup)\nLint:      unknown\n```\n\n## Project Structure\n\n**Unknown.** The locations of the source module that handles `xfail` evaluation, the matching test file, and the changelog directory or format must be confirmed from the repository.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the pytest codebase, including type annotations if the surrounding code uses them. No in-repo snippet is available to quote.\n\n## Testing Strategy\n\n- **Level:** in-process functional tests that run a generated test file through pytest and assert on the outcomes. The existing helper for this (pytest's `pytester`/`testdir`-style fixture) is assumed to be available; its exact name in this version is unknown.\n- **Required regression tests:**\n  1. A dynamic `xfail` added in the test body, followed by a failing assertion, gives 1 xfailed and 0 failed. The reason is shown with `-rx`/`-rsx`.\n  2. A dynamic `xfail(strict=True)` on a test that then **passes** gives a failed result (`[XPASS(strict)]`), matching static strict behavior.\n  3. A dynamic non-strict `xfail` on a test that passes gives xpassed.\n  4. A dynamic `xfail(raises=SomeError)` where the test raises a different exception gives a regular failure.\n  5. A dynamic `xfail` added from a fixture during setup gives xfailed when the test fails. This behaved correctly before and must not regress.\n  6. With `--runxfail`, a dynamic `xfail` on a failing test gives a normal failure.\n  7. Existing static `xfail` tests all still pass unchanged.\n- **Coverage expectation:** all new branches in the `xfail` evaluation and reporting path are exercised by the tests above. The numeric coverage target is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests reproducing the issue before or alongside the fix.\n  - Keep static `xfail` semantics unchanged.\n  - Add a changelog entry in the project's format (format unknown).\n- **Ask first:**\n  - Changing public APIs or hook signatures.\n  - Changing when `xfail(run=False)` is evaluated.\n  - Changing behavior for markers added during teardown.\n  - Changing the outcome of `skip`/`skipif` markers added dynamically.\n  - Adding dependencies.\n- **Never:**\n  - Turn dynamic-marker usage into an error or deprecation without maintainer approval.\n  - Weaken or delete existing skipping/xfail tests.\n  - Modify vendored code.\n\n## Success Criteria\n\n- [ ] Running `pytest -rsx test_foo.py` on the reproducer with the fixed pytest reports `x`, `XFAIL test_foo.py::test_xfail_test` with reason `xfail`, and `1 xfailed`. Exit code is 0.\n- [ ] Dynamic `xfail` honors `strict`, `raises`, and `reason` the same way a static `xfail` does (tests 2\u20134).\n- [ ] `--runxfail` disables dynamic `xfail` the same way it disables static `xfail` (test 6).\n- [ ] Dynamic `xfail` added in fixtures during setup still works (test 5).\n- [ ] The full existing pytest test suite passes with no changes to existing expectations.\n- [ ] A changelog entry references this regression.\n\n## Open Questions\n\n1. Should an `xfail` marker added during the **call** phase be re-evaluated only for the call report, or also for teardown? What about a marker added during teardown?\n2. When both a static and a dynamic `xfail` are present, which one's `reason`/`strict`/`raises` wins? The proposal is to keep the existing \"first matching marker\" semantics. Is that right?\n3. Was the pytest 6 change to evaluate `xfail` early intentional, for example for performance or to fix another bug? If so, the fix must not reintroduce whatever that change addressed. Which issue or PR introduced it?\n4. Should `skip`/`skipif` markers added dynamically during the call phase be addressed in the same change, or left as they are?\n5. Should the dynamic-marker pattern be documented explicitly as supported, given that this regression shows it is relied upon?\n6. What are the repository's test, lint, and changelog commands and paths? All are unknown here.",
+ "ttft_ms": 2738,
+ "type": "result",
+ "duration_ms": 28170,
+ "uuid": "9b4f867e-cfa5-4c05-bb1a-d11df1bf050c",
+ "ttft_stream_ms": 1504,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 177,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1504,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

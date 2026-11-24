@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31760,
+ "stop_reason": "end_turn",
+ "session_id": "506446f0-9a62-4487-b9e9-35e390b4d31f",
+ "total_cost_usd": 0.0692405,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 733,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3118,
+  "output_tokens_details": {
+   "thinking_tokens": 368
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 733,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3118,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 733,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 733
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1322,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014570000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3118,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 733,
+   "webSearchRequests": 0,
+   "costUSD": 0.0690948,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 368,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Reject or Flag `related_name` on Symmetrical `ManyToManyField`s\n\n## Assumptions\n\n1. The project is Django. `ManyToManyField`, `symmetrical` and `related_name` match Django's ORM API. The issue does not name the project.\n2. \"Self-referential\" in the issue means a self-referential M2M where `symmetrical` is left at its default. In Django, a relation to `\"self\"` defaults to `symmetrical=True`. A self-referential M2M with an explicit `symmetrical=False` does create a reverse accessor, so `related_name` is meaningful there and must stay allowed.\n3. The diagnostic should go through the existing model-field validation path (the system check framework, run by `manage.py check` and at startup). It should not raise an exception at field construction time. This is not stated in the issue; see Open Questions.\n4. The framework may assign its own internal `related_name` to symmetrical relations. Only a `related_name` supplied by the developer should trigger the diagnostic. An internally generated value must not.\n5. Existing behaviour of symmetrical relations does not change. This includes no reverse accessor, automatic mirroring of rows, and the through-table layout. The only change is a new diagnostic.\n6. Commands, file paths, check IDs and code style are not visible in the issue. They are marked unknown below.\n\n## Objective\n\nWhen a developer declares a symmetrical `ManyToManyField` and passes `related_name`, Django ignores the argument without saying so. No reverse accessor is created under that name. Developers expect the name to work and are confused until they find the documentation on symmetrical relationships.\n\n**Goal:** When a `related_name` will have no effect because the relation is symmetrical, tell the developer clearly and early (at check or startup time). The message should explain why.\n\n**User:** Django application developers who define models with M2M relations.\n\n**User stories / acceptance criteria:**\n\n- As a developer, if I write `friends = ManyToManyField(\"self\", related_name=\"befriended_by\")`, I get a diagnostic. It tells me `related_name` has no effect on a symmetrical relationship.\n- As a developer, if I write `ManyToManyField(\"self\", symmetrical=False, related_name=\"followers\")`, I get no diagnostic, and the reverse accessor works as before.\n- As a developer, if I write a symmetrical M2M without `related_name`, I get no new diagnostic.\n- As a developer, if I write a non-self M2M with `related_name`, I get no new diagnostic. Whether `symmetrical=True` is even permitted on a non-self relation is an open question.\n\n## Tech Stack\n\n- Python and Django. Exact versions are unknown.\n- Mechanism: Django's model field validation / system check framework (assumed; see Open Questions).\n\n## Commands\n\nUnknown. Not visible in the issue. Likely forms are listed below but unconfirmed:\n\n- Test: unknown (e.g., the project's test runner invoked on the model field / invalid-models check test suites)\n- Lint: unknown\n- Build: unknown / likely not applicable\n\n## Project Structure\n\nUnknown. Not visible in the issue. The change is expected to touch:\n\n- The `ManyToManyField` implementation: location unknown.\n- Tests for invalid model / relational field checks: location unknown.\n- Documentation listing system check messages: location unknown.\n- Release notes for the target version: location unknown.\n\n## Code Style\n\nUnknown. Follow the conventions of the surrounding `ManyToManyField` check methods and existing check messages. This includes message wording, `hint` usage, `obj=` targeting, and ID numbering. No snippet is provided because none is visible in the issue.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework (unknown specifics).\n- **Level:** unit tests at the model-check level. Define models in test-isolated apps, run the field or model checks, and assert the exact list of returned messages (level, message, hint, obj, id).\n- **Cases required:**\n  1. Self-referential M2M, default symmetry, with `related_name` \u2192 exactly one new diagnostic.\n  2. Self-referential M2M, explicit `symmetrical=True`, with `related_name` \u2192 exactly one new diagnostic.\n  3. Self-referential M2M, `symmetrical=False`, with `related_name` \u2192 no new diagnostic.\n  4. Symmetrical M2M without `related_name` \u2192 no new diagnostic. This guards against false positives from any internally generated `related_name`.\n  5. Non-self M2M with `related_name` \u2192 no new diagnostic.\n  6. Symmetrical M2M with a hidden-style `related_name` ending in `+`. Expected outcome is unresolved; see Open Questions.\n- **Regression:** the full existing test suite, especially the relational-field check tests and M2M behaviour tests, must still pass. Existing tests or project models that pass `related_name` on symmetrical fields may now emit the diagnostic. These must be reviewed, not silently changed.\n- **Coverage:** every branch of the new condition is exercised by the cases above.\n\n## Boundaries\n\n- **Always:**\n  - Base the diagnostic on whether the relation is effectively symmetrical. Do not base it on syntax such as whether `symmetrical=` was written.\n  - Include a hint that explains why `related_name` has no effect.\n  - Add tests for both the positive and negative cases.\n  - Document the new check message and add a release note.\n- **Ask first:**\n  - Whether the diagnostic is an error or a warning (see Open Questions).\n  - Choosing or assigning a new check ID.\n  - Any change to how symmetrical relations set their internal `related_name`.\n  - Changing existing tests or fixtures that now trigger the diagnostic.\n- **Never:**\n  - Change runtime behaviour of symmetrical relations.\n  - Raise at field instantiation time, unless the open question about the mechanism is resolved in favour of that.\n  - Flag `related_name` on `symmetrical=False` self-referential relations.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n- [ ] A model with a symmetrical M2M and a developer-supplied `related_name` produces exactly one new check message. That message identifies the field and explains that `related_name` has no effect on symmetrical relationships.\n- [ ] A symmetrical M2M without `related_name` produces no new message.\n- [ ] A self-referential M2M with `symmetrical=False` and `related_name` produces no new message, and its reverse accessor keeps working.\n- [ ] Non-self M2M fields with `related_name` produce no new message.\n- [ ] The new message has a documented ID and appears in the system check reference documentation.\n- [ ] A release note describes the new diagnostic.\n- [ ] The entire existing test suite passes.\n\n## Open Questions\n\n1. **Error or warning?** The issue says \"raise an error\". Making it a hard error would break existing projects that harmlessly pass `related_name` on symmetrical fields, which is a backwards-compatibility concern. Is a warning acceptable or preferable?\n2. **Mechanism:** Should this be a system check (reported by `check` and at startup), or an exception raised in the field's constructor? A constructor exception would block model import entirely.\n3. **Internal `related_name`:** Does the framework set a `related_name` internally for symmetrical relations? If so, how should a user-supplied value be told apart from the internal one, given that the check may run after the internal value is assigned?\n4. **Hidden reverse names:** Should a `related_name` ending in `+`, which explicitly requests no reverse relation, also be flagged? It is redundant but consistent with what symmetry already does.\n5. **Non-self symmetrical:** Is `symmetrical=True` allowed on a non-self-referential M2M in the target version? If it is, is `related_name` ignored there too, and should it be flagged?\n6. **`related_query_name`:** Does the same problem apply to `related_query_name` on symmetrical fields? Should it be covered here or left out of scope?\n7. **Check ID:** Which ID and numbering should the new message use?\n8. **Target version:** Which release does this go into, for the release note?\n9. **Commands and paths:** What are the exact test, lint and build commands, and the file locations? None are visible in the issue.",
+ "ttft_ms": 5244,
+ "type": "result",
+ "duration_ms": 31078,
+ "uuid": "942232bb-bdd5-4467-a59d-2ff84e2b6bc4",
+ "ttft_stream_ms": 1593,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 209,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 133,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1593,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,19 @@
+diff --git a/sympy/printing/ccode.py b/sympy/printing/ccode.py
+index 30a07a7b5..3dc53ee69 100755
+--- a/sympy/printing/ccode.py
++++ b/sympy/printing/ccode.py
+@@ -140,6 +140,14 @@ def _get_loop_opening_ending(self, indices):
+             close_lines.append("}")
+         return open_lines, close_lines
+ 
++    def _print_sinc(self, expr):
++        from sympy.functions.elementary.piecewise import Piecewise
++        from sympy.functions.elementary.trigonometric import sin
++        from sympy.core.relational import Ne
++        _piecewise = Piecewise(
++            (sin(expr.args[0]) / expr.args[0], Ne(expr.args[0], 0)), (1, True))
++        return self._print(_piecewise)
++
+     def _print_Pow(self, expr):
+         if "Pow" in self.known_functions:
+             return self._print_Function(expr)

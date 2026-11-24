@@ -1,0 +1,14 @@
+diff --git a/sympy/core/mul.py b/sympy/core/mul.py
+index 46f310b122..8c7131314f 100755
+--- a/sympy/core/mul.py
++++ b/sympy/core/mul.py
+@@ -1274,6 +1274,9 @@ def _eval_is_integer(self):
+         n, d = fraction(self, exact=True)
+         if is_rational:
+             if d is S.One:
++                # an unevaluated nested Mul may hide a negative exponent
++                if any(a.is_Mul for a in self.args):
++                    return fuzzy_and(a.is_integer for a in self.args)
+                 return True
+         if d.is_even:
+             if d.is_prime:  # literal or symbolic 2

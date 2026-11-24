@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 37647,
+ "stop_reason": "end_turn",
+ "session_id": "7fa8feb6-29d7-485e-8618-b7f2e7baaa27",
+ "total_cost_usd": 0.08595529999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1016,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3839,
+  "output_tokens_details": {
+   "thinking_tokens": 403
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1016,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3839,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1016,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1016
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1600,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001765,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3839,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1016,
+   "webSearchRequests": 0,
+   "costUSD": 0.08577879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 403,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Return primary keys from `QuerySet.bulk_create()` when `update_conflicts=True`\n\n## Assumptions\n\n1. Only one capability is in scope: returning generated values (at least primary keys) from `bulk_create()` when `update_conflicts=True`. No capability map is needed.\n2. `ignore_conflicts=True` stays as it is. Ignored rows produce no `RETURNING` row on PostgreSQL, so the returned rows can't be matched to the input objects. That case is out of scope.\n3. The issue's claim is taken as given: on PostgreSQL, `INSERT ... ON CONFLICT (...) DO UPDATE ... RETURNING <pk>` is valid and returns one row per input row, whether the row was inserted or updated.\n4. With `DO UPDATE`, PostgreSQL returns the rows in the same order as the input `VALUES`, so returned PKs can be assigned to objects by position. This matches how `bulk_create()` assigns PKs today without conflict handling. It needs confirming (see Open Questions).\n5. The change is limited to backends that support both `RETURNING` on bulk insert and the conflict-update syntax. Backends without `RETURNING` support (assumed to include MySQL) keep their current behaviour, with no error and no PKs set.\n6. The change is scoped to the existing returning-fields mechanism. The issue says it is stripped at one place in the source, but the link target is not visible here, so the exact location is unknown. Any field the mechanism already returns (e.g. other `db_returning` fields) should follow the same rule as the PK.\n7. The public API is unchanged. There are no new parameters, and the signature and arguments of `bulk_create()` stay the same.\n8. The fix is behavioural, not opt-in. Callers who used `update_conflicts=True` before will now get PKs set on their objects.\n\n## Objective\n\n**What:** When `QuerySet.bulk_create()` is called with `update_conflicts=True` (plus `update_fields` and `unique_fields`) on a backend that supports it, the generated SQL should include the `RETURNING` clause. The returned primary keys should then be set on the model instances passed in and returned, just as they are for a plain `bulk_create()`.\n\n**Why:** `bulk_create(update_conflicts=True, ...)` is used as a bulk upsert. Today the objects come back without PKs, whether each row was inserted or updated. Callers then need a second query to find the IDs, which costs time and invites race conditions.\n\n**Who:** Django ORM users who bulk upsert, primarily on PostgreSQL.\n\n**User story:**\n> As a developer calling\n> `MyModel.objects.bulk_create(objs, update_conflicts=True, update_fields=[...], unique_fields=[...])`,\n> I want each object in the result to have its `pk` set (the existing row's PK if it conflicted, the new PK if it was inserted), so I can use the objects right away without re-querying.\n\n**Current behaviour (from issue):**\n```sql\nINSERT INTO \"my_model\" (...)\nVALUES (...)\n    ON CONFLICT(...) DO UPDATE ...\n-- no RETURNING clause\n```\n\n**Desired behaviour (supported backends):**\n```sql\nINSERT INTO \"my_model\" (...)\nVALUES (...)\n    ON CONFLICT(...) DO UPDATE ...\n    RETURNING \"my_model\".\"id\"\n```\n\n## Tech Stack\n\n- Django ORM (`QuerySet.bulk_create`). The exact Django version / target branch is **unknown**.\n- PostgreSQL is the backend confirmed in the issue. Support on other backends is **unknown** (see Open Questions).\n- Python version: **unknown**.\n\n## Commands\n\nAll commands are **unknown**: the repository is not visible and the issue gives none.\n\n- Build: unknown (likely none; pure Python)\n- Test: unknown (Django's own test runner invocation and settings for a PostgreSQL run are not given)\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\n**Unknown.** The issue links to the place where `returning_fields` is removed but does not show the file path.\n\nAreas likely affected, by concept only (paths unknown):\n\n- The `bulk_create` implementation in the QuerySet layer, where the decision to drop returning fields is made.\n- Database backend feature flags describing whether a backend can return rows from bulk inserts and supports conflict-update.\n- The `bulk_create` reference documentation, which currently says PKs are not set when conflict handling is enabled.\n- Release notes for the target version.\n- The existing `bulk_create` test suite.\n\n## Code Style\n\nUnknown beyond the conventions of the Django codebase, which is not visible here.\n\n- Follow the existing style of the surrounding ORM code.\n- Gate behaviour on backend feature flags, not on vendor-name checks.\n- No snippet is provided because the source is not visible.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner command is unknown.\n- **Level:** Integration tests against a real database. Tests needing `RETURNING` support should be skipped on backends that lack it, using the existing feature-flag skip mechanism (exact name unknown).\n- **Cases to cover:**\n  1. **All inserts:** with `update_conflicts=True` and no conflicts, every returned object has a non-null `pk` matching the database.\n  2. **All conflicts:** with every row conflicting on `unique_fields`, every returned object has the `pk` of the existing row, and the `update_fields` were updated.\n  3. **Mixed batch:** with some rows inserted and some updated, each object's `pk` matches its database row, matched by unique field value, not just by being non-null.\n  4. **Order / mapping:** the PKs are assigned to the correct objects (object *i* gets the PK of the row for input *i*).\n  5. **Batching:** with `batch_size` smaller than the number of objects, PKs are set correctly across all batches.\n  6. **`ignore_conflicts=True` unchanged:** PKs are still not set, and the SQL has no `RETURNING`.\n  7. **Unsupported backends unchanged:** no error, PKs not set. This applies to backends with conflict-update support but no `RETURNING` support.\n  8. **Instance state:** the returned objects have the same `_state` (e.g. `adding`, `db`) as after a normal `bulk_create` that returns PKs. Exact expected values are to be confirmed against current behaviour.\n- **Coverage:** every new branch in the decision to keep or drop returning fields is exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Keep `ignore_conflicts=True` behaviour unchanged.\n  - Gate the new behaviour on backend capability flags.\n  - Update the `bulk_create` documentation and release notes with the code.\n  - Run the full `bulk_create` test suite on PostgreSQL and at least one backend without `RETURNING` support.\n- **Ask first:**\n  - Adding a new backend feature flag rather than reusing existing ones.\n  - Enabling the behaviour on backends other than PostgreSQL.\n  - Changing the public signature of `bulk_create()`.\n  - Returning extra information, such as whether each row was inserted or updated.\n- **Never:**\n  - Return PKs for `ignore_conflicts=True`, since rows could be mismatched.\n  - Assign PKs to objects in a way that could silently mismatch rows.\n  - Remove or weaken existing `bulk_create` tests.\n  - Emit `RETURNING` on a backend whose SQL grammar does not support it.\n\n## Success Criteria\n\n1. On PostgreSQL, the generated SQL for `bulk_create(..., update_conflicts=True, update_fields=[...], unique_fields=[...])` includes `RETURNING` for the PK and any other fields the existing mechanism returns.\n2. After that call, every object in the returned list has a `pk` equal to its database row's PK, for inserted and updated rows alike, including mixed batches and multiple batches.\n3. Behaviour with `ignore_conflicts=True` is unchanged: no `RETURNING` clause and no PKs set.\n4. On backends without the needed support, `update_conflicts=True` works as before: no error and no PKs set.\n5. The `bulk_create` docs state which flags still prevent PKs from being set, and which backends set them with `update_conflicts=True`. A release note describes the change.\n6. All new and existing `bulk_create` tests pass on every supported backend.\n\n## Open Questions\n\n1. **Backends:** besides PostgreSQL, which backends should get this behaviour? SQLite, MariaDB, Oracle and MySQL differ in whether they support `RETURNING` and conflict-update together. Is the existing \"can return rows from bulk insert\" capability enough, or is a new combined flag needed?\n2. **Row order:** is it guaranteed (or tested enough) on each enabled backend that `RETURNING` rows from `ON CONFLICT DO UPDATE` come back in input order? If not, should the mapping be done another way, e.g. by unique field values?\n3. **No-op updates:** can any supported conflict-update form skip a conflicting row so that it returns no row? An example would be a `WHERE` on `DO UPDATE`, if one exists now or is planned. If so, how should a row-count mismatch be handled?\n4. **Other returned fields:** should all fields the returning mechanism covers (not just the PK) be set on the objects in the update case? For updated rows, should they hold the post-update values?\n5. **Target version and branch:** which Django version should this land in, and is it a new feature (release notes, no backport) or a bug fix?\n6. **Source location:** what is the exact file and condition the issue links to, where `returning_fields` is removed? It is not visible here.\n7. **Opt-in:** should the new behaviour be unconditional on supported backends, as assumed, or does it need a deprecation or opt-in path? Some callers may depend on PKs not being set.\n8. **Duplicate keys in one batch:** PostgreSQL rejects an `ON CONFLICT DO UPDATE` that touches the same row twice. Is the current error behaviour acceptable and unchanged, and should it be documented?",
+ "ttft_ms": 4887,
+ "type": "result",
+ "duration_ms": 37168,
+ "uuid": "d5c94c73-7f22-4418-b445-9667a1d9473d",
+ "ttft_stream_ms": 1019,
+ "time_to_request_ms": 300,
+ "time_to_request_phases_ms": {
+  "other": 21,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 5,
+  "input_attachments": 12,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 16,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 221,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 32,
+ "time_to_request_cpu_ms": 345,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1020,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

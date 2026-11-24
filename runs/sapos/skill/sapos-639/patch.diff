@@ -1,0 +1,36 @@
+diff --git a/Gemfile b/Gemfile
+index 1bf765be..8436881a 100644
+--- a/Gemfile
++++ b/Gemfile
+@@ -1,15 +1,15 @@
+-# ruby=3.2.11
++# ruby=3.4.13
+ # frozen_string_literal: true
+ 
+ source "https://rubygems.org"
+ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+ 
+ # A linha "#ruby=" acima deixa o RVM escolher a versao certa do Ruby.
+-# Piso 3.2.11 (serie ~> 3.2): e requisito de seguranca. A partir do 3.2.10 o
++# Piso 3.4.13 (serie ~> 3.4): e requisito de seguranca. A partir do 3.2.10 o
+ # uri default do Ruby vem >= 0.12.5 (CVE-2025-61594, vazamento de credencial
+ # via URI#+). Antes o net-http segurava o uri em 0.12.5; sem ele, rodar num
+ # Ruby anterior a 3.2.10 regrediria o uri para 0.12.2, sem a correcao.
+-ruby "~> 3.2.11"
++ruby "~> 3.4.13"
+ 
+ # ─── Framework e servidor ────────────────────────────────────────────────
+ gem "rails", "~> 7.2.3", ">= 7.2.3.1"
+diff --git a/Gemfile.lock b/Gemfile.lock
+index 2341f7c9..5257b4c3 100644
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -600,7 +600,7 @@ DEPENDENCIES
+   web-console
+ 
+ RUBY VERSION
+-   ruby 3.2.11p268
++   ruby 3.4.13p0
+ 
+ BUNDLED WITH
+    2.4.19

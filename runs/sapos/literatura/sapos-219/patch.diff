@@ -1,0 +1,45 @@
+diff --git a/app/controllers/admissions/process_base_controller.rb b/app/controllers/admissions/process_base_controller.rb
+index c7fd9194..e9bc65f8 100644
+--- a/app/controllers/admissions/process_base_controller.rb
++++ b/app/controllers/admissions/process_base_controller.rb
+@@ -9,6 +9,7 @@ class Admissions::ProcessBaseController < ApplicationController
+   skip_before_action :authenticate_user!
+   skip_before_action :prepare_background
+   before_action :set_show_background
++  around_action :switch_locale
+ 
+   protected
+     def find_admission_process(param_id)
+@@ -27,6 +28,14 @@ class Admissions::ProcessBaseController < ApplicationController
+     end
+ 
+   private
++    def switch_locale(&action)
++      requested = params[:locale].presence || session[:admission_locale]
++      locale = I18n.available_locales.map(&:to_s).include?(requested.to_s) ?
++        requested.to_s : I18n.default_locale.to_s
++      session[:admission_locale] = locale if params[:locale].present?
++      I18n.with_locale(locale, &action)
++    end
++
+     def set_show_background
+       @show_background = true
+     end
+diff --git a/app/views/admissions/admissions/index.html.erb b/app/views/admissions/admissions/index.html.erb
+index c4d39ecb..c8e51462 100644
+--- a/app/views/admissions/admissions/index.html.erb
++++ b/app/views/admissions/admissions/index.html.erb
+@@ -4,6 +4,13 @@
+       <h2><%= I18n.t("admissions.admissions.index.title") %></h2>
+     </div>
+     <div class="admission-inner">
++      <% if I18n.available_locales.length > 1 %>
++        <div class="locale-selector">
++          <% I18n.available_locales.each do |loc| %>
++            <%= link_to loc.to_s, url_for(locale: loc) %>
++          <% end %>
++        </div>
++      <% end %>
+       <% if flash[:alert] %>
+         <div id="error_login"><%= flash[:alert] %></div>
+       <% end %>

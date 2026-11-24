@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10251,
+ "stop_reason": "end_turn",
+ "session_id": "23a16f7b-8287-4f46-a732-449046e7b9e6",
+ "total_cost_usd": 0.0278698,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1401,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 824,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1401,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 824,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1401,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1401
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1608,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001738,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 824,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1401,
+   "webSearchRequests": 0,
+   "costUSD": 0.027696,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nWith `sphinx.ext.napoleon`, an attribute named with a trailing underscore (`hello_`) in a NumPy-style `Attributes` section is over-escaped. It renders as `hello\\_` in the HTML output, with a visible backslash. The reporter says older versions such as Sphinx 2.4.3 render it correctly.\n\n## Steps to reproduce\n1. Create an empty `__init__.py`.\n2. Create `a.py` with the content shown under \"Code example\" below.\n3. Run `sphinx-quickstart`.\n4. In `conf.py`, add `'sphinx.ext.autodoc'` and `'sphinx.ext.napoleon'` to `extensions`.\n5. Add the following to `index.rst`:\n   ```rst\n   .. autoclass:: a.A\n   ```\n6. Build the docs:\n   ```sh\n   PYTHONPATH=. make clean html\n   ```\n7. Open `_build/html/index.html` in a web browser.\n\n## Observed behavior\nThe attribute name appears as `hello\\_` in the rendered HTML, with a visible backslash before the trailing underscore.\n\n## Expected behavior\nThere should be no backslash. The attribute name should render as `hello_`, similar to the output of this hand-written reST:\n\n```rst\n    .. attribute:: hello_\n        :type: int\n\n        hi\n```\n\n(The reporter notes that the type is also displayed differently, but that is not what this report is about.)\n\nOlder versions such as Sphinx 2.4.3 render the name without the backslash.\n\n## Stack trace / error output\nNot provided in the original report.\n\n## Test case\nNot provided in the original report.\n\nA minimal test case based on the reproduction: document class `A` from the code example below with `autoclass` while `sphinx.ext.autodoc` and `sphinx.ext.napoleon` are enabled. Then check that the attribute name in the generated HTML is `hello_`, not `hello\\_`.\n\n## Code example\n`a.py`:\n```python\nclass A:\n    \"\"\"\n    Attributes\n    ----------\n    hello_: int\n        hi\n    \"\"\"\n    pass\n```\n\n## Version and environment\n- OS: Linux Debian testing\n- Python version: 3.8.3\n- Sphinx version: 3.0.4 (the reporter says older versions such as 2.4.3 behave correctly)\n- Sphinx extensions: `sphinx.ext.autodoc`, `sphinx.ext.napoleon`\n- Extra tools: Not provided in the original report.",
+ "ttft_ms": 9049,
+ "type": "result",
+ "duration_ms": 9074,
+ "uuid": "0046255f-de87-44e0-9141-695368f1a8d6",
+ "ttft_stream_ms": 1935,
+ "time_to_request_ms": 276,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 219,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 249,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1936,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

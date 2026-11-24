@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30168,
+ "stop_reason": "end_turn",
+ "session_id": "8f83ca5d-e8a7-41b8-91b1-ec50b76d86ba",
+ "total_cost_usd": 0.07311490000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1251,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3102,
+  "output_tokens_details": {
+   "thinking_tokens": 183
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1251,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3102,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1251,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1251
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1831,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001961,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3102,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1251,
+   "webSearchRequests": 0,
+   "costUSD": 0.0729188,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 183,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Support nullable pandas dtypes in `unique_labels`\n\n## Objective\n\n`sklearn.utils.multiclass.unique_labels` should accept pandas Series that use the nullable extension dtypes `\"Int64\"`, `\"Float64\"` and `\"boolean\"`. Its behavior should match what happens when the same data uses the numpy-backed dtypes `\"int64\"`, `\"float64\"` and `\"bool\"`.\n\n**Current behavior (sklearn 1.2.1):** these dtypes become `object` dtype when converted to a numpy array. Target-type detection then classifies them as `'unknown'`. Mixing them with a regular `int64` Series raises:\n\n```\nValueError: Mix type of y not allowed, got types {'binary', 'unknown'}\n```\n\n**Users:** people who pass pandas data with nullable dtypes to sklearn, either through metrics or directly to `unique_labels`. Today they must convert to numpy with an explicit dtype first. The issue describes this as their current workaround.\n\n**User story:** As a user with labels stored in a nullable-dtype pandas Series, I can call `unique_labels(y_true, y_pred)` without converting my data by hand. I get the same result as with the equivalent numpy-backed dtype.\n\n**Acceptance criteria (from the issue):**\n\n```python\nimport pandas as pd\nfrom sklearn.utils.multiclass import unique_labels\n\nfor dtype in [\"Int64\", \"Float64\", \"boolean\"]:\n    y_true = pd.Series([1, 0, 0, 1, 0, 1, 1, 0, 1], dtype=dtype)\n    y_predicted = pd.Series([0, 0, 1, 1, 0, 1, 1, 1, 1], dtype=\"int64\")\n    unique_labels(y_true, y_predicted)  # must not raise\n```\n\n- The result must equal the result for the corresponding numpy-backed dtype: `\"Int64\"`\u2192`\"int64\"`, `\"Float64\"`\u2192`\"float64\"`, `\"boolean\"`\u2192`\"bool\"`.\n\n## Assumptions\n\n1. The root cause is in target-type detection, believed to be `type_of_target` in the same module. That function returns `'unknown'` for the `object`-dtype array produced from a nullable pandas Series. The fix most likely belongs where the input is converted to numpy, not in `unique_labels`' mixing check. This has not been verified against the source.\n2. The scope covers only the three dtypes named in the issue: `Int64`, `Float64` and `boolean`. Other nullable or extension dtypes are out of scope unless confirmed: sized variants such as `Int32`/`UInt8`/`Float32`, `string`, and `category`.\n3. \"Same behavior\" covers two things:\n   - **Type detection:** the same `type_of_target` classification as the numpy-backed dtype, e.g. `'binary'` for this data.\n   - **Output:** the same set of returned labels.\n   Exact dtype equality of the returned array is not required unless confirmed.\n4. Inputs that contain missing values (`pd.NA`) are a separate concern. This change only needs to handle nullable-dtype Series with **no** missing values.\n5. A fix to type detection may also affect other callers, such as metrics and classifiers that call `type_of_target`. Such side effects are acceptable and desirable, as long as existing behavior for non-pandas inputs and plain `object` arrays (e.g. string labels) does not change.\n6. pandas stays an optional dependency. Any pandas-specific handling must not import pandas unconditionally.\n7. Supported pandas/numpy version ranges are whatever the project already supports. This change does not alter them.\n\n## Tech Stack\n\n- Python, NumPy, scikit-learn (the issue reproduces on 1.2.1), and pandas (optional dependency).\n- Exact versions and minimum supported pandas version: **unknown**. These are not visible in the issue.\n\n## Commands\n\nThe repository is not accessible. All commands are **unknown** and must be confirmed:\n\n- Build: unknown\n- Test: unknown. Pytest is the likely runner, since the issue's repro uses `pytest`, but the exact invocation is unknown.\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n\n- Affected public function: `sklearn.utils.multiclass.unique_labels`. The module path comes from the issue's import.\n- Likely related function: target-type detection in the same module. This is an assumption; see Assumption 1.\n- Source file path, test file location and changelog location: **unknown**.\n\n## Code Style\n\n- Unknown; the codebase is not visible. Follow the conventions already used in the surrounding module and its tests.\n- Tests should be parametrized over the dtype pairs, mirroring the loop in the issue's repro.\n\n## Testing Strategy\n\n- **Framework:** pytest. This is inferred from the issue repro; the exact configuration is unknown.\n- **Location:** alongside the existing tests for `sklearn.utils.multiclass`. The exact path is unknown.\n- **Pandas availability:** tests that need pandas should be skipped when pandas is not installed, using whatever mechanism the project already has (unknown).\n- **Test levels:**\n  - **Unit, `unique_labels`:** for each nullable dtype in `[\"Int64\", \"Float64\", \"boolean\"]`, call `unique_labels(nullable_series, int64_series)`. It must not raise, and the result must equal the result of calling it with the corresponding numpy-backed dtype.\n  - **Unit, type detection** (if the fix lives there): the nullable-dtype Series must get the same target type as its numpy-backed counterpart, e.g. `'binary'`.\n  - **Regression:** existing tests for `unique_labels` and type detection still pass. In particular, plain `object` arrays and mixed-type inputs that currently raise must still raise.\n- **Coverage expectations:** unknown. At minimum, every new code path must be exercised.\n\n## Boundaries\n\n- **Always:**\n  - Add tests that reproduce the issue's failing case before or alongside the fix.\n  - Keep pandas optional.\n  - Preserve existing behavior for non-pandas inputs.\n  - Run the existing multiclass utility tests.\n- **Ask first:**\n  - Changing public function signatures.\n  - Handling `pd.NA` / missing values.\n  - Extending support to dtypes beyond the three named.\n  - Changing the error message or type-detection results for any input that currently does not raise.\n  - Adding dependencies.\n- **Never:**\n  - Make pandas a hard dependency.\n  - Silently coerce genuinely mixed label types, e.g. strings and ints, into a single type.\n  - Remove or weaken existing tests.\n  - Change the \"Mix type of y not allowed\" check for truly mixed inputs.\n\n## Success Criteria\n\n1. The issue's repro loop over `\"Int64\"`, `\"Float64\"` and `\"boolean\"` runs without raising `ValueError`.\n2. For each nullable dtype, `unique_labels(nullable_y_true, int64_y_pred)` returns the same labels as `unique_labels(numpy_backed_y_true, int64_y_pred)`.\n3. Target-type detection for each nullable-dtype Series in the repro returns the same type as for its numpy-backed counterpart (`'binary'`).\n4. New tests covering criteria 1\u20133 are added and pass. They are skipped cleanly when pandas is unavailable.\n5. All existing tests in the multiclass utilities test suite pass unchanged.\n6. A changelog entry is added if the project requires one. The process for this is unknown.\n\n## Open Questions\n\n1. **Missing values:** what should happen when a nullable Series contains `pd.NA`? Options are to raise a clear error, to behave like the `float64` + `NaN` case, or to leave this out of scope.\n2. **Dtype scope:** should support extend to all nullable integer and float widths and to unsigned variants (`Int8`\u2013`Int64`, `UInt*`, `Float32`)? Should `string` or `category` dtypes also be considered?\n3. **Fix location:** should the fix live in target-type detection, so that every caller such as metrics and classifiers benefits, or be limited to `unique_labels`?\n4. **Return dtype:** is matching the returned labels enough, or must the returned array's dtype also match the numpy-backed case?\n5. **Versions:** what is the minimum supported pandas version, and do all supported versions provide the APIs needed to convert nullable dtypes to their numpy equivalents?\n6. **Commands and paths:** what are the build/test/lint commands, the test file location, and the changelog process for this repository?\n7. **Backport:** should this be targeted at a bugfix release or only the next feature release?",
+ "ttft_ms": 2851,
+ "type": "result",
+ "duration_ms": 29572,
+ "uuid": "143092d3-4e04-47ed-a130-7c369e987e85",
+ "ttft_stream_ms": 1030,
+ "time_to_request_ms": 248,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 221,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 112,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1030,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

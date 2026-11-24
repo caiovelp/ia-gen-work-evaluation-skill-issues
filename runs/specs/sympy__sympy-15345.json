@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 24087,
+ "stop_reason": "end_turn",
+ "session_id": "75a6cda5-8f9a-45c8-a156-58f05509a556",
+ "total_cost_usd": 0.0534688,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 685,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2349,
+  "output_tokens_details": {
+   "thinking_tokens": 160
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 685,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2349,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 685,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 685
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1270,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00013800000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2349,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 685,
+   "webSearchRequests": 0,
+   "costUSD": 0.0533308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 160,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `mathematica_code` should print `Max` (and likely `Min`) as valid Mathematica syntax\n\n## Objective\n\n`mathematica_code` converts SymPy expressions into Mathematica (Wolfram Language) source code. For `Max`, it currently emits function-call syntax with parentheses, which Mathematica cannot parse.\n\n**Reported behavior:**\n\n```python\nx = symbols('x')\nmathematica_code(Max(x, 2))\n# actual:   'Max(2, x)'   (invalid Mathematica)\n# expected: 'Max[x,2]'    (as written in the issue)\n```\n\n**Goal:** `mathematica_code` must print `Max` expressions using Mathematica bracket syntax, `Max[...]`, so the output is valid Wolfram Language code.\n\n**User:** Anyone who uses SymPy to generate Mathematica code, such as code generation pipelines or people copying output into a Mathematica notebook.\n\n**User story:** As a user, when I call `mathematica_code(Max(x, 2))`, I get a string I can paste into Mathematica and evaluate without a syntax error.\n\n## Assumptions\n\n1. The project is SymPy, and `mathematica_code` is SymPy's Mathematica code printer. The issue does not show the module path.\n2. The root cause is that the Mathematica printer has no specific handling for `Max`. It probably falls back to a generic printer that emits `Name(args)` with parentheses.\n3. `Min` behaves the same way and is in scope, because it is structurally identical to `Max`. This is unverified, so it is also listed under Open Questions.\n4. The argument order in the output follows SymPy's canonical ordering of `Max`'s arguments. The reported `2, x` order comes from SymPy reordering the arguments, not from the printer. Getting exactly `x,2` (the order the user typed) is not a hard requirement. The real defect is the parentheses-versus-brackets syntax.\n5. The separator between arguments follows whatever convention the Mathematica printer already uses for other functions, for example `\", \"`. The issue's `'Max[x,2]'` with no space is illustrative and not an exact formatting requirement.\n6. Mathematica's `Max` and `Min` accept any number of arguments, so arguments map one-to-one with no change in semantics.\n7. No public API changes. `mathematica_code`'s signature and settings stay as they are.\n\n## Tech Stack\n\n- Python (version unknown)\n- SymPy (version unknown; the issue does not name the affected release)\n- Component: SymPy's Mathematica code printer (exact module/file unknown)\n\n## Commands\n\nThe issue does not specify these, so they are unknown:\n\n- Build: unknown (likely none needed for a pure-Python change)\n- Test: unknown (the SymPy test runner invocation is not given)\n- Lint: unknown\n- Dev: N/A\n\n## Project Structure\n\nUnknown; the issue does not provide it. These need confirming:\n\n- Location of the Mathematica printer source: unknown\n- Location of the Mathematica printer's tests: unknown\n\n## Code Style\n\nUnknown. Follow the existing conventions of the Mathematica printer, such as how it already prints other functions with `Name[args]` bracket syntax. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Level:** Unit tests on the Mathematica printer's string output.\n- **Location:** The existing test file for the Mathematica printer (path unknown).\n- **Cases to cover:**\n  - `Max(x, 2)` produces bracket syntax `Max[...]` containing both `x` and `2`, with no parentheses call syntax.\n  - `Max` with three or more arguments, e.g. `Max(x, y, z)`.\n  - `Max` nested in a larger expression, e.g. `Max(x, 2) + 1` or `sin(Max(x, y))`.\n  - `Min` with the same cases, if confirmed in scope.\n  - Regression check: existing Mathematica printer tests still pass.\n- **Coverage:** Every new or changed code path in the printer is exercised by at least one test.\n\n## Boundaries\n\n**Always:**\n- Produce output that is syntactically valid Wolfram Language.\n- Add regression tests that reproduce the reported case.\n- Keep the change consistent with how the printer already handles other functions.\n\n**Ask first:**\n- Changing argument ordering behavior. This could mean preserving the user's input order, or changing SymPy's canonical ordering of `Max`/`Min`.\n- Changing the argument separator format used across the printer.\n- Expanding scope beyond `Max`/`Min` to other functions that may have the same fallback problem.\n\n**Never:**\n- Change the core `Max`/`Min` classes or their evaluation or canonicalization just to fix printing.\n- Change the public signature of `mathematica_code`.\n- Remove or weaken existing printer tests.\n\n## Success Criteria\n\n1. `mathematica_code(Max(x, 2))` returns a string of the form `Max[<args>]` using square brackets, with arguments `x` and `2` in SymPy's canonical order, joined by the printer's standard separator.\n2. The output contains no `Max(` parentheses call syntax.\n3. Multi-argument `Max(x, y, z)` prints as `Max[...]` with all three arguments.\n4. `Max` nested inside other expressions prints correctly with brackets.\n5. If `Min` is in scope, criteria 1\u20134 also hold for `Min`.\n6. All pre-existing Mathematica printer tests continue to pass.\n7. New regression tests covering the cases above are added and pass.\n\n## Open Questions\n\n1. **Argument order:** Is the canonical order `Max[2, x]` acceptable, or must the output preserve the order the user wrote, giving `Max[x, 2]`? The issue's expected output shows `x,2`, but SymPy reorders `Max` arguments when it builds the expression.\n2. **Exact formatting:** Must the output be exactly `Max[x,2]` with no space, or is the printer's existing separator (likely `\", \"`) acceptable?\n3. **Min scope:** Does `Min` have the same defect, and should it be fixed in the same change?\n4. **Broader scope:** Are other SymPy functions also falling back to parentheses syntax in the Mathematica printer? Should they be audited here or tracked separately?\n5. **Affected versions:** Which SymPy version(s) exhibit this? The issue does not say.\n6. **Repository details:** What are the paths of the Mathematica printer and its tests, and what is the test command?",
+ "ttft_ms": 3536,
+ "type": "result",
+ "duration_ms": 23553,
+ "uuid": "663acdbf-5b56-4ecc-85d6-218660526334",
+ "ttft_stream_ms": 1860,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 225,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 269,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1860,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29568,
+ "stop_reason": "end_turn",
+ "session_id": "fa7ee452-e395-4d74-966a-a20362ac6b79",
+ "total_cost_usd": 0.07035009999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1648,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2803,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1648,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2803,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1648,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1648
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2233,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00023530000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2803,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1648,
+   "webSearchRequests": 0,
+   "costUSD": 0.07011479999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Wrap socket errors raised while streaming a response body in a requests exception\n\n## Assumptions\n\n1. The fix belongs in the requests library. The traceback shows requests 2.3.0 with its vendored urllib3 at `requests/packages/urllib3/`. It does not belong in the user's application.\n2. The error happens **after** response headers were received, while the body is being read. The path is `Response.content` \u2192 `Response.iter_content` \u2192 `generate()` \u2192 `urllib3 HTTPResponse.stream()` \u2192 `read()` \u2192 `httplib` \u2192 `socket.recv`. It does not happen during `Session.send()` / adapter connect, where connection errors are presumably already wrapped.\n3. The intended wrapper is `requests.exceptions.ConnectionError`, which the reporter suggests. The fact that `ConnectionError` exists suggests this is the established mapping for network-level failures.\n4. gevent is incidental. The same `socket.error` (errno 104, `ECONNRESET`) would surface with the standard-library socket, because gevent's `recv` only re-raises the OS error.\n5. Python 2.7 is in scope, since that is the reporter's environment. Whether Python 3 is also in scope is unknown. On Python 3, `socket.error` is an alias of `OSError` and `ConnectionResetError` is a subclass of it.\n6. Other exceptions already handled in `generate()` should keep their current behavior. The exact set of those exceptions is unknown because the code is not visible.\n7. Existing callers who catch `socket.error` directly should not break, if possible. Whether that is a hard requirement is an open question.\n\n## Objective\n\n**Problem:** A consumer of requests receives a raw `socket.error: [Errno 104] Connection reset by peer` when the peer resets the connection during body streaming. This happens when accessing `response.text`, `response.content`, or iterating `iter_content()`. The consumer must then know about low-level transport exceptions to handle a routine network failure.\n\n**User:** Application developers using requests. They expect every network failure that occurs within requests' public API to arrive as a subclass of `requests.exceptions.RequestException`.\n\n**User story:** As a requests user, I can write `except requests.exceptions.RequestException` (or `ConnectionError`) around both the request call and the body access. A connection reset mid-body is then caught there, without my also needing `except socket.error`.\n\n**Success looks like:** A socket-level error raised while reading the response body surfaces as `requests.exceptions.ConnectionError`. The original error stays available for debugging.\n\n## Tech Stack\n\n- Language: Python. The reported version is 2.7.6; the full supported matrix is unknown.\n- Library: requests. The reported version is 2.3.0; the target branch and version are unknown.\n- Vendored dependency: urllib3 under `requests/packages/urllib3/`. Its version is unknown.\n- Stdlib involved: `httplib` (Py2) / `http.client` (Py3), `socket`.\n- Optional, seen in the report: gevent 1.0.1.\n\n## Commands\n\nUnknown. The repository is not visible, so no build, test, or lint commands can be stated.\n\n```\nBuild: unknown\nTest:  unknown\nLint:  unknown\n```\n\n## Project Structure\n\nOnly the paths visible in the traceback are known. Line numbers refer to requests 2.3.0 and may differ on the target branch.\n\n```\nrequests/models.py                     \u2192 Response.text (~l.721), Response.content (~l.694),\n                                          iter_content / inner generate() (~l.627)\nrequests/exceptions.py                 \u2192 presumed location of ConnectionError (not seen; unknown)\nrequests/packages/urllib3/response.py  \u2192 HTTPResponse.stream() (~l.240), read() (~l.187)\ntests/                                 \u2192 unknown location/layout\n```\n\n## Code Style\n\nUnknown. No project code beyond traceback lines is visible, so the change should follow the existing conventions in `requests/models.py`.\n\n## Testing Strategy\n\n- The framework and test location are unknown. The change should use whatever the repository's existing test suite uses.\n- **Unit level (required):** Simulate the response's raw stream raising `socket.error` (errno `ECONNRESET`) while `iter_content` / `content` / `text` is reading. Assert that `requests.exceptions.ConnectionError` is raised. This needs no network.\n- **Regression level:** Existing tests for exceptions already translated in `iter_content` (for example decoding or incomplete-read errors, if present) must keep passing unchanged.\n- **Optional integration level:** A local server sends headers plus a partial chunked body and then resets the socket. This is optional because it may be flaky or platform-dependent.\n- Coverage expectations are unknown.\n\n## Boundaries\n\n- **Always:**\n  - Preserve the original exception for debugging, either as an argument or message of the wrapper or via chaining where the Python version supports it.\n  - Keep the existing handling of other exceptions in the streaming path intact.\n  - Add a test reproducing the reset-during-body case.\n- **Ask first:**\n  - Modifying vendored urllib3 under `requests/packages/` rather than handling the error in `requests/models.py`.\n  - Wrapping additional exception types beyond socket-level errors, such as all `IOError`/`OSError`.\n  - Changing the exception hierarchy in `requests/exceptions.py`, for example making `ConnectionError` also subclass `socket.error` for backward compatibility.\n  - Any change to public API signatures.\n- **Never:**\n  - Silently swallow the error or return truncated content as if it were successful.\n  - Discard the original exception information.\n  - Add new third-party dependencies.\n  - Depend on gevent-specific behavior.\n\n## Success Criteria\n\n1. If the underlying socket raises `socket.error` / `OSError` while `Response.iter_content()` is iterating, the caller receives `requests.exceptions.ConnectionError`. This covers a connection reset (errno 104) during a chunked body read.\n2. Criterion 1 also holds when the body is accessed via `Response.content` and `Response.text`, since both go through `iter_content`.\n3. The raised `ConnectionError` is catchable as `requests.exceptions.RequestException`.\n4. The original socket error, including its errno and message, can be recovered from the raised exception, for example in its args or message.\n5. Behavior for successfully read bodies is unchanged. Previously translated exceptions are still raised as before.\n6. A new automated test covers criterion 1 without requiring network access, and it passes alongside the existing suite.\n7. If `stream=True` reads via `iter_lines()` exist and go through `iter_content`, they inherit the same behavior. This needs confirmation; see Open Questions.\n\n## Open Questions\n\n1. **Accident or design?** Is leaking raw socket errors from body reads intentional, as the reporter asks? If it is intended, is the outcome a documentation change instead of a code change?\n2. **Which exception class?** Should a mid-body reset be `ConnectionError`? Or would a different or new `RequestException` subclass better express \"connection lost while reading the body\"?\n3. **Backward compatibility:** Users may already catch `socket.error` around `response.content`. Is breaking them acceptable? Should the new exception also be an instance of `socket.error`/`IOError`? Is `RequestException` already an `IOError` subclass? That cannot be verified here.\n4. **Where to fix:** In `requests/models.py` (`generate()` in `iter_content`), or upstream in urllib3's `HTTPResponse.read()`/`stream()`, mapping to a urllib3 exception that requests then translates? Does the requests project patch vendored urllib3 directly?\n5. **Scope of exception types:** Only `socket.error`? Or also related errors such as `httplib.IncompleteRead`, `ssl.SSLError` during body read, and socket timeouts? Should a read timeout map to a timeout exception instead of `ConnectionError`?\n6. **Direct `response.raw` use:** Should errors from reading `response.raw` directly also be wrapped, or is raw access documented as low-level and exempt?\n7. **Target versions:** Which requests branch/version and which Python versions (2.x and/or 3.x) must the fix support?\n8. **Repository details:** What are the test framework, test locations, and run/lint commands? All are unknown from the issue.",
+ "ttft_ms": 28556,
+ "type": "result",
+ "duration_ms": 28596,
+ "uuid": "1e8006d6-fed4-441f-98fd-0eb68fc32c5e",
+ "ttft_stream_ms": 2349,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 188,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2349,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

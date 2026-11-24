@@ -1,0 +1,44 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 03cf57a30..ec288ae08 100755
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -23,7 +23,7 @@
+ from sympy.logic.boolalg import And, Or, Not, true, false
+ from sympy.sets.contains import Contains
+ from sympy.utilities import subsets
+-from sympy.utilities.iterables import sift
++from sympy.utilities.iterables import sift, uniq
+ from sympy.utilities.misc import func_name, filldedent
+ 
+ from mpmath import mpi, mpf
+@@ -1264,10 +1264,10 @@ def __new__(cls, *args, **kwargs):
+ 
+         # Reduce sets using known rules
+         if evaluate:
+-            args = list(cls._new_args_filter(args))
++            args = list(uniq(cls._new_args_filter(args)))
+             return simplify_intersection(args)
+ 
+-        args = list(ordered(args, Set._infimum_key))
++        args = list(ordered(uniq(args), Set._infimum_key))
+ 
+         obj = Basic.__new__(cls, *args)
+         obj._argset = frozenset(args)
+@@ -1361,7 +1361,7 @@ def _handle_finite_sets(args):
+                     # and add this as a new arg
+                     contained = [x for x in symbolic_s_list
+                         if sympify(v.contains(x)) is S.true]
+-                    if contained != symbolic_s_list:
++                    if contained != symbolic_s_list or not symbolic_s_list:
+                         other.append(
+                             v - FiniteSet(
+                             *contained, evaluate=False))
+@@ -1588,7 +1588,7 @@ def __new__(cls, *args, **kwargs):
+         else:
+             args = list(map(sympify, args))
+ 
+-        args = list(ordered(set(args), Set._infimum_key))
++        args = list(ordered(uniq(args), Set._infimum_key))
+         obj = Basic.__new__(cls, *args)
+         return obj
+ 

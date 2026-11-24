@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31136,
+ "stop_reason": "end_turn",
+ "session_id": "77c98769-d5ac-4c8b-b880-5d650132cf31",
+ "total_cost_usd": 0.0728657,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1302,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3069,
+  "output_tokens_details": {
+   "thinking_tokens": 145
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1302,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3069,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1302,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1302
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1889,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001989,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3069,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1302,
+   "webSearchRequests": 0,
+   "costUSD": 0.0726668,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 145,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Clean exit on unrecognized command-line option (no traceback)\n\n## Objective\n\nRunning `pylint` with an unrecognized option (for example `pylint -Q`) currently does two things:\n\n1. It reports the problem as a lint message: `Command line:1:0: E0015: Unrecognized option found: Q (unrecognized-option)`.\n2. It lets the internal exception `pylint.config.exceptions._UnrecognizedOptionError` escape to the user, which prints a Python traceback.\n\nWe want to keep (1) and remove (2). Instead of the traceback, pylint should exit cleanly with a short usage hint, similar to other CLI tools such as mypy:\n\n```\nusage: mypy [-h] [-v] [-V] [more options; see below] ...\nmypy: error: unrecognized arguments: -Q\n```\n\n**Users:** anyone running `pylint` from a shell, CI, or wrapper script who mistypes or passes an unsupported option.\n\n**Why it matters:**\n- A traceback looks like pylint crashed.\n- It hides the actionable message.\n- It exposes private internals such as `_UnrecognizedOptionError`.\n\n### Observed behavior (from the issue)\n\n- Command: `pylint -Q`\n- Version: `pylint 2.14.0-dev0`, `astroid 2.11.3`, Python 3.10.0b2.\n- The exception is raised at `pylint/config/config_initialization.py` line 85 inside `_config_initialization`.\n- It propagates up through `pylint/lint/run.py` (`Run.__init__`, line 135) and `pylint/__init__.py` (`run_pylint`, line 24) to the console entry point.\n\n### User stories / acceptance criteria\n\n- **Typo feedback:** As a user who passes an unknown option, I see which option was not recognized and a usage hint. I do not see a Python traceback.\n- **Message preserved:** The existing `E0015 unrecognized-option` message is still emitted, so existing output and tooling are not lost.\n- **Scripting:** As a CI or script author, I get a non-zero exit status when an unknown option is passed. A wrapper can detect it without parsing a traceback.\n\n## Assumptions\n\n1. The fix is scoped to the **command-line** path, which is what the issue reports. Unrecognized options coming from a **configuration file** may share the same exception path. Whether they get the same treatment is an open question; the default assumption is that their current behavior should not regress.\n2. The `E0015 unrecognized-option` line should stay in the output. The reporter explicitly calls it \"handy\".\n3. \"Usage tip\" means a short usage/help line plus an error line naming the bad option, in the style of argparse. It does not mean the full `--help` output.\n4. The process must still exit with a non-zero status. A silent success would be worse than the traceback.\n5. The behavior applies to every entry point that goes through `_config_initialization`, not only the `pylint` console script. Programmatic `pylint.lint.Run(...)` is one such path, so other pylint-family entry points may be affected too. This is unconfirmed.\n6. No change to which options count as recognized. Only the reporting and exit behavior changes.\n7. Target branch is the 2.14 development line (`2.14.0-dev0`).\n\n## Tech Stack\n\n- Python. The issue shows 3.10.0b2; the minimum supported version is **unknown**.\n- pylint `2.14.0-dev0`, astroid `2.11.3`.\n- The argument parsing library is **unknown** from the issue. The mypy example is argparse-style, but pylint's internal parser is not shown.\n\n## Commands\n\nAll commands below are **unknown** because they are not given in the issue. They must be confirmed from the repository.\n\n```\nReproduce:  pylint -Q          # from the issue\nBuild:      unknown\nTest:       unknown\nLint:       unknown\nDev:        unknown\n```\n\n## Project Structure\n\nThese files are known from the traceback:\n\n```\npylint/__init__.py                       \u2192 run_pylint() console entry point\npylint/lint/run.py                       \u2192 Run.__init__, calls _config_initialization\npylint/config/config_initialization.py   \u2192 _config_initialization, raises _UnrecognizedOptionError\npylint/config/exceptions.py              \u2192 _UnrecognizedOptionError (inferred from module path pylint.config.exceptions)\n```\n\nThese locations are **unknown**:\n- The test directory layout.\n- Changelog or \"what's new\" doc locations.\n\n## Code Style\n\nThe repository's style conventions are **unknown**. Follow the existing style of the files listed above. No code snippet is provided, to avoid inventing code.\n\n## Testing Strategy\n\nThe test framework, test file locations, and coverage expectations are **unknown**. The required test cases are:\n\n- **Unknown short option:** Running pylint with `-Q` does not raise or print a traceback. Instead:\n  - The output contains the E0015 message.\n  - The output contains a usage/error hint.\n  - The exit status is non-zero.\n- **Unknown long option:** The same checks hold for an unknown long option, e.g. `--some-unknown-option`.\n- **Mixed options:** When valid options are combined with an unknown one, it still exits cleanly with no traceback.\n- **Regression for valid invocations:** Valid invocations are unaffected in both output and exit codes.\n- **Config file, if in scope:** An unrecognized option in a config file behaves as decided in Open Questions.\n\nTest level: CLI and integration-level tests that invoke `Run`/`run_pylint` and capture stdout/stderr and the exit code.\n\n## Boundaries\n\n- **Always:**\n  - Keep the E0015 message.\n  - Exit non-zero on unknown options.\n  - Add regression tests.\n  - Follow existing conventions in the touched files.\n- **Ask first:**\n  - Changing the exit-code value or exit-code semantics.\n  - Changing behavior for config-file unrecognized options.\n  - Altering or removing `_UnrecognizedOptionError` itself.\n  - Changing public API behavior of `pylint.lint.Run` when called programmatically.\n  - Adding dependencies.\n- **Never:**\n  - Swallow the error silently or exit with status 0.\n  - Remove or weaken existing tests.\n  - Change which options are recognized.\n  - Print the internal exception name or traceback to the user.\n\n## Success Criteria\n\n- [ ] `pylint -Q` prints **no** Python traceback.\n- [ ] `pylint -Q` still prints `Command line:1:0: E0015: Unrecognized option found: Q (unrecognized-option)`, or the equivalent format already used.\n- [ ] `pylint -Q` prints a concise usage hint identifying the unrecognized option.\n- [ ] `pylint -Q` exits with a non-zero status. The specific value is per Open Questions.\n- [ ] The same holds for unknown long options and for unknown options mixed with valid ones.\n- [ ] Valid invocations produce identical output and exit codes to before.\n- [ ] Automated tests cover the above.\n\n## Open Questions\n\n1. **Exit code:** Which value should be used? Options include argparse's conventional `2`, pylint's existing usage-error exit code, or something else. The exit-code conventions are unknown from the issue.\n2. **Output content:** Should the output show **both** the E0015 message and the usage hint, or only one? The reporter likes E0015 and suggests the usage hint \"for example\". Is showing both acceptable, or is it redundant?\n3. **Output format:** What exactly should the usage hint contain? Is it a one-line `usage: pylint [options] modules_or_packages` plus an error line, or does it point to `pylint --help`?\n4. **Output streams:** Should the usage/error text go to stderr, with the lint message staying where reporter output normally goes?\n5. **Config files:** Should unrecognized options in **config files** also stop execution with a usage hint? Or should they keep emitting E0015 and continue linting? What happens today is unknown.\n6. **Programmatic callers:** For callers of `pylint.lint.Run(..., exit=False)`, should an unrecognized option raise a (possibly public) exception, call `sys.exit`, or return a status? Is `_UnrecognizedOptionError` relied on by anyone?\n7. **Other entry points:** Do other pylint-family entry points share `_config_initialization` (e.g. pyreverse, epylint, symilar), and must they behave the same? This is unknown from the issue.\n8. **Changelog:** Is a changelog/\"what's new\" entry required, and where does it live?\n9. **Version target:** Is this a regression introduced during 2.14 development (i.e., did 2.13 handle this cleanly)? If so, should the previous behavior be restored exactly?",
+ "ttft_ms": 2841,
+ "type": "result",
+ "duration_ms": 30555,
+ "uuid": "815ca607-39e5-46e6-b4eb-d65dfbe08126",
+ "ttft_stream_ms": 1503,
+ "time_to_request_ms": 272,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 230,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 233,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1503,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

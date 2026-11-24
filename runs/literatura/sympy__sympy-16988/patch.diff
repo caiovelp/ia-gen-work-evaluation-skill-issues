@@ -1,0 +1,32 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 03cf57a30..6e3261686 100755
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -23,7 +23,7 @@
+ from sympy.logic.boolalg import And, Or, Not, true, false
+ from sympy.sets.contains import Contains
+ from sympy.utilities import subsets
+-from sympy.utilities.iterables import sift
++from sympy.utilities.iterables import sift, uniq
+ from sympy.utilities.misc import func_name, filldedent
+ 
+ from mpmath import mpi, mpf
+@@ -1361,7 +1361,7 @@ def _handle_finite_sets(args):
+                     # and add this as a new arg
+                     contained = [x for x in symbolic_s_list
+                         if sympify(v.contains(x)) is S.true]
+-                    if contained != symbolic_s_list:
++                    if contained != symbolic_s_list or not contained:
+                         other.append(
+                             v - FiniteSet(
+                             *contained, evaluate=False))
+@@ -1987,6 +1987,9 @@ def simplify_intersection(args):
+         if not isinstance(arg, Set):
+             raise TypeError("Input args to Union must be Sets")
+ 
++    # remove duplicates
++    args = list(uniq(args))
++
+     # If any EmptySets return EmptySet
+     if S.EmptySet in args:
+         return S.EmptySet

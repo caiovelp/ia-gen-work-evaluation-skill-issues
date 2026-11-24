@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 16997,
+ "stop_reason": "end_turn",
+ "session_id": "415c4aa7-d466-4086-ad1e-8e541c4b3480",
+ "total_cost_usd": 0.05448890000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1663,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2049,
+  "output_tokens_details": {
+   "thinking_tokens": 145
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1663,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2049,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1663,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1663
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1869,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2049,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1663,
+   "webSearchRequests": 0,
+   "costUSD": 0.05429200000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 145,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nMerging the `Media` of three or more widgets can emit an unnecessary `MediaOrderConflictWarning` and produce a JS order that breaks a real dependency. In the example below, `text-editor-extras.js` depends on `text-editor.js`, and all other JS files are independent. A valid order exists (`text-editor.js`, `text-editor-extras.js`, `color-picker.js`). Instead, Django warns about a conflict and returns an order that puts `text-editor-extras.js` before `text-editor.js`.\n\nThe cause, according to the reporter, is the order in which the additions happen. `ColorPicker().media + SimpleTextWidget().media` produces `Media(css={}, js=['color-picker.js', 'text-editor.js'])`. That intermediate result wrongly imposes the constraint that `color-picker.js` must appear before `text-editor.js`.\n\n## Steps to reproduce\n\n1. Define the following widgets and form:\n   - `ColorPicker` with `Media.js = ['color-picker.js']`\n   - `SimpleTextWidget` with `Media.js = ['text-editor.js']`\n   - `FancyTextWidget` with `Media.js = ['text-editor.js', 'text-editor-extras.js', 'color-picker.js']`\n   - `MyForm` with three `CharField`s using these widgets, in this order: `ColorPicker`, `SimpleTextWidget`, `FancyTextWidget`.\n2. Access `MyForm().media`.\n3. Observe the warning that is emitted and the resulting JS order.\n\n## Observed behavior\n\n- A `MediaOrderConflictWarning` is emitted. It reports `text-editor-extras.js` and `text-editor.js` as being in opposite order.\n- The resulting media is:\n  ```\n  Media(css={}, js=['text-editor-extras.js', 'color-picker.js', 'text-editor.js'])\n  ```\n- In this result, `text-editor-extras.js` comes before `text-editor.js`, which it depends on.\n- This result is worse than the \"na\u00efve\" order Django 1.11 produced before order-checking was added: `color-picker.js`, `text-editor.js`, `text-editor-extras.js`.\n- The pair of files named in the warning also seems wrong. The reporter points out that `color-picker.js` and `text-editor.js` are the pair that got wrongly ordered, through the intermediate merge.\n\n## Expected behavior\n\n- No `MediaOrderConflictWarning` is emitted, because the constraints can all be satisfied.\n- `MyForm().media` resolves the JS files to:\n  ```\n  ['text-editor.js', 'text-editor-extras.js', 'color-picker.js']\n  ```\n\n## Stack trace / error output\n\n```\n/projects/django/django/forms/widgets.py:145: MediaOrderConflictWarning: Detected duplicate Media files in an opposite order:\ntext-editor-extras.js\ntext-editor.js\n MediaOrderConflictWarning,\nMedia(css={}, js=['text-editor-extras.js', 'color-picker.js', 'text-editor.js'])\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction snippet in the report:\n\n```python\nimport warnings\n\nfrom django import forms\nfrom django.test import SimpleTestCase\n\n\nclass ColorPicker(forms.Widget):\n    class Media:\n        js = ['color-picker.js']\n\n\nclass SimpleTextWidget(forms.Widget):\n    class Media:\n        js = ['text-editor.js']\n\n\nclass FancyTextWidget(forms.Widget):\n    class Media:\n        js = ['text-editor.js', 'text-editor-extras.js', 'color-picker.js']\n\n\nclass MyForm(forms.Form):\n    background_color = forms.CharField(widget=ColorPicker())\n    intro = forms.CharField(widget=SimpleTextWidget())\n    body = forms.CharField(widget=FancyTextWidget())\n\n\nclass MergeThreeMediaTests(SimpleTestCase):\n    def test_merge_three_media_no_spurious_conflict(self):\n        with warnings.catch_warnings():\n            warnings.simplefilter('error', forms.widgets.MediaOrderConflictWarning)\n            media = MyForm().media\n        self.assertEqual(\n            media._js,\n            ['text-editor.js', 'text-editor-extras.js', 'color-picker.js'],\n        )\n```\n\n## Code example\n\n```python\nfrom django import forms\n\nclass ColorPicker(forms.Widget):\n    class Media:\n        js = ['color-picker.js']\n\nclass SimpleTextWidget(forms.Widget):\n    class Media:\n        js = ['text-editor.js']\n\nclass FancyTextWidget(forms.Widget):\n    class Media:\n        js = ['text-editor.js', 'text-editor-extras.js', 'color-picker.js']\n\nclass MyForm(forms.Form):\n    background_color = forms.CharField(widget=ColorPicker())\n    intro = forms.CharField(widget=SimpleTextWidget())\n    body = forms.CharField(widget=FancyTextWidget())\n\nMyForm().media\n```\n\nThe intermediate merge that introduces the wrong constraint:\n\n```python\nColorPicker().media + SimpleTextWidget().media\n# Media(css={}, js=['color-picker.js', 'text-editor.js'])\n```\n\n## Version and environment\n\n- Exact Django version: Not provided in the original report. The report only says the behavior occurs in a version after Django 1.11, where media order-checking was added.\n- The warning comes from `django/forms/widgets.py`, line 145, in the reporter's checkout at `/projects/django/`.\n- Python version and OS: Not provided in the original report.",
+ "ttft_ms": 2834,
+ "type": "result",
+ "duration_ms": 16491,
+ "uuid": "87523ad9-759d-4eb4-a0fc-1563923eb6a2",
+ "ttft_stream_ms": 1522,
+ "time_to_request_ms": 301,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 23,
+  "input_hooks": 4,
+  "tool_pool_refresh": 3,
+  "init_message": 15,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 219,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 324,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 18,
+  "cpu_ms": 31,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1523,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

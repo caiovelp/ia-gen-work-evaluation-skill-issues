@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 7988,
+ "stop_reason": "end_turn",
+ "session_id": "0a3bd206-a6e1-4795-9da4-469c4dd59eaf",
+ "total_cost_usd": 0.021441599999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1153,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 595,
+  "output_tokens_details": {
+   "thinking_tokens": 59
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1153,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 595,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1153,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1153
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1301,
+   "outputTokens": 359,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00030960000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 342,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 595,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1153,
+   "webSearchRequests": 0,
+   "costUSD": 0.021131999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 59,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1153,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nAo lan\u00e7ar nota em uma turma com nome muito grande, ocorre o erro `Mysql2::Error: Data too long for column 'subject' at row 1`. Segundo a an\u00e1lise do relator, o erro acontece porque o nome da turma \u00e9 usado no assunto (subject) do e-mail enviado ao aluno, ao professor e ao orientador. Com um nome longo, o assunto ultrapassa o tamanho m\u00e1ximo da coluna `subject`.\n\n## Passos para reproduzir\n1. Ter uma turma cujo nome seja muito grande. O tamanho exato do nome n\u00e3o foi informado.\n2. Tentar lan\u00e7ar nota nessa turma.\n3. Observar o erro.\n\n## Comportamento observado\nO lan\u00e7amento de nota falha com o erro `Mysql2::Error: Data too long for column 'subject' at row 1`. Segundo o relator, a causa \u00e9 o uso do nome da turma no assunto do e-mail de notifica\u00e7\u00e3o enviado ao aluno, ao professor e ao orientador.\n\n## Comportamento esperado\nO lan\u00e7amento de nota deve ser conclu\u00eddo sem erro, mesmo quando o nome da turma \u00e9 muito grande.\n\n## Stack trace / sa\u00edda de erro\n```\nMysql2::Error: Data too long for column 'subject' at row 1\n```\nA stack trace completa n\u00e3o foi informada na issue original.\n\n## Caso de teste\nN\u00e3o informado na issue original.\n\n## Exemplo de c\u00f3digo\nN\u00e3o informado na issue original.\n\n## Vers\u00e3o e ambiente\nN\u00e3o informado na issue original. O erro indica apenas o uso de MySQL por meio da gem `mysql2`.",
+ "ttft_ms": 1773,
+ "type": "result",
+ "duration_ms": 6118,
+ "uuid": "05f7d547-a0a4-4a0c-ad63-bc7667e71732",
+ "ttft_stream_ms": 1109,
+ "time_to_request_ms": 298,
+ "time_to_request_phases_ms": {
+  "other": 5,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "conversation_append": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "init_frame_send": 5,
+  "engine_pickup": 3,
+  "loop_entry": 4,
+  "message_prep": 0,
+  "model_config_wait": 231,
+  "autocompact": 1,
+  "request_announcements": 9,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 44,
+ "time_to_request_cpu_ms": 224,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 12,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 2,
+  "render_ms": 2,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 1,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 1,
+  "cache_break_record_ms": 0,
+  "plans_ms": 2,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 1,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1109,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

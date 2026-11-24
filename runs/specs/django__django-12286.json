@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22166,
+ "stop_reason": "end_turn",
+ "session_id": "9056d3e0-b3f5-4a5e-9eed-6110410dfb51",
+ "total_cost_usd": 0.052565,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 845,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2239,
+  "output_tokens_details": {
+   "thinking_tokens": 163
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 845,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2239,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 845,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 845
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1427,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015420000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2239,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 845,
+   "webSearchRequests": 0,
+   "costUSD": 0.0524108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 163,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: translation.E004 Accepts a Sublanguage When Its Base Language Is Available\n\n## Objective\n\nWhen `LANGUAGE_CODE` is a sublanguage such as `de-at`, Django's system check framework raises `translation.E004` (\"You have provided a value for the LANGUAGE_CODE setting that is not in the LANGUAGES setting\") even when the base language (`de`) is in `LANGUAGES`. This contradicts Django's documented fallback behavior:\n\n> If a base language is available but the sublanguage specified is not, Django uses the base language. For example, if a user specifies de-at (Austrian German) but Django only has de available, Django uses de.\n\n**Observed (Django 3.0.2):**\n- `LANGUAGE_CODE = \"de-at\"` fails with `SystemCheckError` / `translation.E004`.\n- `LANGUAGE_CODE = \"es-ar\"` works, because `es-ar` is itself in the default `LANGUAGES`.\n\n**Goal:** Make the E004 consistency check agree with the runtime language-resolution rules. E004 should fire only when Django could not actually resolve `LANGUAGE_CODE` to an entry in `LANGUAGES`.\n\n**Users:** Django project developers who set a regional `LANGUAGE_CODE` for which only the base language is listed in `LANGUAGES`.\n\n### Acceptance criteria / user stories\n- As a developer, I can set `LANGUAGE_CODE = \"de-at\"` while `LANGUAGES` contains `de` but not `de-at`, and the system checks pass.\n- As a developer, if I set a `LANGUAGE_CODE` whose exact value and base language are both missing from `LANGUAGES`, I still get `translation.E004`.\n\n## Assumptions\n\n1. The bug is in the system check that emits `translation.E004`, not in runtime language selection. The issue implies runtime fallback already works as documented.\n2. \"Base language\" means the part of the code before the first `-`, as in the documented example (`de-at` \u2192 `de`).\n3. The check should apply the same resolution rules Django uses at runtime when picking a supported language variant. It should not implement a separate, divergent rule.\n4. Behavior applies both with the default `LANGUAGES` and with a user-defined `LANGUAGES`.\n5. The fix targets the main development branch. Backporting to 3.0.x is a release-policy decision, not part of this spec.\n6. No change to the E004 message text, ID, or severity is required.\n7. Other translation checks (E001\u2013E003) are out of scope.\n\n## Tech Stack\n\n- Python / Django. The target branch and its minimum Python version are **unknown** from the issue.\n- Components involved: Django system checks framework and translation/i18n utilities. The exact module locations are **unknown** from the issue and must be confirmed in the repository.\n\n## Commands\n\nUnknown. The issue doesn't specify how to run the Django test suite in this environment. To be filled in after inspecting the repository:\n- Test: *unknown*\n- Lint: *unknown*\n\n## Project Structure\n\nUnknown. These are to be confirmed in the repository:\n- Location of the module defining the `translation.E004` check.\n- Location of the existing tests for translation system checks.\n- Location of the documentation for system checks (E004 description) and for language fallback.\n\n## Code Style\n\nFollow the existing Django codebase conventions, which are not visible from the issue. The change should reuse existing i18n resolution helpers rather than duplicating language-matching logic in the check.\n\n## Testing Strategy\n\n- **Level:** unit tests for the system check, alongside the existing translation check tests (location unknown).\n- **Cases to cover:**\n  1. `LANGUAGE_CODE=\"de-at\"` with `LANGUAGES` containing `de` only: no errors.\n  2. `LANGUAGE_CODE=\"es-ar\"` with `LANGUAGES` containing `es-ar`: no errors (regression guard for exact match).\n  3. `LANGUAGE_CODE` that is a sublanguage whose base is also absent from `LANGUAGES` (e.g. `fr-ca` with only `de`): E004 is raised.\n  4. `LANGUAGE_CODE` that is a plain language absent from `LANGUAGES`: E004 is still raised.\n  5. Existing E004 tests continue to pass unchanged.\n- Tests must override `LANGUAGE_CODE` and `LANGUAGES` explicitly so they don't depend on global defaults.\n\n## Boundaries\n\n- **Always:**\n  - Keep the check consistent with documented runtime fallback.\n  - Add regression tests for the reported case.\n  - Run the existing check and i18n test suites.\n- **Ask first:**\n  - Changing E004's message, ID, or severity.\n  - Changing runtime language-resolution behavior.\n  - Updating documentation wording.\n  - Backporting.\n- **Never:**\n  - Silence E004 entirely.\n  - Hard-code specific language codes in the check.\n  - Remove or weaken existing E004 tests.\n\n## Success Criteria\n\n- With `LANGUAGES` containing `de` but not `de-at`, `LANGUAGE_CODE=\"de-at\"` yields zero system check errors.\n- A `LANGUAGE_CODE` that resolves to neither an exact nor a base-language entry in `LANGUAGES` still yields exactly one `translation.E004`.\n- All new and existing translation check tests pass.\n\n## Open Questions\n\n1. Should the check use the full runtime resolution logic, or only exact-match plus base-language fallback? The runtime logic may also consider other variants and installed locale files. Which behavior is intended for the check?\n2. Should the fallback also cover codes with script/region subtags such as `zh-hant-hk` or `sr-latn`? What counts as \"base\" for multi-part codes?\n3. Should the check be case-insensitive (e.g. `de-AT` vs `de-at`), matching runtime behavior?\n4. Should the E004 documentation (and possibly the message) be clarified to say that a base-language fallback is accepted?\n5. Is a backport to the 3.0.x series desired?\n6. What are the exact commands and paths for running the relevant test suites in this repository?",
+ "ttft_ms": 3068,
+ "type": "result",
+ "duration_ms": 21678,
+ "uuid": "3ad1ede5-9463-4022-b849-e43da947a627",
+ "ttft_stream_ms": 1243,
+ "time_to_request_ms": 301,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 249,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 196,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1243,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

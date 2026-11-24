@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27837,
+ "stop_reason": "end_turn",
+ "session_id": "6916b43c-7fb6-4622-942e-d66b92ff0417",
+ "total_cost_usd": 0.06204489999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1129,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2598,
+  "output_tokens_details": {
+   "thinking_tokens": 117
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1129,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2598,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1129,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1129
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1716,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018210000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2598,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1129,
+   "webSearchRequests": 0,
+   "costUSD": 0.061862799999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 117,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Easily Comparable Version Info at Matplotlib Top Level\n\n## Objective\n\nMatplotlib exposes its version only as the string `matplotlib.__version__`. Comparing strings is unreliable: `\"3.10\" < \"3.9\"` is `True` lexicographically. Users who write version guards (`if mpl version >= X: ...`) need a value at the top level of the `matplotlib` package that compares correctly.\n\n**User:** Downstream library authors and end users who branch on the installed Matplotlib version.\n\n**What we're building:** A new public, top-level attribute on `matplotlib` that represents the installed version in a correctly comparable form. The issue names two candidates:\n\n- **Option A:** a `version_info` tuple, comparable with other tuples. This is the more common convention in other packages and is the reporter's suggested default for simplicity.\n- **Option B:** a `LooseVersion`-style object, comparable with version strings. The reporter slightly prefers this.\n\nChoosing between them, or adopting both, is the main decision. See Open Questions.\n\n**User stories:**\n\n- As a library author, I can write `matplotlib.version_info >= (3, 5)` (Option A) and get the correct result for every release, including 3.10+ and 4.x.\n- As a user, I can find out how to do version checks from the documentation without parsing `__version__` myself.\n\n## Assumptions\n\n1. `matplotlib.__version__` exists today and must keep its current value and type. This change is purely additive.\n2. The attribute name for Option A is `version_info`, mirroring `sys.version_info`. The issue calls this \"pretty common.\"\n3. `version_info` must stay consistent with `__version__` for every build type Matplotlib produces: final releases, release candidates, dev builds, and builds whose version string carries a local or git suffix. The exact formats of these strings are unknown from the issue.\n4. `distutils.LooseVersion` is not an acceptable implementation choice, because `distutils` is deprecated and removed in recent Python versions. If Option B is chosen, an equivalent comparable version object would be needed. Whether a dependency such as `packaging` is available or acceptable is unknown.\n5. Comparisons must not raise for pre-release or dev versions. They must order correctly with respect to the final release.\n6. No change to Matplotlib's plotting behavior or other public API is in scope.\n7. The public attribute should be documented, with an API/what's-new entry. The exact documentation location and process are unknown.\n\n## Tech Stack\n\n- Language: Python. The supported version range is **unknown**.\n- How Matplotlib currently computes `__version__` is **unknown**. It could be a static string, a generated file, or a build-time version tool, and the answer constrains how `version_info` can be derived.\n- Version-parsing dependency: **unknown** whether one is available. This matters for Option B.\n\n## Commands\n\nAll commands are **unknown**. The issue does not provide them.\n\n```\nBuild: UNKNOWN\nTest:  UNKNOWN\nLint:  UNKNOWN\nDocs:  UNKNOWN\n```\n\n## Project Structure\n\n**Unknown.** The issue does not state:\n\n- the file where `matplotlib.__version__` is defined or assigned,\n- where the tests for top-level package attributes live,\n- where API changes and what's-new entries are recorded.\n\nThese must be identified before planning.\n\n## Code Style\n\n**Unknown.** No code from the repository is shown. Follow the existing Matplotlib conventions in the file that defines `__version__`. Intended usage, illustrative only and not implementation:\n\n```python\nimport matplotlib\nif matplotlib.version_info >= (3, 10):   # must be True for 3.10.x, False for 3.9.x\n    ...\n```\n\n## Testing Strategy\n\n- Framework and test locations: **unknown**.\n- Required behaviors to test:\n  - The new attribute is importable from the top-level `matplotlib` namespace.\n  - It is consistent with `__version__`. For example, its leading components equal the parsed major, minor, and micro from `__version__`.\n  - Ordering is correct for these representative versions:\n    - `3.9.0 < 3.10.0`\n    - `3.10.0 < 4.0.0`\n    - `X.Y.0rc1 < X.Y.0`\n    - a dev or pre-release version of X.Y.0 sorts below the X.Y.0 final release\n  - Pre-release, dev, and local-suffix version strings do not raise during parsing or comparison.\n  - The attribute is immutable, or at least a tuple or tuple-like type for Option A.\n- Coverage expectation: every branch of the version-parsing logic is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep `__version__` unchanged.\n  - Derive the new attribute from the same source as `__version__` so they cannot drift.\n  - Add tests and documentation for the new public API.\n- **Ask first:**\n  - Choosing Option A vs. B vs. both.\n  - Adding a new runtime dependency, such as a version-parsing library.\n  - Changing how `__version__` itself is generated.\n  - The exact structure of non-final releases in the tuple.\n- **Never:**\n  - Use the deprecated `distutils.LooseVersion`.\n  - Break or rename existing version attributes.\n  - Make importing `matplotlib` noticeably slower or fail because version parsing failed.\n\n## Success Criteria\n\n1. `import matplotlib; matplotlib.<new_attr>` works on a fresh install with no extra user steps.\n2. For final releases, comparisons against the agreed comparand type are correct. That comparand is tuples for Option A or version strings for Option B. In particular, `3.10 > 3.9` and `4.0 > 3.10`.\n3. Pre-release and dev builds produce a valid value, compare without error, and sort before their corresponding final release.\n4. The value is always consistent with `__version__`, and a test enforces this.\n5. The attribute appears in public documentation with a usage example, and a changelog/what's-new entry exists.\n6. The existing test suite passes. The command for this is unknown.\n\n## Open Questions\n\n1. **Option A, B, or both?** Should we expose a `version_info` tuple (common convention), a comparable version object (reporter's slight preference), or both?\n2. **Tuple shape for Option A.** Should it be `(major, minor, micro)` only, or include release level and serial like `sys.version_info`, e.g. `(3, 10, 0, 'candidate', 1)`? Should it be a named tuple with `.major`, `.minor`, and so on?\n3. **Non-final versions.** How should dev builds and git-local suffixes map into the tuple or object? Should they sort below the next final release?\n4. **Option B implementation.** If a comparable object is wanted, which class should back it, given that `distutils` is unavailable? Is a dependency on a version-parsing library acceptable?\n5. **Source of truth.** Where and how is `__version__` currently computed? Is it static or generated at build time, and can `version_info` be derived at import time or must it be generated alongside it?\n6. **Naming.** Is `version_info` the agreed name? If Option B is chosen, what should that attribute be called?\n7. **Deprecations.** Should any existing internal version-comparison helpers be migrated to the new attribute, or is that out of scope?\n8. **Repository details.** What are the build, test, lint, and docs commands? Which files define `__version__`, and where do tests and changelog entries go?",
+ "ttft_ms": 2112,
+ "type": "result",
+ "duration_ms": 26909,
+ "uuid": "2361c7ad-3af2-4591-8415-da4a0ca3bf1c",
+ "ttft_stream_ms": 986,
+ "time_to_request_ms": 272,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 290,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 986,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

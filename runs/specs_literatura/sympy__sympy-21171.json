@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33838,
+ "stop_reason": "end_turn",
+ "session_id": "72c5901a-5e44-49f6-9aad-0961dbfd0afa",
+ "total_cost_usd": 0.1242511,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 4144,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 4524,
+  "output_tokens_details": {
+   "thinking_tokens": 235
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 4144,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4524,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 4144,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4144
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4351,
+   "outputTokens": 352,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0006111000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 323,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 4524,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 4144,
+   "webSearchRequests": 0,
+   "costUSD": 0.12364,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 235,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn a Jupyter Notebook, displaying the shear force of a `sympy.physics.continuum_mechanics.Beam` raises `TypeError: _print_SingularityFunction() got an unexpected keyword argument 'exp'`. The error happens in the LaTeX printer when IPython tries to render the result. According to the traceback, `LatexPrinter._print_Pow` calls `self._print(expr.base, exp=...)` on a power whose base is a `SingularityFunction`, and `_print_SingularityFunction()` does not accept the `exp` keyword.\n\n## Steps to reproduce\n\n1. Open a Jupyter Notebook.\n2. Run the following cell:\n   ```python\n   from sympy import *\n   from sympy.physics.continuum_mechanics import Beam\n   # Young's modulus\n   E = symbols(\"E\")\n   # length of the beam\n   L = symbols(\"L\")\n   # concentrated load at the end tip of the beam\n   F = symbols(\"F\")\n   # square cross section\n   B, H = symbols(\"B, H\")\n   I = B * H**3 / 12\n   # numerical values (material: steel)\n   d = {B: 1e-02, H: 1e-02, E: 210e09, L: 0.2, F: 100}\n\n   b2 = Beam(L, E, I)\n   b2.apply_load(-F, L / 2, -1)\n   b2.apply_support(0, \"fixed\")\n   R0, M0 = symbols(\"R_0, M_0\")\n   b2.solve_for_reaction_loads(R0, M0)\n   ```\n3. In a new cell, run:\n   ```python\n   b2.shear_force()\n   ```\n\n## Observed behavior\n\nThe output is not rendered. A `TypeError` is raised while IPython's display formatter converts the expression to LaTeX:\n\n```\nTypeError: _print_SingularityFunction() got an unexpected keyword argument 'exp'\n```\n\n## Expected behavior\n\nThe report does not state this explicitly. The implied expectation is that `b2.shear_force()` is displayed as a rendered (LaTeX) expression in the notebook without raising an error.\n\n## Stack trace / error output\n\n```\n---------------------------------------------------------------------------\nTypeError                                 Traceback (most recent call last)\n/usr/local/lib/python3.8/dist-packages/IPython/core/formatters.py in __call__(self, obj)\n    343             method = get_real_method(obj, self.print_method)\n    344             if method is not None:\n--> 345                 return method()\n    346             return None\n    347         else:\n\n/usr/local/lib/python3.8/dist-packages/sympy/interactive/printing.py in _print_latex_png(o)\n    184         \"\"\"\n    185         if _can_print(o):\n--> 186             s = latex(o, mode=latex_mode, **settings)\n    187             if latex_mode == 'plain':\n    188                 s = '$\\\\displaystyle %s$' % s\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in __call__(self, *args, **kwargs)\n    371 \n    372     def __call__(self, *args, **kwargs):\n--> 373         return self.__wrapped__(*args, **kwargs)\n    374 \n    375     @property\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in latex(expr, **settings)\n   2913 \n   2914     \"\"\"\n-> 2915     return LatexPrinter(settings).doprint(expr)\n   2916 \n   2917 \n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in doprint(self, expr)\n    252 \n    253     def doprint(self, expr):\n--> 254         tex = Printer.doprint(self, expr)\n    255 \n    256         if self._settings['mode'] == 'plain':\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in doprint(self, expr)\n    289     def doprint(self, expr):\n    290         \"\"\"Returns printer's representation for expr (as a string)\"\"\"\n--> 291         return self._str(self._print(expr))\n    292 \n    293     def _print(self, expr, **kwargs):\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in _print_Add(self, expr, order)\n    381             else:\n    382                 tex += \" + \"\n--> 383             term_tex = self._print(term)\n    384             if self._needs_add_brackets(term):\n    385                 term_tex = r\"\\left(%s\\right)\" % term_tex\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in _print_Mul(self, expr)\n    565             # use the original expression here, since fraction() may have\n    566             # altered it when producing numer and denom\n--> 567             tex += convert(expr)\n    568 \n    569         else:\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in convert(expr)\n    517                                isinstance(x.base, Quantity)))\n    518 \n--> 519                 return convert_args(args)\n    520 \n    521         def convert_args(args):\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in convert_args(args)\n    523 \n    524                 for i, term in enumerate(args):\n--> 525                     term_tex = self._print(term)\n    526 \n    527                     if self._needs_mul_brackets(term, first=(i == 0),\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in _print_Add(self, expr, order)\n    381             else:\n    382                 tex += \" + \"\n--> 383             term_tex = self._print(term)\n    384             if self._needs_add_brackets(term):\n    385                 term_tex = r\"\\left(%s\\right)\" % term_tex\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in _print_Mul(self, expr)\n    569         else:\n    570             snumer = convert(numer)\n--> 571             sdenom = convert(denom)\n    572             ldenom = len(sdenom.split())\n    573             ratio = self._settings['long_frac_ratio']\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in convert(expr)\n    505         def convert(expr):\n    506             if not expr.is_Mul:\n--> 507                 return str(self._print(expr))\n    508             else:\n    509                 if self.order not in ('old', 'none'):\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in _print_Add(self, expr, order)\n    381             else:\n    382                 tex += \" + \"\n--> 383             term_tex = self._print(term)\n    384             if self._needs_add_brackets(term):\n    385                 term_tex = r\"\\left(%s\\right)\" % term_tex\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/latex.py in _print_Pow(self, expr)\n    649         else:\n    650             if expr.base.is_Function:\n--> 651                 return self._print(expr.base, exp=self._print(expr.exp))\n    652             else:\n    653                 tex = r\"%s^{%s}\"\n\n/usr/local/lib/python3.8/dist-packages/sympy/printing/printer.py in _print(self, expr, **kwargs)\n    327                 printmethod = '_print_' + cls.__name__\n    328                 if hasattr(self, printmethod):\n--> 329                     return getattr(self, printmethod)(expr, **kwargs)\n    330             # Unknown object, fall back to the emptyPrinter.\n    331             return self.emptyPrinter(expr)\n\nTypeError: _print_SingularityFunction() got an unexpected keyword argument 'exp'\n```\n\n## Test case\n\nThe traceback shows that the failure happens inside `latex()`, which IPython calls when it displays the result. The following test is derived from the report's snippet. It should exercise the same code path outside a notebook, but it was not run as part of the original report:\n\n```python\nfrom sympy import symbols, latex\nfrom sympy.physics.continuum_mechanics import Beam\n\ndef test_latex_beam_shear_force():\n    E, L, F, B, H = symbols(\"E L F B H\")\n    I = B * H**3 / 12\n    b2 = Beam(L, E, I)\n    b2.apply_load(-F, L / 2, -1)\n    b2.apply_support(0, \"fixed\")\n    R0, M0 = symbols(\"R_0, M_0\")\n    b2.solve_for_reaction_loads(R0, M0)\n    # Raises: TypeError: _print_SingularityFunction() got an unexpected keyword argument 'exp'\n    latex(b2.shear_force())\n```\n\n## Code example\n\n```python\nfrom sympy import *\nfrom sympy.physics.continuum_mechanics import Beam\n\nE = symbols(\"E\")\nL = symbols(\"L\")\nF = symbols(\"F\")\nB, H = symbols(\"B, H\")\nI = B * H**3 / 12\n\nb2 = Beam(L, E, I)\nb2.apply_load(-F, L / 2, -1)\nb2.apply_support(0, \"fixed\")\nR0, M0 = symbols(\"R_0, M_0\")\nb2.solve_for_reaction_loads(R0, M0)\n\nb2.shear_force()   # displaying this in Jupyter raises the TypeError\n```\n\n(The original snippet also defines `d = {B: 1e-02, H: 1e-02, E: 210e09, L: 0.2, F: 100}`, but that dictionary is not used in the failing steps.)\n\n## Version and environment\n\n- Jupyter Notebook (IPython display formatter, LaTeX/PNG rendering via `sympy.interactive.printing`)\n- Python 3.8, as shown by the paths `/usr/local/lib/python3.8/dist-packages/` in the traceback\n- SymPy version: Not provided in the original report.\n- Operating system: Not provided in the original report.",
+ "ttft_ms": 3735,
+ "type": "result",
+ "duration_ms": 32116,
+ "uuid": "c3a404ad-adee-425a-b81e-2c2a380d51e5",
+ "ttft_stream_ms": 1276,
+ "time_to_request_ms": 339,
+ "time_to_request_phases_ms": {
+  "other": 27,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 5,
+  "input_attachments": 52,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 17,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 4,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 436,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "nested_memory",
+  "slowest_producer_ms": 27,
+  "cpu_ms": 82,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1277,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

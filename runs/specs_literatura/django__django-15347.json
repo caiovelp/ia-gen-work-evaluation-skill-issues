@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11260,
+ "stop_reason": "end_turn",
+ "session_id": "7adcff33-43a3-4422-99d1-086334f8ee5b",
+ "total_cost_usd": 0.03526370000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1435,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1180,
+  "output_tokens_details": {
+   "thinking_tokens": 134
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1435,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1180,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1435,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1435
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1642,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017570000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1180,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1435,
+   "webSearchRequests": 0,
+   "costUSD": 0.03508800000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 134,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn the Django messages framework, a message created with `extra_tags=\"\"` comes back with `extra_tags=None` after it is serialized and deserialized. The report says this happens with any of the built-in storage backends. According to the reporter, the cause is that `MessageEncoder` checks whether `extra_tags` is truthy rather than whether it is not `None`.\n\nThis affects the standard API, because `messages.debug`, `messages.info`, etc. all default to `extra_tags=\"\"`.\n\n## Steps to reproduce\n\n1. Start a Python shell with Django available.\n2. Configure settings so the messages module can be imported:\n   ```python\n   from django.conf import settings\n   settings.configure()\n   ```\n3. Import `Message`, `MessageEncoder` and `MessageDecoder`:\n   ```python\n   from django.contrib.messages.storage.base import Message\n   from django.contrib.messages.storage.cookie import MessageEncoder, MessageDecoder\n   ```\n4. Create a message with `extra_tags=\"\"`:\n   ```python\n   original_message = Message(10, \"Here is a message\", extra_tags=\"\")\n   ```\n5. Encode it, then decode it:\n   ```python\n   encoded_message = MessageEncoder().encode(original_message)\n   decoded_message = MessageDecoder().decode(encoded_message)\n   ```\n6. Compare `extra_tags` on the original and decoded messages.\n\n## Observed behavior\n\n```python\n>>> original_message.extra_tags == \"\"\nTrue\n>>> decoded_message.extra_tags is None\nTrue\n```\n\nThe decoded message has `extra_tags` set to `None` instead of `\"\"`.\n\nIn a real application, a message shown after a redirect had been serialized and deserialized, so its `extra_tags` was `None`. A template tag like `{% if x not in message.extra_tags %}` then raised an error.\n\n## Expected behavior\n\n`extra_tags` should survive serialization and deserialization unchanged. A message created with `extra_tags=\"\"` should still have `extra_tags == \"\"` after decoding.\n\n## Stack trace / error output\n\nNot provided in the original report. The report says the template tag \"caused an error\" but does not include the error message or traceback.\n\n## Test case\n\nA minimal test case based on the reproduction in the report:\n\n```python\nfrom django.conf import settings\nsettings.configure()\n\nfrom django.contrib.messages.storage.base import Message\nfrom django.contrib.messages.storage.cookie import MessageEncoder, MessageDecoder\n\noriginal_message = Message(10, \"Here is a message\", extra_tags=\"\")\nencoded_message = MessageEncoder().encode(original_message)\ndecoded_message = MessageDecoder().decode(encoded_message)\n\nassert original_message.extra_tags == \"\"\nassert decoded_message.extra_tags == \"\"  # Fails: decoded_message.extra_tags is None\n```\n\n## Code example\n\nThe template code that failed in production (as described by the reporter, \"similar to the following\"):\n\n```django\n{% if x not in message.extra_tags %}\n```\n\nWhen the message was displayed after a redirect, `message.extra_tags` was `None` instead of `\"\"`, and this caused an error.\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 2905,
+ "type": "result",
+ "duration_ms": 10465,
+ "uuid": "85dd76cc-486b-4452-a795-878c961ecaed",
+ "ttft_stream_ms": 1501,
+ "time_to_request_ms": 265,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 17,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 196,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 4,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 26,
+ "time_to_request_cpu_ms": 254,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 12,
+  "cpu_ms": 33,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1501,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

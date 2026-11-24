@@ -1,0 +1,30 @@
+diff --git a/app/models/enrollment_hold.rb b/app/models/enrollment_hold.rb
+index ba6719c1..8a083f37 100644
+--- a/app/models/enrollment_hold.rb
++++ b/app/models/enrollment_hold.rb
+@@ -18,6 +18,7 @@ class EnrollmentHold < ApplicationRecord
+   validate :validate_dates
+ 
+   after_commit :create_phase_completions
++  after_create :cancel_class_enrollments
+ 
+   def to_label
+     "#{date_label} - #{number_label}"
+@@ -61,4 +62,17 @@ class EnrollmentHold < ApplicationRecord
+   def create_phase_completions
+     enrollment.create_phase_completions
+   end
++
++  # Cancels (removes) the registered class enrollments of the held semesters
++  def cancel_class_enrollments
++    first = YearSemester.new(year: year, semester: semester)
++    number_of_semesters.times do |i|
++      ys = first + i
++      enrollment.class_enrollments
++        .joins(:course_class)
++        .where(situation: ClassEnrollment::REGISTERED)
++        .where(course_classes: { year: ys.year, semester: ys.semester })
++        .each(&:destroy)
++    end
++  end
+ end

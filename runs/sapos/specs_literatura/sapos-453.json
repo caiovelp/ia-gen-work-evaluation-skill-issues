@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 7271,
+ "stop_reason": "end_turn",
+ "session_id": "53403e88-c403-48e8-8628-a5c52a34c2d5",
+ "total_cost_usd": 0.0240154,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1210,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 709,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1210,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 709,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1210,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1210
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1359,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001474,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 709,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1210,
+   "webSearchRequests": 0,
+   "costUSD": 0.023868,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1210,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nNas telas que permitem editar o trancamento, a combo de sele\u00e7\u00e3o do ano de trancamento s\u00f3 oferece os 5 anos anteriores ao ano atual. Assim, n\u00e3o \u00e9 poss\u00edvel escolher anos mais antigos. Al\u00e9m disso, ao editar um trancamento j\u00e1 existente cujo ano \u00e9 anterior a esse intervalo, a combo de ano aparece em branco e n\u00e3o permite selecionar novamente o ano que estava cadastrado.\n\n## Passos para reproduzir\n1. Acessar uma tela que permite editar o trancamento.\n2. Abrir a combo de sele\u00e7\u00e3o do ano de trancamento e verificar os anos dispon\u00edveis.\n3. Editar um trancamento j\u00e1 existente cujo ano cadastrado seja anterior aos 5 anos que antecedem o ano atual.\n4. Observar o valor exibido na combo de ano.\n\n(A issue original n\u00e3o identifica quais telas espec\u00edficas apresentam o problema.)\n\n## Comportamento observado\n- A combo de ano lista apenas os 5 anos anteriores ao ano atual, e n\u00e3o \u00e9 poss\u00edvel escolher anos mais antigos.\n- Ao editar um trancamento existente com ano anterior a esse intervalo, a combo de ano fica em branco e o ano cadastrado n\u00e3o pode ser selecionado novamente.\n\n## Comportamento esperado\nA issue original n\u00e3o descreve o comportamento esperado de forma expl\u00edcita. Pelo relato, espera-se que:\n- seja poss\u00edvel selecionar anos anteriores ao limite de 5 anos;\n- ao editar um trancamento existente, a combo de ano exiba e permita manter o ano que j\u00e1 estava cadastrado.\n\n## Stack trace / sa\u00edda de erro\nN\u00e3o informado na issue original.\n\n## Caso de teste\nN\u00e3o informado na issue original.\n\nUm caso de teste derivado do relato seria: editar um trancamento cujo ano cadastrado seja anterior aos 5 anos que antecedem o ano atual e verificar se a combo de ano exibe esse ano j\u00e1 selecionado e permite mant\u00ea-lo.\n\n## Exemplo de c\u00f3digo\nN\u00e3o informado na issue original.\n\n## Vers\u00e3o e ambiente\nN\u00e3o informado na issue original.",
+ "ttft_ms": 6888,
+ "type": "result",
+ "duration_ms": 6971,
+ "uuid": "9a2b709c-81d4-4dd8-b027-6d826662653b",
+ "ttft_stream_ms": 1199,
+ "time_to_request_ms": 467,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 3,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 20,
+  "input_hooks": 5,
+  "conversation_append": 0,
+  "tool_pool_refresh": 4,
+  "init_message": 25,
+  "init_frame_send": 11,
+  "engine_pickup": 5,
+  "loop_entry": 12,
+  "message_prep": 3,
+  "model_config_wait": 328,
+  "autocompact": 5,
+  "request_announcements": 14,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 85,
+ "time_to_request_cpu_ms": 550,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 26,
+  "major_faults": 0,
+  "setup_ms": 1,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 8,
+  "ambient_wait_ms": 5,
+  "render_ms": 2,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 2,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 2,
+  "headers_ms": 0,
+  "cache_break_record_ms": 1,
+  "plans_ms": 2,
+  "retry_setup_ms": 1,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 1,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1199,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

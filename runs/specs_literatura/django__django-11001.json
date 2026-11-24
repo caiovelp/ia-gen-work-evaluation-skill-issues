@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 17509,
+ "stop_reason": "end_turn",
+ "session_id": "0c3355c1-f79f-4332-9e13-ec2bdd047526",
+ "total_cost_usd": 0.050431699999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1769,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1803,
+  "output_tokens_details": {
+   "thinking_tokens": 399
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1769,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1803,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1769,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1769
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1977,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002117,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1803,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1769,
+   "webSearchRequests": 0,
+   "costUSD": 0.050219999999999994,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 399,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`SQLCompiler.get_order_by()` drops an `order_by()` expression when several multiline `RawSQL` expressions share the same last line. To detect duplicate ordering clauses, the compiler runs the `self.ordering_parts` regular expression over the compiled SQL:\n\n```python\nwithout_ordering = self.ordering_parts.search(sql).group(1)\n```\n\nWhen `sql` spans multiple lines, the regex returns only the last line, the one containing `ASC`/`DESC`. That line is added to the `seen` set. Any later ordering expression whose last line is identical is then treated as a duplicate and removed, even though the full SQL expressions are different.\n\n## Steps to reproduce\n\n1. Define a model (`MyModel`) with the fields `status`, `accepted_datetime`, `preferred_datetime` and `created_at`.\n2. Build a queryset ordered by three multiline `RawSQL` expressions, where the second and third expressions end with the same line (`else null end`):\n   ```python\n   MyModel.objects.all().order_by(\n       RawSQL('''\n           case when status in ('accepted', 'verification')\n                then 2 else 1 end''', []).desc(),\n       RawSQL('''\n           case when status in ('accepted', 'verification')\n                then (accepted_datetime, preferred_datetime)\n                else null end''', []).asc(),\n       RawSQL('''\n           case when status not in ('accepted', 'verification')\n                then (accepted_datetime, preferred_datetime, created_at)\n                else null end''', []).desc())\n   ```\n3. Compile or execute the query and inspect the generated `ORDER BY` clause.\n\n## Observed behavior\n\n`self.ordering_parts.search(sql).group(1)` returns only the last line of each expression:\n\n```\n'\t\t\t\t then 2 else 1 end)'\n'\t\t\t\t else null end'\n'\t\t\t\t else null end'\n```\n\nThe second and third expressions produce the same string, so they are treated as duplicates. Only one of them makes it into the `ORDER BY` clause, so one ordering clause is silently dropped. The reporter describes the second `RawSQL` (the one ending in `else null end`) as the one removed from the query.\n\nThe problem goes away if a space or any other character is added to the last line of one of the expressions, so that the last lines differ. Because of this, duplicate detection in the `ORDER BY` clause only works correctly in special cases. It compares only the last line of the SQL, not the whole expression.\n\n## Expected behavior\n\nAll three ordering expressions appear in the generated `ORDER BY` clause. Ordering expressions should be treated as duplicates only when the whole expression is the same, not when they just share the same last line.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the ordering clause is silently omitted.\n\n## Test case\n\nThis minimal test case is derived from the reproduction snippet in the report:\n\n```python\nqs = MyModel.objects.all().order_by(\n    RawSQL('''\n        case when status in ('accepted', 'verification')\n             then 2 else 1 end''', []).desc(),\n    RawSQL('''\n        case when status in ('accepted', 'verification')\n             then (accepted_datetime, preferred_datetime)\n             else null end''', []).asc(),\n    RawSQL('''\n        case when status not in ('accepted', 'verification')\n             then (accepted_datetime, preferred_datetime, created_at)\n             else null end''', []).desc())\n```\n\nAssert that the compiled `ORDER BY` clause of `qs` contains all three `RawSQL` expressions: one `DESC`, one `ASC`, and one `DESC`. With the current behavior, one of the two expressions ending in `else null end` is missing.\n\n## Code example\n\nThe relevant line in `SQLCompiler.get_order_by()`, as cited in the report:\n\n```python\nwithout_ordering = self.ordering_parts.search(sql).group(1)\n```\n\nHere `sql` contains multiline SQL. The `without_ordering` value, which is only the last line, is the value added to the `seen` set.\n\n## Version and environment\n\nNot provided in the original report. No Django, Python or database versions are given. The reporter notes that Py2.x unicode strings and `\\r` line endings may also be relevant to this code path.",
+ "ttft_ms": 5857,
+ "type": "result",
+ "duration_ms": 17060,
+ "uuid": "36ca08e6-edb0-4d7f-8824-3c9edbd4396f",
+ "ttft_stream_ms": 1388,
+ "time_to_request_ms": 247,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 207,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1388,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

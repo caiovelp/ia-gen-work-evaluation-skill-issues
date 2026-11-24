@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21665,
+ "stop_reason": "end_turn",
+ "session_id": "234f7634-088e-40a4-8127-a0b77270b48b",
+ "total_cost_usd": 0.048789,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 816,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2062,
+  "output_tokens_details": {
+   "thinking_tokens": 81
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 816,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2062,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 816,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 816
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1407,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015020000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2062,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 816,
+   "webSearchRequests": 0,
+   "costUSD": 0.048638799999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 81,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct Expected Format in the Invalid DurationField Error Message\n\n## Objective\n\nWhen a user enters an invalid value into a `DurationField`, the validation error message shows the expected input format. That format is wrong.\n\n- **Current message format:** `[DD] [HH:[MM:]]ss[.uuuuuu]`\n- **Actual parsing behaviour:**\n  - Seconds are mandatory.\n  - Minutes are optional.\n  - Hours are allowed only when minutes are present.\n  - For example, `\"14:00\"` parses as `00:14:00`, which is 14 minutes, not 14 hours.\n- **Correct format:** `[DD] [[HH:]MM:]ss[.uuuuuu]`\n\nThe message misleads users about how their input will be read. The issue says this mistake exists in every Django version that supports `DurationField`.\n\n**Users:**\n- End users who submit forms or admin pages containing duration inputs.\n- Developers who depend on Django's built-in validation messages.\n\n**Primary user story:** As a user who enters an invalid duration, I see an error message whose format matches how Django actually parses durations, so I can correct my input.\n\n**Secondary, proposed in the issue:** Duration fields could have a default `help_text` showing the expected format, because the syntax is not self-explanatory. This is a separate behavioural change and is not yet in scope (see Open Questions).\n\n## Assumptions\n\n1. The message to fix is the `invalid` error message of the model-level `DurationField`. The issue says \"invalid DurationField error message\" without naming the model field or the form field.\n2. The parser's current behaviour is correct and must not change. Only the documented format in the message changes.\n3. The corrected string is exactly `[DD] [[HH:]MM:]ss[.uuuuuu]`, as written in the issue.\n4. The message is a translatable string. Changing its source text will invalidate existing translations for it. Translation catalogs are refreshed through Django's normal translation process, not edited by hand in this change.\n5. The fix targets the main development branch. Backporting is a separate decision for the maintainers.\n6. Any tests that assert the exact text of the old message must be updated to the new text.\n\n## Tech Stack\n\n- Python and Django. The exact versions are not stated in the issue and are **unknown**.\n- Component: `DurationField`. Whether this means the model field, the form field, or both is unconfirmed.\n\n## Commands\n\nNot given in the issue; all **unknown**.\n\n- Build: unknown\n- Test: unknown (Django's own test runner is presumably used, but the exact command is not visible)\n- Lint: unknown\n\n## Project Structure\n\nNot visible from the issue; all **unknown**.\n\n- Location of the `DurationField` definition and its `default_error_messages`: unknown\n- Location of the duration parsing logic: unknown\n- Location of tests covering `DurationField` validation messages: unknown\n- Location of documentation that may repeat the format string: unknown\n- Location of translation catalogs: unknown\n\n## Code Style\n\n- No code is visible.\n- Follow the existing conventions of the surrounding code.\n- Keep the message wrapped in the same translation mechanism it already uses.\n- Keep the existing placeholder and interpolation style unchanged; only the format substring changes.\n\n## Testing Strategy\n\n- **Framework and test locations:** unknown.\n- **Unit level:**\n  - Validating an invalid duration value on `DurationField` raises a `ValidationError`.\n  - The message of that error contains `[DD] [[HH:]MM:]ss[.uuuuuu]`.\n  - The message does not contain `[DD] [HH:[MM:]]ss[.uuuuuu]`.\n- **Regression:**\n  - Existing parsing tests still pass, confirming the parser is untouched.\n  - In particular, `\"14:00\"` still parses as 14 minutes.\n- **Coverage expectation:** every changed message string is asserted by at least one test.\n\n## Boundaries\n\n**Always:**\n- Keep the message translatable.\n- Update every test and documentation occurrence of the old format string.\n- Run the relevant test suite before committing.\n\n**Ask first:**\n- Changing the form-level `DurationField` message, if it differs from the model-level one.\n- Adding a default `help_text` to duration fields.\n- Backporting to stable branches.\n- Editing translation catalogs directly.\n\n**Never:**\n- Change the parsing behaviour to match the old message.\n- Remove or weaken existing duration parsing tests.\n- Change the message's interpolation placeholders.\n\n## Success Criteria\n\n1. The invalid-value error message for `DurationField` states the format `[DD] [[HH:]MM:]ss[.uuuuuu]`.\n2. The string `[DD] [HH:[MM:]]ss[.uuuuuu]` no longer appears anywhere in the codebase or documentation.\n3. A test asserts the corrected format in the error message.\n4. Duration parsing behaviour is unchanged, and all existing parsing tests pass.\n5. The message is still marked for translation.\n\n## Open Questions\n\n1. **Which field?** Does the fix apply to the model `DurationField`, the form `DurationField`, or both? Does the form field currently show any format in its error message?\n2. **Default `help_text`:** Should duration fields get a default `help_text` showing the format?\n   - If yes, should that be a separate ticket?\n   - It changes rendered output for every existing form, which is a backwards-compatibility concern.\n3. **Other locations:** Does the format string appear in other places, such as documentation or release notes, that must also be updated?\n4. **Alternate input formats:** The parser may accept other formats, such as ISO 8601 or PostgreSQL interval strings. Should the message mention them, or only the primary format?\n5. **Backporting:** Should the fix go to supported stable branches, given it invalidates existing translations? Or should it land only on the development branch?\n6. **Release note:** Is a release note required for a corrected user-facing message?",
+ "ttft_ms": 2073,
+ "type": "result",
+ "duration_ms": 21087,
+ "uuid": "1a03c76c-2033-44b4-889f-118ea8a67f1d",
+ "ttft_stream_ms": 1295,
+ "time_to_request_ms": 293,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 236,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 33,
+ "time_to_request_cpu_ms": 238,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1296,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

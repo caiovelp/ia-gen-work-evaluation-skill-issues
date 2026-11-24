@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22007,
+ "stop_reason": "end_turn",
+ "session_id": "b28315af-38ff-4385-bf04-d2839d38b580",
+ "total_cost_usd": 0.07688099999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2669,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2761,
+  "output_tokens_details": {
+   "thinking_tokens": 200
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2669,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2761,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2669,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2669
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2880,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000301,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2761,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2669,
+   "webSearchRequests": 0,
+   "costUSD": 0.07658,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 200,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn Matplotlib 3.6.3, replacing the norm of a mappable with a `LogNorm` after a colorbar has been attached raises `ValueError: Invalid vmin or vmax` on the next draw. This pattern is common in interactive code. The same code worked in Matplotlib 3.6.2, so this is a regression.\n\nThe reporter notes that `vmin` and `vmax` are explicitly set to values valid for `LogNorm` (1 and 5). The input data has no negative or zero values (it is drawn uniformly from [1, 5)).\n\n## Steps to reproduce\n\n1. Use Matplotlib 3.6.3. The reporter reproduced this with Qt5Agg, TkAgg and agg.\n2. Create a 25\u00d725 array of random values uniformly drawn from [1, 5) with `np.random.default_rng(0)`.\n3. Create a figure with `layout=\"constrained\"` and plot the array with `ax.pcolormesh(img)`.\n4. Add a colorbar for the mesh with `fig.colorbar(plot, ax=ax)`.\n5. Turn on interactive mode (`plt.ion()`), show the figure (`fig.show()`) and call `plt.pause(0.5)`.\n6. Set `plot.norm = LogNorm(1, 5)`.\n7. Call `plot.autoscale()`.\n8. Call `plt.pause(0.5)` to trigger a redraw.\n9. The redraw fails with `ValueError: Invalid vmin or vmax`.\n\n## Observed behavior\n\nWhen the figure is redrawn after the norm change, `LogNorm.__call__` raises `ValueError: Invalid vmin or vmax`. The error comes from `update_scalarmappable` \u2192 `to_rgba` \u2192 `self.norm(x)` while the `QuadMesh` is being drawn. The mappable and colorbar are not updated with the new norm.\n\n## Expected behavior\n\nSetting the new norm should work, as it did in Matplotlib 3.6.2. Both the colorbar and the mappable should update to use the new `LogNorm`.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/backends/backend_qt.py\", line 454, in _draw_idle\n    self.draw()\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/backends/backend_agg.py\", line 405, in draw\n    self.figure.draw(self.renderer)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/artist.py\", line 74, in draw_wrapper\n    result = draw(artist, renderer, *args, **kwargs)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/figure.py\", line 3082, in draw\n    mimage._draw_list_compositing_images(\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/image.py\", line 131, in _draw_list_compositing_images\n    a.draw(renderer)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/axes/_base.py\", line 3100, in draw\n    mimage._draw_list_compositing_images(\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/image.py\", line 131, in _draw_list_compositing_images\n    a.draw(renderer)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/collections.py\", line 2148, in draw\n    self.update_scalarmappable()\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/collections.py\", line 891, in update_scalarmappable\n    self._mapped_colors = self.to_rgba(self._A, self._alpha)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/cm.py\", line 511, in to_rgba\n    x = self.norm(x)\n  File \"/home/mnoethe/.local/conda/envs/cta-dev/lib/python3.9/site-packages/matplotlib/colors.py\", line 1694, in __call__\n    raise ValueError(\"Invalid vmin or vmax\")\nValueError: Invalid vmin or vmax\n```\n\n## Test case\n\nThis test case is derived directly from the reproduction code in the report and uses the same calls. It fails on 3.6.3 with the error above and is expected to pass, as it did on 3.6.2.\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib.colors import LogNorm\nimport numpy as np\n\n\ndef test_set_lognorm_after_colorbar_created():\n    rng = np.random.default_rng(0)\n    img = rng.uniform(1, 5, (25, 25))\n\n    fig, ax = plt.subplots(layout=\"constrained\")\n    plot = ax.pcolormesh(img)\n    cbar = fig.colorbar(plot, ax=ax)\n\n    vmin = 1\n    vmax = 5\n\n    plt.ion()\n    fig.show()\n    plt.pause(0.5)\n\n    plot.norm = LogNorm(vmin, vmax)\n    plot.autoscale()\n    plt.pause(0.5)  # 3.6.3: ValueError: Invalid vmin or vmax\n```\n\n## Code example\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib.colors import LogNorm\nimport numpy as np\n\n# create some random data to fill a 2d plot\nrng = np.random.default_rng(0)\nimg = rng.uniform(1, 5, (25, 25))\n\n# plot it\nfig, ax = plt.subplots(layout=\"constrained\")\nplot = ax.pcolormesh(img)\ncbar = fig.colorbar(plot, ax=ax)\n\nvmin = 1\nvmax = 5\n\nplt.ion()\nfig.show()\nplt.pause(0.5)\n\nplot.norm = LogNorm(vmin, vmax)\nplot.autoscale()\nplt.pause(0.5)\n```\n\n## Version and environment\n\n- **Matplotlib version:** 3.6.3 (fails); 3.6.2 (works)\n- **Backend:** Multiple backends tested, same error in all (Qt5Agg, TkAgg, agg, ...)\n- **Python version:** 3.9.15\n- **Operating system:** Linux\n- **Jupyter:** Not used\n- **Installation:** conda",
+ "ttft_ms": 3864,
+ "type": "result",
+ "duration_ms": 21867,
+ "uuid": "3ff364aa-a89b-4c8c-9f33-395b684e6fd5",
+ "ttft_stream_ms": 1705,
+ "time_to_request_ms": 569,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 520,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 250,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1705,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

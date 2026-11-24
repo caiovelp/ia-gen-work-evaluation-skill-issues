@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10524,
+ "stop_reason": "end_turn",
+ "session_id": "ba3c377e-f170-444e-8e6b-f4d1de927e75",
+ "total_cost_usd": 0.0345744,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1651,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1058,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1651,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1058,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1651,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1651
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1859,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019840000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1058,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1651,
+   "webSearchRequests": 0,
+   "costUSD": 0.034376,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn Matplotlib, a `RangeSlider` `on_changed` callback that calls `pyplot.clf()`, adds new widgets and then calls `pyplot.draw()` leaves every widget in the figure unable to receive input. The same sequence in a `Button` `on_clicked` callback works fine.\n\n## Steps to reproduce\n\n1. Run the script in the \"Code example\" section. It creates a figure with a `RangeSlider` and a `Button`. Each widget's callback clears the figure (`pyplot.clf()`), re-creates both widgets (`addElements()`) and redraws (`pyplot.draw()`).\n2. Click the **Button**. The figure is cleared and redrawn, and the widgets still respond to mouse input.\n3. Drag or click the **RangeSlider** so its `on_changed` callback fires. The figure is cleared and redrawn.\n4. Try to click either of the newly created widgets (slider or button).\n\n## Observed behavior\n\nAfter the figure is redrawn from the `RangeSlider` `on_changed` callback, no widget in the figure receives mouse clicks.\n\nWhen the figure is redrawn from the `Button` `on_clicked` callback, there is no problem.\n\n## Expected behavior\n\nThe `RangeSlider` `on_changed` callback should behave the same as the `Button` `on_clicked` callback. After clearing and redrawing the figure, the newly created widgets should keep responding to mouse input.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report. The reproduction script under \"Code example\" serves as a manual (interactive) reproduction.\n\n## Code example\n\n```python\nimport matplotlib.pyplot as pyplot\nimport matplotlib.widgets as widgets\n\ndef onchanged(values):\n    print(\"on changed\")\n    print(values)\n    pyplot.clf()\n    addElements()\n    pyplot.draw()\n\ndef onclick(e):\n    print(\"on click\")\n    pyplot.clf()\n    addElements()\n    pyplot.draw()\n\ndef addElements():\n    ax = pyplot.axes([0.1, 0.45, 0.8, 0.1])\n    global slider\n    slider = widgets.RangeSlider(ax, \"Test\", valmin=1, valmax=10, valinit=(1, 10))\n    slider.on_changed(onchanged)\n    ax = pyplot.axes([0.1, 0.30, 0.8, 0.1])\n    global button\n    button = widgets.Button(ax, \"Test\")\n    button.on_clicked(onclick)\n\naddElements()\n\npyplot.show()\n```\n\n## Version and environment\n\n**Primary environment:**\n- Operating system: Windows 10\n- Matplotlib version: 3.6.2\n- Matplotlib backend: TkAgg\n- Python version: 3.11.0\n- Installation: pip\n- Jupyter version: not provided\n\n**Also reproduced on:**\n- Operating system: Manjaro Linux\n- Matplotlib version: 3.6.2\n- Matplotlib backend: QtAgg\n- Python version: 3.10.9\n- Installation: Linux package manager\n\nThe bug therefore occurs with both the TkAgg and QtAgg backends.",
+ "ttft_ms": 9497,
+ "type": "result",
+ "duration_ms": 9525,
+ "uuid": "7e2ddc2c-cd30-4319-85ba-fe9bb24c94b6",
+ "ttft_stream_ms": 1332,
+ "time_to_request_ms": 237,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 203,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 121,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1332,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

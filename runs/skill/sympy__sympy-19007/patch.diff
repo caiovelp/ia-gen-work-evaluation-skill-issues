@@ -1,0 +1,38 @@
+diff --git a/sympy/matrices/expressions/blockmatrix.py b/sympy/matrices/expressions/blockmatrix.py
+index b821c42845..99635fa407 100755
+--- a/sympy/matrices/expressions/blockmatrix.py
++++ b/sympy/matrices/expressions/blockmatrix.py
+@@ -233,17 +233,27 @@ def transpose(self):
+         return self._eval_transpose()
+ 
+     def _entry(self, i, j, **kwargs):
++        from sympy.matrices.expressions.matexpr import MatrixElement
++        orig_i, orig_j = i, j
+         # Find row entry
+         for row_block, numrows in enumerate(self.rowblocksizes):
+-            if (i < numrows) != False:
++            if row_block == len(self.rowblocksizes) - 1:
+                 break
+-            else:
+-                i -= numrows
++            cmp = i < numrows
++            if cmp == True:
++                break
++            elif cmp != False:
++                return MatrixElement(self, orig_i, orig_j)
++            i -= numrows
+         for col_block, numcols in enumerate(self.colblocksizes):
+-            if (j < numcols) != False:
++            if col_block == len(self.colblocksizes) - 1:
++                break
++            cmp = j < numcols
++            if cmp == True:
+                 break
+-            else:
+-                j -= numcols
++            elif cmp != False:
++                return MatrixElement(self, orig_i, orig_j)
++            j -= numcols
+         return self.blocks[row_block, col_block][i, j]
+ 
+     @property

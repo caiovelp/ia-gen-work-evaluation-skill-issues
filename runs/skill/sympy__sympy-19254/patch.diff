@@ -1,0 +1,44 @@
+diff --git a/sympy/polys/factortools.py b/sympy/polys/factortools.py
+index 93298f47e6..523fbb9142 100755
+--- a/sympy/polys/factortools.py
++++ b/sympy/polys/factortools.py
+@@ -124,12 +124,34 @@ def dmp_trial_division(f, factors, u, K):
+ 
+ 
+ def dup_zz_mignotte_bound(f, K):
+-    """Mignotte bound for univariate polynomials in `K[x]`. """
+-    a = dup_max_norm(f, K)
+-    b = abs(dup_LC(f, K))
+-    n = dup_degree(f)
++    """
++    Knuth-Cohen bound for univariate polynomials in `K[x]`.
+ 
+-    return K.sqrt(K(n + 1))*2**n*a*b
++    References
++    ==========
++
++    .. [1] D. Knuth, The Art of Computer Programming, vol. 2.
++    .. [2] H. Cohen, A Course in Computational Algebraic Number Theory.
++    """
++    from sympy.functions.combinatorial.factorials import binomial
++    from sympy.core.power import integer_nthroot
++
++    d = dup_degree(f)
++    delta = (d + 1)//2
++    delta2 = (delta + 1)//2
++
++    # Euclidean norm, rounded up to an integer
++    sq = sum(int(cf)**2 for cf in f)
++    r, exact = integer_nthroot(sq, 2)
++    eucl_norm = r if exact else r + 1
++
++    t1 = int(binomial(delta - 1, delta2)) if delta >= 1 else 0
++    t2 = int(binomial(delta - 1, delta2 - 1)) if delta >= 1 and delta2 >= 1 else 0
++    lc = abs(int(dup_LC(f, K)))
++
++    bound = t1*eucl_norm + t2*lc + int(dup_max_norm(f, K))
++    bound = -(-bound//2)*2  # round up to even integer
++    return K(bound)
+ 
+ 
+ def dmp_zz_mignotte_bound(f, u, K):

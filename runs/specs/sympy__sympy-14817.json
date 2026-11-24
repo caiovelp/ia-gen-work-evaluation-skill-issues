@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33195,
+ "stop_reason": "end_turn",
+ "session_id": "d07bfd24-d82d-47fa-80ee-a140b8cfe61d",
+ "total_cost_usd": 0.07618829999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1396,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3197,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1396,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3197,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1396,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1396
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1980,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020950000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3197,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1396,
+   "webSearchRequests": 0,
+   "costUSD": 0.07597879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Robust Pretty Printing of `MatAdd` (no `sympify` of matrix arguments)\n\n## Assumptions\n\n1. The project is SymPy and the affected code is `_print_MatAdd` in `sympy/printing/pretty/pretty.py`, around line 828 as the traceback shows. Line numbers may have drifted since the report.\n2. The bug comes from `S(item.args[0])` (that is, `sympify`) being applied to the first argument of each `MatAdd` term.\n   - For a bare `MatrixSymbol`, `args[0]` is the name string (`'y*'`).\n   - That string gets parsed as code and fails.\n3. The intent of the check seems to be this: when a term is a negated matrix expression such as `-x`, i.e. `MatMul(-1, x)`, print it as `x - y` instead of `x + -y`. When that term is not the first term, the printer leaves out the explicit `+` separator.\n4. Other printers (str, LaTeX, possibly others) may contain similar logic for `MatAdd`. The issue only reports the pretty printer.\n5. `MatrixSymbol` names may legitimately contain characters that are not valid Python or SymPy syntax, such as `*`, spaces or punctuation. Printers must treat names as opaque strings.\n6. Python 3 is in use (the traceback shows exception chaining).\n\n## Objective\n\nFix `pprint` / `pretty` so it prints any `MatAdd` correctly, and so it never fails on how the arguments of individual terms are represented internally.\n\n**User problem:** `pprint(MatrixSymbol('x', n, n) + MatrixSymbol('y*', n, n))` raises `SympifyError`. Pretty printing should never raise for a valid expression.\n\n**Root cause, as reported:**\n- The printer calls `sympify` on `item.args[0]` to decide whether a term is \"negative\".\n- This assumes every term's first argument is a numeric-like coefficient. That assumption is wrong:\n  - For `MatrixSymbol`, `args[0]` is the name string.\n  - For other matrix expressions (`Transpose`, `Inverse`, `MatPow`, \u2026), `args[0]` is an arbitrary sub-expression.\n\n**Desired behavior:**\n- Terms are classified as negative using the structure of the term, such as a `MatMul` whose scalar coefficient is negative. No string parsing is involved, and terms whose structure doesn't match are not misclassified.\n- A negative term after the first is printed with a `-` separator, without a redundant `+`.\n- All other terms are printed with ` + ` separators.\n\n**User stories:**\n- As a user, I can pretty-print a sum of matrix symbols whose names contain arbitrary characters, and no exception is raised.\n- As a user, `pprint(x - y)` for matrix symbols shows `x - y`, not `x + -y`, and doesn't drop the operator.\n- As a maintainer, I can read `_print_MatAdd` and understand which terms count as negative and why.\n\n## Tech Stack\n\n- Python (supported version range: **unknown**, but must match what SymPy currently supports)\n- SymPy internals involved:\n  - `sympy.printing.pretty.pretty.PrettyPrinter._print_MatAdd`\n  - `sympy.matrices.expressions` (`MatAdd`, `MatMul`, `MatrixSymbol`)\n  - `sympy.core.sympify`, which is the call to remove from this code path\n\n## Commands\n\nAll of these are **unknown**; the repository is not visible. Likely candidates need confirming:\n\n- Test (targeted): unknown, possibly `bin/test sympy/printing/pretty` or `pytest sympy/printing/pretty/tests/test_pretty.py`\n- Test (full printing suite): unknown\n- Lint / code quality: unknown, possibly `bin/test sympy/utilities/tests/test_code_quality.py`\n- Build: not applicable / unknown\n\n## Project Structure\n\nKnown only from the traceback:\n\n```\nsympy/printing/pretty/pretty.py   \u2192 PrettyPrinter, including _print_MatAdd (bug site)\nsympy/printing/printer.py         \u2192 Printer dispatch (_print)\nsympy/core/sympify.py             \u2192 sympify / S (should not be called here)\nsympy/parsing/sympy_parser.py     \u2192 parse_expr (reached via sympify of strings)\n```\n\nThe pretty printer tests are probably in `sympy/printing/pretty/tests/test_pretty.py`, but the location is **unknown**. The location of the `MatAdd` / `MatMul` / `MatrixSymbol` classes is also **unknown**; it is likely under `sympy/matrices/expressions/`.\n\n## Code Style\n\nUnknown. Follow the existing conventions in `pretty.py`. Constraints that come from the issue:\n\n- Printers must not call `sympify` or `S(...)` on arguments taken out of expression objects. Operate on the expression tree directly.\n- Negativity detection should state its structural assumption explicitly, e.g. \"term is a `MatMul` with a negative scalar coefficient\", and not rely on positional `args[0]`.\n\n## Testing Strategy\n\n- **Framework:** SymPy's existing test runner and test style (exact command unknown).\n- **Location:** the existing pretty-printer test module (path unknown, see above).\n- **Regression tests** (pretty, ASCII and Unicode where the module covers both):\n  1. `MatrixSymbol('x', n, n) + MatrixSymbol('y*', n, n)` prints without raising and shows both names joined by `+`.\n  2. `x + y` for ordinary matrix symbols is unchanged from current correct output.\n  3. `x - y` (i.e. `MatAdd(x, MatMul(-1, y))`) prints as `x - y`.\n  4. `-x + y`, where the negative term may come first depending on argument ordering, prints with a leading `-` and the correct separator for the other term.\n  5. A term with a negative non-unit coefficient (e.g. `x - 2*y`) prints with `-` and the coefficient. Whether it shows `2\u22c5y` or another form follows the existing `MatMul` conventions.\n  6. Terms whose first argument is not a scalar (e.g. `Transpose`, `Inverse`, `MatPow`, or a matrix symbol named like a negative number such as `'-1'`) are not treated as negative and don't raise.\n- **Consistency check:** run the existing str and LaTeX printer tests for `MatAdd` and make sure they still pass. Whether to fix those printers as well is an open question.\n\n## Boundaries\n\n- **Always:**\n  - Keep the fix confined to `MatAdd` printing logic.\n  - Add regression tests for the reported case.\n  - Run the full pretty-printer test module before finishing.\n- **Ask first:**\n  - Changing str, LaTeX, MathML or other printers in the same change.\n  - Changing `MatAdd` / `MatMul` canonical argument ordering or construction.\n  - Changing existing expected output in tests.\n  - Adding any helper to the public API (e.g. a shared \"could extract minus sign\" utility for matrix expressions).\n- **Never:**\n  - Call `sympify`/`S` on strings or arbitrary args inside printers.\n  - Restrict or validate `MatrixSymbol` names as a workaround.\n  - Swallow `SympifyError` with a try/except as the fix.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. `pprint(MatrixSymbol('x', n, n) + MatrixSymbol('y*', n, n))` prints the sum and raises no exception.\n2. No code path in `_print_MatAdd` calls `sympify`/`S` on term arguments.\n3. For matrix symbols `x`, `y`, the output of `x - y` contains exactly one operator between the terms, a minus, and no `+ -`.\n4. Output of `x + y` and of all existing `MatAdd` pretty-printing tests is unchanged, unless explicitly approved.\n5. Terms are classified as negative only through an explicit structural check that is documented in a code comment or docstring. Matrix symbols whose names look like negative numbers are not classified as negative.\n6. The new regression tests pass under the project's test runner, and the existing printing test suite passes.\n\n## Open Questions\n\n1. **Scope across printers:** do the str printer, LaTeX printer and others have the same `S(item.args[0])` pattern? Should they be fixed in this change, or tracked separately?\n2. **Definition of \"negative term\":** which terms should get a `-` separator? Options:\n   - Only `MatMul` with a negative numeric coefficient.\n   - Also negative symbolic coefficients (e.g. `-a*X` where `a` is a scalar symbol).\n   - Anything for which `could_extract_minus_sign()` holds, if that is available on matrix expressions.\n3. **Leading negative term:** when the first term is negative, should it print as `-x + y`? And should `_print_MatAdd` print the first term's sign itself, or delegate that to the `MatMul` printer?\n4. **Ordering:** does `MatAdd` canonicalize argument order so that the negative term can come first? This affects expected output in tests.\n5. **Shared helper:** should negative-term detection be factored into a shared utility so the pretty, str and LaTeX printers behave the same way? If yes, where should it live?\n6. **Test runner and command:** what exact commands should be used to run the targeted and full test suites in this repository?",
+ "ttft_ms": 32196,
+ "type": "result",
+ "duration_ms": 32222,
+ "uuid": "fc1e62a7-b4ed-4495-9377-8e9773c4ec88",
+ "ttft_stream_ms": 1494,
+ "time_to_request_ms": 245,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 135,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1495,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

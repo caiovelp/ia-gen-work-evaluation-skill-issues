@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30116,
+ "stop_reason": "end_turn",
+ "session_id": "b26605a7-0978-49e2-ba44-3a5df4f94e59",
+ "total_cost_usd": 0.0621259,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 665,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2790,
+  "output_tokens_details": {
+   "thinking_tokens": 506
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 665,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2790,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 665,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 665
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1251,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001351,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2790,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 665,
+   "webSearchRequests": 0,
+   "costUSD": 0.0619908,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 506,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: RenameModel Is a Database No-Op When the Table Name Does Not Change\n\n## Objective\n\nA `RenameModel` migration operation on a model with an explicit `Meta.db_table` should not change the database schema when the effective table name is the same before and after the rename.\n\n**Current (incorrect) behavior reported in the issue:**\n- **PostgreSQL:** the operation drops and recreates the foreign key constraints that point to the model.\n- **SQLite:** the operation rebuilds the table, as it would for a real table rename.\n\n**Desired behavior:** the database is left untouched. The migration state still records the new model name, so the ORM, related fields and later migrations see the renamed model.\n\n**Users:** developers who rename a model class for code clarity while keeping a fixed `db_table`. They expect the migration to be free and safe to run on production databases. Dropping and recreating constraints or rebuilding the table on a large table means locking, slow migrations and avoidable risk.\n\n**User story:** As a developer, I rename `class Foo` to `class Bar` where `Meta.db_table = \"legacy_foo\"` stays the same. I want the generated `RenameModel` migration to run without issuing any schema-altering SQL.\n\n## Assumptions\n\n1. This is Django's migrations framework. `RenameModel` is the built-in migration operation and the schema editor is Django's backend schema editor.\n2. \"No-op\" applies to the database operations only, in both directions (forwards and backwards). The state change (model renamed in the project state) must still happen.\n3. The comparison uses the *effective* table name of the old and new model states (`_meta.db_table`), not whether `db_table` was written explicitly. If the effective names are equal, the operation is a database no-op.\n4. When the effective table names differ, the current behavior (table rename, related field updates, M2M updates) stays exactly as it is today.\n5. The fix should behave the same on every supported backend: PostgreSQL, SQLite, MySQL and Oracle. The issue only names PostgreSQL and SQLite.\n6. Foreign key columns on related models are named after the field, not the target model, so with an unchanged table they need no change.\n7. The autodetector already generates `RenameModel` for this case and does not need to change. Only the operation's database behavior is in scope.\n\n## Tech Stack\n\n- Python / Django. Exact versions are **unknown**; they are not stated in the issue.\n- Backends involved: PostgreSQL and SQLite (reported). MySQL and Oracle are assumed to be affected as well.\n\n## Commands\n\n**Unknown.** The issue does not state the build, test or lint commands. To be filled in from the repository's contributing docs and test runner configuration. Tests must be runnable against at least SQLite and PostgreSQL.\n\n## Project Structure\n\n**Unknown.** The issue does not reference file paths. Expected areas, to be confirmed against the repository:\n- Implementation of the `RenameModel` migration operation (model operations module)\n- Migration operation tests (operations test suite)\n\n## Code Style\n\n**Unknown.** Follow the existing style of the migrations operations module and its tests. No snippet is available from the issue.\n\n## Testing Strategy\n\nUse the project's existing migration operation test suite. Framework and location are unknown and to be confirmed. Required test coverage:\n\n1. **Forwards no-op**\n   - Setup: rename a model whose old and new states share the same `db_table`, with at least one other model holding a FK to it.\n   - Assert: zero schema queries are executed during `database_forwards`, for example with a query-count or captured-SQL assertion.\n2. **Backwards no-op**\n   - Same setup as test 1.\n   - Assert: `database_backwards` executes zero schema queries.\n3. **State still updated**\n   - Assert: after `state_forwards`, the project state contains the new model name and not the old one.\n   - Assert: related fields in the state point to the new model.\n4. **Regression test for real renames**\n   - Setup: a model *without* a fixed `db_table`, or with differing `db_table` values.\n   - Assert: it is still renamed in the database, and FKs still work afterwards.\n5. **Backend coverage**\n   - Run on SQLite and PostgreSQL at minimum.\n   - The test must catch the SQLite table rebuild and the PostgreSQL FK drop/recreate.\n\n## Boundaries\n\n- **Always:**\n  - Keep `state_forwards` behavior unchanged.\n  - Keep the existing behavior when table names differ.\n  - Cover both forwards and backwards directions.\n  - Add regression tests.\n- **Ask first:**\n  - Changing autodetector output.\n  - Changing behavior for auto-created M2M through tables (see Open Questions).\n  - Changing schema editor APIs used by other operations.\n- **Never:**\n  - Skip the state update.\n  - Silently change behavior for renames where the table name actually changes.\n  - Remove or weaken existing migration tests.\n\n## Success Criteria\n\n- [ ] A `RenameModel` whose old and new effective `db_table` are equal issues **no** schema SQL forwards on any supported backend. This means no FK constraint drop/recreate on PostgreSQL and no table rebuild on SQLite.\n- [ ] The same holds for the backwards direction.\n- [ ] After the migration, the project state reflects the new model name, and models related to it resolve correctly.\n- [ ] A `RenameModel` where the table name changes behaves exactly as before, and all existing tests pass.\n- [ ] New tests fail on the current code and pass after the change, on at least SQLite and PostgreSQL.\n\n## Open Questions\n\n1. **Auto-created M2M through tables.** If the renamed model has an auto-created M2M, the through table's name may be derived from `db_table` and so stay unchanged. Its column name (for example `foo_id` \u2192 `bar_id`) is derived from the *model name* and would normally be renamed. Two options:\n   - Skip everything, which makes the operation a strict no-op.\n   - Still rename the M2M column, which keeps the database consistent with the new state.\n\n   Which is intended? A strict no-op could leave the column name out of sync with what the ORM expects.\n2. **Table name comparison.** Should equality be case-insensitive or account for backend quoting and truncation? For example, Oracle truncates names, and `\"Foo\"` vs `\"foo\"` may matter on some backends.\n3. **One-sided `db_table`.** Should the no-op also apply when only one side sets `db_table` explicitly but the effective names happen to match? This spec assumes yes (Assumption 3).\n4. **Compatibility.** Is there any backend or third-party reliance on the current FK drop/recreate side effect, such as constraint name regeneration, that would make a no-op a compatibility concern?\n5. **Target branch.** Which Django version(s) or branch should this target, and does it qualify for a backport?",
+ "ttft_ms": 7041,
+ "type": "result",
+ "duration_ms": 29561,
+ "uuid": "9e43a1b9-a5f8-4993-9c76-0780e43d6b5c",
+ "ttft_stream_ms": 1479,
+ "time_to_request_ms": 302,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 26,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 218,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 321,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1480,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

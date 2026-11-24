@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13361,
+ "stop_reason": "end_turn",
+ "session_id": "08c892ed-5ab2-41e9-b566-1b0b451db35c",
+ "total_cost_usd": 0.0373859,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1326,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1330,
+  "output_tokens_details": {
+   "thinking_tokens": 305
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1326,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1330,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1326,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1326
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1534,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001699,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1330,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1326,
+   "webSearchRequests": 0,
+   "costUSD": 0.037216,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 305,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nAfter upgrading from Django 3.0 to Django 3.1, the `value` passed to a select widget's `create_option()` is a `ModelChoiceIteratorValue` object. This object is not hashable, so using it as a dict key lookup (`value in some_dict`) raises `TypeError: unhashable type: 'ModelChoiceIteratorValue'`. The same code worked in Django 3.0. Membership checks against a list still work.\n\n## Steps to reproduce\n\n1. Use Django 3.1. The code worked before migrating from Django 3.0.\n2. Create a custom select widget that overrides `create_option()` to add custom `data-*` attributes to options.\n3. In the override, define `self.show_fields` as a dict keyed by option value, for example `{1: ['first_name', 'last_name']}`.\n4. Inside `create_option()`, check whether the option `value` is a key of that dict (`if value in self.show_fields:`).\n5. Use the widget so that its options are rendered, for example with a model choice field.\n\n## Observed behavior\n\nRendering fails with:\n\n```\n{TypeError}unhashable type: 'ModelChoiceIteratorValue'\n```\n\nThe `value in self.show_fields` check (a dict lookup) raises this error. The equivalent check against a list (`value in allowed_values`, where `allowed_values = [1, 2]`) does not raise.\n\n## Expected behavior\n\nAs in Django 3.0, `value` can be used in a dict lookup (`value in self.show_fields`) without raising. The custom `data-fields` attribute should be added to the matching options.\n\n## Stack trace / error output\n\n```\n{TypeError}unhashable type: 'ModelChoiceIteratorValue'\n```\n\nNo full stack trace was provided in the original report.\n\n## Test case\n\nNot provided in the original report. A minimal test case could be built from the steps above: render a select widget for model choices whose `create_option()` checks `value in {1: ['first_name', 'last_name']}`. The test should assert that no `TypeError` is raised and that the option for value `1` receives the `data-fields` attribute.\n\n## Code example\n\nFailing (dict lookup):\n\n```python\ndef create_option(self, name, value, label, selected, index, subindex=None, attrs=None):\n    context = super().create_option(name, value, label, selected, index, subindex, attrs)\n    if not value:\n        return context\n    if value in self.show_fields:  # This is a dict {1: ['first_name', 'last_name']}\n        context['attrs']['data-fields'] = json.dumps(self.show_fields[value])\n```\n\nWorking (list membership):\n\n```python\ndef create_option(self, name, value, label, selected, index, subindex=None, attrs=None):\n    context = super().create_option(name, value, label, selected, index, subindex, attrs)\n    if not value:\n        return context\n    if value in allowed_values:  # This is an array [1, 2]\n        ...\n```\n\n## Version and environment\n\n- Django 3.1 (fails)\n- Django 3.0 (worked; this is the version the reporter migrated from)\n- Python version, OS, and database: Not provided in the original report.",
+ "ttft_ms": 4688,
+ "type": "result",
+ "duration_ms": 12740,
+ "uuid": "27e08544-7cbe-4591-98bc-12121cd38fc8",
+ "ttft_stream_ms": 1505,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 198,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 209,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1505,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

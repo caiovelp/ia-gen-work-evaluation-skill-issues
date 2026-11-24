@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28326,
+ "stop_reason": "end_turn",
+ "session_id": "9ac722dc-7448-4533-adeb-9baa46ac4cc5",
+ "total_cost_usd": 0.09233680000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 4957,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2627,
+  "output_tokens_details": {
+   "thinking_tokens": 204
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 4957,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2627,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 4957,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4957
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1228,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001328,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2627,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 4957,
+   "webSearchRequests": 0,
+   "costUSD": 0.09220400000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 204,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Reject Blueprint Names Containing a Dot\n\n## Objective\n\nBlueprint names should not be allowed to contain a dot (`.`). When someone creates a blueprint with a dotted name, the framework should raise an error.\n\n**Why:** Blueprints can now be nested, so every dot in a fully qualified endpoint or blueprint name is significant. The dot is the separator between nesting levels. A dot inside a single blueprint's own name makes the name ambiguous. For example, `\"a.b\"` could be one blueprint named `a.b`, or a blueprint `b` nested under `a`. That ambiguity can break endpoint resolution, URL building and lookups keyed by blueprint name.\n\n**Precedent:** Version 1.0 already added an error for endpoint names that contain a dot. The same check was never added for blueprint names. This change closes that gap.\n\n**Users affected:**\n- Application and extension developers who define blueprints.\n- Maintainers of the framework, who rely on dot-delimited names being unambiguous.\n\n**User stories / acceptance criteria:**\n- As a developer, if I create a blueprint whose name contains a `.`, I get an immediate error that explains why.\n- As a developer, if my blueprint name has no `.`, nothing changes for me.\n- As a maintainer, I can rely on blueprint names never containing the nesting separator.\n\n## Assumptions\n\n1. The project is Flask (Python). The terms \"blueprint\", \"endpoint\" and \"1.0\", plus \"blueprints can be nested\", suggest this, but the issue does not say so.\n2. The check belongs where the blueprint is constructed, so the error is raised at definition time and not later at registration time.\n3. Only the `name` given to the blueprint is validated. Other identifiers are out of scope: import name, URL prefix, subdomain, and endpoint names (which are already validated).\n4. Any occurrence of `.` makes the name invalid, including leading, trailing or repeated dots. No other characters are restricted by this change.\n5. The error type and message style should match the existing endpoint-name check from 1.0, so the two behave alike. The exact existing type is unknown from the issue.\n6. This is a breaking change for anyone currently using dotted blueprint names. It will be documented in the changelog. Whether to add a deprecation period first is an open question.\n7. Nested registration builds the dotted path from parent and child names internally. The new validation must not reject those internally composed names, only the name a user passes in.\n\n## Tech Stack\n\n- Language: Python (assumed). The version is unknown.\n- Framework: Flask (assumed). The target release or version number is unknown.\n- Dependencies: no new dependencies expected.\n\n## Commands\n\nThe issue does not show any commands. All are unknown and must be confirmed from the repository.\n\n```\nBuild:   UNKNOWN\nTest:    UNKNOWN (likely a pytest invocation \u2014 unconfirmed)\nLint:    UNKNOWN\nDev:     N/A (library)\n```\n\n## Project Structure\n\nThe issue does not show the repository layout. All paths are unknown.\n\n```\n[blueprint implementation module] \u2192 UNKNOWN path\n[existing endpoint-dot validation] \u2192 UNKNOWN path (reference for consistency)\n[blueprint tests]                 \u2192 UNKNOWN path\n[changelog]                       \u2192 UNKNOWN path\n[blueprint documentation]         \u2192 UNKNOWN path\n```\n\n## Code Style\n\nUnknown, since no code is visible in the issue. Conventions to follow:\n- Mirror the style of the existing 1.0 endpoint-name dot check: the same kind of exception and a similar message wording.\n- The error message should name the offending value and explain that dots are not allowed because they separate nested blueprint names.\n\n## Testing Strategy\n\n- Framework: the project's existing test framework (unknown, likely pytest).\n- Location: alongside the existing blueprint tests (path unknown).\n- Test levels: unit tests are sufficient, because this is input validation at construction time.\n- Cases to cover:\n  - A name with a single dot (e.g. `\"a.b\"`) raises the error.\n  - Names with a leading, trailing or multiple dots raise the error.\n  - A valid name with no dot still constructs without error.\n  - Nested blueprint registration still works with valid names. Internally composed dotted names must not trigger the new error.\n  - The existing endpoint-name dot check is unaffected.\n  - The error message mentions the dot restriction.\n- Coverage: the new validation branch is fully covered. Overall coverage expectations are unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep behavior and error type consistent with the existing endpoint-name check.\n  - Add tests for both rejected and accepted names.\n  - Add a changelog entry that describes the behavior change.\n  - Run the full test suite before committing.\n- **Ask first:**\n  - Choosing a deprecation warning period instead of an immediate error.\n  - Changing the exception type used by the existing endpoint check.\n  - Extending validation to other characters or other identifiers.\n  - Deciding which release this ships in (patch or minor).\n- **Never:**\n  - Change the behavior of valid blueprint names.\n  - Break nested blueprint registration.\n  - Remove or weaken the existing endpoint-name validation.\n  - Silently rewrite dotted names, for example by replacing the dots, instead of raising.\n\n## Success Criteria\n\n- [ ] Creating a blueprint whose name contains at least one `.` raises an error at construction time.\n- [ ] The error message clearly states that blueprint names may not contain a dot.\n- [ ] The error type is consistent with the existing endpoint-name dot error, or the decision in Open Question 1 is followed.\n- [ ] Blueprints with dot-free names behave exactly as before. All existing tests pass.\n- [ ] Nested blueprint registration with valid names still works and produces correct dotted endpoint names.\n- [ ] New tests cover rejected names (single, leading, trailing and multiple dots) and accepted names.\n- [ ] A changelog entry documents the new restriction.\n- [ ] Documentation that describes blueprint naming mentions the restriction, if such documentation exists.\n\n## Open Questions\n\n1. **Exception type:** Should this raise the same exception type as the 1.0 endpoint check, or a more appropriate one such as `ValueError`? If the endpoint check uses `assert`, should both be aligned?\n2. **Deprecation vs. hard error:** Should the release first emit a deprecation warning for dotted blueprint names, or raise immediately? The issue says \"raise error\", but this may break existing users.\n3. **Target release:** Which version should this ship in? Is it a bugfix release (treated as an oversight from nesting support) or a feature release?\n4. **Where to validate:** Is constructor-time validation acceptable? Or are there cases where the name is set or changed after construction, for example renaming at registration via a name option, that also need checking?\n5. **Registration-time name override:** If blueprints can be registered under an alternate name, must that alternate name also be validated?\n6. **Other characters:** Should any other characters (e.g. whitespace or empty names) be rejected now, or is this strictly limited to dots?\n7. **Documentation:** Where is blueprint naming documented, so the restriction can be added there?",
+ "ttft_ms": 3066,
+ "type": "result",
+ "duration_ms": 26482,
+ "uuid": "4d1366e8-bfc0-47a3-9842-3c7f579582e1",
+ "ttft_stream_ms": 965,
+ "time_to_request_ms": 264,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 222,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 7,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 215,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 965,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

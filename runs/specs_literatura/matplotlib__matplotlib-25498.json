@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13370,
+ "stop_reason": "end_turn",
+ "session_id": "f38d854e-a423-4fb7-bf86-4396a5dcd83f",
+ "total_cost_usd": 0.0452954,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1649,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1595,
+  "output_tokens_details": {
+   "thinking_tokens": 136
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1649,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1595,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1649,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1649
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1854,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001954,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1595,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1649,
+   "webSearchRequests": 0,
+   "costUSD": 0.0451,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 136,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nAfter replacing the `norm` of a mappable (e.g. an `imshow` image) with a new `LogNorm` instance, the attached colorbar cannot be updated to match. `Colorbar.update_normal(mappable)` has no effect, and `Colorbar.update_bruteforce(mappable)` raises a `ZeroDivisionError`.\n\n## Steps to reproduce\n\n1. Create an image with positive, log-normally distributed values: `img = 10**np.random.normal(1, 1, size=(50, 50))`.\n2. Plot it with `ax.imshow(img, cmap='gray')`. This uses the default linear norm.\n3. Add a colorbar with `fig.colorbar(plot, ax=ax)`.\n4. Replace the image's norm: `plot.norm = LogNorm()`.\n5. Call `cb.update_normal(plot)`. The colorbar does not change.\n6. Call `cb.update_bruteforce(plot)`. A `ZeroDivisionError` is raised.\n\n## Observed behavior\n\n- `cb.update_normal(plot)` has no visible effect. The colorbar does not reflect the new `LogNorm`.\n- `cb.update_bruteforce(plot)` raises `ZeroDivisionError: division by zero` in `LogNorm.inverse` (`colors.py`, line 1011). It is called from `Colorbar._process_values`.\n\n## Expected behavior\n\nAfter the mappable's norm is changed to `LogNorm`, calling the colorbar update method should redraw the colorbar using the new norm, without raising an error.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"test_norm.py\", line 12, in <module>\n    cb.update_bruteforce(plot)\n  File \"/home/maxnoe/.local/anaconda3/lib/python3.4/site-packages/matplotlib/colorbar.py\", line 967, in update_bruteforce\n    self.draw_all()\n  File \"/home/maxnoe/.local/anaconda3/lib/python3.4/site-packages/matplotlib/colorbar.py\", line 342, in draw_all\n    self._process_values()\n  File \"/home/maxnoe/.local/anaconda3/lib/python3.4/site-packages/matplotlib/colorbar.py\", line 664, in _process_values\n    b = self.norm.inverse(self._uniform_y(self.cmap.N + 1))\n  File \"/home/maxnoe/.local/anaconda3/lib/python3.4/site-packages/matplotlib/colors.py\", line 1011, in inverse\n    return vmin * ma.power((vmax / vmin), val)\nZeroDivisionError: division by zero\n```\n\n## Test case\n\nMinimal reproduction taken from the report. The `update_bruteforce` call is the one expected to fail:\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib.colors import LogNorm\nimport numpy as np\n\nimg = 10**np.random.normal(1, 1, size=(50, 50))\n\nfig, ax = plt.subplots(1, 1)\nplot = ax.imshow(img, cmap='gray')\ncb = fig.colorbar(plot, ax=ax)\nplot.norm = LogNorm()\ncb.update_bruteforce(plot)  # raises ZeroDivisionError\n```\n\n## Code example\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib.colors import LogNorm\nimport numpy as np\n\nimg = 10**np.random.normal(1, 1, size=(50, 50))\n\nfig, ax = plt.subplots(1, 1)\nplot = ax.imshow(img, cmap='gray')\ncb = fig.colorbar(plot, ax=ax)\nplot.norm = LogNorm()\ncb.update_normal(plot)  # no effect\ncb.update_bruteforce(plot)  # throws ZeroDivisionError\nplt.show()\n```\n\n## Version and environment\n\n- Matplotlib version: Not provided in the original report.\n- Python 3.4, Anaconda distribution. This is inferred from the traceback path `/home/maxnoe/.local/anaconda3/lib/python3.4/site-packages/matplotlib/`.\n- Operating system: Not provided explicitly. The `/home/...` path suggests a Linux/Unix-like system.\n- Backend: Not provided in the original report.",
+ "ttft_ms": 2616,
+ "type": "result",
+ "duration_ms": 12693,
+ "uuid": "b2cf4c89-ab35-4979-8d67-de2c90100e01",
+ "ttft_stream_ms": 1501,
+ "time_to_request_ms": 277,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 15,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 230,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 249,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 21,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1502,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

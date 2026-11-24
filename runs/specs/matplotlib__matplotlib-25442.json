@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 35300,
+ "stop_reason": "end_turn",
+ "session_id": "4025d7ea-081d-409d-a583-c5998e8bc299",
+ "total_cost_usd": 0.07957979999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1382,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3372,
+  "output_tokens_details": {
+   "thinking_tokens": 107
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1382,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3372,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1382,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1382
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1970,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00021300000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3372,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1382,
+   "webSearchRequests": 0,
+   "costUSD": 0.07936679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 107,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Avoid `AttributeError` in `DraggableBase.disconnect` when the dragged artist has been removed from its figure\n\n## Objective\n\n**Problem.** On matplotlib 3.7.1, interactive use with the third-party `mplcursors` library raises a traceback after the user clicks several data points:\n\n```\nAttributeError: 'NoneType' object has no attribute 'canvas'\n```\n\nFrom then on, every new data-point selection raises the same traceback. Matplotlib 3.7.0 and earlier do not show this behavior.\n\n**Failure path (from the traceback in the issue, `matplotlib/offsetbox.py`):**\n\n1. A mouse-release event calls `on_release` (line ~1550).\n2. `on_release` calls `self._check_still_parented()`.\n3. The artist is no longer parented, so `_check_still_parented` calls `self.disconnect()` (line ~1560).\n4. `disconnect` calls `self.canvas.mpl_disconnect(cid)` (line ~1568).\n5. `canvas` is a property defined as `lambda self: self.ref_artist.figure.canvas` (line ~1517).\n6. `ref_artist.figure` is `None` because the artist has been removed, so the call raises `AttributeError`.\n\nThe disconnect step runs because the artist is no longer in a figure. That same condition makes `canvas` unresolvable. As a result, the callbacks are never disconnected, and the error repeats on every later release event.\n\n**Users affected:**\n- End users of interactive matplotlib figures, including through libraries such as `mplcursors` that create draggable annotations and remove them later.\n- Downstream library maintainers who depend on draggable offsetbox and annotation behavior.\n\n**Success means:**\n- Removing a draggable artist from its figure, followed by more mouse events, produces no traceback.\n- Event callbacks registered by the draggable helper are cleanly disconnected.\n- The reproduction from the issue runs silently.\n\n### Acceptance criteria / user stories\n\n- As a user running the issue's reproduction script on the QtAgg backend, I can click many data points in a row and see no terminal output.\n- As a developer, when a draggable helper's reference artist is removed from its figure, `disconnect()` completes without raising, even though `ref_artist.figure` is `None`.\n- After that disconnect, later mouse events on the original canvas no longer call the helper's handlers.\n\n## Assumptions\n\n1. **The bug is in matplotlib, not in `mplcursors`.** The fix belongs in matplotlib's `offsetbox.py` draggable machinery (the class that defines `on_release`, `_check_still_parented`, `disconnect` and the `canvas` property, presumably `DraggableBase`).\n2. **A 3.7.0 \u2192 3.7.1 change introduced the regression.** That change likely turned `canvas` from a stored attribute into a property derived from `ref_artist.figure`. This is inferred from the version boundary and the lambda in the traceback; it has not been verified.\n3. **The canvas needed for disconnection is the one active when callbacks were connected.** It can be recovered without going through `ref_artist.figure`.\n4. **The behavior is backend-independent.** It was reported on QtAgg, Windows 10 and Windows 11, and Python 3.9.16, but the faulty code path contains nothing OS- or backend-specific.\n5. **The fix should keep the public behavior and API of the draggable classes** (`DraggableAnnotation`, `DraggableOffsetBox`, and any other subclasses) unchanged, apart from removing the error.\n6. **The fix targets the matplotlib maintenance branch for 3.7.x.** It may also apply to `main`.\n\n## Tech Stack\n\n- **Language:** Python. Python 3.9.16 is the reported environment; the project's minimum supported Python version is unknown.\n- **Library:** matplotlib 3.7.1, module `matplotlib/offsetbox.py`, plus `matplotlib/cbook` for callback processing.\n- **Third-party trigger:** `mplcursors` (version unknown) and `numpy`.\n- **Reported backend:** QtAgg.\n\n## Commands\n\nThe issue does not provide any repository commands. All of the following are **unknown** and must be confirmed:\n\n```\nBuild:   unknown\nTest:    unknown (likely pytest-based; exact invocation and flags unknown)\nLint:    unknown\nDev:     unknown\n```\n\nManual reproduction, taken from the issue (requires `mplcursors` and an interactive backend):\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport mplcursors as mpl\n\nx = np.arange(1, 11)\ny1 = x\n\nplt.scatter(x, y1)\n\nmpl.cursor()\nplt.show()\n```\n\n## Project Structure\n\nOnly the following is known from the traceback:\n\n```\nlib/.../matplotlib/offsetbox.py         \u2192 Draggable helper classes (site of the bug)\nlib/.../matplotlib/cbook/__init__.py    \u2192 Callback registry `process` (where the exception surfaces)\n```\n\nThe source-tree root and the test directory layout are **unknown**. The test module is presumably the one covering `offsetbox`, but its path is unknown.\n\n## Code Style\n\nUnknown; the project's style guide was not visible. Follow the existing conventions in `offsetbox.py`:\n- Keep private helpers underscore-prefixed, as in `_check_still_parented`.\n- Make minimal, local changes.\n\nNo snippet is provided, because writing the fix is out of scope.\n\n## Testing Strategy\n\n- **Framework:** unknown (presumably pytest).\n- **Unit / regression test (required).** The test should:\n  - Create a figure with a draggable artist, such as a draggable annotation or offsetbox.\n  - Remove the artist from the figure.\n  - Simulate a mouse button-release event through the canvas callback system.\n  - Assert that no exception is raised.\n  - Assert that the helper's callbacks are disconnected, for example by firing another event and confirming the handlers are not called.\n- **Edge cases to cover:**\n  - `disconnect()` called directly while the artist is still parented. This is existing behavior and must remain unchanged.\n  - `disconnect()` called after the artist is removed.\n  - `disconnect()` called twice, which should be idempotent if the existing behavior is already idempotent (unknown).\n  - A release event while a drag is in progress (`got_artist` true) and the artist is removed mid-drag.\n- **Headless:** the test must not require an interactive backend or `mplcursors`. It should use a non-interactive/Agg canvas and synthetic events.\n- **Manual check:** run the issue's reproduction script with QtAgg and `mplcursors`, click 10 or more points, and confirm there is no terminal output.\n- **Coverage expectations:** unknown.\n\n## Boundaries\n\n**Always:**\n- Add a regression test that fails on 3.7.1 behavior and passes after the fix.\n- Run the existing `offsetbox` and draggable test suites.\n- Keep the fix confined to the draggable helper logic.\n\n**Ask first:**\n- Changing the public API or attributes of `DraggableBase` and its subclasses. This includes the `canvas` attribute/property semantics that third parties such as `mplcursors` may read.\n- Changes that reach outside `offsetbox.py`, such as the `cbook` callback registry.\n- Adding an API-change or what's-new note.\n- Backport policy (3.7.x versus `main` only).\n\n**Never:**\n- Silence the error by broadly catching `AttributeError` or all exceptions in `cbook.process`.\n- Leave callbacks connected after the artist is gone, which would leak handlers.\n- Add a dependency on `mplcursors` in the test suite.\n- Fix this by patching `mplcursors`.\n\n## Success Criteria\n\n1. The issue's reproduction script, run on the fixed build with QtAgg, produces no traceback after any number of point selections.\n2. With a draggable helper whose `ref_artist.figure` is `None`, `disconnect()` returns without raising.\n3. After that, all callback ids the helper registered are removed from the original canvas's callback registry.\n4. The new regression test passes, and every existing `offsetbox`/draggable test still passes.\n5. Dragging annotations and offsetboxes behaves the same as in 3.7.0 for parented artists: press, motion and release all work, and blitting/`use_blit` behavior is unchanged.\n6. Code that reads `draggable.canvas` while the artist is still parented gets the same object as before.\n\n## Open Questions\n\n1. **What changed between 3.7.0 and 3.7.1?** Which change in `offsetbox.py` introduced the `canvas` property? Should the fix restore the earlier semantics (a stored canvas reference) or make the property tolerate a missing figure?\n2. **What should `draggable.canvas` return after the artist is removed?** Options are `None`, the original canvas, or raising. Does `mplcursors` or other downstream code read this attribute?\n3. **Which branch should this target?** Should the fix be backported to a 3.7.2 patch release?\n4. **Can the original canvas differ from the current one?** For example, could the figure be re-attached to a new canvas or backend? If so, which canvas should `disconnect` use?\n5. **Should `_check_still_parented` stay the place that triggers disconnection?** Or should disconnection also happen when the artist is removed?\n6. **Is a changelog or API-change note required for this bug fix?**\n7. **What are the repository's test command, test file location and CI requirements?** All are unknown from the issue.\n8. **Which `mplcursors` version did the reporter use?** Does any newer `mplcursors` already work around this behavior?",
+ "ttft_ms": 2730,
+ "type": "result",
+ "duration_ms": 33357,
+ "uuid": "324be5ac-95b5-4b24-b637-ec14e3e79631",
+ "ttft_stream_ms": 1607,
+ "time_to_request_ms": 282,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 12,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 233,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 31,
+ "time_to_request_cpu_ms": 248,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1608,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

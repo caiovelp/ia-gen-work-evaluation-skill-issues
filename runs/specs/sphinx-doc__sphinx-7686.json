@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26380,
+ "stop_reason": "end_turn",
+ "session_id": "51223a97-7119-4fd6-9224-4cc9f58ef996",
+ "total_cost_usd": 0.062187299999999994,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1043,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2640,
+  "output_tokens_details": {
+   "thinking_tokens": 183
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1043,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2640,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1043,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1043
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1630,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017250000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2640,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1043,
+   "webSearchRequests": 0,
+   "costUSD": 0.062014799999999995,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 183,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: autosummary \u2014 exclude imported members from the module template `members` variable when `autosummary_imported_members = False`\n\n## Objective\n\nWhen `sphinx.ext.autosummary` generates stub pages, it passes a `members` variable to the module template (`autosummary/module.rst`). Today that variable contains imported members (for example `os` after `import os`), even when `autosummary_imported_members = False`.\n\nThe fix should make `members` respect `autosummary_imported_members`:\n\n- If it is `False`, `members` must not contain names whose objects were imported from another module.\n- If it is `True`, imported members stay in `members`, as they do today.\n\n**Users:** Sphinx documentation authors who use custom autosummary module templates that iterate over `{{ members }}`. They expect `members` to follow the same imported-members policy as the other template variables.\n\n**Success looks like:** For the issue's reproduction, the generated `generated/example.rst` no longer lists `os` under `members` when `autosummary_imported_members = False`.\n\n### Reproduction (from the issue)\n\n```\n# _templates/autosummary/module.rst\n{{ fullname | escape | underline }}\n\n.. automodule:: {{ fullname }}\n\n   .. autosummary::\n   {% for item in members %}\n      {{ item }}\n   {%- endfor %}\n```\n```\n# example.py\nimport os\n```\n```\n# index.rst\n.. autosummary::\n   :toctree: generated\n\n   example\n```\n```\n# conf.py\nautosummary_generate = True\nautosummary_imported_members = False\n```\n\n**Observed output.** `members` contains `__builtins__`, `__cached__`, `__doc__`, `__file__`, `__loader__`, `__name__`, `__package__`, `__spec__` and `os`.\n\n**Expected output (per issue).** `members` does not contain imported members such as `os`.\n\n## Assumptions\n\n1. \"Imported member\" uses the same definition autosummary already applies to its type-specific template variables (`functions`, `classes`, `exceptions`): the object's defining module (`__module__`) differs from the documented module. *Unverified \u2014 I cannot see the source.*\n2. The issue only targets imported members. Module dunder attributes (`__builtins__`, `__doc__`, `__name__`, etc.) are not imports. Whether they stay in `members` is a separate question; see Open Questions.\n3. Objects without a reliable `__module__` (for example module objects like `os`, or plain data values) must still be classified somehow. Module objects bound in the namespace via `import` are treated as imported.\n4. Only the module template's `members` variable is in scope. Class template `members` and the `autosummary_imported_members=True` behaviour stay unchanged.\n5. The default value of `autosummary_imported_members` stays unchanged.\n6. The issue was reported against Sphinx 3.1.0dev, Python 3.8.2, macOS. The fix is expected to be platform-independent.\n\n## Tech Stack\n\n- Python (reported: 3.8.2; supported range: **unknown**)\n- Sphinx 3.1.0dev, extension `sphinx.ext.autosummary`\n- Jinja2 templating for autosummary templates\n- Test framework: **unknown** (presumably pytest, unverified)\n\n## Commands\n\n- Build: **unknown**\n- Test: **unknown**\n- Lint: **unknown**\n- Docs build for reproduction: **unknown** (any `sphinx-build` invocation over the repro project above)\n\n## Project Structure\n\n**Unknown.** No repository access. The following locations need to be identified:\n\n- The autosummary stub-generation code that builds the template context (`members`, `functions`, `classes`, ...).\n- The existing autosummary tests and their test-root fixtures.\n- The changelog file and the autosummary documentation for template variables.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the autosummary module. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Regression test (required).** Use a test-root module that imports another module (e.g. `import os`) and also defines at least one local function or class. Generate the stub with `autosummary_imported_members = False` and assert that:\n  - `os` is **not** in the module template's `members`;\n  - locally defined members **are** in `members`.\n- **Complementary test.** With `autosummary_imported_members = True`, assert that `os` (or an imported function or class) **is** in `members`.\n- **Consistency check.** Under both settings, `members` filtering is consistent with the existing filtering of `functions`, `classes` and `exceptions`.\n- **Level.** Unit or integration test at the stub-generation level, asserting on the template context or generated `.rst` content. The exact harness is unknown.\n- **Suite.** The existing autosummary test suite must still pass.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue.\n  - Keep behaviour unchanged when `autosummary_imported_members = True`.\n  - Reuse the existing imported-member detection logic rather than introducing a divergent definition.\n- **Ask first:**\n  - Removing dunder or private attributes from `members`.\n  - Changing class-template `members`.\n  - Changing the default of `autosummary_imported_members`.\n  - Adding new template variables.\n  - Any change visible to existing custom templates beyond removing imported names.\n- **Never:**\n  - Change autosummary output for users who set `autosummary_imported_members = True`.\n  - Delete or weaken existing tests.\n  - Change unrelated autodoc behaviour.\n\n## Success Criteria\n\n1. With the issue's reproduction and `autosummary_imported_members = False`, `generated/example.rst` does not list `os`.\n2. With `autosummary_imported_members = True`, `os` is still listed in `members`.\n3. Members defined in the module itself (functions, classes, module-level variables) remain in `members` under both settings.\n4. Under both settings, `members` filtering is consistent with the filtering already applied to `functions`, `classes` and `exceptions`.\n5. A regression test covering criteria 1\u20133 is added and passes, and the existing autosummary tests pass.\n6. A changelog entry describes the bug fix (exact file is unknown).\n\n## Open Questions\n\n1. **Dunder attributes.** Should `__builtins__`, `__cached__`, `__doc__`, `__file__`, `__loader__`, `__name__`, `__package__` and `__spec__` remain in `members`? They are not imported, so the issue's expected behaviour doesn't strictly cover them, but users may expect them gone.\n2. **Classifying data members.** How should members without a meaningful `__module__` be classified (module-level constants, or values imported via `from x import CONST`)? Is it acceptable that imported plain data values may not be detectable as imported?\n3. **Submodules of a package.** Should submodules bound on a package (`import pkg.sub` inside `pkg/__init__.py`) count as imported members of the package?\n4. **Class templates.** Should the class template's `members` variable also be reviewed for consistency, or is it strictly out of scope?\n5. **Compatibility of the fix.** Is this a backward-compatible bug fix for the next patch/minor release? Custom templates that relied on `members` including imports will see fewer entries.\n6. **Documentation.** Does the autosummary template-variable documentation need updating to state that `members` honours `autosummary_imported_members`?",
+ "ttft_ms": 4273,
+ "type": "result",
+ "duration_ms": 25726,
+ "uuid": "b4fbf96f-13a6-42fe-bf40-fb19a0b3b5fe",
+ "ttft_stream_ms": 2134,
+ "time_to_request_ms": 262,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 250,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2134,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

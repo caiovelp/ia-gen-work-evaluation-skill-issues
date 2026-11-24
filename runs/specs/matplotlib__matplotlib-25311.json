@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28612,
+ "stop_reason": "end_turn",
+ "session_id": "4ead05a2-0c39-4d6f-b674-cf8ae2a1dcdc",
+ "total_cost_usd": 0.0629025,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 936,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2719,
+  "output_tokens_details": {
+   "thinking_tokens": 105
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 936,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2719,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 936,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 936
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1517,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001637,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2719,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 936,
+   "webSearchRequests": 0,
+   "costUSD": 0.0627388,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 105,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Pickling Figures with Draggable Legends and Annotations\n\n## Objective\n\nMake figures that contain a **draggable legend** or **draggable annotation** picklable. Today they raise `TypeError` when serialized.\n\n**Users:** Matplotlib users who pickle figures, for example to save and restore interactive sessions, pass figures between processes, or cache them. Interactive backends such as QtAgg (`FigureCanvasQTAgg`) are a common case.\n\n**Observed (Matplotlib 3.7.0, Python 3.10, Windows 10, pip install):**\n\n```python\nimport matplotlib.pyplot as plt\nimport pickle\n\nfig = plt.figure()\nax = fig.add_subplot(111)\nax.plot([0, 1, 2, 3, 4], [40, 43, 45, 47, 48], label=\"speed\")\nleg = ax.legend()\nleg.set_draggable(True)   # pickling works without this line\npickle.dumps(fig)         # TypeError: cannot pickle 'FigureCanvasQTAgg' object\n```\n\nThe reporter says the same error occurs for draggable annotations.\n\n**Expected:** `pickle.dumps(fig)` succeeds. A figure with draggable artists pickles just like the same figure without them.\n\n**User stories / acceptance:**\n- As a user, I can call `set_draggable(True)` on a legend and still pickle the figure.\n- As a user, I can make an annotation draggable and still pickle the figure.\n- As a user, I can unpickle such a figure without errors. The legend or annotation appears in the same position and keeps its properties.\n\n## Assumptions\n\n1. **Root cause (hypothesis, not verified against source):** the helper object that implements dragging holds a direct reference to the figure canvas. It probably also holds canvas event-callback connection ids.\n   - The figure already excludes its canvas when pickling.\n   - This helper does not, so pickling it pulls in the GUI canvas, which cannot be pickled.\n2. The failure is not specific to Qt. Any canvas object that cannot be pickled will trigger it. Even with Agg, a canvas reference held outside the figure is suspect.\n3. Both draggable legends and draggable annotations share the same dragging machinery. One fix should therefore cover both.\n4. **Drag behavior after unpickling.** This is not specified in the issue; see Open Questions. The baseline assumed here:\n   - Pickling must not fail.\n   - The draggable state should, ideally, be preserved after unpickling.\n   - That state should reconnect to the new canvas once the figure is attached to one.\n5. Pickle compatibility is only required within the same Matplotlib version. Matplotlib does not guarantee cross-version figure pickles.\n6. The fix should not change the public API for `set_draggable` or for draggable annotations.\n\n## Tech Stack\n\n- Python (issue reports 3.10; the supported range for the target branch is **unknown**)\n- Matplotlib (bug reported on 3.7.0; the target branch is **unknown**)\n- Standard library `pickle`\n- Backends: QtAgg reported. Others presumed affected.\n\n## Commands\n\n**Unknown.** The repository is not visible. The project's test runner is presumably pytest, but the exact commands and flags are not confirmed.\n\n- Build: unknown\n- Test: unknown (likely a pytest invocation targeting the pickling tests)\n- Lint: unknown\n\n## Project Structure\n\n**Unknown.** The repository is not visible. The relevant areas, by name only:\n\n- The module defining legends and `set_draggable`\n- The module defining annotations and their draggable support\n- The module defining the shared draggable helper (suspected to be the offset-box module)\n- The existing pickling test module\n\nNone of the paths are confirmed.\n\n## Code Style\n\nFollow the existing Matplotlib conventions in the touched modules. The issue contains no style examples. Specific conventions to respect:\n\n- Do not add new public API unless agreed.\n- Keep private attributes underscore-prefixed.\n- If a stored attribute or property is changed, follow the project's deprecation policy.\n\n## Testing Strategy\n\nAdd regression tests to the existing pickling test suite (location unknown). Tests should cover:\n\n1. **Draggable legend:** a figure with `legend.set_draggable(True)` round-trips via `pickle.dumps` / `pickle.loads` without error.\n2. **Draggable annotation:** a figure with a draggable annotation round-trips without error.\n3. **Interactive canvas reference:** reproduce the failure using a canvas object that cannot be pickled, so the test does not depend on Qt being installed. The exact mechanism is unknown; it may require a backend fixture or a stub canvas.\n4. **Post-unpickle sanity:** the unpickled figure can be drawn, for example with `fig.canvas.draw()` on Agg. The legend or annotation still exists with the same position and properties.\n5. **Optional, depending on the answer to Open Question 1:** after unpickling, the draggable state is preserved and responds to simulated mouse events on the new canvas.\n6. **Non-regression:** existing figure pickling tests still pass. Dragging behavior on a live, non-pickled figure is unchanged.\n\n## Boundaries\n\n**Always:**\n- Keep `pickle.dumps(fig)` behavior identical for figures without draggable artists.\n- Add regression tests for both the legend and annotation cases.\n- Preserve existing interactive drag behavior.\n\n**Ask first:**\n- Changing or removing any public attribute of the draggable helper, such as an exposed `canvas` attribute. This would need a deprecation path.\n- Deciding whether draggability is restored or dropped after unpickling.\n- Changes to the figure or canvas pickling protocol itself.\n\n**Never:**\n- Make canvases or GUI objects picklable.\n- Silently disable dragging on live figures as a side effect of the fix.\n- Remove or skip existing pickling tests.\n\n## Success Criteria\n\n- [ ] The reproduction script from the issue runs without `TypeError` on the QtAgg backend and on a non-interactive backend.\n- [ ] The equivalent script with a draggable annotation also pickles without error.\n- [ ] `pickle.loads(pickle.dumps(fig))` returns a figure that draws without error, with the legend or annotation present at the same location.\n- [ ] Draggable behavior after unpickling matches the agreed answer to Open Question 1, and is covered by a test.\n- [ ] Interactive dragging on non-pickled figures behaves exactly as before.\n- [ ] New regression tests fail on the current code and pass after the fix.\n- [ ] The full existing test suite passes.\n\n## Open Questions\n\n1. **What happens to dragging after unpickling?** After loading, should the legend or annotation still be draggable once attached to a new canvas? The alternative is that it unpickles as non-draggable.\n2. **Is the root-cause hypothesis correct?** Assumption 1 needs verification against the source.\n3. **Which other artists are affected?** Are other artists or tools that cache the canvas or callback ids affected in the same way? Examples include widgets and other users of the draggable helper. Should they be in scope, or tracked separately?\n4. **Is the helper's `canvas` attribute public API?** If it must be replaced, for example by deriving the canvas from the reference artist's figure, is a deprecation required?\n5. **Target branch:** should the fix target a bugfix release of 3.7.x or only the main development branch?\n6. **Reproducing the failure in CI:** how should tests simulate a canvas that cannot be pickled, given that Qt may not be installed on CI?\n7. **Other backends:** has the failure been confirmed on non-Qt backends such as TkAgg, MacOSX, or Agg? This determines how broadly the tests should claim coverage.",
+ "ttft_ms": 2900,
+ "type": "result",
+ "duration_ms": 28003,
+ "uuid": "c12cedfa-80a5-4a1c-a795-11d9b7a26e17",
+ "ttft_stream_ms": 1831,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 233,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1832,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

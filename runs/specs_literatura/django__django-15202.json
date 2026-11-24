@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10500,
+ "stop_reason": "end_turn",
+ "session_id": "9d63eec8-5a4e-4e73-9b49-b616911d5dcd",
+ "total_cost_usd": 0.030510999999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1184,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1044,
+  "output_tokens_details": {
+   "thinking_tokens": 202
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1184,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1044,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1184,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1184
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1390,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015099999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1044,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1184,
+   "webSearchRequests": 0,
+   "costUSD": 0.030359999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 202,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`django.forms.URLField().clean()` raises a raw `ValueError: Invalid IPv6 URL` for the malformed input `'////]@N.AN'`. It should raise a `ValidationError`. The exception comes from `urllib.parse.urlsplit`, which is called by the URL validator in `django/core/validators.py`. The issue was found by fuzzing.\n\n## Steps to reproduce\n\n1. Import Django's forms module: `from django import forms`.\n2. Create a `URLField` with default arguments: `field = forms.URLField()`.\n3. Call `field.clean('////]@N.AN')`.\n\n## Observed behavior\n\nA `ValueError: Invalid IPv6 URL` is raised from `urllib/parse.py` (`urlsplit`). It propagates out of `URLField.clean()` and is not converted to a `ValidationError`.\n\n## Expected behavior\n\n`URLField.clean()` should raise `django.core.exceptions.ValidationError` for this invalid URL, as it does for other invalid input. It should not leak a `ValueError`.\n\n## Stack trace / error output\n\n```\nValueError: Invalid IPv6 URL\nTraceback (most recent call last):\n  File \"basic_fuzzer.py\", line 22, in TestOneInput\n  File \"fuzzers.py\", line 350, in test_forms_URLField\n  File \"django/forms/fields.py\", line 151, in clean\n  File \"django/forms/fields.py\", line 136, in run_validators\n  File \"django/core/validators.py\", line 130, in __call__\n  File \"urllib/parse.py\", line 440, in urlsplit\n```\n\n## Test case\n\nMinimal test derived from the reproduction snippet in the report:\n\n```python\nfrom django import forms\nfrom django.core.exceptions import ValidationError\nfrom django.test import SimpleTestCase\n\n\nclass URLFieldInvalidIPv6Test(SimpleTestCase):\n    def test_clean_invalid_ipv6_url_raises_validation_error(self):\n        f = forms.URLField()\n        with self.assertRaises(ValidationError):\n            f.clean('////]@N.AN')\n```\n\n## Code example\n\n```python\nforms.URLField().clean('////]@N.AN')\n```\n\n## Version and environment\n\n- Django version: Not provided in the original report.\n- Python version: Not provided in the original report.\n- Operating system: Not provided in the original report.\n- Context: The issue was found with a fuzzing harness (`basic_fuzzer.py`, `fuzzers.py`, `test_forms_URLField`).",
+ "ttft_ms": 4051,
+ "type": "result",
+ "duration_ms": 9843,
+ "uuid": "e4809016-b056-4800-b399-e0a143677fce",
+ "ttft_stream_ms": 1476,
+ "time_to_request_ms": 274,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 23,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 259,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1476,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

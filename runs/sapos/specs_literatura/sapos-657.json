@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 23220,
+ "stop_reason": "end_turn",
+ "session_id": "ab1f5d8c-4b59-4997-8ff2-05ce268c6511",
+ "total_cost_usd": 0.07406800000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2666,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2622,
+  "output_tokens_details": {
+   "thinking_tokens": 617
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2666,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2622,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2666,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2666
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2810,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000292,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2622,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2666,
+   "webSearchRequests": 0,
+   "costUSD": 0.07377600000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 617,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 2666,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\n\n`User#name` \u00e9 definido uma \u00fanica vez, quando o usu\u00e1rio do aluno \u00e9 criado. Altera\u00e7\u00f5es posteriores em `Student#name` n\u00e3o chegam a `users.name`. Assim que o nome do aluno \u00e9 editado pela primeira vez, os dois campos passam a divergir e continuam divergentes.\n\nO t\u00edtulo da issue tamb\u00e9m cita `Professor#name`, mas o corpo descreve apenas o caso de `Student`.\n\nSegundo a issue, `Enrollment#create_user!` (`app/models/enrollment.rb:239`) \u00e9 o \u00fanico ponto de `app/` que define `User#name` a partir de `Student#name`. Esse m\u00e9todo roda como `after_create` da matr\u00edcula (`app/models/enrollment.rb:56`) e copia o valor de `student.name` naquele momento. N\u00e3o existe callback que propague altera\u00e7\u00f5es posteriores de `students.name` para `users.name`.\n\nRelacionada \u00e0 #658 (normalizar a caixa do nome ao mapear candidatura para aluno), mas independente dela. A #658 trata da entrada do nome em caixa alta. Esta issue trata da propaga\u00e7\u00e3o de qualquer corre\u00e7\u00e3o posterior, seja de caixa, sobrenome, acento ou typo.\n\n## Passos para reproduzir\n\nSequ\u00eancia reconstru\u00edda pelo `paper_trail` de um aluno em produ\u00e7\u00e3o. O nome foi substitu\u00eddo por um exemplo sint\u00e9tico.\n\n1. Crie um aluno a partir do m\u00f3dulo de admiss\u00e3o, com o nome copiado da candidatura em caixa alta: `JOAO CARLOS DOS SANTOS` (13:34:43).\n2. Salve a matr\u00edcula do aluno. O `after_create` executa `create_user!`, que convida o usu\u00e1rio com o mesmo nome em caixa alta (13:34:43).\n3. Corrija `students.name` para `Joao Carlos dos Santos` (13:35:40).\n4. Verifique `users.name` do usu\u00e1rio associado.\n\nA janela entre a cria\u00e7\u00e3o do usu\u00e1rio e a corre\u00e7\u00e3o do nome vai de segundos a minutos. Segundo a issue, quase toda corre\u00e7\u00e3o de nome cai nessa janela.\n\n## Comportamento observado\n\n`users.name` continua `JOAO CARLOS DOS SANTOS` indefinidamente, enquanto `students.name` passa a ser `Joao Carlos dos Santos`.\n\n**Impacto medido:**\n\n| inst\u00e2ncia | usu\u00e1rios com nome em caixa alta | total de usu\u00e1rios com nome |\n|---|---|---|\n| A | 22 | 853 |\n| B (dados legados importados em massa) | 252 | 354 |\n\nNa inst\u00e2ncia A, 30 dos 31 alunos vindos de candidatura em caixa alta tiveram o nome corrigido na tabela `students`, mas 22 usu\u00e1rios mantiveram a caixa alta original. Ou seja, hoje o dado incorreto est\u00e1 em `users`, e n\u00e3o em `students`.\n\n**Onde o nome divergente aparece** (pontos verificados no c\u00f3digo pelo autor):\n\n- Templates de e-mail do Devise em `app/views/devise/mailer/`, todos iniciando com `{{ user.name }}`: `invitation_instructions`, `confirmation_instructions`, `reset_password_instructions`, `password_change`, `email_changed`, `unlock_instructions`. O convite recebido pelo aluno j\u00e1 sai com o nome errado.\n- Autoria de coment\u00e1rios de inscri\u00e7\u00e3o via `comment.user.name`:\n  - `app/views/enrollment_requests/_enrollment_request_comments_form_column.html.erb:21`\n  - `app/views/student_enrollment/_enroll_comments.html.erb:16`\n- `{{ user.name }}` nos e-mails de inscri\u00e7\u00e3o:\n  - `app/views/student_enrollment/mailer/email_to_student.text.liquid:43`\n  - `app/views/student_enrollment/mailer/email_to_advisor.text.liquid:43`\n  - `app/views/enrollment_requests/mailer/email_to_student.text.liquid:19`\n- `Report#to_label` (`app/models/report.rb:12`)\n- `UserRole#to_label` (`app/models/user_role.rb:13`)\n- Pend\u00eancias de admiss\u00e3o (`app/models/admissions/admission_application.rb:338`)\n\n## Comportamento esperado\n\nDepois que `Student#name` \u00e9 alterado, o `User` associado deve refletir o novo nome. Isso vale para corre\u00e7\u00f5es de caixa, troca de sobrenome, corre\u00e7\u00e3o de acento e typo. O autor considera `Student#name` a fonte de verdade do nome.\n\n## Stack trace / sa\u00edda de erro\n\nN\u00e3o informado na issue original.\n\n## Caso de teste\n\nA issue n\u00e3o traz c\u00f3digo de teste. O cen\u00e1rio m\u00ednimo derivado dos passos acima \u00e9:\n\n1. Criar um aluno com nome `JOAO CARLOS DOS SANTOS` e um e-mail.\n2. Criar uma matr\u00edcula para esse aluno, o que dispara `create_user!` e cria o `User` com `name = \"JOAO CARLOS DOS SANTOS\"`.\n3. Atualizar `student.name` para `Joao Carlos dos Santos`.\n4. Recarregar o usu\u00e1rio associado e verificar `user.name`.\n   - **Esperado:** `Joao Carlos dos Santos`\n   - **Atual:** `JOAO CARLOS DOS SANTOS`\n\n## Exemplo de c\u00f3digo\n\nTrecho de `Enrollment#create_user!` (`app/models/enrollment.rb:239`), que cria o usu\u00e1rio com uma c\u00f3pia de `student.name`:\n\n```ruby\nuser = User.invite!({\n  email: student.first_email,\n  name: student.name,\n  roles: [role],\n}, current_user) do |invitable|\n  invitable.skip_confirmation!\nend\n```\n\n## Vers\u00e3o e ambiente\n\n- Vers\u00e3o: n\u00e3o informada na issue original.\n- Ambiente: produ\u00e7\u00e3o, com dados observados em duas inst\u00e2ncias (A e B; a B com dados legados importados em massa).\n- Componentes mencionados: `paper_trail` (hist\u00f3rico de vers\u00f5es) e Devise (convites e e-mails de usu\u00e1rio).",
+ "ttft_ms": 7835,
+ "type": "result",
+ "duration_ms": 22806,
+ "uuid": "abda8c46-f28e-48b0-89f4-fce8bd5fea6e",
+ "ttft_stream_ms": 1324,
+ "time_to_request_ms": 398,
+ "time_to_request_phases_ms": {
+  "other": 4,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "conversation_append": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "init_frame_send": 4,
+  "engine_pickup": 1,
+  "loop_entry": 4,
+  "message_prep": 1,
+  "model_config_wait": 339,
+  "autocompact": 2,
+  "request_announcements": 5,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 27,
+ "time_to_request_cpu_ms": 332,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 15,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 3,
+  "render_ms": 1,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 0,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1324,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

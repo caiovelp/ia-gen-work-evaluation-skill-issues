@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9760,
+ "stop_reason": "end_turn",
+ "session_id": "ef0e21c5-6d1f-4fba-8c52-ec992a995a87",
+ "total_cost_usd": 0.030099900000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1306,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 974,
+  "output_tokens_details": {
+   "thinking_tokens": 152
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1306,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 974,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1306,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1306
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1514,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001639,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 974,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1306,
+   "webSearchRequests": 0,
+   "costUSD": 0.029936000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 152,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`autodoc_type_aliases` has no effect on the type annotations of module-level variables or class attributes documented by `sphinx.ext.autodoc`.\n\n## Steps to reproduce\n\n1. Create a module `example.py` that uses postponed evaluation of annotations. Annotate a module-level variable and a class attribute with the alias name `String`:\n\n   ```python\n   # example.py\n   from __future__ import annotations\n\n\n   #: blah blah blah\n   var: String\n\n\n   class MyString:\n       \"mystring\"\n\n       #: blah blah blah\n       var: String\n   ```\n\n2. In `conf.py`, enable `sphinx.ext.autodoc` and define the type alias:\n\n   ```python\n   # conf.py\n   autodoc_type_aliases = {\n       'String': 'example.MyString'\n   }\n   ```\n\n3. In `index.rst`, document the module:\n\n   ```rst\n   .. automodule:: example\n      :members:\n      :undoc-members:\n   ```\n\n4. Build the documentation.\n5. Look at the rendered type annotations of `example.var` and `example.MyString.var`.\n\n## Observed behavior\n\n`autodoc_type_aliases` is not applied to the variable `example.var` or the attribute `example.MyString.var`. The report does not show the exact rendered output.\n\n## Expected behavior\n\n`autodoc_type_aliases` should be applied to `example.var` and `example.MyString.var`, so that `String` resolves to `example.MyString`.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report. The three files in \"Steps to reproduce\" (`example.py`, `conf.py`, `index.rst`) form a minimal reproduction project. Build it and check whether the annotations of `example.var` and `example.MyString.var` use the alias `example.MyString`.\n\n## Code example\n\n```python\n# example.py\nfrom __future__ import annotations\n\n\n#: blah blah blah\nvar: String\n\n\nclass MyString:\n    \"mystring\"\n\n    #: blah blah blah\n    var: String\n```\n\n```rst\n# index.rst\n.. automodule:: example\n   :members:\n   :undoc-members:\n```\n\n```python\n# conf.py\nautodoc_type_aliases = {\n    'String': 'example.MyString'\n}\n```\n\n## Version and environment\n\n- OS: Mac\n- Python version: 3.9.0\n- Sphinx version: HEAD of 3.x branch\n- Sphinx extensions: `sphinx.ext.autodoc`\n- Extra tools: none",
+ "ttft_ms": 3115,
+ "type": "result",
+ "duration_ms": 9321,
+ "uuid": "1f927431-0eba-4736-aa90-c4e3f3e38d26",
+ "ttft_stream_ms": 1408,
+ "time_to_request_ms": 285,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 25,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 37,
+ "time_to_request_cpu_ms": 297,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1408,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

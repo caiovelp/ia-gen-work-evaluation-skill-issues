@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11030,
+ "stop_reason": "end_turn",
+ "session_id": "dfbc1a8a-d854-44e4-a649-e431a7b62630",
+ "total_cost_usd": 0.031156200000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1135,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1096,
+  "output_tokens_details": {
+   "thinking_tokens": 235
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1135,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1096,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1135,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1135
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1347,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014820000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1096,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1135,
+   "webSearchRequests": 0,
+   "costUSD": 0.031008,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 235,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe LaTeX printer produces output that will not compile for an indexed matrix product such as `(M*N)[i, j]`. The summation dummy index appears as `_i_1` inside the subscripts, which creates a double subscript (`_`). LaTeX rejects the result and MathJax cannot render it.\n\n## Steps to reproduce\n\n1. Define the symbols `i`, `j`, `k`:\n   `i, j, k = symbols(\"i j k\")`\n2. Define two square matrix symbols of size `k \u00d7 k`:\n   `M = MatrixSymbol(\"M\", k, k)` and `N = MatrixSymbol(\"N\", k, k)`\n3. Print the indexed product to LaTeX:\n   `latex((M*N)[i, j])`\n4. Compile the resulting string with LaTeX, or render it with MathJax.\n\n(The original report does not show the import statements.)\n\n## Observed behavior\n\n`latex((M*N)[i, j])` returns:\n\n```\n\\sum_{i_{1}=0}^{k - 1} M_{i, _i_1} N_{_i_1, j}\n```\n\nIn the subscripts of `M` and `N`, the dummy index is written as `_i_1`. The summation limit uses a different form, `i_{1}`. LaTeX reports a double subscript error on `_`, and MathJax does not render the expression.\n\n## Expected behavior\n\nThe printer should return a valid LaTeX string that compiles without a double-subscript error and renders in MathJax.\n\n## Stack trace / error output\n\nNo stack trace was provided. The report only says that \"LaTeX complains about a double subscript `_`\". The exact LaTeX error message is not provided in the original report.\n\n## Test case\n\nThis minimal test case is built from the reproduction snippet. It checks that the dummy index does not appear in the malformed `_i_1` form that causes the double subscript:\n\n```python\ndef test_latex_indexed_matrix_product_no_double_subscript():\n    i, j, k = symbols(\"i j k\")\n    M = MatrixSymbol(\"M\", k, k)\n    N = MatrixSymbol(\"N\", k, k)\n    result = latex((M*N)[i, j])\n    # Observed (broken) output: \\sum_{i_{1}=0}^{k - 1} M_{i, _i_1} N_{_i_1, j}\n    assert \"_i_1\" not in result\n```\n\n## Code example\n\n```python\ni, j, k = symbols(\"i j k\")\nM = MatrixSymbol(\"M\", k, k)\nN = MatrixSymbol(\"N\", k, k)\nlatex((M*N)[i, j])\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 4145,
+ "type": "result",
+ "duration_ms": 10473,
+ "uuid": "51a6c4e6-7e78-449e-908f-9995fd9de14f",
+ "ttft_stream_ms": 1873,
+ "time_to_request_ms": 234,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 132,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1874,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

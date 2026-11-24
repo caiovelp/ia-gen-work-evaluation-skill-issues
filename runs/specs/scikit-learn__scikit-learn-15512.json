@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33622,
+ "stop_reason": "end_turn",
+ "session_id": "cfddea46-1053-49a1-8c2d-d88a73bfa8b5",
+ "total_cost_usd": 0.078368,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1386,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3310,
+  "output_tokens_details": {
+   "thinking_tokens": 447
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1386,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3310,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1386,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1386
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1972,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002092,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3310,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1386,
+   "webSearchRequests": 0,
+   "costUSD": 0.07815879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 447,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Consistent, Detectable Results for Non-Converged Affinity Propagation\n\n## Objective\n\nWhen `AffinityPropagation` stops at `max_iter` without converging, the result looks like a valid clustering. Its behaviour also contradicts the documentation.\n\n**Documented behaviour (quoted in the issue):**\n> \"When the algorithm does not converge, it returns an empty array as cluster_center_indices and -1 as label for each training sample.\"\n\n**Observed behaviour (scikit-learn 0.20.3):**\n\n```python\nfrom sklearn.cluster import AffinityPropagation\nimport pandas as pd\n\ndata = pd.DataFrame([[1,0,0,0,0,0],[0,1,1,1,0,0],[0,0,1,0,0,1]])\naf = AffinityPropagation(affinity='euclidean', verbose=True, copy=False, max_iter=2).fit(data)\n\nprint(af.cluster_centers_indices_)   # observed: [2]      expected per docs: []\nprint(af.labels_)                    # observed: [0 0 0]  expected per docs: [-1 -1 -1]\n```\n\nThe only signal of non-convergence today is the `verbose=True` printout. The workaround of comparing `n_iter_ == max_iter` is unreliable because convergence can occur at exactly the last iteration.\n\n**User:** A developer who calls `AffinityPropagation` inside a larger script or pipeline. They need to detect failed convergence programmatically, without reading stdout. They must not silently consume a meaningless clustering.\n\n**Goal:** The documentation and the runtime behaviour agree. A non-converged fit can be detected programmatically and reliably.\n\n**Acceptance criteria (pending answers to the Open Questions):**\n1. For a fit that does not converge within `max_iter`, the returned values match whatever the documentation states. The doc-literal behaviour is `cluster_centers_indices_ == []` and `labels_ == [-1] * n_samples`.\n2. A non-converged fit is detectable without `verbose=True`, through a warning, an attribute, or both (see Open Questions).\n3. A fit that does converge, including one that converges exactly at the final allowed iteration, keeps its current results and is not reported as non-converged.\n4. The public function form of the algorithm, if it exists separately from the estimator, behaves the same way as the estimator.\n\n## Assumptions\n\n1. The issue's reproduction is accurate. With `max_iter=2`, the example does not converge, and the verbose output confirms this.\n2. The convergence criterion uses a stable-exemplar window. The parameter is presumably `convergence_iter`, and the issue's \"15 iterations\" matches its default. The exact parameter name and default have not been verified in the code.\n3. The root cause is suspected to be that, after the iteration loop ends without convergence, the code still extracts exemplars from the final state. In that reading, the \"empty / -1\" result happens only when zero exemplars are found, not whenever convergence fails. This hypothesis has not been verified against source.\n4. The fix belongs in scikit-learn's affinity propagation implementation, covering both estimator and function. It does not belong in user code.\n5. Other scikit-learn estimators that fail to converge conventionally emit `sklearn.exceptions.ConvergenceWarning`. Following that convention is preferred.\n6. The behaviour should be fixed on the current development branch, not on 0.20.3 specifically.\n\n## Tech Stack\n\n- Python, NumPy, SciPy; scikit-learn (reported on 0.20.3, numpy 1.15.4, scipy 1.2.0, pandas 0.23.4).\n- Exact versions supported by the current development branch: **unknown**.\n\n## Commands\n\nAll of these are **unknown**, because the repository was not visible.\n- Build: unknown\n- Test: unknown (presumably pytest-based; verify)\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\n**Unknown.** The relevant locations still need to be identified:\n- The source module containing the `AffinityPropagation` estimator and its function counterpart.\n- The test module for affinity propagation.\n- The docstrings and user-guide pages that contain the quoted sentence about non-convergence.\n- The changelog or what's-new file for user-visible behaviour changes.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the affinity propagation module and the project's estimator conventions:\n- Fitted attributes end with `_`.\n- Warnings use the project's exception classes.\n- Docstrings use NumPy format.\n\nNo snippet is included because no source is visible.\n\n## Testing Strategy\n\n- **Framework:** unknown (expected to be the project's existing test runner).\n- **Regression test:** Use the issue's 3-sample input with `max_iter=2`. Assert that the documented non-converged outputs are returned and that the chosen signal (warning and/or attribute) is raised or set.\n- **Function-level test:** Apply the same assertions to the function form of the algorithm, if one exists.\n- **Converged-case test:** A well-separated dataset that converges must produce unchanged centers and labels and no non-convergence signal.\n- **Edge-case test:** Convergence occurring exactly at the last allowed iteration must be reported as converged. This is the reporter's stated concern about the `n_iter_ == max_iter` heuristic.\n- **Predict-after-non-convergence test:** Define and verify what `predict` returns on a non-converged model, depending on the Open Questions.\n- **Coverage:** No new branches in the non-convergence path are left untested.\n\n## Boundaries\n\n- **Always:**\n  - Keep the documentation and behaviour consistent in the same change.\n  - Add regression tests reproducing the issue.\n  - Document the user-visible change in the changelog.\n  - Use the project's standard convergence warning mechanism.\n- **Ask first:**\n  - Changing returned values for non-converged fits, since existing users may depend on them.\n  - Adding new public attributes or parameters.\n  - Changing the signature or return tuple of the public function.\n  - Deciding the behaviour of `predict` on non-converged models.\n  - Any deprecation cycle.\n- **Never:**\n  - Change results for fits that converge.\n  - Rely on `verbose` output as the only failure signal.\n  - Use `n_iter_ == max_iter` as the convergence test.\n  - Remove or weaken existing tests without approval.\n\n## Success Criteria\n\n- [ ] Running the issue's example without `verbose` produces a programmatically detectable non-convergence signal.\n- [ ] The returned `cluster_centers_indices_` and `labels_` for non-converged fits match the documentation exactly. Whether the code or the docs change is decided in Open Questions.\n- [ ] Converged fits, including convergence at the last permitted iteration, are unchanged and raise no non-convergence signal.\n- [ ] The estimator and the public function (if present) behave identically on non-convergence.\n- [ ] `predict` behaviour on a non-converged model is defined, documented, and tested.\n- [ ] Regression tests are added, and the full existing test suite for the module passes.\n- [ ] A changelog entry describes the behaviour change.\n\n## Open Questions\n\n1. **Code or docs?** Should the implementation change to match the documentation (empty centers and all `-1` labels on non-convergence)? Or should the documentation change to describe the current \"best-effort last state\" output? The reporter prefers the former.\n2. **Warning:** Should non-convergence emit a `ConvergenceWarning`, consistent with other estimators, independent of `verbose`?\n3. **Attribute:** Should a public flag (e.g. a `converged_`-style attribute) be added? If so, under what name, and should the function form also return it?\n4. **Backwards compatibility:** Changing outputs for non-converged fits is user-visible. Is a direct change acceptable as a bug fix, or is a deprecation period or opt-in parameter required?\n5. **`predict` on non-converged models:** Should it return all `-1`, raise an error, or warn? What about `fit_predict`?\n6. **Degenerate converged cases:** Is the current all-`-1` / empty output for \"converged but zero exemplars\" intended? Should it stay distinguishable from non-convergence?\n7. **Root cause confirmation:** Is Assumption 3 correct, i.e. that exemplars are extracted from the final iteration state regardless of convergence? This needs verification in source before planning.\n8. **Repository details:** What are the exact file paths, test commands, and changelog location? All are unknown here.",
+ "ttft_ms": 6337,
+ "type": "result",
+ "duration_ms": 32915,
+ "uuid": "e33d7e0b-2d4c-4356-8c77-12d2a72d1418",
+ "ttft_stream_ms": 1954,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 222,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 181,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1954,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

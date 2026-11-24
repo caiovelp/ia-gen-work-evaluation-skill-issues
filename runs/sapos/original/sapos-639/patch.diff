@@ -1,0 +1,26 @@
+diff --git a/Gemfile b/Gemfile
+index 1bf765be..aff4053c 100644
+--- a/Gemfile
++++ b/Gemfile
+@@ -9,7 +9,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+ # uri default do Ruby vem >= 0.12.5 (CVE-2025-61594, vazamento de credencial
+ # via URI#+). Antes o net-http segurava o uri em 0.12.5; sem ele, rodar num
+ # Ruby anterior a 3.2.10 regrediria o uri para 0.12.2, sem a correcao.
+-ruby "~> 3.2.11"
++ruby "~> 3.4.0"
+ 
+ # ─── Framework e servidor ────────────────────────────────────────────────
+ gem "rails", "~> 7.2.3", ">= 7.2.3.1"
+diff --git a/Gemfile.lock b/Gemfile.lock
+index 2341f7c9..3b8c2919 100644
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -600,7 +600,7 @@ DEPENDENCIES
+   web-console
+ 
+ RUBY VERSION
+-   ruby 3.2.11p268
++   ruby 3.4.9p0
+ 
+ BUNDLED WITH
+    2.4.19

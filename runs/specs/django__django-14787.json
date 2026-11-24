@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28582,
+ "stop_reason": "end_turn",
+ "session_id": "8f98478d-1626-4418-9351-a072be78bfa3",
+ "total_cost_usd": 0.06331439999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 843,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2770,
+  "output_tokens_details": {
+   "thinking_tokens": 138
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 843,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2770,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 843,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 843
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1436,
+   "outputTokens": 312,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 289,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2770,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 843,
+   "webSearchRequests": 0,
+   "costUSD": 0.0630148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 138,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `method_decorator()` preserves wrapper assignments on the bound callable\n\n## Assumptions\n1. `method_decorator` is Django's `django.utils.decorators.method_decorator`. The issue does not name the project, but the API name and the behavior match Django. The file path is assumed and has not been verified.\n2. Internally, `method_decorator` binds the method to `self` with `functools.partial` and passes that partial to each decorator. A `partial` has no `__name__`, `__module__`, `__qualname__` or `__doc__`, so the decorator sees none of them.\n3. \"Wrapper assignments\" means the attributes in `functools.WRAPPER_ASSIGNMENTS`: `__module__`, `__name__`, `__qualname__`, `__doc__`, `__annotations__`, and `__type_params__` on newer Pythons. \"Preserve\" means these attributes are copied from the original method onto the bound callable that the decorator receives.\n4. The example in the issue has several mistakes, and none of them is the bug being reported:\n   - It calls `Test().test_method()` instead of `Test().hello_world()`.\n   - `inner` never returns `result`.\n   - `logger.debug` refers to the decorator function, not a logging logger.\n\n   The bug being reported is the `AttributeError` when the decorator reads `func.__name__`.\n5. The fix should not change the public signature or the documented behavior of `method_decorator`.\n6. Existing behavior must keep working. Today, attributes that the decorator sets on its wrapper are copied onto the final method, and `__dict__` and wrapper assignments of the original method are kept on the final decorated method. This includes `update_wrapper` behavior on the outer `_wrapper`.\n\n## Objective\nDevelopers use `method_decorator` to apply function decorators to methods. Many real-world decorators read metadata from the callable they receive, such as `func.__name__` for logging, `func.__module__` for registration, or `func.__doc__`. Today those decorators fail with:\n\n```\nAttributeError: 'functools.partial' object has no attribute '__name__'\n```\n\nThey fail because the callable passed in is a bare `functools.partial`.\n\n**Goal:** the callable that `method_decorator` passes to a decorator must carry the original method's wrapper assignments, so it looks like a function to the decorator. This includes decorators that apply `functools.wraps(func)` and decorators that read `func.__name__` directly.\n\n**User story:** As a developer, I can write `@method_decorator(logger)` on a method, where `logger` uses `@wraps(func)` and reads `func.__name__`. Calling the method then works and logs the method's real name.\n\n## Tech Stack\n- Python and the `functools` standard library module (`partial`, `wraps`, `update_wrapper`, `WRAPPER_ASSIGNMENTS`).\n- Project: assumed to be Django.\n- Supported Python and Django versions: **unknown**.\n\n## Commands\n- Build: unknown (not provided in the issue)\n- Test: unknown (Django normally uses `tests/runtests.py`, which is not verified; the exact invocation for the decorators test module is unknown)\n- Lint: unknown\n- Dev: N/A (library change)\n\n## Project Structure\n- Implementation: assumed to be `django/utils/decorators.py`, containing `method_decorator` and its private helper `_multi_decorate`. Not verified.\n- Tests: assumed to be in the existing decorators test module, `tests/decorators/tests.py`. Not verified.\n- Docs/release notes: location unknown. A release note may be needed if this is treated as a bug fix in a supported release.\n\n## Code Style\n- Follow the existing conventions in the decorators module. These are unknown here because no source is visible.\n- The repro from the issue, corrected, which the fix must make pass:\n\n```python\nfrom functools import wraps\n\ndef logger(func):\n    @wraps(func)\n    def inner(*args, **kwargs):\n        try:\n            result = func(*args, **kwargs)\n        except Exception as e:\n            result = str(e)\n        finally:\n            log.debug(f\"{func.__name__} called with args: {args} and kwargs: {kwargs} resulting: {result}\")\n        return result\n    return inner\n\nclass Test:\n    @method_decorator(logger)\n    def hello_world(self):\n        return \"hello\"\n\nTest().hello_world()  # must not raise; returns \"hello\"\n```\n\n## Testing Strategy\n- **Framework:** the project's existing unit test framework. For Django this is assumed to be `unittest` / `SimpleTestCase`; the exact base class used in the decorators tests is unknown.\n- **Level:** unit tests in the existing `method_decorator` test suite.\n\n**New cases:**\n1. A decorator that reads `func.__name__` without using `wraps` sees the original method's name.\n2. A decorator that uses `@wraps(func)`, as in the issue, applies without error, and the method returns the correct value.\n3. Inside the decorator, the received callable's `__module__`, `__qualname__` and `__doc__` match the original method.\n4. Several decorators passed as an iterable, for example `method_decorator((dec_a, dec_b))`, each receive a callable with the wrapper assignments.\n5. The class-level form `@method_decorator(dec, name=\"method\")` behaves the same way.\n\n**Regression:** all existing `method_decorator` tests pass unchanged. These cover attribute propagation, `name=` on classes, iterables of decorators, and the descriptor and `self` binding behavior.\n\n**Coverage:** no numeric target is known. Every new code path must be exercised by at least one test.\n\n## Boundaries\n- **Always:**\n  - Keep the public API of `method_decorator` unchanged.\n  - Add regression tests that reproduce the issue's `AttributeError` before the fix.\n  - Run the full decorators test suite.\n- **Ask first:**\n  - Changing which callable type is passed to decorators. For example, replacing `partial` with a real function would change behavior visible to decorators that inspect the callable.\n  - Copying attributes beyond `WRAPPER_ASSIGNMENTS`, such as `__dict__` or `__wrapped__`, onto the bound callable.\n  - Backporting to older release branches.\n- **Never:**\n  - Modify user decorators or document a workaround instead of fixing the bug.\n  - Remove or loosen existing tests.\n  - Break `self` binding. Each call must still bind to the correct instance, with no state shared across instances or calls.\n\n## Success Criteria\n- [ ] The corrected repro above runs without `AttributeError` and returns `\"hello\"`.\n- [ ] Inside any decorator applied through `method_decorator`, these attributes of the received callable equal the original method's: `func.__name__`, `func.__module__`, `func.__qualname__`, `func.__doc__` and `func.__annotations__`.\n- [ ] The criteria above hold for a single decorator, for an iterable of decorators, and for the class form with `name=`.\n- [ ] The decorated method still binds `self` correctly per instance and per call.\n- [ ] All pre-existing `method_decorator` tests pass.\n\n## Open Questions\n1. Is this Django's `method_decorator`? Which branches and versions should get the fix?\n2. Should \"wrapper assignments\" mean exactly `functools.WRAPPER_ASSIGNMENTS`? Or should the bound callable also get `__dict__` (`WRAPPER_UPDATES`) and a `__wrapped__` reference to the original method?\n3. Must the callable passed to decorators stay a `functools.partial` instance with assignments added? Or may it become a different callable type, such as a plain function wrapper? Some third-party decorators might check `isinstance(func, partial)` or inspect `.func` and `.args`.\n4. What are the exact test command and test file location?\n5. Is a release note or docs change needed, and where?",
+ "ttft_ms": 2479,
+ "type": "result",
+ "duration_ms": 27041,
+ "uuid": "a743bc52-deac-439c-8555-5c29f53176fb",
+ "ttft_stream_ms": 1235,
+ "time_to_request_ms": 262,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 32,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 204,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 164,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "nested_memory",
+  "slowest_producer_ms": 17,
+  "cpu_ms": 48,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1236,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

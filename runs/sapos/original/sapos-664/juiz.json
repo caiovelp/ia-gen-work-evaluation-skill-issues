@@ -1,0 +1,1 @@
+{"justificativa": "O candidato aplica `required` apenas quando o campo é obrigatório e ainda não há arquivo gravado, nos dois parciais (`_generic_file_field` e `_as_student_photo`). A lógica equivale à da correção oficial: `!file.present?` é o mesmo que `file.blank?`, e a verificação de `required` mantém a semântica original de truthiness.", "veredito": "resolve"}

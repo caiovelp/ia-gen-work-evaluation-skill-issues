@@ -1,0 +1,30 @@
+diff --git a/sympy/functions/elementary/complexes.py b/sympy/functions/elementary/complexes.py
+index 7fda45982b..12d942cdae 100755
+--- a/sympy/functions/elementary/complexes.py
++++ b/sympy/functions/elementary/complexes.py
+@@ -277,6 +277,13 @@ class sign(Function):
+     sign(1 + I)
+     >>> _.evalf()
+     0.707106781186548 + 0.707106781186548*I
++    >>> from sympy import Symbol, Abs
++    >>> x = Symbol('x', nonzero=True)
++    >>> sign(x).rewrite(Abs)
++    x/Abs(x)
++
++    If the argument may be zero, a ``Piecewise`` that gives 0 at zero is
++    returned.
+ 
+     See Also
+     ========
+@@ -385,6 +392,11 @@ def _sage_(self):
+         import sage.all as sage
+         return sage.sgn(self.args[0]._sage_())
+ 
++    def _eval_rewrite_as_Abs(self, arg, **kwargs):
++        if arg.is_zero is False:
++            return arg / Abs(arg)
++        return Piecewise((0, Eq(arg, 0)), (arg / Abs(arg), True))
++
+     def _eval_rewrite_as_Piecewise(self, arg, **kwargs):
+         if arg.is_extended_real:
+             return Piecewise((1, arg > 0), (-1, arg < 0), (0, True))

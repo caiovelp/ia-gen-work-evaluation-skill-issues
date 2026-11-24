@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15626,
+ "stop_reason": "end_turn",
+ "session_id": "a0e2ba1c-a077-4481-9740-36ecbf4c0ea0",
+ "total_cost_usd": 0.0467124,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1606,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1683,
+  "output_tokens_details": {
+   "thinking_tokens": 450
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1606,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1683,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1606,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1606
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1809,
+   "outputTokens": 31,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001964,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1683,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1606,
+   "webSearchRequests": 0,
+   "costUSD": 0.046516,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 450,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn `django.contrib.sitemaps`, the sitemap index view raises `ValueError: max() arg is an empty sequence` for a sitemap whose `items()` returns no items but which defines `lastmod` as a callable. The error comes from `Sitemap.get_latest_lastmod()`.\n\n## Steps to reproduce\n\n1. Define a sitemap class whose `items()` returns an empty sequence.\n2. On the same class, define `lastmod` as a callable that returns the last-modified value for an item.\n3. Register the sitemap with the sitemap index view (`django.contrib.sitemaps.views.index`).\n4. Request the sitemap index, for example `/sitemap.xml`.\n\n## Observed behavior\n\nThe request fails with an unhandled exception:\n\n- Exception Type: `ValueError` at `/sitemap.xml`\n- Exception Value: `max() arg is an empty sequence`\n\nThe index view calls `site.get_latest_lastmod()`, which calls `max()` on an empty list because the sitemap has no items.\n\n## Expected behavior\n\nThe sitemap index should render without raising an exception when a sitemap with a callable `lastmod` has no items.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n File \"/usr/local/lib/python3.10/site-packages/django/core/handlers/exception.py\", line 55, in inner\n\tresponse = get_response(request)\n File \"/usr/local/lib/python3.10/site-packages/django/core/handlers/base.py\", line 197, in _get_response\n\tresponse = wrapped_callback(request, *callback_args, **callback_kwargs)\n File \"/usr/local/lib/python3.10/site-packages/django/utils/decorators.py\", line 133, in _wrapped_view\n\tresponse = view_func(request, *args, **kwargs)\n File \"/usr/local/lib/python3.10/site-packages/django/contrib/sitemaps/views.py\", line 34, in inner\n\tresponse = func(request, *args, **kwargs)\n File \"/usr/local/lib/python3.10/site-packages/django/contrib/sitemaps/views.py\", line 76, in index\n\tsite_lastmod = site.get_latest_lastmod()\n File \"/usr/local/lib/python3.10/site-packages/django/contrib/sitemaps/__init__.py\", line 170, in get_latest_lastmod\n\treturn max([self.lastmod(item) for item in self.items()])\nException Type: ValueError at /sitemap.xml\nException Value: max() arg is an empty sequence\n```\n\n## Test case\n\nNot provided in the original report.\n\n(Scenario from the report: a sitemap with an empty `items()` and a callable `lastmod`, requested through the sitemap index view at `/sitemap.xml`. This should not raise `ValueError`.)\n\n## Code example\n\nThe current `Sitemap.get_latest_lastmod()` code that the report quotes as context (`django/contrib/sitemaps/__init__.py`):\n\n```python\ndef get_latest_lastmod(self):\n    if not hasattr(self, \"lastmod\"):\n        return None\n    if callable(self.lastmod):\n        try:\n            return max([self.lastmod(item) for item in self.items()])\n        except TypeError:\n            return None\n    else:\n        return self.lastmod\n```\n\nWhen `self.items()` is empty, the list passed to `max()` is empty. `max()` then raises `ValueError`, which the `except TypeError` clause does not catch.\n\n## Version and environment\n\n- Python: 3.10 (from the traceback paths `/usr/local/lib/python3.10/site-packages/...`)\n- Django version: Not provided in the original report.\n- Operating system and other environment details: Not provided in the original report.",
+ "ttft_ms": 6114,
+ "type": "result",
+ "duration_ms": 14958,
+ "uuid": "de9df3f1-fb08-4982-9117-d054bc2c6c6e",
+ "ttft_stream_ms": 1455,
+ "time_to_request_ms": 289,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 234,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 240,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1455,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

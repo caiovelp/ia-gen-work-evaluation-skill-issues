@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28100,
+ "stop_reason": "end_turn",
+ "session_id": "cffdd30f-eb08-430e-a4aa-cb05ed581ea1",
+ "total_cost_usd": 0.0612011,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 842,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2672,
+  "output_tokens_details": {
+   "thinking_tokens": 332
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 842,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2672,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 842,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 842
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1428,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001543,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2672,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 842,
+   "webSearchRequests": 0,
+   "costUSD": 0.0610468,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 332,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Clearer assertion failure messages when comparing byte strings\n\n## Objective\n\nWhen an `assert` comparing two `bytes` objects fails, the explanation from pytest's assertion rewriting reports individual elements as integers. Indexing a `bytes` object in Python yields an `int`, so the message shows ordinals instead of characters:\n\n```\n    def test_b():\n>       assert b\"\" == b\"42\"\nE       AssertionError: assert b'' == b'42'\nE         Right contains more items, first extra item: 52\nE         Full diff:\nE         - b''\nE         + b'42'\nE         ?   ++\n```\n\n`52` is the ordinal of `\"4\"`, but nothing in the message says so. Users read it as a value from the data. The reporter only understood it after trying `b\"1\"` and seeing `49`.\n\n**Who it affects:** any pytest user writing `assert <bytes> == <bytes>` whose operands differ.\n\n**Goal:** the failure explanation for byte strings must not show bare integer ordinals that look like data. The user should understand the difference from the message alone, without knowing that indexing `bytes` yields `int`.\n\n**Acceptance criteria (user-facing):**\n- For `assert b\"\" == b\"42\"`, the output has no line saying the first extra item is `52` without context.\n- The full diff (`- b''` / `+ b'42'`) is still shown. It is already clear and stays the main explanation.\n- The same applies when the left operand is longer than the right (\"Left contains more items...\").\n- Comparisons of non-bytes sequences (lists, tuples) keep their current \"first extra item\" message. For example, `[1] == [1, 2]` still reports `2`.\n\n## Tech Stack\n\n- Python (supported versions: **unknown**, follow the project's existing policy)\n- pytest, specifically its assertion rewriting and comparison-explanation logic (module and function names **unknown** from the issue)\n- No new dependencies expected\n\n## Commands\n\nAll **unknown**, since the issue gives no repository commands. To fill in from the project's contributor docs:\n- Test: unknown (likely the project's pytest/tox invocation)\n- Lint: unknown\n- Build: not applicable / unknown\n\n## Project Structure\n\n**Unknown.** The issue does not show:\n- the source file that builds the \"Right/Left contains more items, first extra item: \u2026\" explanation\n- the test file covering assertion comparison explanations\n- the changelog location or format, if the project keeps one\n\n## Code Style\n\nUnknown. Follow the existing style of the surrounding assertion-explanation code. The message wording should stay consistent with the existing lines (\"Right contains more items, \u2026\", \"Full diff:\").\n\n## Testing Strategy\n\n- **Framework:** pytest testing itself. The exact harness for running a failing test and capturing its output is unknown and should match existing assertion-message tests.\n- **Cases to cover:**\n  1. `b\"\" == b\"42\"`: right longer, no bare `52` ordinal in the explanation; full diff present.\n  2. `b\"42\" == b\"\"`: left longer, same expectations.\n  3. `b\"\" == b\"1\"`: the reporter's second example, no bare `49`.\n  4. Regression: `[1, 2] == [1]` and `(1,) == (1, 2)` still report the extra item as before.\n  5. Depending on Open Question 3: equal-length bytes differing at an index, e.g. `b\"1\" == b\"2\"`.\n- **Level:** unit or functional tests on the generated explanation text. Use the existing pattern; whether that is direct calls or runs of an inner test session is unknown.\n- **Coverage expectations:** unknown. At minimum, every branch touched by the change gets a test.\n\n## Boundaries\n\n- **Always:**\n  - Keep the \"Full diff\" output for bytes unchanged unless a test shows it is wrong.\n  - Add regression tests for both directions (left longer and right longer).\n  - Keep behavior for non-bytes sequences unchanged.\n  - Add a changelog entry if the project requires one (mechanism unknown).\n- **Ask first:**\n  - Changing the explanation for `bytearray`, `memoryview`, or other buffer types.\n  - Changing the \"At index N diff\" message for equal-length byte strings, if that turns out to have the same problem.\n  - Any change to verbose (`-v`/`-vv`) output beyond removing or reformatting the confusing line.\n  - Changing the wording of existing messages for other sequence types.\n- **Never:**\n  - Change the semantics of the assertion, so a pass or fail outcome changes.\n  - Remove or loosen existing tests for sequence comparison messages.\n  - Introduce new dependencies.\n\n## Success Criteria\n\n1. Running a test with `assert b\"\" == b\"42\"` produces a failure explanation that:\n   - has no line stating the first extra item is `52` without byte or character context, and\n   - still contains the full diff showing `b''` versus `b'42'`.\n2. The same holds for `assert b\"42\" == b\"\"` (left longer).\n3. `assert [1] == [1, 2]` still produces \"Right contains more items, first extra item: 2\", unchanged.\n4. All existing assertion-rewriting and comparison tests pass.\n5. New tests for criteria 1\u20133 exist and pass.\n\n## Assumptions\n\n1. The confusing line comes from the generic sequence comparison logic, which treats `bytes` like any other sequence and indexes it, which yields `int`.\n2. The full diff already explains byte-string differences well, so the \"first extra item\" line adds nothing for `bytes`.\n3. The preferred default is to **omit** the \"first extra item\" line for `bytes` operands, relying on the full diff. The alternative is to render the item as a byte literal (e.g. `b'4'`). See Open Question 1.\n4. Only `bytes` vs `bytes` comparisons are in scope. Mixed comparisons such as `bytes` vs `str`, or `bytes` vs list of ints, are out of scope.\n5. The full diff is shown in the default verbosity shown in the issue. This matches the issue output, but behavior at other verbosity levels is not verified.\n\n## Open Questions\n\n1. **Preferred fix:** suppress the \"Left/Right contains more items, first extra item\" line for `bytes`, or keep it and render the item readably? Options include `b'4'`, `52 (b'4')`, or `0x34`.\n2. **Other byte-like types:** should `bytearray` (and possibly `memoryview`) get the same treatment? Indexing them also yields `int`.\n3. **Equal-length mismatches:** for something like `b\"1\" == b\"2\"`, does the explanation include an \"At index 0 diff: 49 != 50\"-style line? If so, is it in scope for this issue?\n4. **Verbosity:** is the full diff always shown for bytes at default verbosity? If not, removing the \"first extra item\" line could leave no detail at all in some modes.\n5. **Repository specifics:** which module holds the comparison-explanation code, where are its tests, what test and lint commands should be used, and does the project require changelog fragments?",
+ "ttft_ms": 4559,
+ "type": "result",
+ "duration_ms": 27406,
+ "uuid": "39f15bb4-9f91-423e-a84a-e749bebeb5a3",
+ "ttft_stream_ms": 1518,
+ "time_to_request_ms": 276,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 236,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 207,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1518,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

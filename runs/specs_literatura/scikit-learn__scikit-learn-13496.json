@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10014,
+ "stop_reason": "end_turn",
+ "session_id": "1fab1669-6a52-42bc-88c6-5945e36b3b01",
+ "total_cost_usd": 0.0290564,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1424,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 874,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1424,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 874,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1424,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1424
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1654,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001764,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 874,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1424,
+   "webSearchRequests": 0,
+   "costUSD": 0.02888,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nExpose the `warm_start` parameter in `sklearn.ensemble.IsolationForest`.\n\n## Description\n`sklearn.ensemble.IsolationForest` already supports adding new trees incrementally through the `warm_start` parameter. It inherits this parameter from its parent class, `sklearn.ensemble.BaseBagging`.\n\nThe parameter is not exposed in `IsolationForest.__init__()`, but it still works. To use it, a user has to:\n1. Set `warm_start` to `True` after the estimator has been initialized.\n2. Increase `n_estimators` before each subsequent call to `fit`.\n\nThis behavior appears to match that of `sklearn.ensemble.BaseForest`, which is the base for estimators such as `sklearn.ensemble.RandomForestClassifier`. The request is to make this existing capability an explicit, documented and tested part of the `IsolationForest` API.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\n- **The feature is hard to discover.** Because `warm_start` is not exposed in `__init__()` or documented, users do not know it exists. The reporter only found out that it works by reading the source code of both `IsolationForest` and `BaseBagging`.\n- **The API is inconsistent.** Comparable ensemble estimators, such as `RandomForestClassifier`, expose and document `warm_start`. `IsolationForest` already behaves the same way but does not offer the parameter openly.\n- **The current workaround is awkward.** Changing an attribute after initialization relies on undocumented, inherited behavior, so it is not an easy or clear way to use the feature.\n\n## Use case or scenario\nA user wants to grow an `IsolationForest` step by step, adding more trees to an already-fitted ensemble instead of retraining the whole forest from scratch. Today this requires setting `warm_start=True` after construction and increasing `n_estimators` on every iteration, and finding this out requires reading the source code.\n\n## Possible solution\nThe original request suggests the following:\n- Expose `warm_start` in `IsolationForest.__init__()`, with a default of `False`.\n- Document it the same way it is documented for `RandomForestClassifier`:\n  ```py\n      warm_start : bool, optional (default=False)\n          When set to ``True``, reuse the solution of the previous call to fit\n          and add more estimators to the ensemble, otherwise, just fit a whole\n          new forest. See :term:`the Glossary <warm_start>`.\n  ```\n- Add a test to make sure `warm_start` works properly.\n- Possibly mention it in the \"IsolationForest example\" documentation entry.",
+ "ttft_ms": 9204,
+ "type": "result",
+ "duration_ms": 9214,
+ "uuid": "df5f60d2-f630-48e6-8d2b-1f99489127f5",
+ "ttft_stream_ms": 1672,
+ "time_to_request_ms": 223,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 196,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 120,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1672,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

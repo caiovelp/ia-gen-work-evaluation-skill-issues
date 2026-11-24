@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 14142,
+ "stop_reason": "end_turn",
+ "session_id": "94b1cf09-a40f-4353-9d78-4fa27e259c0f",
+ "total_cost_usd": 0.0465687,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1770,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1610,
+  "output_tokens_details": {
+   "thinking_tokens": 259
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1770,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1610,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1770,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1770
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1917,
+   "outputTokens": 18,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020070000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1610,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1770,
+   "webSearchRequests": 0,
+   "costUSD": 0.046368,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 259,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1770,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\n\nUm documento gerado pelo SAPOS (`Report`) possui o campo `expires_at`. Esse campo aparece na listagem e \u00e9 impresso no rodap\u00e9 do PDF como \"v\u00e1lido at\u00e9 DD/MM/AAAA\". O download, por\u00e9m, n\u00e3o verifica esse campo.\n\nHoje o documento s\u00f3 fica indispon\u00edvel quando a rotina di\u00e1ria `maintenance:remove_expired_reports` (`lib/tasks/maintenance.rake`) roda e zera `carrierwave_file_id`. Por isso, entre o vencimento e a pr\u00f3xima execu\u00e7\u00e3o da rotina, o documento vencido continua sendo servido normalmente. Essa janela \u00e9 de at\u00e9 um dia.\n\nO conte\u00fado do documento n\u00e3o muda nesse intervalo. O problema \u00e9 a diverg\u00eancia entre o que o PDF afirma e o que o sistema faz. Al\u00e9m disso, a regra de neg\u00f3cio da expira\u00e7\u00e3o est\u00e1 na rotina de limpeza, e n\u00e3o na decis\u00e3o de download.\n\nEsta issue complementa a #510. A #510 definiu a tela de documento expirado (view `reports/expired_or_invalid_report`), que substitui o 404 do Rails. Esta issue trata da **condi\u00e7\u00e3o** que decide quando essa tela \u00e9 exibida.\n\n## Passos para reproduzir\n\n1. Gerar um documento (`Report`) no SAPOS com `expires_at` definido.\n2. Aguardar at\u00e9 depois da data de `expires_at`, antes da pr\u00f3xima execu\u00e7\u00e3o da rotina `maintenance:remove_expired_reports`.\n3. Solicitar o download do documento.\n\nPara comparar, o mesmo problema n\u00e3o acontece com a invalida\u00e7\u00e3o manual: `Report#invalidate!` apaga o arquivo na hora, e a tela de documento invalidado aparece imediatamente.\n\n## Comportamento observado\n\n- O documento vencido \u00e9 servido normalmente, embora o pr\u00f3prio PDF declare que j\u00e1 venceu.\n- A tela `reports/expired_or_invalid_report` s\u00f3 passa a aparecer depois que a rotina `maintenance:remove_expired_reports` roda e zera `carrierwave_file_id`. S\u00f3 ent\u00e3o `cant_download?` retorna verdadeiro.\n- A janela em que o documento vencido continua dispon\u00edvel \u00e9 de at\u00e9 um dia.\n\n## Comportamento esperado\n\n- Assim que `expires_at` for ultrapassado, o download deve ser recusado e a tela `reports/expired_or_invalid_report` deve ser exibida, sem depender da execu\u00e7\u00e3o do cron.\n- O que o sistema faz deve corresponder ao que o PDF declara (\"v\u00e1lido at\u00e9 DD/MM/AAAA\").\n\n## Stack trace / sa\u00edda de erro\n\nN\u00e3o informado na issue original.\n\n## Caso de teste\n\nA issue aponta que n\u00e3o existe hoje um spec de request para este cen\u00e1rio e sugere criar um que cubra os dois casos:\n\n1. **Documento n\u00e3o vencido:** `Report` com `expires_at` no futuro e arquivo presente. O download deve ser servido normalmente.\n2. **Documento vencido:** `Report` com `expires_at` no passado e arquivo ainda presente, ou seja, a rotina de manuten\u00e7\u00e3o ainda n\u00e3o rodou. O download n\u00e3o deve ser servido, e a tela `reports/expired_or_invalid_report` deve ser exibida.\n\n## Exemplo de c\u00f3digo\n\nImplementa\u00e7\u00e3o atual de `ReportsController#cant_download?`, que testa apenas se o arquivo est\u00e1 ausente:\n\n```ruby\ndef cant_download?(record)\n  record.carrierwave_file.blank?\nend\n```\n\nComponentes relacionados citados na issue:\n- `Report#expires_at`: data de validade exibida na listagem e no rodap\u00e9 do PDF.\n- `Report#invalidate!`: apaga o arquivo imediatamente.\n- `maintenance:remove_expired_reports` (`lib/tasks/maintenance.rake`): rotina di\u00e1ria que zera `carrierwave_file_id` dos documentos vencidos.\n- View `reports/expired_or_invalid_report`: tela introduzida na #510, que cobre os casos de documento expirado e invalidado.\n\n## Vers\u00e3o e ambiente\n\nN\u00e3o informado na issue original.",
+ "ttft_ms": 3773,
+ "type": "result",
+ "duration_ms": 13890,
+ "uuid": "96c0682f-fbe5-4806-80a4-5f0181d080e0",
+ "ttft_stream_ms": 967,
+ "time_to_request_ms": 388,
+ "time_to_request_phases_ms": {
+  "other": 3,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "conversation_append": 0,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "init_frame_send": 4,
+  "engine_pickup": 1,
+  "loop_entry": 5,
+  "message_prep": 1,
+  "model_config_wait": 332,
+  "autocompact": 2,
+  "request_announcements": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 194,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 12,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 2,
+  "render_ms": 1,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 1,
+  "plans_ms": 0,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 967,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

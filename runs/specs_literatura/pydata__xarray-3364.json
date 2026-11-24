@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8475,
+ "stop_reason": "end_turn",
+ "session_id": "29bc37f9-d78c-48de-8710-56b87d6e9453",
+ "total_cost_usd": 0.020232899999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1131,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 542,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1131,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 542,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1131,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1131
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1364,
+   "outputTokens": 401,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003369,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 381,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 542,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1131,
+   "webSearchRequests": 0,
+   "costUSD": 0.019895999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAllow `xray.concat` to handle Datasets with different variables (ignore/fill missing variables when concatenating)\n\n## Description\nRight now `xray.concat` only works smoothly on Datasets that have the same variables. When the Datasets differ, the user has to do one of two things:\n- Manually create dummy variables filled with `NaN` in the Datasets that lack them.\n- Drop the mismatched variables entirely.\n\nNeither option is good. This request proposes that `concat` handle this case itself.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\n- Several users (@raj-kesavan, @richardotis, and the author) have asked how to concatenate xray Datasets with different variables. This shows it is a recurring need.\n- The current workarounds are awkward. Adding `NaN`-filled dummy variables is manual and clumsy. Dropping variables loses data.\n- `pd.concat` takes a more relaxed approach to matching DataFrames with different variables (it does an outer join). Supporting this in `xray.concat` would make it more consistent with pandas.\n\n## Use case or scenario\nA user has several xray Datasets to concatenate, but some variables appear in only some of the Datasets. The user wants to concatenate them directly, without first adding `NaN`-filled placeholder variables or dropping the variables that don't match.\n\n## Possible solution\nAdd an option to `xray.concat` that handles missing variables for the user, presumably by filling them with `NaN` where absent, similar to the outer-join behavior of `pd.concat`. The original request suggests this option could be the default behavior, though it phrases that as an open question (\"the default?\").",
+ "ttft_ms": 6520,
+ "type": "result",
+ "duration_ms": 6535,
+ "uuid": "eca7396c-ef8c-47fd-a1b2-bad873c65b04",
+ "ttft_stream_ms": 1540,
+ "time_to_request_ms": 296,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 36,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 219,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 344,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 26,
+  "cpu_ms": 70,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1540,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

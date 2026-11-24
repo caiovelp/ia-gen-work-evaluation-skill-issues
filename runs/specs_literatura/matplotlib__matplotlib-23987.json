@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13306,
+ "stop_reason": "end_turn",
+ "session_id": "4d225f4c-6b5d-4ba0-88eb-a28df4980cc9",
+ "total_cost_usd": 0.0407974,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1486,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1436,
+  "output_tokens_details": {
+   "thinking_tokens": 246
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1486,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1436,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1486,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1486
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1689,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018140000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1436,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1486,
+   "webSearchRequests": 0,
+   "costUSD": 0.040616,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 246,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nMatplotlib 3.6.0 emits a `UserWarning` about an incompatible layout engine when `plt.subplots_adjust` is called on a figure created with `constrained_layout=False`. The reporter says the same happens with `bbox_inches='tight'`, and that earlier versions did not warn. The plot itself renders correctly. The warning disappears when the `constrained_layout=False` argument is removed.\n\n## Steps to reproduce\n\n1. Create a figure with two subplots and explicitly pass `constrained_layout=False`:\n   `fig, ax = plt.subplots(1, 2, figsize=(8, 2), constrained_layout=False)`\n2. Plot data on both axes.\n3. Call `plt.subplots_adjust(wspace=0)`.\n4. Observe that a `UserWarning` is emitted.\n\n## Observed behavior\n\nThe plot is produced correctly, but a `UserWarning` says the figure uses a layout engine that is incompatible with `subplots_adjust` and/or `tight_layout`, and that `subplots_adjust` was not called. This happens even though `constrained_layout=False` was passed.\n\nThe reporter says the same warning appears with other layout settings such as `bbox_inches='tight'`. Removing `constrained_layout=False` from the `plt.subplots` call makes the warning go away.\n\n## Expected behavior\n\nNo warning should be emitted when `constrained_layout=False` is passed. According to the reporter, previous versions did not emit this warning.\n\n## Stack trace / error output\n\n```\n/var/folders/ss/pfgdfm2x7_s4cyw2v0b_t7q80000gn/T/ipykernel_76923/4170965423.py:7: UserWarning: This figure was using a layout engine that is incompatible with subplots_adjust and/or tight_layout; not calling subplots_adjust.\n  plt.subplots_adjust(wspace=0)\n```\n\n## Test case\n\nA minimal test derived from the reproduction code in the report:\n\n```python\nimport warnings\nimport matplotlib.pyplot as plt\nimport numpy as np\n\ndef test_subplots_adjust_no_warning_with_constrained_layout_false():\n    a = np.linspace(0, 2 * np.pi, 100)\n    fig, ax = plt.subplots(1, 2, figsize=(8, 2), constrained_layout=False)\n    ax[0].plot(a, np.sin(a))\n    ax[1].plot(a, np.cos(a))\n    with warnings.catch_warnings(record=True) as record:\n        warnings.simplefilter(\"always\")\n        plt.subplots_adjust(wspace=0)\n    assert not [w for w in record if issubclass(w.category, UserWarning)]\n```\n\n## Code example\n\n```python\nimport matplotlib.pyplot as plt\nimport numpy as np\na = np.linspace(0,2*np.pi,100)\nb = np.sin(a)\nc = np.cos(a)\nfig,ax = plt.subplots(1,2,figsize=(8,2),constrained_layout=False)\nax[0].plot(a,b)\nax[1].plot(a,c)\nplt.subplots_adjust(wspace=0)\n```\n\n## Version and environment\n\n- Matplotlib version: 3.6.0\n- Operating system: OS/X\n- Installation: conda\n- Matplotlib backend: Not provided in the original report.\n- Python version: Not provided in the original report.\n- Jupyter version: Not provided in the original report. The warning path (`ipykernel_76923`) suggests the code was run in an IPython/Jupyter kernel.",
+ "ttft_ms": 4098,
+ "type": "result",
+ "duration_ms": 12454,
+ "uuid": "897151f4-f598-4afc-b8a0-041f556ae9c3",
+ "ttft_stream_ms": 1592,
+ "time_to_request_ms": 392,
+ "time_to_request_phases_ms": {
+  "other": 36,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 22,
+  "input_hooks": 6,
+  "tool_pool_refresh": 4,
+  "init_message": 24,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 263,
+  "autocompact": 5,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 4,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 62,
+ "time_to_request_cpu_ms": 432,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 34,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1593,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

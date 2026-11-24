@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11347,
+ "stop_reason": "end_turn",
+ "session_id": "210d8850-1bb3-4f28-b4e7-381fa942dd60",
+ "total_cost_usd": 0.0334667,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1354,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1123,
+  "output_tokens_details": {
+   "thinking_tokens": 161
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1354,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1123,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1354,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1354
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1562,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001667,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1123,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1354,
+   "webSearchRequests": 0,
+   "costUSD": 0.0333,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 161,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`sympy.itermonomials` returns incomplete results when the optional `min_degrees` argument is used. It returns only the pure powers of each variable, such as `x1**3`, and leaves out mixed monomials, such as `x1*x2**2`, that have the same total degree. This contradicts the documented behavior.\n\n## Steps to reproduce\n1. Define three symbols: `x1, x2, x3 = sp.symbols('x1, x2, x3')`.\n2. Call `sp.itermonomials([x1, x2, x3], 3, min_degrees=3)`.\n3. Sort the result with `monomial_key('grlex', states)` and print it (see the code example below).\n4. Optionally, repeat with `max_degrees` greater than `min_degrees`. The mixed monomials are still missing.\n\n## Observed behavior\nThe output is:\n```\n[x3**3, x2**3, x1**3]\n```\nOnly the pure cubes are returned. Mixed monomials of total degree 3, such as `x1*x2**2` and `x2*x3**2`, are missing. They are also missing when `max_degrees` is greater than `min_degrees`.\n\n## Expected behavior\nThe result should contain every monomial whose total degree lies between `min_degrees` and `max_degrees`. With both set to 3, that includes mixed monomials such as `x1*x2**2` and `x2*x3**2`, not only `x1**3`, `x2**3` and `x3**3`.\n\nThe documentation states:\n> A generator of all monomials `monom` is returned, such that either `min_degree <= total_degree(monom) <= max_degree`...\n\n## Stack trace / error output\nNot provided in the original report. No error is raised; the output is incorrect.\n\n## Test case\nMinimal test derived from the report's snippet:\n```python\nimport sympy as sp\n\ndef test_itermonomials_min_degrees_includes_mixed_monomials():\n    x1, x2, x3 = sp.symbols('x1, x2, x3')\n    monomials = set(sp.itermonomials([x1, x2, x3], 3, min_degrees=3))\n    # Pure powers (currently returned)\n    assert {x1**3, x2**3, x3**3} <= monomials\n    # Mixed monomials of total degree 3 (currently missing)\n    assert x1*x2**2 in monomials\n    assert x2*x3**2 in monomials\n```\n\n## Code example\n```python\nimport sympy as sp\nfrom sympy.polys.orderings import monomial_key\n\nx1, x2, x3 = sp.symbols('x1, x2, x3')\nstates = [x1, x2, x3]\nmax_degrees = 3\nmin_degrees = 3\nmonomials = sorted(sp.itermonomials(states, max_degrees, min_degrees=min_degrees),\n                   key=monomial_key('grlex', states))\nprint(monomials)\n```\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 3461,
+ "type": "result",
+ "duration_ms": 10639,
+ "uuid": "fcbc0f6a-2805-42d4-ba25-b57a7fed6e6d",
+ "ttft_stream_ms": 1608,
+ "time_to_request_ms": 279,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 24,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 292,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1609,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,53 @@
+diff --git a/sklearn/mixture/base.py b/sklearn/mixture/base.py
+index a9f66740f..911c7fe84 100755
+--- a/sklearn/mixture/base.py
++++ b/sklearn/mixture/base.py
+@@ -172,6 +172,23 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+     def fit(self, X, y=None):
+         """Estimate model parameters with the EM algorithm.
+ 
++        See `fit_predict` for details; this method returns the estimator.
++
++        Parameters
++        ----------
++        X : array-like, shape (n_samples, n_features)
++            List of n_features-dimensional data points.
++
++        Returns
++        -------
++        self
++        """
++        self.fit_predict(X, y)
++        return self
++
++    def fit_predict(self, X, y=None):
++        """Estimate model parameters using X and predict the labels for X.
++
+         The method fit the model `n_init` times and set the parameters with
+         which the model has the largest likelihood or lower bound. Within each
+         trial, the method iterates between E-step and M-step for `max_iter`
+@@ -186,7 +203,8 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+ 
+         Returns
+         -------
+-        self
++        labels : array, shape (n_samples,)
++            Component labels.
+         """
+         X = _check_X(X, self.n_components, ensure_min_samples=2)
+         self._check_initial_parameters(X)
+@@ -237,10 +255,13 @@ class BaseMixture(six.with_metaclass(ABCMeta, DensityMixin, BaseEstimator)):
+                           'or check for degenerate data.'
+                           % (init + 1), ConvergenceWarning)
+ 
++        # Always do a final e-step to guarantee that the labels returned by
++        # fit_predict(X) are always consistent with fit(X).predict(X)
+         self._set_parameters(best_params)
+         self.n_iter_ = best_n_iter
++        _, log_resp = self._e_step(X)
+ 
+-        return self
++        return log_resp.argmax(axis=1)
+ 
+     def _e_step(self, X):
+         """E step.

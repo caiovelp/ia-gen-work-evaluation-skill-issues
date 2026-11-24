@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13246,
+ "stop_reason": "end_turn",
+ "session_id": "626c9d7d-1b40-4296-8c8c-60b0f47fece3",
+ "total_cost_usd": 0.0401725,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1463,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1414,
+  "output_tokens_details": {
+   "thinking_tokens": 299
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1463,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1414,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1463,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1463
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1670,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018050000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1414,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1463,
+   "webSearchRequests": 0,
+   "costUSD": 0.039992,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 299,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nAccessing or rendering a formset's `empty_form` raises a `KeyError` when `empty_permitted` is passed in `form_kwargs`. This happens with both `form_kwargs={'empty_permitted': True}` and `form_kwargs={'empty_permitted': False}`.\n\n## Steps to reproduce\n\n1. Define a model `MyModel` with a field `a_field`.\n2. Create a model formset with `modelformset_factory(MyModel, fields=['a_field'])`.\n3. Instantiate the formset with `queryset=MyModel.objects.none()` and `form_kwargs={'empty_permitted': True}`. The same failure occurs with `{'empty_permitted': False}`.\n4. Pass the formset to a template that renders `{{ formset.empty_form }}`.\n5. Request the view (for example, `GET /test`).\n\n## Observed behavior\n\nA `KeyError` is raised when the template renders `formset.empty_form`.\n\n## Expected behavior\n\n`empty_permitted` should be ignored for `formset.empty_form`, and the template should render without error. `empty_form` is not meant to receive data and is never validated, so `empty_permitted` has no meaning for it.\n\n## Stack trace / error output\n\nNot provided in the original report. The report only states that a `KeyError` occurs.\n\n## Test case\n\nThis minimal test is derived from the reproduction snippet in the report. It assumes the reporter's model `MyModel` with field `a_field`.\n\n```python\nfrom django.forms import modelformset_factory\nfrom django.test import TestCase\n\nfrom .models import MyModel\n\n\nclass EmptyFormEmptyPermittedTests(TestCase):\n    def test_empty_form_with_empty_permitted_in_form_kwargs(self):\n        ff = modelformset_factory(MyModel, fields=['a_field'])\n        for value in (True, False):\n            with self.subTest(empty_permitted=value):\n                formset = ff(\n                    queryset=MyModel.objects.none(),\n                    form_kwargs={'empty_permitted': value},\n                )\n                # Currently raises KeyError; expected to succeed.\n                str(formset.empty_form)\n```\n\n## Code example\n\nThis is the reporter's original code. The `modelformset_factory` import (`from django.forms import modelformset_factory`) was not shown in the original snippet.\n\n```python\n# views.py\nfrom django.shortcuts import render\nfrom .models import MyModel\n\ndef test_view(request):\n    context = {}\n    ff = modelformset_factory(MyModel, fields=['a_field'])\n    context['formset'] = ff(\n        queryset=MyModel.objects.none(),\n        form_kwargs={'empty_permitted': True}  # or form_kwargs={'empty_permitted': False}\n    )\n    return render(request, 'my_app/my_model_formset.html', context)\n```\n\n```python\n# urls.py\nfrom django.urls import path, include\nfrom .views import test_view\n\nurlpatterns = [\n    path('test', test_view)\n]\n```\n\n```django\n{# my_model_formset.html #}\n{% extends \"my_app/base.html\" %}\n{% block content %}\n<form id=\"my-form\" method=\"post\">\n  {% csrf_token %}\n  {{ formset }}\n  <input type=\"submit\" value=\"Save\">\n</form>\n{{ formset.empty_form }}\n{% endblock %}\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 4550,
+ "type": "result",
+ "duration_ms": 12481,
+ "uuid": "f55ccd19-0ead-4ad2-8936-d8d034014210",
+ "ttft_stream_ms": 1533,
+ "time_to_request_ms": 254,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 20,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 202,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 204,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1533,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

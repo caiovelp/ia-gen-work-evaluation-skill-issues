@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28052,
+ "stop_reason": "end_turn",
+ "session_id": "be5b8ef3-2fde-4c43-b84e-e664d01a1d73",
+ "total_cost_usd": 0.0685173,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1671,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2693,
+  "output_tokens_details": {
+   "thinking_tokens": 78
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1671,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2693,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1671,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1671
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2255,
+   "outputTokens": 386,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00041850000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 360,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2693,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1671,
+   "webSearchRequests": 0,
+   "costUSD": 0.0680988,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 78,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore NDDataRef mask propagation when only one operand has a mask (astropy v5.3 regression)\n\n## Objective\n\nFix a regression in astropy v5.3. NDData arithmetic fails during mask propagation when exactly one operand has a mask and `handle_mask` is a callable such as `np.bitwise_or`.\n\n**Who is affected:** Users of `astropy.nddata.NDDataRef` (and any class using the same arithmetic mixin) who call `add`, `subtract`, `multiply` or `divide` with a custom `handle_mask` callable.\n\n**Observed in v5.3:**\n- `nref_mask.multiply(1., handle_mask=np.bitwise_or)` raises `TypeError: unsupported operand type(s) for |: 'int' and 'NoneType'`.\n- `nref_mask.multiply(nref_nomask, handle_mask=np.bitwise_or)` raises the same error.\n\nThe reporter suspects that the operand without a mask is treated as a mask of `None` values, which is then passed to `bitwise_or`.\n\n**Expected behavior (v5.2 parity):** When exactly one operand has a mask, the result's mask is a copy of the existing mask. `handle_mask` is not applied to a `None` mask.\n\n**User stories:**\n- As a user, I can multiply a masked `NDDataRef` by a scalar with `handle_mask=np.bitwise_or` and get the original mask back.\n- As a user, I can combine a masked and an unmasked `NDDataRef` with `handle_mask=np.bitwise_or` and get the masked operand's mask back.\n- As a user, existing behavior for \"no mask with no mask\" and \"mask with mask\" is unchanged.\n\n## Assumptions\n\n1. The regression is in the shared NDData arithmetic mask-handling logic, not specific to `multiply`. The fix is therefore expected to cover `add`, `subtract`, `multiply` and `divide`.\n2. The v5.2 semantics are the intended contract:\n   - If neither operand has a mask, the result mask is `None`.\n   - If only one operand has a mask, the result mask is a (deep) copy of that mask.\n   - If both have masks, the result mask is `handle_mask(mask1, mask2, **kwds)`.\n3. The scalar operand case (`1.`) is internally wrapped into an NDData-like object with `mask=None`, and should follow the \"only one operand has a mask\" rule.\n4. Order should not matter. Both \"masked op unmasked\" and \"unmasked op masked\" must work, including when the unmasked operand is on the left and the masked operand is passed as an argument.\n5. Behavior when `handle_mask=None` (the result has no mask) and `handle_mask='first_found'` should remain as it is today. This is to be verified against v5.2.\n6. The result mask should be a copy rather than a reference to the input mask, so that mutating the result does not affect the operand. This is assumed from v5.2 behavior and needs confirmation.\n7. No public API signature changes are required.\n\n## Tech Stack\n\n- Python (the issue shows 3.10.11), NumPy (the issue shows 1.24.3), astropy v5.3 (the affected version).\n- Exact minimum supported versions on the development branch: **unknown**.\n\n## Commands\n\nAll unknown, because there is no repository access. They must be taken from the astropy contributor documentation or CI configuration.\n- Build: unknown\n- Test: unknown (likely pytest-based; exact invocation unknown)\n- Lint: unknown\n- Dev install: unknown\n\n## Project Structure\n\nUnknown without repository access. Relevant public API: `astropy.nddata.NDDataRef`. The internal module that implements arithmetic and mask handling is not shown in the issue, and its path is unknown. Test file locations are also unknown.\n\n## Code Style\n\nUnknown from the issue. Follow the existing astropy conventions in the touched module. No code snippet is available to cite.\n\n## Testing Strategy\n\n- **Framework:** Unknown, presumed pytest, as in the existing astropy test suite.\n- **Level:** Unit tests on NDData arithmetic.\n- **Regression tests to add** (reproducing the issue). For each arithmetic operation (`add`, `subtract`, `multiply`, `divide`) with `handle_mask=np.bitwise_or`:\n  1. no mask op scalar \u2192 result mask is `None`\n  2. no mask op no mask \u2192 result mask is `None`\n  3. mask op scalar \u2192 result mask equals the original mask\n  4. mask op mask \u2192 result mask equals `np.bitwise_or(mask, mask)`\n  5. mask op no mask \u2192 result mask equals the original mask\n  6. no mask op mask (reverse order) \u2192 result mask equals the original mask\n- **Additional checks:**\n  - The result mask in cases 3, 5 and 6 is not the same object as the input mask, if assumption 6 is confirmed.\n  - Integer mask dtype is preserved.\n  - Existing tests for the default `handle_mask` (`np.logical_or`), for `handle_mask=None`, and for `'first_found'` still pass.\n- **Coverage expectations:** Unknown project threshold. The new branch(es) in the mask-handling logic must be covered.\n\n## Boundaries\n\n- **Always:**\n  - Restore v5.2-equivalent semantics.\n  - Add regression tests reproducing the issue's examples.\n  - Run the existing nddata test suite.\n  - Add a changelog entry per astropy convention (mechanism unknown).\n- **Ask first:**\n  - Changing the semantics of `handle_mask` beyond v5.2 parity (e.g., calling `handle_mask` with a synthesized all-zero/False mask).\n  - Touching uncertainty, WCS or meta propagation.\n  - Changing public signatures.\n- **Never:**\n  - Remove or weaken existing tests.\n  - Special-case `np.bitwise_or` only; the fix must be generic to any `handle_mask` callable.\n  - Change behavior of the mask-with-mask path.\n\n## Success Criteria\n\n1. With astropy built from the fix, every example in the issue runs without exception.\n   - `nref_mask.multiply(1., handle_mask=np.bitwise_or).mask` equals `mask`.\n   - `nref_mask.multiply(nref_nomask, handle_mask=np.bitwise_or).mask` equals `mask`.\n2. `nref_nomask.multiply(nref_mask, handle_mask=np.bitwise_or).mask` equals `mask`.\n3. Unmasked op unmasked/scalar still yields a `None` mask.\n4. Masked op masked still yields `handle_mask(mask1, mask2)`.\n5. The same holds for `add`, `subtract` and `divide`.\n6. All new regression tests pass, and the existing nddata test suite passes with no modifications to existing tests.\n\n## Open Questions\n\n1. Which change between v5.2 and v5.3 introduced the regression? Identifying it would confirm the intended v5.3 behavior for other cases. Was it, for example, related to collapse operations or `operation_ignores_mask`?\n2. Should the result mask be a deep copy of the existing mask, or may it share memory? What did v5.2 do exactly?\n3. Should the fix be backported to a v5.3.x bugfix release? Which branch should it target?\n4. Are there other `handle_mask` modes (e.g., `'first_found'`, `None`) or subclasses (`CCDData`, `NDDataArray`) with a dedicated code path that also needs verifying?\n5. What are the exact test, build and lint commands, and what is the changelog procedure for this repository?\n6. For reduction/collapse operations where `operand2` is absent, is current v5.3 behavior with a custom `handle_mask` correct, or does it share the same bug?",
+ "ttft_ms": 1787,
+ "type": "result",
+ "duration_ms": 25680,
+ "uuid": "d854cc38-89a4-442c-b9fe-3a4630a90d7b",
+ "ttft_stream_ms": 1019,
+ "time_to_request_ms": 232,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 201,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 122,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1019,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

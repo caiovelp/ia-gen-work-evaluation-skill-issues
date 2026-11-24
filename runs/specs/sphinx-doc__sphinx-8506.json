@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27293,
+ "stop_reason": "end_turn",
+ "session_id": "16303e5c-ded2-4154-b298-cb4f8dfccb9c",
+ "total_cost_usd": 0.057173999999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 979,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2409,
+  "output_tokens_details": {
+   "thinking_tokens": 116
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 979,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2409,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 979,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 979
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1562,
+   "outputTokens": 270,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00029120000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 244,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2409,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 979,
+   "webSearchRequests": 0,
+   "costUSD": 0.0568828,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 116,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Accept Non-Standard Option Syntax in the `option::` Directive\n\n## Objective\n\nSphinx 3.2 rejects `.. option::` descriptions that earlier versions accepted. A project that builds with warnings-as-errors (QEMU) therefore fails to build. Example from the issue:\n\n```rst\n.. option:: [enable=]PATTERN\n\n   Immediately enable events matching *PATTERN*\n```\n\nUnder Sphinx 3.2 this produces:\n\n```\nWarning, treated as error:\n../../docs/qemu-option-trace.rst.inc:4:Malformed option description '[enable=]PATTERN', should look like \"opt\", \"-opt args\", \"--opt args\", \"/opt args\" or \"+opt args\"\n```\n\n**Users:** documentation authors who describe command-line options with the `option::` directive. Their projects must build with whatever `sphinx-build` their Linux distribution ships.\n\n**Goal:** documentation that built without warnings on Sphinx versions before 3.2 builds again without a \"Malformed option description\" warning. The option is still rendered and still registered so that it can be referenced.\n\n**What the user is asking for:**\n\n1. **Backwards compatibility (primary).** `option::` content accepted before 3.2, such as `[enable=]PATTERN`, must not raise a warning or error in 3.2+.\n2. **Permissiveness (secondary).** The directive should accept arbitrary option strings, because real programs and operating systems use option syntaxes outside `-opt`, `--opt`, `/opt` and `+opt`.\n\n**Acceptance criteria (from the issue):**\n\n- `.. option:: [enable=]PATTERN` builds with `-W` (warnings as errors) and no \"Malformed option description\" warning.\n- The option description is still rendered in the output.\n- Option descriptions that already parsed correctly keep their current rendering and cross-reference targets. For example `-opt args`, `--opt args`, `/opt args`, `+opt args` and `opt` must not regress.\n\n## Assumptions\n\n1. The regression comes from a tightened option-description pattern or parser in the standard domain's `option` directive, introduced in Sphinx 3.2. The exact code location and the commit that introduced the change are **unknown**, since the repository is not visible.\n2. Before 3.2, a string like `[enable=]PATTERN` was accepted. Whether it was then indexed and cross-referenceable, and under what name, is **unknown**. The fix should preserve that behaviour, whatever it was.\n3. Malformed-option warnings are emitted through the normal Sphinx logger. They become fatal only because QEMU builds with `-W`.\n4. The fix belongs in Sphinx itself, not in QEMU's documentation.\n5. Changing the warning text or the warning category is in scope only if the decision is to keep a warning in some cases (see Open Questions).\n\n## Tech Stack\n\n- Python, Sphinx. Supported Python and Sphinx versions are **unknown**.\n- The affected component is the standard domain's `option` directive (`.. option::`). The source file path is **unknown**.\n\n## Commands\n\nAll unknown, because the repository is not visible:\n\n- Build: unknown\n- Test: unknown (likely pytest, unconfirmed)\n- Lint: unknown\n- Reproduce: build a minimal project containing the reST snippet above with `sphinx-build -W`. The exact project layout is unknown.\n\n## Project Structure\n\nUnknown. Expected areas to locate during planning:\n\n- The standard domain implementation containing the `option` directive.\n- The existing tests for the standard domain or `option` directive.\n- The changelog file.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the module that contains the `option` directive. No snippet is available from the issue.\n\n## Testing Strategy\n\nThe framework and test locations are unknown. Required test coverage:\n\n- **Regression test:** an `option::` with `[enable=]PATTERN` produces no warning and renders a description node.\n- **Non-regression tests:** the existing forms `opt`, `-opt args`, `--opt args`, `/opt args` and `+opt args` produce the same signature nodes and index/target entries as before.\n- **Other forms seen in practice**, if the permissive approach is chosen. Examples are bracketed optional prefixes, `key=value` and other non-dash syntaxes. The concrete list is to be confirmed.\n- **Cross-references:** the `:option:` role still resolves for options that parse in the standard form.\n\n## Boundaries\n\n- **Always:**\n  - Keep existing valid option descriptions rendering and resolving exactly as before.\n  - Add a regression test that reproduces the issue's example.\n  - Add a changelog entry.\n- **Ask first:**\n  - Removing the \"Malformed option description\" warning entirely, as opposed to relaxing it.\n  - Changing how option names are derived for indexing or cross-referencing.\n  - Adding a configuration option.\n  - Any change to public API.\n- **Never:**\n  - Break `:option:` cross-references for currently valid options.\n  - Require users to edit existing documentation to get back to a clean build.\n  - Silently drop the option description from the output.\n\n## Success Criteria\n\n- [ ] A document containing `.. option:: [enable=]PATTERN` builds with `sphinx-build -W` and no \"Malformed option description\" warning.\n- [ ] The description `[enable=]PATTERN` appears in the rendered output.\n- [ ] Existing tests for the `option` directive pass unchanged.\n- [ ] A new regression test covers the issue's example.\n- [ ] The behaviour for inputs that pre-3.2 Sphinx accepted is identical to pre-3.2 behaviour, or any difference is documented and approved.\n\n## Open Questions\n\n1. **Scope.** Should the fix restore exactly the pre-3.2 behaviour, or make the directive accept *any* string, as the reporter suggests?\n2. **Warning policy.** Should the \"Malformed option description\" warning be removed completely? Alternatives:\n   - Lower it so that it is not fatal under `-W`.\n   - Emit it under a suppressible warning type.\n3. **Indexing of non-standard strings.** How should strings like `[enable=]PATTERN` be indexed and cross-referenced?\n   - Use the whole string as the option name?\n   - Strip a bracketed optional prefix and use `enable` or `PATTERN`?\n   - Render the option without creating a reference target?\n4. **Root cause.** What change in 3.2 introduced the stricter check? Was it intentional, for example to fix another bug that must not be reintroduced?\n5. **Release target.** Should this go into a 3.2.x bugfix release?\n6. **Option forms.** Are there other real-world option forms that should be explicitly supported and tested? Candidates: `-o=value`, Windows `/opt:value`, and options with no prefix plus arguments.",
+ "ttft_ms": 3040,
+ "type": "result",
+ "duration_ms": 25723,
+ "uuid": "329cd93d-1e01-4523-a303-095d8a947646",
+ "ttft_stream_ms": 1886,
+ "time_to_request_ms": 304,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 237,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 10,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 235,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1887,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 7426,
+ "stop_reason": "end_turn",
+ "session_id": "f8edfcbf-408a-4bd3-b11f-c9269278c527",
+ "total_cost_usd": 0.0199526,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1078,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 559,
+  "output_tokens_details": {
+   "thinking_tokens": 189
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1078,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 559,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1078,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1078
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1286,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001406,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 559,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1078,
+   "webSearchRequests": 0,
+   "costUSD": 0.019812,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 189,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe deprecation warning about the `\"default.html\"` form template is raised when a formset's management form is produced, even if the project never renders forms with the `{{ form }}` expression. For the management form, the template choice does not matter because it only outputs hidden inputs.\n\n## Steps to reproduce\n\n1. Use a project that never renders forms with the `{{ form }}` expression.\n2. Use a formset, so that its management form is produced.\n3. Observe the warnings emitted.\n\n## Observed behavior\n\nThe new template deprecation warning (relating to `\"default.html\"`) is raised while the formset's management form is produced, although the project never renders forms with `{{ form }}`.\n\n## Expected behavior\n\nThe deprecation warning should not be raised for the management form. The template it uses makes no difference to the output, since it only produces hidden inputs, and the project does not otherwise rely on `{{ form }}` rendering.\n\n## Stack trace / error output\n\nNot provided in the original report. The exact warning text was not included.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nNot provided in the original report.\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 3829,
+ "type": "result",
+ "duration_ms": 6767,
+ "uuid": "582ea14c-48da-430e-9188-e81b1dfca8c5",
+ "ttft_stream_ms": 2091,
+ "time_to_request_ms": 325,
+ "time_to_request_phases_ms": {
+  "other": 24,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 14,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 246,
+  "autocompact": 4,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 316,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 24,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2091,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

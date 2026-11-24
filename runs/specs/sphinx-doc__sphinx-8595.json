@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21596,
+ "stop_reason": "end_turn",
+ "session_id": "29d11181-8e6c-46bc-a76c-923a2937b689",
+ "total_cost_usd": 0.0512785,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 854,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2171,
+  "output_tokens_details": {
+   "thinking_tokens": 162
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 854,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2171,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 854,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 854
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1442,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015570000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2171,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 854,
+   "webSearchRequests": 0,
+   "costUSD": 0.051122799999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 162,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: autodoc honors an empty `__all__` in `automodule :members:`\n\n## Objective\n\nWhen a module defines `__all__ = []`, `.. automodule:: <module>` with `:members:` should document **no members**. Today autodoc appears to treat an empty `__all__` the same as a missing `__all__`. It falls back to listing every public member, so `foo`, `bar` and `baz` all appear.\n\n**Users:** Sphinx users who rely on `__all__` to control which members autodoc documents. An explicitly empty `__all__` means \"export nothing.\"\n\n**User story:** As a library author, when I set `__all__ = []`, I want `automodule :members:` to document no members, so that the docs match the module's declared public API.\n\n**Acceptance criteria:**\n- If `__all__` is defined and empty, `:members:` with no explicit member list documents zero members.\n- If `__all__` is not defined, behavior is unchanged: all public members are documented, as now.\n- If `__all__` is defined and non-empty, behavior is unchanged: only the listed members are documented.\n- The module's own docstring and header are still rendered when `__all__` is empty. Only members are suppressed.\n\n## Assumptions\n\n1. The root cause is that autodoc tests whether `__all__` is truthy rather than whether it is present. That check makes `[]` behave like \"not defined.\" This is a hypothesis to confirm during implementation. The exact code location is **unknown**.\n2. The fix targets the Sphinx 3.x branch, the \"HEAD of 3.x\" reported in the issue, and should also carry forward to later branches.\n3. An empty tuple `()` should behave the same as an empty list `[]`.\n4. Explicit member lists still override `__all__`, as they do today. For example, `:members: foo` documents `foo` even when `__all__ = []`.\n5. Existing options keep their current interaction with `__all__`. This includes `:ignore-module-all:`, `:undoc-members:`, `:private-members:`, `:special-members:` and `:imported-members:`. With `:ignore-module-all:`, an empty `__all__` is ignored and all public members are shown.\n6. The behavior is independent of OS and Python version. The reported environment was macOS with Python 3.9.1.\n7. An invalid `__all__`, such as a non-list or one containing non-strings, keeps its existing handling. It is out of scope.\n\n## Tech Stack\n\n- Python. The supported version range for the 3.x branch is **unknown**.\n- Sphinx, `sphinx.ext.autodoc`, 3.x branch.\n- Other dependencies and their versions are **unknown**.\n\n## Commands\n\n- Build: **unknown**\n- Test: **unknown**. The project test runner is not visible from the issue.\n- Lint: **unknown**\n- Reproduce: build a Sphinx project that contains the `example.py` and `index.rst` from the issue. The exact command is **unknown**.\n\n## Project Structure\n\n**Unknown.** The autodoc module source file, the test directory and the test-root fixture layout are not visible from the issue.\n\n## Code Style\n\n**Unknown.** Follow existing Sphinx conventions found in the repository. No snippet is available.\n\nReproduction fixture from the issue, to serve as the basis of a test:\n\n```python\n# example.py\n__all__ = []\n\n\ndef foo():\n    \"docstring\"\n\n\ndef bar():\n    \"docstring\"\n\n\ndef baz():\n    \"docstring\"\n```\n\n```rst\n.. automodule:: example\n   :members:\n```\n\n## Testing Strategy\n\n- Framework: **unknown**. pytest is presumed but not confirmed.\n- Add a regression test using a module with `__all__ = []` and the directive `automodule :members:`. Assert that no `foo`, `bar` or `baz` entries are generated.\n- Add or confirm tests for these neighboring cases:\n  - No `__all__` documents all public members.\n  - A non-empty `__all__` documents only the listed members.\n  - An empty `__all__` combined with `:ignore-module-all:` documents all public members.\n  - An empty `__all__` with an explicit `:members: foo` documents `foo`.\n- Run the full autodoc test suite to catch regressions.\n\n## Boundaries\n\n- **Always:** Add a regression test that fails before the fix and passes after it. Keep behavior unchanged for modules without `__all__`. Run the existing autodoc tests.\n- **Ask first:** Changing behavior for an invalid `__all__`. Changing how `:ignore-module-all:` or an explicit `:members:` list interacts with `__all__`. Any change to the public autodoc API or event signatures, such as `autodoc-skip-member`. Adding a CHANGES entry, if the format is unknown.\n- **Never:** Change the default for modules without `__all__`. Remove or weaken existing tests. Add new dependencies.\n\n## Success Criteria\n\n- [ ] Building the issue's reproduction produces a module entry with no `foo`, `bar` or `baz` members.\n- [ ] A regression test for an empty `__all__` exists and passes.\n- [ ] Existing autodoc tests pass unchanged.\n- [ ] The behavior for a missing `__all__`, a non-empty `__all__`, `:ignore-module-all:` and an explicit `:members:` list is verified unchanged by tests.\n\n## Open Questions\n\n1. Should `:ignore-module-all:` with an empty `__all__` show all public members? This spec assumes yes.\n2. Should an explicit `:members: foo` still document `foo` when `__all__ = []`? This spec assumes yes.\n3. Should autosummary, or anything else that reads `__all__` the same way, also be fixed in this change? Or should it be scoped to autodoc only?\n4. Which branch should the fix target? Should it be backported?\n5. Is a changelog entry required, and in what format?\n6. What are the project's test, lint and build commands, and where should the test fixture live?\n7. Does anyone rely on the current behavior, where an empty `__all__` shows everything? If so, is a migration or deprecation note needed?",
+ "ttft_ms": 3668,
+ "type": "result",
+ "duration_ms": 20933,
+ "uuid": "5e682236-ce12-4b0f-b68e-b917589dc5eb",
+ "ttft_stream_ms": 1999,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 151,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1999,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

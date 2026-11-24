@@ -1,0 +1,35 @@
+diff --git a/app/helpers/pdf_helper.rb b/app/helpers/pdf_helper.rb
+index aaddace5..8396297e 100644
+--- a/app/helpers/pdf_helper.rb
++++ b/app/helpers/pdf_helper.rb
+@@ -378,19 +378,22 @@ module PdfHelper
+         end
+       end
+       if options[:watermark] && pdf_config.signature_type != "qr_code"
++        text = I18n.t("pdf_content.watermark")
+         pdf.create_stamp("watermark") do
+-          pdf.rotate(60, origin: [0, 0]) do
+-            pdf.fill_color "993333"
+-            pdf.font("FreeMono", size: 25) do
+-              pdf.draw_text(
+-                I18n.t("pdf_content.watermark"), at: [0, 0]
+-              )
++          pdf.font("FreeMono", size: 25) do
++            half_width = pdf.width_of(text) / 2.0
++            half_height = (pdf.font.ascender - pdf.font.descender) / 2.0
++            pdf.rotate(60, origin: [0, 0]) do
++              pdf.fill_color "993333"
++              pdf.draw_text(text, at: [-half_width, -half_height])
++              pdf.fill_color "000000"
+             end
+-            pdf.fill_color "000000"
+           end
+         end
+         pdf.repeat(:all) do
+-          pdf.stamp_at "watermark", [80, 0]
++          pdf.canvas do
++            pdf.stamp_at "watermark", [pdf.bounds.width / 2.0, pdf.bounds.height / 2.0]
++          end
+         end
+       end
+     end

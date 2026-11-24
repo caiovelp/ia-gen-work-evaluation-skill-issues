@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8719,
+ "stop_reason": "end_turn",
+ "session_id": "96c7644f-f9a4-490b-9c83-f9ddf9b1b71f",
+ "total_cost_usd": 0.023347399999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1102,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 719,
+  "output_tokens_details": {
+   "thinking_tokens": 221
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1102,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 719,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1102,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1102
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1309,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014340000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 719,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1102,
+   "webSearchRequests": 0,
+   "costUSD": 0.023204,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 221,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`decompose()` in the `intpoly` module returns its result in arbitrary order when called with `separate=True`. It returns `list(poly_dict.values())`, so the order of the list depends on the internal ordering of a dictionary. The reporter says this causes test failures after some changes to the core. The reporter also asks what this list output is used for. (CC: @ArifAhmed1995, @certik)\n\n## Steps to reproduce\n1. Call `decompose()` from `intpoly` on a polynomial with `separate=True`.\n2. Inspect the order of the elements in the returned list.\n3. Compare that order across environments or after changes to the core that affect dictionary ordering.\n\nThe original report does not include a concrete polynomial input.\n\n## Observed behavior\nWith `separate=True`, `decompose()` returns `list(poly_dict.values())`. The order of this list is arbitrary. Tests that rely on a specific order of the returned elements fail after some changes to the core.\n\n## Expected behavior\nThe output of `decompose(..., separate=True)` should not depend on arbitrary dictionary ordering. The result should have a well-defined order, or its type should not imply any order.\n\n## Stack trace / error output\nNot provided in the original report.\n\n## Test case\nNot provided in the original report.\n\n## Code example\nThe relevant return statement, as quoted in the report:\n\n```python\nlist(poly_dict.values())\n```\n\n## Version and environment\nNot provided in the original report. The reporter only mentions that the failures appeared after unspecified changes to the core.",
+ "ttft_ms": 3913,
+ "type": "result",
+ "duration_ms": 8257,
+ "uuid": "d3feeafd-a012-4251-9d56-a8b6fbe15de0",
+ "ttft_stream_ms": 1227,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 2,
+  "input_attachments": 29,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 203,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 252,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 18,
+  "cpu_ms": 45,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1227,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

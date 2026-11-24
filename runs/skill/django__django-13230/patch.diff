@@ -1,0 +1,49 @@
+diff --git a/django/contrib/syndication/views.py b/django/contrib/syndication/views.py
+index 68ffb0bfe0..491e45a565 100755
+--- a/django/contrib/syndication/views.py
++++ b/django/contrib/syndication/views.py
+@@ -199,7 +199,7 @@ class Feed:
+             if updateddate and is_naive(updateddate):
+                 updateddate = make_aware(updateddate, tz)
+ 
+-            feed.add_item(
++            add_item_kwargs = dict(
+                 title=title,
+                 link=link,
+                 description=description,
+@@ -214,6 +214,8 @@ class Feed:
+                 author_link=author_link,
+                 categories=self._get_dynamic_attr('item_categories', item),
+                 item_copyright=self._get_dynamic_attr('item_copyright', item),
+-                **self.item_extra_kwargs(item)
++                comments=self._get_dynamic_attr('item_comments', item),
+             )
++            add_item_kwargs.update(self.item_extra_kwargs(item))
++            feed.add_item(**add_item_kwargs)
+         return feed
+diff --git a/docs/ref/contrib/syndication.txt b/docs/ref/contrib/syndication.txt
+index 13aa944e8a..6bc18052ba 100755
+--- a/docs/ref/contrib/syndication.txt
++++ b/docs/ref/contrib/syndication.txt
+@@ -746,6 +746,21 @@ This example illustrates all possible attributes and methods for a
+ 
+         item_author_link = 'https://www.example.com/' # Hard-coded author URL.
+ 
++        # ITEM COMMENTS -- All of these are optional.
++
++        def item_comments(self, item):
++            """
++            Takes an item, as returned by items(), and returns the item's
++            comments URL.
++            """
++
++        def item_comments(self):
++            """
++            Returns the comments URL for every item in the feed.
++            """
++
++        item_comments = 'https://www.example.com/comments/'  # Hard-coded.
++
+         # ITEM ENCLOSURES -- One of the following three is optional. The
+         # framework looks for them in this order. If one of them is defined,
+         # ``item_enclosure_url``, ``item_enclosure_length``, and

@@ -1,0 +1,45 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 5f41053283..88f79e8fe2 100755
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -1020,10 +1020,12 @@ class MigrationAutodetector:
+         ):
+             self._generate_added_field(app_label, model_name, field_name)
+ 
+-    def _generate_added_field(self, app_label, model_name, field_name):
++    def _generate_added_field(
++        self, app_label, model_name, field_name, extra_dependencies=None
++    ):
+         field = self.to_state.models[app_label, model_name].get_field(field_name)
+         # Fields that are foreignkeys/m2ms depend on stuff
+-        dependencies = []
++        dependencies = list(extra_dependencies or [])
+         if field.remote_field and field.remote_field.model:
+             dependencies.extend(
+                 self._get_dependencies_for_foreign_key(
+@@ -1210,7 +1212,24 @@ class MigrationAutodetector:
+                 else:
+                     # We cannot alter between m2m and concrete fields
+                     self._generate_removed_field(app_label, model_name, field_name)
+-                    self._generate_added_field(app_label, model_name, field_name)
++                    # The removal may depend on a foo_together change, so make
++                    # sure the field is added back only after it's removed.
++                    old_options = self.from_state.models[
++                        app_label, old_model_name
++                    ].options
++                    in_foo_together = any(
++                        old_field_name in fields
++                        for option in ("unique_together", "index_together")
++                        for fields in old_options.get(option) or ()
++                    )
++                    self._generate_added_field(
++                        app_label,
++                        model_name,
++                        field_name,
++                        extra_dependencies=[(app_label, model_name, field_name, False)]
++                        if in_foo_together
++                        else None,
++                    )
+ 
+     def create_altered_indexes(self):
+         option_name = operations.AddIndex.option_name

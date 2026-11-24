@@ -1,0 +1,49 @@
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 34a3bab3f..45c2c6d16 100755
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -503,7 +503,7 @@ def traverse(e):
+ 
+     trigsimpfunc = {
+         'fu': (lambda x: fu(x, **opts)),
+-        'matching': (lambda x: futrig(x)),
++        'matching': (lambda x: _futrig_exp(x)),
+         'groebner': (lambda x: groebnersimp(x, **opts)),
+         'combined': (lambda x: futrig(groebnersimp(x,
+                                polynomial=True, hints=[2, tan]))),
+@@ -513,6 +513,35 @@ def traverse(e):
+     return trigsimpfunc(expr)
+ 
+ 
++def _futrig_exp(expr):
++    """futrig, also recognizing complex exponential forms of trig functions.
++
++    Sums containing ``exp(I*x)`` are rewritten in terms of trig functions and
++    simplified; the result is used only if it is simpler.
++    """
++    from sympy.simplify.simplify import bottom_up
++
++    def has_iexp(x):
++        return any(isinstance(a, exp) and a.args[0].has(I)
++                   for a in x.atoms(exp))
++
++    def trial(x):
++        if not (x.is_Add and has_iexp(x)):
++            return x
++        new = futrig(x.rewrite(cos))
++        if new.has(exp) or new.has(I) and not x.has(I):
++            return x
++        old = futrig(x)
++        if count_ops(new) < count_ops(old):
++            return new
++        return x
++
++    expr = sympify(expr)
++    if not isinstance(expr, Basic) or not has_iexp(expr):
++        return futrig(expr)
++    return futrig(bottom_up(expr, trial))
++
++
+ def exptrigsimp(expr):
+     """
+     Simplifies exponential / trigonometric / hyperbolic functions.

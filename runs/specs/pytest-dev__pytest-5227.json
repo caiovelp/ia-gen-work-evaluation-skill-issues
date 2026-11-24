@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28125,
+ "stop_reason": "end_turn",
+ "session_id": "8b83c99d-a183-43cd-b403-51dae1b6f054",
+ "total_cost_usd": 0.061909700000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1023,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2634,
+  "output_tokens_details": {
+   "thinking_tokens": 89
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1023,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2634,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1023,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1023
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1614,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017490000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2634,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1023,
+   "webSearchRequests": 0,
+   "costUSD": 0.061734800000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 89,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Improve the Default Logging Format\n\n## Assumptions\n\n1. The project is a Python tool or library that defines a module-level constant `DEFAULT_LOG_FORMAT`. The issue does not name the project or the file. It reads like the logging/log-capture plugin of a test runner such as pytest's `logging` plugin, but this is **unconfirmed**.\n2. `DEFAULT_LOG_FORMAT` is a standard library `logging` `%`-style format string. It applies only when the user has not set a format explicitly, for example through a CLI option or config key.\n3. The format is used wherever logs are shown by default: captured log reports, live/CLI logging, log file output, or any subset of these. Which outputs use it is **unknown**.\n4. Users who set their own format are unaffected. Only the default output changes.\n5. `%(name)s` means the logger name, which is usually the module's `__name__`, as the issue's examples show (`django.db.backends`, `multipart.multipart`).\n6. The format the issue proposes is the starting candidate, not a final decision:\n   `\"%(levelname)-8s %(name)s:%(filename)s:%(lineno)d %(message)s\"`\n7. Adding the relative path or substituting `$VIRTUAL_ENV` (the parenthetical idea in the issue) is **out of scope** unless approved. It is listed under Open Questions.\n8. A related default date format constant, if one exists, is not changed.\n\n## Objective\n\n**What:** Change the default log line format so each line shows the **logger name** (`%(name)s`) along with the filename and line number. Today only the base filename appears.\n\n**Why:** The base filename alone is often ambiguous. Many packages have a `utils.py`. With the logger name, the reader can tell which package or module emitted a record (e.g. `django.db.backends`) without guessing. Putting the level first and using the compact `name:file:line` form also makes lines easier to scan and grep.\n\n**Users:** Developers who read log output produced by the tool under its default settings.\n\n**Current output:**\n```\nutils.py                   114 DEBUG    (0.000) SELECT ... args=(2,)\nmultipart.py               604 DEBUG    Calling on_field_start with no data\n```\n\n**Proposed output:**\n```\nDEBUG    django.db.backends:utils.py:114 (0.000) SELECT ... args=(2,)\nDEBUG    multipart.multipart:multipart.py:604 Calling on_field_start with no data\n```\n\n**User stories:**\n- As a developer reading logs, I can see which logger or module produced each line, so I can tell apart same-named files from different packages.\n- As a developer who has configured a custom log format, my output is unchanged.\n\n## Tech Stack\n\n- Python, standard library `logging` (format string attributes `levelname`, `name`, `filename`, `lineno`, `message`).\n- Project name, supported Python versions and other dependencies: **unknown**.\n\n## Commands\n\nAll **unknown**. The issue does not include them.\n\n```\nBuild: unknown\nTest:  unknown\nLint:  unknown\nDev:   unknown\n```\n\n## Project Structure\n\n**Unknown.** The only known artifact is the constant `DEFAULT_LOG_FORMAT`. The module that defines it, the test location, and the docs location are not given in the issue. Expected touch points to locate:\n\n- The module defining `DEFAULT_LOG_FORMAT` \u2192 unknown path\n- Tests asserting on default log output \u2192 unknown path\n- User docs that quote or describe the default format \u2192 unknown path\n- Changelog or release notes \u2192 unknown path or convention\n\n## Code Style\n\nUnknown beyond the existing constant. Keep the existing style of a single module-level string constant:\n\n```python\nDEFAULT_LOG_FORMAT = \"%(filename)-25s %(lineno)4d %(levelname)-8s %(message)s\"  # current\n```\n\nFollow the project's existing conventions for naming, formatting and changelog entries. These are not visible in the issue.\n\n## Testing Strategy\n\nThe framework and locations are **unknown**. Required coverage:\n\n- **Unit:** the default format renders a record with logger name, filename and line number in the agreed layout. Use a fixed logger name, file and line so the expected string is exact.\n- **Regression:** existing tests that assert on the old default layout (e.g. the padded `filename lineno LEVEL` columns) are found and updated on purpose. They must not be deleted.\n- **Override:** when a user-supplied format is set, output does not use the new default.\n- **Docs check:** any documentation example showing default output matches the new format.\n\n## Boundaries\n\n- **Always:**\n  - Change only the *default*. User-configured formats must keep working exactly as before.\n  - Update tests and docs that reference the old default in the same change.\n  - Add a changelog entry that flags the visible output change.\n- **Ask first:**\n  - Choosing a final format that differs from the one proposed in the issue (field order, separators, padding).\n  - Adding the path, relative path or `$VIRTUAL_ENV` substitution (needs a custom formatter or filter, not just a format string).\n  - Changing any related default, such as the date format or the format for a specific output channel.\n  - Giving live/CLI output a different default from captured or file output.\n- **Never:**\n  - Remove or weaken existing tests without approval.\n  - Change the meaning of user-facing configuration options.\n  - Add new dependencies for this change.\n\n## Success Criteria\n\n1. With no user log format configured, a record from logger `django.db.backends` at `utils.py` line 114, level DEBUG, message `X` renders as:\n   `DEBUG    django.db.backends:utils.py:114 X`\n   This assumes the issue's proposed format is approved. Otherwise it uses the approved format.\n2. The level name is left-aligned and padded to 8 characters (`%(levelname)-8s`), so messages line up for standard level names.\n3. Every default log line contains the logger name.\n4. When a user sets a custom log format, rendered output is byte-for-byte identical to the output before the change.\n5. All existing tests pass, with only deliberate updates to tests that asserted the old default.\n6. Docs and changelog describe the new default and how to get the old format back. The old format string is quoted so users can restore it.\n\n## Open Questions\n\n1. **Which project and file?** Where is `DEFAULT_LOG_FORMAT` defined, and which outputs use it (captured reports, live/CLI logs, log files)? Should all of them change?\n2. **Final format:** Is `\"%(levelname)-8s %(name)s:%(filename)s:%(lineno)d %(message)s\"` approved as is? Alternatives include keeping the level after the location, or dropping `filename` when it duplicates the last part of `name`.\n3. **Redundancy:** When `name` already ends with the module name (e.g. `multipart.multipart:multipart.py`), is the repetition acceptable?\n4. **Path information:** Is the relative or full path wanted? If so, where in the line, and should prefixes like `$VIRTUAL_ENV` or site-packages be abbreviated? This needs a custom formatter. Is it in scope now or a follow-up?\n5. **Root logger:** Records from the root logger render as `root:file.py:N`. Is that acceptable?\n6. **Compatibility:** Is changing default output considered breaking for users or tools that parse it? Does it need a deprecation period, a major-version release, or only a changelog note?\n7. **Alignment:** The old format padded the filename (`-25s`) for column alignment. Is losing column alignment for the location field acceptable?\n8. **Commands, project layout and test locations:** all unknown and need to be provided.",
+ "ttft_ms": 2330,
+ "type": "result",
+ "duration_ms": 27405,
+ "uuid": "60c4b7c9-8eaa-47fe-9dc7-802b81389c42",
+ "ttft_stream_ms": 1550,
+ "time_to_request_ms": 232,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 0,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 202,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 124,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1550,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

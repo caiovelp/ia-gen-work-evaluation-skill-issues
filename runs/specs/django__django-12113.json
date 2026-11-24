@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34208,
+ "stop_reason": "end_turn",
+ "session_id": "34b0871b-0874-4a28-8f34-61c80f58b70f",
+ "total_cost_usd": 0.0888939,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2542,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3368,
+  "output_tokens_details": {
+   "thinking_tokens": 409
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2542,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3368,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2542,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2542
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3131,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00032710000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3368,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2542,
+   "webSearchRequests": 0,
+   "costUSD": 0.0885668,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 409,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `admin_views.test_multidb` must pass with persistent (file-based) SQLite test databases\n\n## Objective\n\n**Problem.** When Django's own test suite is run against SQLite with a file-based `TEST[\"NAME\"]` configured for **both** the `default` and `other` aliases, so that `--keepdb` can reuse the databases, `admin_views.test_multidb.MultiDatabaseTests` errors in `setUpClass`:\n\n```\ndjango.db.utils.OperationalError: database is locked\n```\n\nThe error is raised from `setUpTestData` (`tests/admin_views/test_multidb.py`, line 40) while it calls `create_superuser(username='admin', password='something', email='test@test.org')` and the user is saved with `using=self._db`. The reporter says the error does not occur when only `default` has a `TEST[\"NAME\"]`. The reporter also notes that \"at least some test\" fails, so other multi-database tests may be affected.\n\n**Who is affected.** Contributors who run Django's test suite locally on SQLite and want `--keepdb` to speed up repeated runs.\n\n**What success looks like.** With file-based `TEST[\"NAME\"]` configured for both aliases, the reproduction command below completes without `database is locked`, on a first run and on a rerun with `--keepdb`. Behaviour with the default in-memory SQLite configuration does not change.\n\n**Reproduction (from the issue).** Add the following to the `DATABASES` setting in `tests/test_sqlite.py`:\n\n```python\n'default': {\n    'ENGINE': 'django.db.backends.sqlite3',\n    'TEST': {'NAME': 'test_default.sqlite3'},\n},\n'other': {\n    'ENGINE': 'django.db.backends.sqlite3',\n    'TEST': {'NAME': 'test_other.sqlite3'},\n},\n```\n\nThen run:\n\n```\ntests/runtests.py admin_views.test_multidb -v 3 --keepdb --parallel 1\n```\n\n## Assumptions\n\n1. The target is the Django repository itself. \"Tests\" means Django's own suite, run through `tests/runtests.py` with the settings module `tests/test_sqlite.py`.\n2. The failure is deterministic with `--parallel 1`, so parallel test workers are not the cause.\n3. The root cause is unknown. Working hypothesis: while `setUpTestData` writes to one SQLite file, a second connection holds an open, uncommitted write transaction on that same file. SQLite allows only one writer per file, so the write fails with `database is locked`.\n   - Possible sources of that second connection: the class-level atomic blocks that `TestCase` opens for each alias in `databases`, or a database router that sends writes to an unexpected alias.\n   - With in-memory databases, each alias has its own isolated database, so the conflict cannot appear there.\n   - This must be confirmed before choosing a fix.\n4. The fix may belong in the test (`tests/admin_views/test_multidb.py`, for example how it declares databases or creates data), in the test framework (`django/test/testcases.py`), or in the SQLite backend's test-database handling. No location is assumed.\n5. Changing the committed default `tests/test_sqlite.py` to use file-based databases is **not** in scope. The diff above is only a way to reproduce the bug.\n6. The working directory where the `.sqlite3` files are created is irrelevant to the bug.\n\n## Tech Stack\n\n- Python, Django (version or branch unknown; the traceback references `django/test/testcases.py` line 1137).\n- SQLite through `django.db.backends.sqlite3` and the stdlib `sqlite3` module (versions unknown).\n- Django's own test runner, `tests/runtests.py`.\n\n## Commands\n\n- Reproduce or verify (from the issue): `tests/runtests.py admin_views.test_multidb -v 3 --keepdb --parallel 1`\n- Same run without keepdb: `tests/runtests.py admin_views.test_multidb -v 3 --parallel 1` (flags as above with `--keepdb` removed)\n- Full suite: `tests/runtests.py` (default flags; the exact CI invocation is unknown)\n- Lint: unknown\n\n## Project Structure\n\nOnly paths that appear in the issue are listed:\n\n```\ntests/runtests.py                  \u2192 Django's test-suite runner\ntests/test_sqlite.py               \u2192 Default SQLite settings for the suite (DATABASES with 'default' and 'other')\ntests/admin_views/test_multidb.py  \u2192 Failing test module (MultiDatabaseTests, setUpTestData)\ndjango/test/testcases.py           \u2192 TestCase.setUpClass \u2192 setUpTestData\ndjango/db/backends/sqlite3/base.py \u2192 SQLite cursor execute\ndjango/contrib/auth/models.py      \u2192 UserManager.create_superuser / _create_user\n```\n\nAny other relevant locations (SQLite test-database creation code, routers used by the test) are unknown and need to be found by reading the code.\n\n## Code Style\n\nUnknown beyond the issue. Follow the existing style of Django's test suite and of the file being changed. No snippet is available.\n\n## Testing Strategy\n\n- **Regression check:** The reproduction command above passes with file-based `TEST[\"NAME\"]` for both aliases, in each of these cases:\n  - a first run with no existing files\n  - a second run with `--keepdb` that reuses the files\n  - a run without `--keepdb`\n- **Default-configuration check:** `admin_views.test_multidb` and the full suite still pass with the unmodified `tests/test_sqlite.py` (in-memory databases).\n- **Breadth check:** Run the other multi-database tests under the same file-based configuration. This finds other tests covered by \"at least some test fails\". How to select these tests is unknown, for example tests that declare the `other` alias.\n- **Automated regression test:** Whether one is feasible in CI is an open question, because CI presumably uses in-memory SQLite. If the fix is in framework or backend code, add a test that exercises a file-based configuration if possible. If the fix only touches the test module, manual verification with the reproduction may be enough.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the failure before changing anything.\n  - Confirm the root cause (which connection holds the lock, and why) before choosing a fix.\n  - Keep in-memory SQLite behaviour unchanged.\n  - Run the affected test module under both configurations.\n- **Ask first:**\n  - Changing `TestCase` or transaction handling in `django/test/testcases.py`.\n  - Changing SQLite backend or test-database creation behaviour.\n  - Changing the committed `tests/test_sqlite.py` settings.\n  - Fixing other affected tests beyond `admin_views.test_multidb`.\n- **Never:**\n  - Mask the error by skipping the test, retrying on lock, or raising SQLite timeouts without understanding the cause.\n  - Remove or weaken the multi-database assertions in the test.\n  - Commit the generated `.sqlite3` files.\n\n## Success Criteria\n\n1. The reproduction command passes, with no `OperationalError: database is locked`, using file-based `TEST[\"NAME\"]` for both `default` and `other`. This holds on a fresh run and on a `--keepdb` rerun.\n2. `admin_views.test_multidb` still passes with the default `tests/test_sqlite.py`.\n3. The full Django test suite shows no new failures under the default configuration.\n4. The root cause is written up in the change description: which connection or transaction held the lock, and why it only appears with file-based databases.\n5. Any other tests found to fail for the same reason under the file-based configuration are either fixed or listed as follow-ups. Which of these applies depends on the scope decision below.\n\n## Open Questions\n\n1. **Scope:** Is the goal limited to `admin_views.test_multidb`, or should every test that fails with persistent SQLite databases for both aliases be fixed? (\"at least some test fails\")\n2. **Officially supported?** Is running Django's suite with file-based SQLite test databases for multiple aliases a supported configuration, or only a convenience? This decides whether a framework or backend change is justified, versus a test-only fix.\n3. **Root cause:** Is the lock held by `TestCase`'s per-alias class-level atomic blocks, by a router in the test module, or by something else? This needs investigation.\n4. **Both names required?** Does the failure need both aliases to be file-based, or only `other`? The issue only reports that `default` alone works.\n5. **Shared file?** Could both aliases end up pointing at the same file, for example through test-name or mirror resolution under `--keepdb`?\n6. **CI coverage:** Should CI cover a file-based multi-alias SQLite configuration so this does not regress?\n7. **Versions:** Which Django branch or commit, Python version, and SQLite library version is the reporter using?",
+ "ttft_ms": 5653,
+ "type": "result",
+ "duration_ms": 33004,
+ "uuid": "1b612665-e5b6-4abc-9124-321b8d22f921",
+ "ttft_stream_ms": 1437,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 221,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 131,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1438,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

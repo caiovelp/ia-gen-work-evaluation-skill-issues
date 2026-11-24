@@ -1,0 +1,49 @@
+diff --git a/app/assets/stylesheets/custom/student_enrollment.scss b/app/assets/stylesheets/custom/student_enrollment.scss
+index c9a55173..455245c9 100644
+--- a/app/assets/stylesheets/custom/student_enrollment.scss
++++ b/app/assets/stylesheets/custom/student_enrollment.scss
+@@ -102,4 +102,24 @@
+ 
+ .show-box tr.even-record {
+   background-color: #fff;
+-}
+\ No newline at end of file
++}
++.enrollment-show-box a.enroll-button {
++  display: inline-block;
++  padding: 8px 16px;
++  background-color: #0b5ed7;
++  color: #fff;
++  font-weight: bold;
++  text-decoration: none;
++  border-radius: 4px;
++}
++
++.enrollment-show-box a.enroll-button:hover,
++.enrollment-show-box a.enroll-button:focus {
++  background-color: #084298;
++  color: #fff;
++}
++
++.enrollment-show-box a.enroll-button:focus {
++  outline: 3px solid #ffbf47;
++  outline-offset: 2px;
++}
+diff --git a/app/views/student_enrollment/_show_enroll.html.erb b/app/views/student_enrollment/_show_enroll.html.erb
+index 0e683eaf..a3b000ab 100644
+--- a/app/views/student_enrollment/_show_enroll.html.erb
++++ b/app/views/student_enrollment/_show_enroll.html.erb
+@@ -9,11 +9,11 @@
+   <% linkpath = student_enroll_path(id: @enrollment.id, year: semester.year, semester: semester.semester) %>
+   <% if enrollment_request.persisted? %>
+     <% unread = enrollment_request.student_unread_messages %>
+-    <%= link_to t("student_enrollment.show_enroll.enroll_link_edit_#{ClassEnrollmentRequest::STATUSES_MAP[enrollment_request.status]}"), linkpath %>
++    <%= link_to t("student_enrollment.show_enroll.enroll_link_edit_#{ClassEnrollmentRequest::STATUSES_MAP[enrollment_request.status]}"), linkpath, class: "enroll-button" %>
+     <% if unread > 0 %>
+       <%= t("student_enrollment.show_enroll.unread", count: unread) %>
+     <% end %>
+   <% else %>
+-    <%= link_to t("student_enrollment.show_enroll.enroll_link_new"), linkpath %>
++    <%= link_to t("student_enrollment.show_enroll.enroll_link_new"), linkpath, class: "enroll-button" %>
+   <% end %>
+ </div>

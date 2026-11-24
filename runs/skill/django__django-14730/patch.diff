@@ -1,0 +1,43 @@
+diff --git a/django/db/models/fields/related.py b/django/db/models/fields/related.py
+index febaadbb5b..f82734c1f6 100755
+--- a/django/db/models/fields/related.py
++++ b/django/db/models/fields/related.py
+@@ -1179,6 +1179,7 @@ class ManyToManyField(RelatedField):
+ 
+         if symmetrical is None:
+             symmetrical = (to == RECURSIVE_RELATIONSHIP_CONSTANT)
++        self._user_related_name = related_name
+ 
+         if through is not None and db_table is not None:
+             raise ValueError(
+@@ -1258,6 +1259,17 @@ class ManyToManyField(RelatedField):
+                 )
+             )
+ 
++        if (self.remote_field.symmetrical and self._user_related_name and
++                not self._user_related_name.endswith('+')):
++            warnings.append(
++                checks.Warning(
++                    'related_name has no effect on ManyToManyField '
++                    'with a symmetrical relationship, i.e. to "self".',
++                    obj=self,
++                    id='fields.W345',
++                )
++            )
++
+         return warnings
+ 
+     def _check_relationship_model(self, from_model=None, **kwargs):
+diff --git a/docs/ref/checks.txt b/docs/ref/checks.txt
+index 3147114f8d..972eabb6c2 100755
+--- a/docs/ref/checks.txt
++++ b/docs/ref/checks.txt
+@@ -313,6 +313,8 @@ Related fields
+   with a ``through`` model.
+ * **fields.W344**: The field's intermediary table ``<table name>`` clashes with
+   the table name of ``<model>``/``<model>.<field name>``.
++* **fields.W345**: ``related_name`` has no effect on ``ManyToManyField``
++  with a symmetrical relationship, e.g. to "self".
+ 
+ Models
+ ------

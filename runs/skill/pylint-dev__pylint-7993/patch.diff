@@ -1,0 +1,45 @@
+diff --git a/pylint/reporters/text.py b/pylint/reporters/text.py
+index 29bd46798..5d0024136 100755
+--- a/pylint/reporters/text.py
++++ b/pylint/reporters/text.py
+@@ -11,7 +11,7 @@
+ from __future__ import annotations
+ 
+ import os
+-import re
++import string
+ import sys
+ import warnings
+ from dataclasses import asdict, fields
+@@ -175,14 +175,26 @@ class TextReporter(BaseReporter):
+         self._template = template
+ 
+         # Check to see if all parameters in the template are attributes of the Message
+-        arguments = re.findall(r"\{(.+?)(:.*)?\}", template)
+-        for argument in arguments:
+-            if argument[0] not in MESSAGE_FIELDS:
++        try:
++            parsed = list(string.Formatter().parse(template))
++        except ValueError:
++            self._fixed_template = template
++            return
++        fixed = []
++        for literal, field, spec, conv in parsed:
++            fixed.append(literal.replace("{", "{{").replace("}", "}}"))
++            if field is None:
++                continue
++            if field not in MESSAGE_FIELDS:
+                 warnings.warn(
+-                    f"Don't recognize the argument '{argument[0]}' in the --msg-template. "
++                    f"Don't recognize the argument '{field}' in the --msg-template. "
+                     "Are you sure it is supported on the current version of pylint?"
+                 )
+-                template = re.sub(r"\{" + argument[0] + r"(:.*?)?\}", "", template)
++                continue
++            fixed.append(
++                "{" + field + (f"!{conv}" if conv else "") + (f":{spec}" if spec else "") + "}"
++            )
++        template = "".join(fixed)
+         self._fixed_template = template
+ 
+     def write_message(self, msg: Message) -> None:

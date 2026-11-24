@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32382,
+ "stop_reason": "end_turn",
+ "session_id": "14dce3c2-386b-4992-8b95-97ac8ee563ba",
+ "total_cost_usd": 0.06477229999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 784,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2874,
+  "output_tokens_details": {
+   "thinking_tokens": 368
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 784,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2874,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 784,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 784
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1370,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001495,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2874,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 784,
+   "webSearchRequests": 0,
+   "costUSD": 0.0646228,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 368,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Add `nonform` CSS class to FormSet non-form errors\n\n## Assumptions\n\n1. The project is Django. The issue does not name it, but the terms `ErrorList`, `nonfield`, and FormSets match Django's forms framework.\n2. Forms already pass `error_class='nonfield'` when they build the `ErrorList` for non-field errors. The `ErrorList` then renders as `class=\"errorlist nonfield\"`. The new behavior should copy this mechanism exactly.\n3. FormSet non-form errors are those returned by the formset's non-form-errors accessor. In Django's public API this is `BaseFormSet.non_form_errors()`. They come from:\n   - `ValidationError`s raised in the formset's `clean()`\n   - built-in formset validation, such as max/min number of forms and an invalid or missing management form\n4. A formset may use a custom `ErrorList` subclass, supplied through the formset's `error_class` option. That subclass is assumed to accept an `error_class` keyword argument, as it already must for forms' `nonfield` errors.\n5. The change is additive. Existing rendered output gains one extra CSS class. No class is removed or renamed.\n6. The change ships in a future feature release with a release note. It is not a bugfix backport.\n7. These items are **unknown** because the repository is not visible:\n   - exact file paths\n   - build, test, and lint commands\n   - test module locations\n   - docs file locations\n\n## Objective\n\nDevelopers who render formset errors cannot currently tell non-form errors (errors on the FormSet as a whole) apart from field errors or non-field errors by CSS class.\n\nThe goal is that the `ErrorList` holding a FormSet's non-form errors carries the CSS class `nonform`, alongside the base `errorlist` class. This mirrors how Forms tag non-field errors with `nonfield`. A custom `ErrorList`, or plain CSS, can then style or render three categories differently:\n\n- **Form field errors:** `errorlist`\n- **Form non-field errors:** `errorlist nonfield`\n- **FormSet non-form errors:** `errorlist nonform`\n\nThe new class must also be documented for developers. This includes the docs section on rendering form error messages, or an equivalent section in the formset docs.\n\n**User story:** As a developer rendering a formset, I want non-form errors marked with a `nonform` class. That way my templates, CSS, or custom `ErrorList` can render them distinctly.\n\n## Tech Stack\n\n- Django forms framework (Python). Specifically the `ErrorList` and FormSet classes.\n- Python and Django versions: **unknown**. The target branch is assumed to be the current development branch.\n\n## Commands\n\n| Purpose | Command |\n|---|---|\n| Build | unknown |\n| Test | unknown (the project's test runner; scope to the forms/formsets test modules) |\n| Lint | unknown |\n| Docs build | unknown |\n\n## Project Structure\n\nUnknown. These are the expected areas of change, with paths to be confirmed in the repo:\n\n- The FormSet implementation, where non-form errors are built.\n- The `ErrorList` utility. A change here is expected only if needed; ideally none is required.\n- Forms/formsets test suites.\n- Docs: the forms API page covering \"rendering form error messages\", the formsets topic page, and the release notes for the next feature release.\n\n## Code Style\n\nFollow the existing convention used for `nonfield` in Forms: pass the CSS class through the `ErrorList`'s `error_class` argument at every place the non-form `ErrorList` is constructed. Do not use a new mechanism. No snippet is included because the existing source is not visible.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework (unknown).\n- **Unit tests in the formset tests** should assert that `non_form_errors()` yields an `ErrorList` whose rendered HTML contains `class=\"errorlist nonform\"`. Cover each source of non-form errors:\n  - an error raised from a custom formset `clean()`\n  - too many forms submitted (max_num / validate_max)\n  - too few forms submitted (min_num / validate_min), if supported\n  - a missing or tampered management form, if those errors surface via non-form errors\n  - the empty case: no errors, and the formset is either unbound or valid. The returned `ErrorList` should still carry the `nonform` class for consistency, or at minimum not break; see Open Questions.\n- **Custom `ErrorList` test:** a formset configured with a custom `error_class` passes `nonform` through to the custom class.\n- **Regression:** existing tests expecting `class=\"errorlist\"` for non-form errors need updating. Form `nonfield` tests must stay unchanged and passing.\n- **Coverage expectation:** every code path that builds the non-form `ErrorList` is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Mirror the `nonfield` implementation pattern.\n  - Update the docs and add a release note.\n  - Run the full forms/formsets test suites before committing.\n- **Ask first:**\n  - Any change to `ErrorList`'s constructor signature or rendering logic.\n  - Any change to the rendered output of non-field or field errors.\n  - Backporting to stable branches.\n- **Never:**\n  - Remove or rename existing CSS classes.\n  - Change the error *contents* or ordering.\n  - Alter Form `nonfield` behavior.\n  - Delete existing tests rather than updating their expected output.\n\n## Success Criteria\n\n1. Rendering a FormSet's non-form errors as HTML produces `<ul class=\"errorlist nonform\">\u2026</ul>` in every case where non-form errors exist. This holds whether they come from `clean()`, max/min form count validation, or management form validation.\n2. The non-form `ErrorList` has `nonform` in its CSS classes, consistent with how `nonfield` is applied for Forms.\n3. A formset using a custom `ErrorList` subclass receives `error_class='nonform'` when its non-form error list is created.\n4. Field errors still render with `class=\"errorlist\"` only.\n5. Form non-field errors still render with `class=\"errorlist nonfield\"` only.\n6. The docs describe the `nonform` class next to the existing `nonfield` documentation, and/or in the formsets docs, with an example of the rendered output.\n7. A release note announces the new CSS class.\n8. All existing and new tests in the forms/formsets suites pass.\n\n## Open Questions\n\n1. Should the empty non-form `ErrorList` also carry the `nonform` class? This covers both an unbound formset and a formset before `full_clean()`. Matching Forms' behavior is assumed, but this needs confirmation.\n2. Are there other places that construct the non-form error list besides the main clean path? Examples include a fallback when `_non_form_errors` is `None`, or management-form error paths. The list of construction sites must be confirmed in the source.\n3. Which docs pages should be updated? Options are the forms API \"rendering form error messages\" section, the formsets topic guide, or both.\n4. Which release should this target, and should the release note go under \"Forms\" minor features?\n5. Is the extra CSS class in rendered HTML acceptable as a non-breaking change? Third-party code asserting exact HTML (`class=\"errorlist\"`) for formset errors would see different output.\n6. Should formset templates or renderers in other output formats (e.g. `as_text`, JSON output) be affected? The assumption is that only the HTML class changes.\n7. Repository paths and the test, build, and lint commands are unknown and need to be supplied.",
+ "ttft_ms": 5409,
+ "type": "result",
+ "duration_ms": 31894,
+ "uuid": "67490068-dd35-459d-b352-fcc47984552e",
+ "ttft_stream_ms": 1529,
+ "time_to_request_ms": 269,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 28,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 230,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1529,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

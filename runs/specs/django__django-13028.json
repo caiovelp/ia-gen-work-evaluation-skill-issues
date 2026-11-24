@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27183,
+ "stop_reason": "end_turn",
+ "session_id": "88e0b93b-da7a-48a9-8df6-f269c4ec2cad",
+ "total_cost_usd": 0.0664777,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1782,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2555,
+  "output_tokens_details": {
+   "thinking_tokens": 158
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1782,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2555,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1782,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1782
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2364,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002509,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2555,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1782,
+   "webSearchRequests": 0,
+   "costUSD": 0.0662268,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 158,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Query filtering must not misread a model field named `filterable`\n\n## Objective\n\n**Problem.** In Django 3.0.7, filtering a queryset by a model instance raises `django.db.utils.NotSupportedError` when that instance's model has an attribute named `filterable` whose value is falsy. The traceback shows the error comes from `Query.check_filterable(value)`, called from `Query.build_filter` in `django/db/models/sql/query.py`.\n\nThe likely cause is that `check_filterable` reads a `filterable` attribute on the right-hand-side (RHS) value. That attribute is meant to flag query expressions that are not allowed in `WHERE`. A model instance with a user-defined `filterable` field (for example `BooleanField(default=False)`) is wrongly treated as a non-filterable expression.\n\n**Reproduction (from the issue):**\n\n```python\nclass ProductMetaDataType(models.Model):\n    label = models.CharField(max_length=255, unique=True)\n    filterable = models.BooleanField(default=False)\n\nclass ProductMetaData(models.Model):\n    value = models.TextField()\n    metadata_type = models.ForeignKey(ProductMetaDataType, on_delete=models.CASCADE)\n\nProductMetaData.objects.filter(value=\"Dark Vador\", metadata_type=some_type_with_filterable_False)\n# -> NotSupportedError: ProductMetaDataType is disallowed in the filter clause.\n```\n\nRenaming the field (e.g. to `filterable_test`) works around the problem. The reporter asks for a fix or documentation.\n\n**Users.** Django developers whose models have a field or attribute named `filterable`. This is a plausible domain name, as in the \"filterable metadata types\" example.\n\n**Desired outcome.** A user-defined attribute or field called `filterable` on a model instance (or any other plain RHS value) must not change whether that value can be used in a filter. The `NotSupportedError` guard must still work for genuine query expressions that declare `filterable = False`, such as window expressions.\n\n## Assumptions\n\n1. The bug is in Django core's ORM, not in the reporter's app. The traceback points to `django/db/models/sql/query.py` `check_filterable`.\n2. The `filterable` attribute check is meant to apply only to query expressions (objects in the ORM expression API, e.g. those with `resolve_expression`). It is not meant for arbitrary Python values or model instances.\n3. Existing behaviour for expressions with `filterable = False` (e.g. `Window`) must be preserved, including the error message format.\n4. The fix should target the supported branch where the issue was reported (3.0.x) and the main development branch. Exact backport policy is unknown.\n5. A code fix is preferred over only documenting the limitation, because the field name `filterable` is reasonable and the failure is surprising.\n6. The same misinterpretation may affect other places where `check_filterable` is applied to RHS values, such as values nested inside expressions or lookups. All such paths are in scope.\n7. Truthy values of a user `filterable` field must also be ignored. A model instance's filterability should not depend on its data.\n\n## Tech Stack\n\n- Python (3.8 in the reporter's environment)\n- Django 3.0.7, which is where the issue was reported; the target branches are unknown\n- Database backend: unknown. The bug appears backend-independent because it happens while the query is built, before SQL runs.\n\n## Commands\n\nAll unknown. The repository is not visible.\n\n- Build: unknown\n- Test: unknown (Django's test runner invocation is not given in the issue)\n- Lint: unknown\n\n## Project Structure\n\nKnown from the traceback:\n\n- `django/db/models/sql/query.py`: `Query.check_filterable`, `Query.build_filter`, `Query._add_q`, `Query.add_q`\n- `django/db/models/query.py`: `QuerySet.filter`, `QuerySet._filter_or_exclude`\n- `django/db/utils.py` (module path implied by `django.db.utils.NotSupportedError`)\n\nUnknown: the location of the relevant regression tests (the test module and models for query/expression filtering) and the location of the docs.\n\n## Code Style\n\nFollow the existing Django conventions in the files touched. The repository is not visible, so no style snippet is given here.\n\n## Testing Strategy\n\n- Framework: Django's own test suite. The exact runner command and module are unknown.\n- Required regression tests:\n  - Filtering by a FK with a model instance whose model has `filterable = BooleanField(default=False)` and the instance value `False`. It must not raise and must return the matching rows.\n  - The same with the instance value `True`.\n  - Filtering on the `filterable` field itself (e.g. `ProductMetaDataType.objects.filter(filterable=False)`). It must behave like any other boolean field.\n  - Existing tests asserting `NotSupportedError` for non-filterable expressions (e.g. a `Window` expression in `filter()`) must still pass unchanged.\n- Level: ORM integration tests against the test database. A unit test on `check_filterable` is optional.\n\n## Boundaries\n\n- **Always:** Keep the `NotSupportedError` guard for real non-filterable expressions. Add regression tests that reproduce the issue's scenario. Run the existing query/expression test suites.\n- **Ask first:** Renaming the expression-level `filterable` attribute or changing its public or documented semantics. Changing the error message. Backporting to stable branches. Adding release notes.\n- **Never:** Remove the filterability check outright. Tell users to rename their fields as the only resolution. Change behaviour for expressions that legitimately declare `filterable = False`.\n\n## Success Criteria\n\n1. `ProductMetaData.objects.filter(value=\"Dark Vador\", metadata_type=instance)` succeeds and returns the correct rows when `instance.filterable` is `False`.\n2. Same as (1) when `instance.filterable` is `True`.\n3. Filtering on a model field named `filterable` (`filter(filterable=False)` / `filter(filterable=True)`) works normally.\n4. Using a query expression with `filterable = False` (e.g. a window function) in `filter()` still raises `NotSupportedError` with the existing message.\n5. New regression tests cover criteria 1\u20133, and all existing tests pass.\n\n## Open Questions\n\n1. Should the fix restrict the `filterable` check to objects that are query expressions (e.g. those with `resolve_expression`)? Or should there be a stricter, Django-private marker so that user attributes can never collide?\n2. Which branches should get the fix (3.0.x stable, 3.1, main)? Does this count as a regression from an earlier release, which would affect backport eligibility?\n3. Are there other call sites (e.g. `exclude()`, `Q` objects, values inside `F`/`Value` wrappers, iterables in `__in` lookups) where RHS values go through the same check and need explicit tests?\n4. Is a documentation note still wanted alongside the code fix, e.g. in the release notes, or a note about the expression `filterable` attribute in the expressions API docs?\n5. What is the exact test runner command and target test module in the repository? This is unknown from the issue.",
+ "ttft_ms": 3115,
+ "type": "result",
+ "duration_ms": 26307,
+ "uuid": "b1b4986e-0b8d-4464-b352-1b02200518bd",
+ "ttft_stream_ms": 1503,
+ "time_to_request_ms": 232,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 202,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 176,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1503,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

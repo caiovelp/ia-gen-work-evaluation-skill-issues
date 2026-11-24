@@ -1,0 +1,35 @@
+diff --git a/sklearn/utils/_pprint.py b/sklearn/utils/_pprint.py
+index b8686dba5..67c8e4436 100755
+--- a/sklearn/utils/_pprint.py
++++ b/sklearn/utils/_pprint.py
+@@ -84,6 +84,20 @@ class KeyValTupleParam(KeyValTuple):
+     pass
+ 
+ 
++def _is_changed(value, default):
++    if is_scalar_nan(default) and is_scalar_nan(value):
++        return False
++    try:
++        return bool(value != default)
++    except ValueError:
++        # e.g. arrays: ambiguous truth value
++        try:
++            import numpy as np
++            return not np.array_equal(value, default)
++        except Exception:
++            return True
++
++
+ def _changed_params(estimator):
+     """Return dict (param_name: value) of parameters that were given to
+     estimator with non-default values."""
+@@ -95,8 +109,7 @@ def _changed_params(estimator):
+     init_params = signature(init_func).parameters
+     init_params = {name: param.default for name, param in init_params.items()}
+     for k, v in params.items():
+-        if (v != init_params[k] and
+-                not (is_scalar_nan(init_params[k]) and is_scalar_nan(v))):
++        if _is_changed(v, init_params[k]):
+             filtered_params[k] = v
+     return filtered_params
+ 

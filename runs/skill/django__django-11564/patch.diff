@@ -1,0 +1,30 @@
+diff --git a/django/conf/__init__.py b/django/conf/__init__.py
+index b32e56184d..d6b3edb7b3 100755
+--- a/django/conf/__init__.py
++++ b/django/conf/__init__.py
+@@ -75,9 +75,25 @@ class LazySettings(LazyObject):
+         if self._wrapped is empty:
+             self._setup(name)
+         val = getattr(self._wrapped, name)
++        if name in {'MEDIA_URL', 'STATIC_URL'} and val is not None:
++            # Depends on the current script prefix, so don't cache it.
++            return self._add_script_prefix(val)
+         self.__dict__[name] = val
+         return val
+ 
++    @staticmethod
++    def _add_script_prefix(value):
++        """
++        Add the script prefix (SCRIPT_NAME) to root-relative paths. Absolute
++        URLs and protocol-relative URLs are returned unchanged.
++        """
++        if value.startswith('/') and not value.startswith('//'):
++            from django.urls import get_script_prefix
++            prefix = get_script_prefix()
++            if prefix != '/' and not value.startswith(prefix):
++                return prefix.rstrip('/') + value
++        return value
++
+     def __setattr__(self, name, value):
+         """
+         Set the value of setting. Clear all cached values if _wrapped changes

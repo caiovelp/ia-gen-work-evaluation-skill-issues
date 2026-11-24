@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14314,
+ "stop_reason": "end_turn",
+ "session_id": "b2d85290-9ce1-4c74-bac3-8e361c7ae043",
+ "total_cost_usd": 0.0363848,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1161,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1347,
+  "output_tokens_details": {
+   "thinking_tokens": 370
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1161,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1347,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1161,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1161
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1368,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001488,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1347,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1161,
+   "webSearchRequests": 0,
+   "costUSD": 0.036236000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 370,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe pretty printer renders `pi**(1/E)` incorrectly. It displays it as a root expression with `-1` as the root index (roughly \"the \u22121th root of \u03c0\") instead of \u03c0 raised to the power e\u207b\u00b9. The LaTeX and `str` printers handle the same expression correctly. The reporter did not find an existing report of this bug among other `printing.pretty` issues.\n\n## Steps to reproduce\n\n1. Start an interactive session (the report shows IPython-style `In`/`Out` prompts) with SymPy's pretty printing active for output.\n2. Evaluate `pi**(1/E)`.\n3. Look at the pretty-printed output.\n4. For comparison, evaluate `print(latex(pi**(1/E)))` and `str(pi**(1/E))`.\n\n## Observed behavior\n\nThe pretty-printed output is:\n\n```\n-1___\n\u2572\u2571 \u03c0 \n```\n\nThis reads as a root of \u03c0 with index `-1`, which does not represent \u03c0^(e\u207b\u00b9).\n\nThe other printers give correct output:\n- `latex(pi**(1/E))` gives `\\pi^{e^{-1}}`\n- `str(pi**(1/E))` gives `'pi**exp(-1)'`\n\n## Expected behavior\n\nThe pretty printer should render the expression as \u03c0 raised to the power e\u207b\u00b9 (i.e. `exp(-1)`), consistent with the LaTeX (`\\pi^{e^{-1}}`) and `str` (`pi**exp(-1)`) output. It should not render it as a root with index `-1`.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the problem is incorrect rendered output.\n\n## Test case\n\nMinimal test derived from the report's reproduction. It checks that the pretty output is not the incorrect root rendering shown above, and that the LaTeX and `str` output match what the report observed:\n\n```python\nfrom sympy import pi, E, latex, pretty\n\ndef test_pretty_pi_pow_one_over_E():\n    expr = pi**(1/E)\n    # Observed incorrect rendering from the report\n    assert pretty(expr, use_unicode=True) != \"-1___\\n\u2572\u2571 \u03c0 \"\n    # These printers are reported to be correct\n    assert latex(expr) == r\"\\pi^{e^{-1}}\"\n    assert str(expr) == \"pi**exp(-1)\"\n```\n\n## Code example\n\nFrom the original report:\n\n```\nIn [52]: pi**(1/E)\nOut[52]:\n-1___\n\u2572\u2571 \u03c0 \n\nIn [53]: print(latex(pi**(1/E)))\n\\pi^{e^{-1}}\n\nIn [54]: str(pi**(1/E))\nOut[54]: 'pi**exp(-1)'\n```\n\n## Version and environment\n\n- SymPy version reported as `1.5.dev`. The reporter had just merged from the project master branch.\n- Interactive session with IPython-style prompts and Unicode pretty printing.\n- OS and Python version: Not provided in the original report.",
+ "ttft_ms": 5696,
+ "type": "result",
+ "duration_ms": 13769,
+ "uuid": "0a16ee46-68bd-4104-8307-f52ba32cf2a7",
+ "ttft_stream_ms": 1832,
+ "time_to_request_ms": 273,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 22,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 296,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1832,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

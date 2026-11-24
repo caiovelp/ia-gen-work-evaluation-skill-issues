@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10349,
+ "stop_reason": "end_turn",
+ "session_id": "43d11096-3cfa-4c8c-9eb8-2db43272ffb1",
+ "total_cost_usd": 0.032281500000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1360,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1061,
+  "output_tokens_details": {
+   "thinking_tokens": 171
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1360,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1061,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1360,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1360
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1570,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017350000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1061,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1360,
+   "webSearchRequests": 0,
+   "costUSD": 0.032108000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 171,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nMigration `auth.0011_update_proxy_permissions` fails with an `IntegrityError` (duplicate key in `auth_permission`) when running `python manage.py migrate` after upgrading a project to Django 2.2. According to the report title, the failure affects models that were recreated as a proxy. The migration appears to try to re-create entries that already exist in the `auth_permission` table.\n\n## Steps to reproduce\n\n1. Start with an existing project on Django 2.0.13 or Django 2.1.8. The project has proxy models; according to the title, these are models that were recreated as a proxy.\n2. Upgrade the project to Django 2.2.\n3. Run `python manage.py migrate`.\n4. The error occurs while `auth.0011_update_proxy_permissions` is being applied.\n\nThe report does not give the exact model definitions or the migration history needed to reproduce this.\n\n## Observed behavior\n\n- Applying `auth.0011_update_proxy_permissions` fails with `django.db.utils.IntegrityError`, a duplicate key violation on the unique constraint over `(content_type_id, codename)` in `auth_permission`.\n- The migration appears to be re-creating permission entries that already exist.\n- The reporter first suspected a recently renamed model. They deleted that model's entries from `auth_permission`, but the same error still occurred for other proxy models.\n- The error occurred when upgrading from 2.0.13 and also when upgrading from 2.1.8.\n- Recreating the virtual environment from scratch had no effect.\n\n## Expected behavior\n\n`auth.0011_update_proxy_permissions` should apply without error on an existing database whose `auth_permission` table already contains entries for proxy models, including models recreated as a proxy. It should not try to insert permissions that already exist.\n\n## Stack trace / error output\n\n```\ndjango.db.utils.IntegrityError: duplicate key value violates unique constraint \"idx_18141_auth_permission_content_type_id_01ab375a_uniq\" DETAIL: Key (co.ntent_type_id, codename)=(12, add_agency) already exists.\n```\n\nThe error is quoted as given in the original report, including \"co.ntent_type_id\". The reporter says the full stack trace is available at an external link, but it is not included in the report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nNot provided in the original report.\n\n## Version and environment\n\n- Target version: Django 2.2\n- Upgraded from: Django 2.0.13 and Django 2.1.8 (tried separately; both fail)\n- Database backend, Python version, OS: Not provided in the original report.\n- Also discussed on the django-users mailing list, where the reporter was asked to file this ticket.",
+ "ttft_ms": 2994,
+ "type": "result",
+ "duration_ms": 9834,
+ "uuid": "0e8c7d96-ce3e-45d5-83cf-75e1aadd4f00",
+ "ttft_stream_ms": 1281,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 10,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 199,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 230,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1281,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

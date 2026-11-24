@@ -1,0 +1,39 @@
+diff --git a/sphinx/ext/autosummary/generate.py b/sphinx/ext/autosummary/generate.py
+index a57c73fb7..5e47109ea 100755
+--- a/sphinx/ext/autosummary/generate.py
++++ b/sphinx/ext/autosummary/generate.py
+@@ -18,6 +18,7 @@
+ """
+ 
+ import argparse
++import inspect
+ import locale
+ import os
+ import pkgutil
+@@ -219,6 +220,16 @@ def generate_autosummary_content(name: str, obj: Any, parent: Any,
+                             public.append(name)
+         return public, items
+ 
++    def is_imported(obj: Any, member: str) -> bool:
++        try:
++            value = safe_getattr(obj, member)
++        except AttributeError:
++            return False
++        if inspect.ismodule(value):
++            return True
++        modname = getattr(value, '__module__', None)
++        return isinstance(modname, str) and modname != obj.__name__
++
+     def get_module_attrs(members: Any) -> Tuple[List[str], List[str]]:
+         """Find module attributes with docstrings."""
+         attrs, public = [], []
+@@ -247,6 +258,9 @@ def generate_autosummary_content(name: str, obj: Any, parent: Any,
+ 
+     if doc.objtype == 'module':
+         ns['members'] = dir(obj)
++        if not imported_members:
++            ns['members'] = [m for m in ns['members']
++                             if not is_imported(obj, m)]
+         ns['functions'], ns['all_functions'] = \
+             get_members(obj, {'function'}, imported=imported_members)
+         ns['classes'], ns['all_classes'] = \

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33540,
+ "stop_reason": "end_turn",
+ "session_id": "1de38f9c-43ef-4618-a444-bb9171e4ab5e",
+ "total_cost_usd": 0.067179,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 755,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3006,
+  "output_tokens_details": {
+   "thinking_tokens": 387
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 755,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3006,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 755,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 755
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1342,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001482,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3006,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 755,
+   "webSearchRequests": 0,
+   "costUSD": 0.0670308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 387,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Remove spurious \"no number is assigned for table\" warnings after upgrading to Sphinx 3.3\n\n## Objective\n\nAfter upgrading to Sphinx 3.3, builds with the `singlehtml` and `latex` builders emit a new warning:\n\n```\nWARNING: no number is assigned for table:\n```\n\nThe reporter says the documentation did not change, only the Sphinx version. They found nothing in the changelog about `numref` or numbering. So either:\n\n- **(a)** Sphinx 3.3 introduced a regression that emits this warning where it should not, or\n- **(b)** Sphinx 3.3 deliberately changed behavior and did not document it.\n\n**Users affected:**\n- Documentation authors who build with `singlehtml` or `latex`.\n- Projects that use `-W` (warnings as errors). For them, a spurious warning is a build failure.\n\n**Goal:**\n1. Determine which Sphinx 3.3 change causes the warning.\n2. Classify it as a bug or an intended change.\n3. Then do one of the following:\n   - If it is a bug: stop the warning in cases where it does not point to a real authoring problem.\n   - If it is intended: make it actionable, by naming the offending target and source location and by documenting the change in the changelog.\n\n**Acceptance criteria (user-facing):**\n- A project that built without this warning on Sphinx 3.2.x, and has no real numbering problem, builds without it on the fixed version with `singlehtml` and `latex`.\n- If a reference really cannot be numbered, the warning still appears. It identifies the referenced label or target and the document or line where the reference occurs. It is never emitted with an empty trailing description, as in the reported `...for table:`.\n- The `html` builder behaves the same as before for the same input, or any difference is explained in the changelog.\n\n## Assumptions\n\n1. The warning text comes from Sphinx's own cross-reference / `numref` resolution code, not from a third-party extension. This is unverified; the reporter did not list their extensions.\n2. The trailing empty text after `table:` suggests the referenced table has no caption or title, or that the warning was triggered by something other than an explicit `:numref:` role.\n3. The regression is between 3.2.x and 3.3.0. The exact last-good version is unknown.\n4. The reporter's project builds cleanly on the previous Sphinx version under the same configuration.\n5. The fact that only `singlehtml` and `latex` are affected matters. These builders assign or look up figure numbers differently from the multi-page `html` builder, for example in how documents are merged or how numbers are keyed. This is a hypothesis to verify, not a known fact.\n6. The fix belongs in Sphinx itself, not in user documentation, unless investigation shows the warning is correct.\n\n## Tech Stack\n\n- Sphinx (Python). The affected version is 3.3; the target fix version is unknown.\n- Builders involved: `singlehtml`, `latex`; `html` is the comparison baseline.\n- The Python version, docutils version and extensions in the reporter's environment are unknown.\n\n## Commands\n\nThe issue gives no commands. All of the following are **unknown / to be confirmed**:\n\n- Build/reproduce: unknown. Likely a `sphinx-build -b singlehtml \u2026` / `-b latex \u2026` invocation, but the exact flags and paths are not given.\n- Test: unknown. The repository's test runner and invocation are not visible.\n- Lint: unknown.\n\n## Project Structure\n\nNot visible from the issue. The following are **unknown**:\n\n- The location of the cross-reference / `numref` resolution code.\n- The location of figure/table number assignment for each builder.\n- The location of builder-specific tests and test fixture projects.\n- The location of the changelog file (the reporter refers to a \"changelog\").\n\n## Code Style\n\nUnknown. Follow the existing conventions in the Sphinx repository. No snippet is available from the issue.\n\n## Testing Strategy\n\nThe framework and locations are unknown and must be confirmed in the repo. The tests needed are:\n\n1. **Reproduction fixture.** A minimal Sphinx project that triggers the warning on 3.3 with `singlehtml` and `latex`. Its exact content is to be found during investigation. Candidates are listed under Open Questions.\n2. **Regression tests (per builder).** Build the fixture with `singlehtml` and `latex`. Assert that the warning output does not contain `no number is assigned for table` when the input is valid.\n3. **Negative test.** Use a fixture containing a real unnumberable reference, for example a `numref` to a table with no caption, if that is invalid. Assert that the warning is still emitted and includes the target identifier.\n4. **Baseline parity.** Build the same fixtures with `html` and assert consistent behavior.\n5. Run the existing `numref` / numbering test suites, which must still pass.\n\n## Boundaries\n\n**Always:**\n- Reproduce the warning before changing behavior.\n- Identify the specific 3.3 change responsible.\n- Add regression tests for `singlehtml` and `latex`.\n- Add a changelog entry.\n\n**Ask first:**\n- Removing the warning entirely, rather than suppressing it only in invalid cases.\n- Changing how figure or table numbers are assigned for any builder.\n- Changing the warning's text, category or type, since users may filter on these via `suppress_warnings`.\n- Backporting to a patch release.\n\n**Never:**\n- Silence the warning globally in a way that hides genuine broken numbered references.\n- Change behavior of the `html` builder without documenting it.\n- Remove or weaken existing numbering tests.\n\n## Success Criteria\n\n- [ ] The root-cause change in 3.3 is identified and documented, as a link to the commit/PR or a description in the fix.\n- [ ] The minimal reproduction emits the warning on 3.3 and does not emit it after the fix, for both `singlehtml` and `latex`.\n- [ ] Genuine unnumberable references still produce a warning that names the target and the source location. The description is not empty.\n- [ ] No new failures in existing numbering / cross-reference tests.\n- [ ] The changelog entry describes the fix, or describes the intended behavior change if the warning is deemed correct.\n\n## Open Questions\n\n1. **Reproduction:** Can the reporter provide a minimal project, or at least the following?\n   - Their `conf.py`, especially `numfig`, `numfig_format`, `numfig_secnum_depth` and the extensions list.\n   - An example of the table and the reference that triggers the warning.\n2. **Which construct is the trigger?**\n   - An explicit `:numref:` to a table?\n   - A `:ref:` or `:any:` role, or an intersphinx reference, that resolves to a table?\n   - A table with no caption that is referenced by label?\n   - A third-party extension, such as an autosummary-style table generator?\n3. **Is `numfig` enabled** in the reporter's project? If it is disabled, should any numbering warning be emitted at all?\n4. **Which builders are affected?** Does the warning also appear with the multi-page `html` builder, or strictly only with `singlehtml` / `latex`? This determines whether the cause is in shared resolution logic or in builder-specific number assignment.\n5. **Last good version:** Is it 3.2.1? Was the warning present in any 3.3 pre-release?\n6. **Intended or not:** Was a stricter check or new warning deliberately introduced in 3.3 without a changelog entry? If so, is the desired outcome only better messaging and documentation?\n7. **Empty description:** Why is the text after `table:` empty in the warning? Is the empty description itself a bug, independent of whether the warning should fire?\n8. **Workaround:** Should a temporary workaround be documented for users on `-W`? For example, a `suppress_warnings` entry, if this warning has a suppressible type. Its type/subtype is unknown.",
+ "ttft_ms": 5474,
+ "type": "result",
+ "duration_ms": 33078,
+ "uuid": "c2dc2fe0-3232-4acd-9c3e-9cd0d70df53d",
+ "ttft_stream_ms": 1117,
+ "time_to_request_ms": 346,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 315,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 177,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1117,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

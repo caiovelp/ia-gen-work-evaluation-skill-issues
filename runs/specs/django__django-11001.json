@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 35355,
+ "stop_reason": "end_turn",
+ "session_id": "e4dfe12b-7a79-4bae-b3b5-d70499b76670",
+ "total_cost_usd": 0.07599399999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1394,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3188,
+  "output_tokens_details": {
+   "thinking_tokens": 108
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1394,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3188,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1394,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1394
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1977,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002112,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3188,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1394,
+   "webSearchRequests": 0,
+   "costUSD": 0.07578279999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 108,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct duplicate detection for multiline ORDER BY expressions in `SQLCompiler.get_order_by()`\n\n## Objective\n\n`SQLCompiler.get_order_by()` drops ORDER BY terms that are not duplicates when they are written as multiline SQL, for example `RawSQL` expressions with embedded newlines.\n\n**Root cause (as reported):** the method strips the ordering direction to get a deduplication key:\n\n```python\nwithout_ordering = self.ordering_parts.search(sql).group(1)\n```\n\nThe `ordering_parts` regular expression does not match across newlines. For multiline `sql` it captures only the last line, the one before `ASC`/`DESC`. That fragment goes into a `seen` set. Any later ORDER BY term whose **last line** is identical is then treated as a duplicate and removed, even when the full expressions differ.\n\n**Who is affected:** ORM users who pass multiline expressions to `order_by()`, mainly `RawSQL(...)` with `.asc()` or `.desc()`.\n\n**What success looks like:**\n- Duplicate detection compares the **entire** SQL of each ordering term, minus its direction.\n- Distinct multiline expressions are never collapsed.\n- True duplicates are still removed, as today.\n\n### User story\nAs a developer ordering a queryset by several multiline `RawSQL` expressions that share a final line, I want every expression to appear in the generated ORDER BY clause. Then I don't need workarounds like adding trailing spaces to make the last lines differ.\n\n### Reproduction (from the issue)\n\n```python\nMyModel.objects.all().order_by(\n    RawSQL('''\n        case when status in ('accepted', 'verification')\n             then 2 else 1 end''', []).desc(),\n    RawSQL('''\n        case when status in ('accepted', 'verification')\n             then (accepted_datetime, preferred_datetime)\n             else null end''', []).asc(),\n    RawSQL('''\n        case when status not in ('accepted', 'verification')\n             then (accepted_datetime, preferred_datetime, created_at)\n             else null end''', []).desc())\n```\n\nThe reported `ordering_parts.search(...).group(1)` results are:\n- `'                 then 2 else 1 end)'`\n- `'                 else null end'`\n- `'                 else null end'`\n\n**Observed:** the third ordering term (the second expression ending in `else null end`) is dropped from the query.\n\n**Expected:** all three ordering terms appear in the ORDER BY clause, in order, with their directions.\n\n## Assumptions\n\n1. The project is Django. `SQLCompiler`, `get_order_by()`, `ordering_parts` and `RawSQL` refer to Django ORM internals and the public `RawSQL` expression.\n2. `ordering_parts` is a compiled regex used only to split off the trailing `ASC`/`DESC`. The problem is that it does not match across line boundaries.\n3. Dedup semantics stay as they are: two ordering terms with the same SQL text, ignoring direction, are still duplicates and the later one is dropped. Only the key computation changes.\n4. Newlines may be `\\n`, `\\r\\n` or `\\r`. The issue warns about \"EOL dragons (`\\r`)\". All of them must be handled.\n5. The reporter's suggested fix (`' '.join(sql.split('\\n'))`) is a workaround, not a required design. Any approach that keeps the full expression in the key is acceptable.\n6. The fix should not change the SQL emitted to the database. Only the internal dedup key is affected. Newlines inside literals must not be rewritten in the executed SQL.\n7. Python 2 / `u''` concerns in the issue are historical. Whether Python 2 is still supported is unknown (see Open Questions).\n8. The same `ordering_parts` pattern may be used elsewhere in the compiler, for example in code that builds extra select columns for ORDER BY with DISTINCT or GROUP BY. If so, it has the same defect. That code is unconfirmed because the repository is not visible.\n\n## Tech Stack\n\n- Python and Django ORM. Supported Python and Django versions: **unknown**.\n- Database backends: multiple, through the Django backend abstraction. The issue doesn't say which backend the reporter uses. The example uses row-value expressions like `(a, b)`, which suggests PostgreSQL, but that's unconfirmed.\n\n## Commands\n\nAll unknown; none are visible in the issue.\n\n```\nBuild: unknown\nTest:  unknown (Django's own test runner invocation not visible in the issue)\nLint:  unknown\nDev:   n/a\n```\n\n## Project Structure\n\n- `SQLCompiler` / `get_order_by()` / `ordering_parts`: their file path is **unknown** (not given in the issue).\n- Location of ORM ordering / raw SQL expression tests: **unknown**.\n- New regression tests should go in the existing test module that covers queryset ordering or `RawSQL` expressions, wherever that is.\n\n## Code Style\n\n- Follow the existing conventions of the surrounding compiler code. They are not visible here, so they're unknown.\n- Keep the change minimal and local to how the dedup key (`without_ordering`) is derived.\n- Do not introduce new public API.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework (unknown; presumably Django's own test suite).\n- **Level:** ORM-level regression tests that build querysets and assert on their ordering, through the compiled SQL and/or result order. No new end-to-end tests.\n- **Required regression cases:**\n  1. Several multiline `RawSQL` ordering expressions that share an identical last line but differ elsewhere. All of them must be in the ORDER BY clause.\n  2. The same as case 1 with `\\r\\n` line endings.\n  3. The same as case 1 with bare `\\r` line endings.\n  4. Two truly identical multiline `RawSQL` expressions with different directions. The existing dedup behavior is preserved: the second one is still dropped.\n  5. Existing single-line ordering and dedup behavior is unchanged. Covered by the current test suite passing.\n- **Coverage expectation:** every changed line in the key computation is exercised by the tests above.\n- If assumption 8 holds, add an equivalent multiline test for each other use of `ordering_parts`.\n\n## Boundaries\n\n**Always:**\n- Run the full existing ordering / expressions test suites before considering the fix done.\n- Add a regression test that fails before the fix and passes after it.\n- Keep the SQL sent to the database byte-identical to the current output, apart from restoring the terms that were wrongly dropped.\n\n**Ask first:**\n- Changing dedup semantics themselves, such as normalizing whitespace so that expressions differing only in formatting count as duplicates.\n- Changing the `ordering_parts` regex in ways that affect other call sites.\n- Changing how `RawSQL` or other expressions render their SQL.\n- Backporting to maintained release branches.\n\n**Never:**\n- Remove or weaken existing ordering or dedup tests.\n- Rewrite user-supplied raw SQL in the executed query, for example by stripping newlines from it.\n- Fix only `\\n` while leaving `\\r` / `\\r\\n` broken.\n\n## Success Criteria\n\n- [ ] The reproduction query from the issue produces an ORDER BY clause with all three terms, in the original order and with their original directions.\n- [ ] Two multiline ordering expressions that differ anywhere, not just in the last line, are both kept.\n- [ ] Two ordering expressions whose full SQL is identical, ignoring direction, are still deduplicated as before.\n- [ ] The behavior holds for `\\n`, `\\r\\n` and `\\r` line endings.\n- [ ] The generated SQL for single-line ordering expressions is unchanged.\n- [ ] The new regression tests fail on the current code and pass with the fix.\n- [ ] The existing test suite passes.\n\n## Open Questions\n\n1. **Normalization scope:** should the dedup key be the full SQL verbatim, or whitespace-normalized? Normalizing would make `RawSQL('a\\n  desc_thing')` and `RawSQL('a desc_thing')` duplicates. That might be desirable, but it changes behavior.\n2. **Other call sites:** is `ordering_parts` used anywhere besides `get_order_by()`, for example for DISTINCT or GROUP BY extra select columns? Should those be fixed under this issue?\n3. **Preferred approach:** should the fix change the regex (for example, enabling dot-matches-newline) or pre-process `sql` before matching? Is there a project preference?\n4. **Supported versions:** which Python and Django versions must the fix support? Is Python 2 `unicode` handling still relevant?\n5. **Backports:** is this a candidate for backporting to stable branches, or only for the main development branch?\n6. **Commands and paths:** what are the exact test commands, and what are the file locations of the compiler and the relevant test modules?\n7. **Dedup for raw SQL at all:** is it acceptable to keep deduplicating `RawSQL` ordering terms? Or should raw expressions be excluded from dedup entirely, since their text-based equality is fragile?",
+ "ttft_ms": 3630,
+ "type": "result",
+ "duration_ms": 34064,
+ "uuid": "136ae552-47de-4ab0-95bf-dd0c42256a39",
+ "ttft_stream_ms": 2281,
+ "time_to_request_ms": 308,
+ "time_to_request_phases_ms": {
+  "other": 21,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 13,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 231,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 330,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 20,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2282,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

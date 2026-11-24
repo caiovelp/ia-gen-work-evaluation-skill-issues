@@ -1,0 +1,14 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index d2568fddbf..f09f4be541 100755
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -961,6 +961,9 @@ default: %(va)s
+         for ax in tuple(self.axes):  # Iterate over the copy.
+             ax.clear()
+             self.delaxes(ax)  # Remove ax from self._axstack.
++            # Don't leave a removed Axes holding the mouse grab.
++            if getattr(self.canvas, "mouse_grabber", None) is ax:
++                self.canvas.release_mouse(ax)
+ 
+         self.artists = []
+         self.lines = []

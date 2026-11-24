@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 45928,
+ "stop_reason": "end_turn",
+ "session_id": "a930e2eb-c3ec-45a3-8813-96e59c0df55d",
+ "total_cost_usd": 0.0632459,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1208,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2626,
+  "output_tokens_details": {
+   "thinking_tokens": 78
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1208,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2626,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1208,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1208
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1791,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001911,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2626,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1208,
+   "webSearchRequests": 0,
+   "costUSD": 0.0630548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 78,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `parse_mathematica` support for Greek and other non-ASCII identifiers\n\n## Objective\n\n`parse_mathematica` in `sympy.parsing.mathematica` is the replacement for the `mathematica` function, which is deprecated as of SymPy 1.11. It currently fails on input that the deprecated function handled:\n\n```\nfrom sympy.parsing.mathematica import parse_mathematica\nparse_mathematica('\u03bb')\n# SyntaxError: unable to create a single AST for the expression\n```\n\nThe deprecated function returns the symbol `\u03bb` for the same input.\n\n**Users:** People who move from `mathematica(...)` to `parse_mathematica(...)`, as the deprecation asks them to. Also anyone parsing Mathematica expressions with non-ASCII symbol names, such as Greek letters.\n\n**Goal:** `parse_mathematica` accepts identifiers made of Greek characters, and possibly other non-ASCII letters, and turns them into SymPy symbols. This closes a regression compared with the deprecated parser.\n\n**Acceptance criteria (user-level):**\n- `parse_mathematica('\u03bb')` returns a SymPy object equal to `Symbol('\u03bb')`.\n- Expressions that combine Greek identifiers with operators and function calls parse the same way their ASCII equivalents do.\n- No existing `parse_mathematica` behaviour changes for ASCII input.\n\n## Assumptions\n\n1. The failure comes from the tokenizer or lexer in `parse_mathematica`. Its identifier pattern most likely accepts only ASCII letters, so `\u03bb` is never tokenized as a symbol. The traceback suggests this, but I have not confirmed it because I have no access to the source.\n2. The expected result for a bare Greek letter is a plain `Symbol` with the same Unicode name. This matches what the deprecated `mathematica('\u03bb')` returns.\n3. The scope is literal Unicode characters typed directly in the input string. Mathematica named-character escapes such as `\\[Lambda]` are a separate feature and are out of scope unless confirmed otherwise (see Open Questions).\n4. \"Possibly others\" means Unicode letters in general, not just the Greek block. Identifiers should follow a \"letter-like\" rule rather than a hard-coded list of Greek characters.\n5. Digits may follow the first character of an identifier, as in ASCII identifiers (for example `\u03b11`). Digits may not start an identifier.\n6. The deprecated `mathematica` function is not modified.\n7. Python 3, which handles `str` as Unicode, is the only runtime that matters.\n\n## Tech Stack\n\n- Python, as part of the SymPy library.\n- Module: `sympy.parsing.mathematica`, which contains `parse_mathematica` and the deprecated `mathematica`.\n- Minimum Python version and exact SymPy version: **unknown**. The issue mentions SymPy 1.11.\n\n## Commands\n\nNot visible in the issue, so all of these are **unknown** and must be confirmed from the repository:\n\n- Test: unknown. Presumably the project's standard test runner, targeting the Mathematica parser tests.\n- Lint / code quality: unknown.\n- Build: unknown. It is probably not needed for a pure-Python change.\n\n## Project Structure\n\n- Implementation: the module behind `sympy.parsing.mathematica`. The exact file path is **unknown**.\n- Tests: the existing test file for the Mathematica parser. The path is **unknown**.\n- Docs: the `parse_mathematica` docstring and any deprecation or migration notes. The location is **unknown**.\n\n## Code Style\n\n**Unknown.** The project's existing conventions apply. No code snippet is available from the issue. Any new identifier-matching logic should follow the way the existing tokenizer defines its token patterns.\n\n## Testing Strategy\n\n- **Level:** unit tests on `parse_mathematica` at its public API.\n- **Location:** alongside the existing Mathematica parser tests (path unknown).\n- **Cases to cover:**\n  - A single Greek letter: `'\u03bb'` gives `Symbol('\u03bb')`.\n  - Multiple Greek letters as one identifier: `'\u03b1\u03b2'` gives a single symbol `\u03b1\u03b2`, matching how ASCII multi-letter names behave.\n  - Greek letters in arithmetic: `'\u03bb + 1'`, `'2 \u03bb'` (implicit multiplication), `'\u03b1^2'`.\n  - Greek letters as function arguments: `'Sin[\u03b8]'` gives `sin(Symbol('\u03b8'))`.\n  - Mixed identifiers: `'\u03b11'` and `'x\u03b1'` are each one symbol.\n  - Uppercase Greek: `'\u039b'`.\n  - A non-Greek, non-ASCII letter, if assumption 4 holds, for example a Latin letter with a diacritic.\n  - Regression: the existing ASCII test suite for `parse_mathematica` passes unchanged.\n  - Negative case: non-letter Unicode symbols that are not valid identifier characters still raise an error rather than being silently accepted. The exact set of such characters is to be confirmed.\n- **Coverage expectations:** unknown. Every new branch in the tokenizer should be exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Keep ASCII parsing behaviour identical.\n  - Add regression tests for the reported input `'\u03bb'`.\n  - Run the full Mathematica parser test suite before committing.\n- **Ask first:**\n  - Supporting `\\[Name]` escape sequences.\n  - Changing how the deprecated `mathematica` function behaves.\n  - Changing which Unicode categories count as identifier characters beyond letters and digits.\n  - Adding any new dependency.\n- **Never:**\n  - Hard-code a list of individual Greek characters as the only fix.\n  - Remove or weaken existing tests.\n  - Alter public function signatures.\n\n## Success Criteria\n\n1. `parse_mathematica('\u03bb') == Symbol('\u03bb')` evaluates to `True`.\n2. All Greek-letter test cases listed under Testing Strategy pass.\n3. Non-ASCII letters beyond Greek are accepted as identifiers, if assumption 4 is confirmed.\n4. The existing `parse_mathematica` tests pass with no modifications.\n5. For every Greek-letter case in the test list, the output of `parse_mathematica` matches what the deprecated `mathematica` produces for the same input.\n\n## Open Questions\n\n1. Should identifiers accept any Unicode letter (for example, characters where Python's `str.isalpha()` is true, or the Unicode identifier rules), or only a defined set such as Greek?\n2. Should Mathematica named-character escapes like `\\[Lambda]` or `\\[Alpha]` also be supported and mapped to the corresponding Unicode symbol? Or should that be a separate issue?\n3. How should Mathematica's built-in Greek-named constants be handled? For example, `\u03c0` could map to `pi`, and `\u2147` to `E`. Or should every Greek character, including `\u03c0`, become a plain `Symbol`?\n4. Should non-letter Unicode characters, such as math operators like `\u00d7` or `\u2264` and other non-ASCII symbols, raise a clear error? Or should they map to their Mathematica operator meanings? Is a more descriptive error message wanted than \"unable to create a single AST for the expression\"?\n5. What are the exact file paths for the implementation and tests, and what is the project's test command?\n6. Is there a list of other inputs that the deprecated `mathematica` parsed and `parse_mathematica` rejects, which should be included in scope here?",
+ "ttft_ms": 9130,
+ "type": "result",
+ "duration_ms": 45392,
+ "uuid": "6bc20232-256b-42fd-83c7-fb2be5ac005f",
+ "ttft_stream_ms": 5238,
+ "time_to_request_ms": 281,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 231,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 29,
+ "time_to_request_cpu_ms": 239,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 5238,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

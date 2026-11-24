@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32419,
+ "stop_reason": "end_turn",
+ "session_id": "9277cbdf-e20a-4c10-ac96-cea55367df8f",
+ "total_cost_usd": 0.07026969999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 801,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3142,
+  "output_tokens_details": {
+   "thinking_tokens": 193
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 801,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3142,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 801,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 801
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1389,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001509,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3142,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 801,
+   "webSearchRequests": 0,
+   "costUSD": 0.07011879999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 193,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct two-digit year interpretation in `django.utils.http.parse_http_date`\n\n## Objective\n\n`django.utils.http.parse_http_date` parses HTTP date strings. One accepted format is the RFC 850 date, which uses a **two-digit year**. The current logic hard-codes the century:\n\n- `00`\u2013`69` \u2192 `2000`\u2013`2069`\n- `70`\u2013`99` \u2192 `1970`\u2013`1999`\n\nThis fixed split does not follow RFC 7231 (\u00a77.1.1.1), which requires:\n\n> Recipients of a timestamp value in rfc850-date format, which uses a two-digit year, MUST interpret a timestamp that appears to be more than 50 years in the future as representing the most recent year in the past that had the same last two digits.\n\nRFC 2822 has similar wording. The fixed split gets more wrong over time. For example, from 2020 onward a year of `70` should eventually resolve relative to the current year rather than always to `1970`. Year `69` resolves to `2069`, which will be more than 50 years in the future once the current year is earlier than 2019. As the current year moves forward, the hard-coded window stops matching the RFC.\n\n**Goal:** Resolve two-digit years in RFC 850 dates relative to the current year, as RFC 7231 specifies:\n\n1. Candidate year = current century + the two-digit year.\n2. If the candidate is more than 50 years after the current year, subtract 100.\n\n**Users:**\n- Django developers and applications that parse HTTP date headers through `parse_http_date` or `parse_http_date_safe`, for example `If-Modified-Since` and `If-Unmodified-Since` handling.\n- Indirectly, HTTP clients that send legacy RFC 850 dates.\n\n**Acceptance criteria:**\n- An RFC 850 date whose two-digit year is **not** more than 50 years in the future relative to the current year resolves to the current century.\n- An RFC 850 date whose two-digit year would be **more than 50 years** in the future resolves to the previous century (the most recent past year with the same last two digits).\n- Four-digit-year formats (RFC 1123 / IMF-fixdate and asctime) behave exactly as before.\n- The result does not depend on a hard-coded pivot such as `70`. It depends only on the current date.\n\n## Assumptions\n\n1. The change is limited to the two-digit-year handling inside `parse_http_date` in `django/utils/http.py`. The module name comes from the issue. The exact file path and current code are not visible and are assumed.\n2. `parse_http_date_safe` delegates to `parse_http_date`, so it inherits the fix with no separate change.\n3. \"Current year\" means the current year in **UTC**, consistent with HTTP dates being GMT.\n4. \"More than 50 years in the future\" is a strict comparison: exactly 50 years ahead stays in the current century, and 51 or more rolls back. This needs confirmation (see Open Questions).\n5. The comparison is done at **year granularity**, not full-timestamp granularity. This needs confirmation (see Open Questions).\n6. The public signature, return type (seconds since epoch as an integer), and error behaviour (`ValueError` on invalid input) stay unchanged.\n7. No new dependencies are needed; only the standard library is used.\n8. Tests that cover this behaviour must control \"now\" (by mocking or patching the current time) so they are deterministic and do not break as the calendar advances.\n\n## Tech Stack\n\n- Python and Django. Supported versions for the target branch are **unknown**.\n- Standard library date/time handling (`datetime` / `calendar`). The specific modules currently imported by `django/utils/http.py` are **unknown**.\n\n## Commands\n\nAll commands are **unknown**; they are not stated in the issue. To be confirmed:\n\n```\nTest:  [unknown \u2014 Django test runner invocation for the utils_tests suite]\nLint:  [unknown \u2014 e.g. project flake8/isort configuration]\nBuild: [not applicable / unknown]\n```\n\n## Project Structure\n\nOnly the following can be inferred from the issue. Everything else is **unknown**:\n\n```\ndjango/utils/http.py   \u2192 contains parse_http_date (inferred from module path in issue)\n[unknown]              \u2192 existing tests for django.utils.http (likely a utils tests module; path unconfirmed)\n[unknown]              \u2192 release notes location, if a note is required\n```\n\n## Code Style\n\n- Follow existing Django code style in `django/utils/http.py`. The concrete conventions and a sample snippet are **unknown**, since the source is not visible.\n- Keep the change minimal and local to the two-digit-year branch.\n- Cite RFC 7231 in a short comment at the point of year adjustment.\n\n## Testing Strategy\n\n- **Framework:** Django's test suite. The exact runner command and test module path are **unknown**.\n- **Level:** Unit tests on `parse_http_date` only.\n- **Determinism:** Patch or mock the current UTC time in every test that exercises two-digit years. No test may depend on the real system clock.\n- **Cases to cover**, given a fixed mocked \"now\":\n  - A two-digit year a few years in the past resolves to the current century.\n  - A two-digit year a few years in the future, up to 50, resolves to the current century.\n  - A two-digit year exactly 50 years in the future, to pin the boundary per the resolved Open Question.\n  - A two-digit year 51 or more years in the future resolves to the previous century.\n  - At least two different mocked \"now\" values, for example one around 2020 and one around 2070, to show the pivot moves with the current year and is not hard-coded.\n  - A mocked \"now\" near a century boundary (for example year 2099 or 2100) to confirm century arithmetic is correct.\n- **Regression:**\n  - Existing tests for the RFC 1123 and asctime formats still pass unchanged.\n  - Existing RFC 850 tests are updated only where their expectations relied on the old hard-coded split.\n- **Coverage expectation:** Every branch of the new year-adjustment logic is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep the public API and return values of `parse_http_date` and `parse_http_date_safe` unchanged for four-digit-year formats.\n  - Make time-dependent tests deterministic.\n  - Reference RFC 7231 in the code comment.\n- **Ask first:**\n  - Changing behaviour of any format other than RFC 850.\n  - Adding a parameter (for example an injectable \"now\") to the public function signature.\n  - Adding a release note or deprecation, or backporting to stable branches.\n- **Never:**\n  - Replace the hard-coded pivot with another hard-coded pivot.\n  - Rely on the real current date in tests.\n  - Add third-party dependencies.\n\n## Success Criteria\n\n- For any mocked current UTC year `Y` and two-digit year `yy`, the parsed year is the value in `{century(Y) + yy, century(Y) + yy \u2212 100}` chosen per the RFC 7231 rule:\n  - If `century(Y) + yy \u2212 Y > 50`, use the past century.\n  - Otherwise, use the current century.\n  - The boundary handling matches the resolution of Open Question 1.\n- With mocked \"now\" in 2020:\n  - `\u2026-69 \u2026` resolves to 2069.\n  - `\u2026-70 \u2026` resolves to 2070 if the strict reading (`> 50`) applies; the expected result follows the resolution of Open Question 1.\n  - `\u2026-71 \u2026` resolves to 1971.\n- With mocked \"now\" in 2070, `\u2026-37 \u2026` resolves to 2037 and not 1937 or 2137. More generally, the window follows the current year.\n- All pre-existing `django.utils.http` tests for RFC 1123 and asctime dates pass unchanged.\n- No test outcome changes when run on a different real calendar date.\n\n## Open Questions\n\n1. **Boundary:** Is a year exactly 50 years in the future kept in the current century? The RFC says \"more than 50 years\", which suggests a strict `>`.\n2. **Granularity:** Should the \"more than 50 years in the future\" check compare whole years, or the full parsed timestamp (month, day, time) against now? The RFC says \"a timestamp that appears to be\u2026\", which could imply full-timestamp comparison.\n3. **Time source:** Should the current time come from UTC (`datetime.utcnow` / timezone-aware now) or local time? UTC is assumed.\n4. **Test location and runner:** What is the correct test module path and command for running the `django.utils.http` tests?\n5. **Release management:** Does this change need a release note, and is it a candidate for backport to supported stable branches, given it changes parsed values for some inputs?\n6. **Existing tests:** Do any existing tests assert the old hard-coded 0\u201369 / 70\u201399 behaviour? If so, should they be rewritten with a mocked \"now\" or replaced?",
+ "ttft_ms": 3116,
+ "type": "result",
+ "duration_ms": 31940,
+ "uuid": "6d618ed7-aa1c-4250-8cc1-1437317b95bd",
+ "ttft_stream_ms": 1150,
+ "time_to_request_ms": 296,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 254,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 132,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1151,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10375,
+ "stop_reason": "end_turn",
+ "session_id": "9239e3e3-a47a-4527-9a1a-878b9cc03983",
+ "total_cost_usd": 0.027978700000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1273,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 881,
+  "output_tokens_details": {
+   "thinking_tokens": 173
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1273,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 881,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1273,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1273
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1487,
+   "outputTokens": 36,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001667,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 881,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1273,
+   "webSearchRequests": 0,
+   "costUSD": 0.027812000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 173,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`sqlmigrate` wraps its output in `BEGIN`/`COMMIT` even when the database does not support transactional DDL. The migration executor only adds the outer `BEGIN`/`COMMIT` if the migration is atomic **and** the schema editor can roll back DDL. The current `sqlmigrate` logic only considers `migration.atomic`, so its output does not match what the executor actually runs.\n\n## Steps to reproduce\n\n1. Use a database backend where `connection.features.can_rollback_ddl` is `False`. Alternatively, mock that feature to `False`.\n2. Pick an atomic migration (`migration.atomic` is `True`).\n3. Run `sqlmigrate` for that migration.\n4. Inspect the generated SQL output.\n\n## Observed behavior\n\nThe `sqlmigrate` output is wrapped in `BEGIN`/`COMMIT`. This happens even though the database cannot roll back DDL, because `sqlmigrate` only checks `migration.atomic`.\n\n## Expected behavior\n\n`sqlmigrate` should behave like the migration executor. It should only wrap the output in `BEGIN`/`COMMIT` when the migration is atomic **and** the database can roll back DDL (`connection.features.can_rollback_ddl` is `True`). When the database cannot roll back DDL, the output should not contain the outer `BEGIN`/`COMMIT`.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nThe report suggests a test in `tests/migrations/test_commands.py`, based on an existing test for non-atomic migrations:\n\n- Mock `connection.features.can_rollback_ddl` to `False`. Do not override `MIGRATION_MODULES` to point to a non-atomic migration.\n- Run `sqlmigrate` on an atomic migration.\n- Assert that the output is not wrapped in `BEGIN`/`COMMIT`.\n\n## Code example\n\nNot provided in the original report.\n\n## Version and environment\n\nNot provided in the original report. The issue applies to any database backend where `connection.features.can_rollback_ddl` is `False`.",
+ "ttft_ms": 4546,
+ "type": "result",
+ "duration_ms": 9788,
+ "uuid": "a86c0ef1-0e58-4271-a9bc-d82feff8e1b1",
+ "ttft_stream_ms": 2871,
+ "time_to_request_ms": 310,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 13,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 14,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 229,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 13,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 350,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2872,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

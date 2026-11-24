@@ -1,0 +1,16 @@
+diff --git a/app/helpers/concerns/class_schedule_helper_concern.rb b/app/helpers/concerns/class_schedule_helper_concern.rb
+index 73f06b6b..5cc51fa3 100644
+--- a/app/helpers/concerns/class_schedule_helper_concern.rb
++++ b/app/helpers/concerns/class_schedule_helper_concern.rb
+@@ -104,7 +104,10 @@ module ClassScheduleHelperConcern
+ 
+     table_data += demand_data
+ 
+-    table_data.sort_by! { |e| e[1] }
++    table_data.sort_by! do |e|
++      name = e[1].to_s
++      [I18n.transliterate(name).downcase, name.downcase, name]
++    end
+ 
+     {
+       star: star,

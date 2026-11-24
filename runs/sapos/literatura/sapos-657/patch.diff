@@ -1,0 +1,24 @@
+diff --git a/app/models/student.rb b/app/models/student.rb
+index ef23dc6b..72d30c1c 100644
+--- a/app/models/student.rb
++++ b/app/models/student.rb
+@@ -40,6 +40,7 @@ class Student < ApplicationRecord
+   accepts_nested_attributes_for :student_majors, allow_destroy: true
+ 
+   before_save :set_birth_state_by_birth_city
++  after_update :sync_user_name, if: :saved_change_to_name?
+ 
+   def has_user?
+     return true unless self.user_id.nil?
+@@ -110,6 +111,11 @@ class Student < ApplicationRecord
+     end
+ 
+   private
++    def sync_user_name
++      return if user.nil? || user.name == name
++      user.update_column(:name, name)
++    end
++
+     def handle_user_role_removal
+       return unless user.present?
+ 

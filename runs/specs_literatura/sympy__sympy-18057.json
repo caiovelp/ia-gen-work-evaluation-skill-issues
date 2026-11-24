@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14754,
+ "stop_reason": "end_turn",
+ "session_id": "444c3bf4-a983-4166-ad8e-62b0036feb4f",
+ "total_cost_usd": 0.0483813,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1738,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1713,
+  "output_tokens_details": {
+   "thinking_tokens": 56
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1738,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1713,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1738,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1738
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1948,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020930000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1713,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1738,
+   "webSearchRequests": 0,
+   "costUSD": 0.048172,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 56,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`sympy.Symbol.__eq__` (in `Expr.__eq__`) calls `sympify` on the other operand. For an unknown object, `sympify` passes the object's `repr()` string to `parse_expr`, which `eval`s it. Comparing a SymPy expression with an arbitrary object therefore evaluates code taken from that object's `__repr__`. The reporter calls this **very bad**, especially because a plain equality check triggers it.\n\nThere are two visible consequences:\n1. If the repr evaluates to something invalid, an equality comparison raises an exception (e.g. `AttributeError`).\n2. If an unknown object's repr is `x`, it compares as equal to `sympy.Symbol('x')`.\n\n## Steps to reproduce\n\n**Case 1: exception during equality check**\n1. Define a class whose `__repr__` returns `'x.y'`.\n2. Compare `sympy.Symbol('x')` with an instance of that class using `==`.\n3. An `AttributeError` is raised.\n\n**Case 2: false equality**\n1. Define a class whose `__repr__` returns `'x'`.\n2. Evaluate `sympy.Symbol('x') != C()`.\n3. The result is `False`: the object compares equal to the symbol.\n\n## Observed behavior\n\n- **Case 1:** The comparison raises `AttributeError: 'Symbol' object has no attribute 'y'`. The repr string is parsed and `eval`ed inside `eval_expr` in `sympy/parsing/sympy_parser.py`. The evaluated code is:\n  ```\n  Symbol ('x' ).y\n  ```\n  It is evaluated on this line:\n  ```\n      expr = eval(\n          code, global_dict, local_dict)  # take local objects in preference\n  ```\n- **Case 2:** An unknown object whose repr is `x` compares equal to `sympy.Symbol('x')`, so `assert sympy.Symbol('x') != C()` fails.\n\n## Expected behavior\n\n- An equality check should never `eval` strings produced by the `repr()` of unknown objects.\n- Comparing a SymPy expression with an unrelated object should not raise an exception. In Case 1, the comparison should simply complete.\n- An unrelated object should not compare equal to a SymPy symbol just because its repr matches the symbol's name. `sympy.Symbol('x') != C()` should be `True`.\n\n## Stack trace / error output\n\n```\nFAILED                   [100%]\n        class C:\n            def __repr__(self):\n                return 'x.y'\n    \n>       _ = sympy.Symbol('x') == C()\n\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \nsympy/core/expr.py:124: in __eq__\n    other = sympify(other)\nsympy/core/sympify.py:385: in sympify\n    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)\nsympy/parsing/sympy_parser.py:1011: in parse_expr\n    return eval_expr(code, local_dict, global_dict)\nsympy/parsing/sympy_parser.py:906: in eval_expr\n    code, global_dict, local_dict)  # take local objects in preference\n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\n>   ???\nE   AttributeError: 'Symbol' object has no attribute 'y'\n\n<string>:1: AttributeError\n```\n\n## Test case\n\nThe following minimal tests are derived from the reproduction snippets in the report:\n\n```python\nimport sympy\n\ndef test_eq_does_not_eval_repr_of_unknown_object():\n    class C:\n        def __repr__(self):\n            return 'x.y'\n    _ = sympy.Symbol('x') == C()  # currently raises AttributeError\n\ndef test_unknown_object_with_matching_repr_not_equal():\n    class C:\n        def __repr__(self):\n            return 'x'\n    assert sympy.Symbol('x') != C()  # currently fails\n```\n\n## Code example\n\nRepro code from the report:\n\n```python\nimport sympy\nclass C:\n    def __repr__(self):\n        return 'x.y'\n_ = sympy.Symbol('x') == C()\n```\n\nRelated case:\n\n```python\n    class C:\n        def __repr__(self):\n            return 'x'\n\n    assert sympy.Symbol('x') != C()  # fails\n```\n\n## Version and environment\n\nNot provided in the original report. The traceback references `sympy/core/expr.py:124`, `sympy/core/sympify.py:385`, and `sympy/parsing/sympy_parser.py:1011` and `:906`. The output appears to come from pytest.",
+ "ttft_ms": 2258,
+ "type": "result",
+ "duration_ms": 14203,
+ "uuid": "650d65c0-f55b-4adf-bb50-278bb0638340",
+ "ttft_stream_ms": 1533,
+ "time_to_request_ms": 267,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 217,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 266,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1534,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27898,
+ "stop_reason": "end_turn",
+ "session_id": "d0e03a44-f46a-4120-a5e0-fb763bb5d845",
+ "total_cost_usd": 0.06519969999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1069,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2780,
+  "output_tokens_details": {
+   "thinking_tokens": 47
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1069,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2780,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1069,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1069
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1654,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2780,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1069,
+   "webSearchRequests": 0,
+   "costUSD": 0.06502279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 47,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Expose `warm_start` in `IsolationForest.__init__()`\n\n## Objective\n\n`sklearn.ensemble.IsolationForest` already supports adding trees incrementally through the `warm_start` attribute it inherits from `sklearn.ensemble.BaseBagging`. Because `warm_start` is not a parameter of `IsolationForest.__init__()`, users can only find it by reading the source of both classes. The workaround is to set `est.warm_start = True` after construction and increase `n_estimators` before each later `fit`.\n\nThe goal is to make this capability public and documented, consistent with `sklearn.ensemble.BaseForest` estimators such as `RandomForestClassifier`.\n\n**Users:** scikit-learn users who train `IsolationForest` models and want to grow the ensemble over time instead of refitting from scratch.\n\n**User stories / acceptance criteria:**\n\n1. As a user, I can write `IsolationForest(warm_start=True)`. The default is `False`.\n2. With `warm_start=True`, if I raise `n_estimators` and call `fit` again, the existing trees are kept and only the extra trees are fitted and appended.\n3. With `warm_start=False` (the default), every `fit` call builds a whole new forest, exactly as today.\n4. The class docstring documents `warm_start` using the same wording as `RandomForestClassifier`:\n   ```\n   warm_start : bool, optional (default=False)\n       When set to ``True``, reuse the solution of the previous call to fit\n       and add more estimators to the ensemble, otherwise, just fit a whole\n       new forest. See :term:`the Glossary <warm_start>`.\n   ```\n5. A test checks that warm-start fitting works.\n6. Optionally, the \"IsolationForest example\" documentation entry mentions warm start.\n\n## Assumptions\n\n1. The inherited `BaseBagging` warm-start logic is correct for `IsolationForest`. Only the constructor signature, documentation and tests need to change. No new fitting logic is required.\n2. `IsolationForest.__init__()` currently passes arguments to `BaseBagging.__init__()` explicitly. Exposing `warm_start` therefore means accepting it and forwarding it, rather than setting it as an attribute after the fact.\n3. Edge cases inherit the `BaseBagging` behavior unchanged and are not redefined here:\n   - refitting with the same `n_estimators`\n   - refitting with a smaller `n_estimators` (expected to raise or warn)\n4. The new parameter goes at the end of the keyword arguments so that existing positional or keyword usage still works. Placement in the signature and docstring order follows project convention (not visible in the issue).\n5. The default `False` keeps current behavior, so this change is backward compatible.\n6. The issue says the behavior is \"in-line with `BaseForest`\". That claim is the reporter's and has not been verified here.\n7. The change follows the usual scikit-learn contribution conventions: a changelog/\"what's new\" entry and estimator-check compatibility. The exact files are unknown.\n\n## Tech Stack\n\n- Python, scikit-learn (`sklearn.ensemble`).\n- Classes involved: `IsolationForest`, `BaseBagging`, and `BaseForest` / `RandomForestClassifier` (for consistency reference).\n- Python version, scikit-learn version/branch, NumPy/SciPy versions: **unknown**.\n\n## Commands\n\nAll unknown. The issue gives no repository access and no commands.\n\n```\nBuild:      unknown\nTest:       unknown (presumably a pytest invocation targeting the IsolationForest test module \u2014 exact command unknown)\nLint:       unknown\nDocs build: unknown\n```\n\n## Project Structure\n\nNot visible in the issue. Locations that must be identified:\n\n```\n<unknown>  \u2192 module defining IsolationForest (sklearn.ensemble)\n<unknown>  \u2192 module defining BaseBagging (sklearn.ensemble)\n<unknown>  \u2192 IsolationForest test module\n<unknown>  \u2192 \"IsolationForest example\" documentation entry\n<unknown>  \u2192 changelog / what's-new file (if required)\n<unknown>  \u2192 Glossary entry for `warm_start` (referenced via :term:)\n```\n\n## Code Style\n\n- Follow existing scikit-learn conventions. The only concrete reference available is the numpydoc-style parameter block above, which must be copied verbatim from `RandomForestClassifier`'s docstring.\n- Constructor parameters are stored unchanged on `self`, as required by the scikit-learn estimator API (`get_params` / `set_params`).\n- Other formatting and lint rules: **unknown** (to be taken from the repository).\n\n## Testing Strategy\n\n- **Framework:** presumably pytest, which is the scikit-learn convention. The test location is unknown.\n- **Required test (unit level):** warm-start behavior of `IsolationForest`.\n  - Fit with `warm_start=True` and some `n_estimators=N1`. Then raise `n_estimators` to `N2 > N1` and fit again on the same data.\n  - Assert the ensemble has `N2` estimators.\n  - Assert the first `N1` estimators are the same objects as before the second fit, meaning they were reused rather than refitted.\n- **Recommended additional checks:**\n  - With `warm_start=False`, a second `fit` replaces the estimators.\n  - `get_params()` includes `warm_start`.\n  - The estimator still passes the common estimator checks.\n- **Regression:** the existing `IsolationForest` tests must pass unchanged.\n- **Coverage target:** unknown. Follow project norms.\n\n## Boundaries\n\n- **Always:**\n  - Keep the default `warm_start=False`.\n  - Reuse the inherited `BaseBagging` warm-start logic.\n  - Use the docstring wording given in the issue.\n  - Run the existing `IsolationForest` tests plus the new test.\n- **Ask first:**\n  - Changing the `BaseBagging` warm-start semantics.\n  - Changing parameter order in a way that could break positional calls.\n  - Reworking the IsolationForest example beyond a short mention.\n  - Adding deprecations.\n- **Never:**\n  - Change the default behavior of `fit`.\n  - Alter `IsolationForest` scoring or prediction logic.\n  - Remove or weaken existing tests.\n  - Add new dependencies.\n\n## Success Criteria\n\n- [ ] `IsolationForest(warm_start=True)` constructs without error, and `get_params()[\"warm_start\"]` is `True`. The default is `False`.\n- [ ] With `warm_start=True`, increasing `n_estimators` from N1 to N2 and refitting gives `len(estimators_) == N2`, and the first N1 estimators are identical (same objects) to those from the previous fit.\n- [ ] With `warm_start=False`, refitting produces a newly built forest.\n- [ ] The `IsolationForest` docstring contains the `warm_start` entry with the specified wording and Glossary reference.\n- [ ] The new test exists and passes, and all existing `IsolationForest` tests still pass.\n- [ ] (Optional) The IsolationForest example documentation mentions `warm_start`.\n- [ ] (If required by the project) A changelog entry exists.\n\n## Open Questions\n\n1. Should the IsolationForest example documentation be updated in this change, or left out? The issue says \"possibly\".\n2. Where exactly should `warm_start` go in the `__init__` signature and docstring? This matters for positional-argument compatibility.\n3. Is a changelog / what's-new entry required, and in which file and version section?\n4. What should happen when `n_estimators` is not increased (equal or smaller) on a warm-start refit? Is the inherited `BaseBagging` behavior (warning/error) acceptable for `IsolationForest`, and should the test cover it?\n5. Should the test also check that refitting with warm start on *different* data is allowed or meaningful? Isolation forest computes the `offset_`/threshold from training data, and it is unclear how that should interact with an incremental fit.\n6. What are the target scikit-learn version/branch and the exact test, lint and docs-build commands?",
+ "ttft_ms": 1580,
+ "type": "result",
+ "duration_ms": 26685,
+ "uuid": "37411939-d555-4fd1-af77-36acd18c534c",
+ "ttft_stream_ms": 984,
+ "time_to_request_ms": 233,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 198,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 126,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 984,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

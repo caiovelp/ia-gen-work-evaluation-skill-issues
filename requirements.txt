@@ -1,0 +1,9 @@
+datasets==5.1.0
+docker==7.2.0
+openpyxl==3.1.5
+python-pptx==1.0.2
+requests==2.34.2
+swebench==5.0.2
+# só para paper_graficos.py
+pandas
+matplotlib

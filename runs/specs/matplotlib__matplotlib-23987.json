@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29965,
+ "stop_reason": "end_turn",
+ "session_id": "ac12e0e1-4ece-4681-a9db-e183a95096d3",
+ "total_cost_usd": 0.0702602,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1101,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3020,
+  "output_tokens_details": {
+   "thinking_tokens": 133
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1101,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3020,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1101,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1101
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1689,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018140000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3020,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1101,
+   "webSearchRequests": 0,
+   "costUSD": 0.0700788,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 133,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Passing `constrained_layout=False` should not trigger layout-engine incompatibility warnings\n\n## Objective\n\nIn Matplotlib 3.6.0, creating a figure with an explicit `constrained_layout=False` triggers a `UserWarning` when the user later calls `plt.subplots_adjust(...)`. The issue also reports this for `bbox_inches='tight'`. The warning says:\n\n> UserWarning: This figure was using a layout engine that is incompatible with subplots_adjust and/or tight_layout; not calling subplots_adjust.\n\nThe reporter says the plot still renders as expected. However, the warning text says `subplots_adjust` is not being called, so the requested spacing may also be silently ignored. Both need to be checked.\n\n**Who is affected:** Users who pass `constrained_layout=False` explicitly, for example to override an rcParam default, to be explicit, or because a variable holds the value. They expect it to behave the same as omitting the argument.\n\n**Expected behavior:** An explicit `constrained_layout=False` is equivalent to not requesting constrained layout:\n- No layout-engine incompatibility warning is emitted.\n- `subplots_adjust` and `tight_layout` take effect normally.\n\n**Reproduction (from the issue):**\n```python\nimport matplotlib.pyplot as plt\nimport numpy as np\na = np.linspace(0,2*np.pi,100)\nb = np.sin(a)\nc = np.cos(a)\nfig,ax = plt.subplots(1,2,figsize=(8,2),constrained_layout=False)\nax[0].plot(a,b)\nax[1].plot(a,c)\nplt.subplots_adjust(wspace=0)   # emits UserWarning in 3.6.0\n```\n\nThe warning does not appear when the `constrained_layout=False` argument is removed. The reporter says previous versions did not warn.\n\n### User stories / acceptance criteria\n- As a user, when I pass `constrained_layout=False`, I can call `subplots_adjust` without a warning, and the subplot parameters are applied.\n- As a user, when I pass `constrained_layout=False`, I can save with `bbox_inches='tight'` without a layout-engine warning.\n- As a user, when I pass `constrained_layout=True`, I still get the incompatibility warning on `subplots_adjust`. That behavior is intentional and must be preserved.\n\n## Assumptions\n1. The root cause is in how the figure-creation path interprets an explicit falsy `constrained_layout` value. The likely mechanism is that the argument is checked with \"is not None\" rather than for truthiness, so a constrained-layout (or similar incompatible) layout engine is attached even when the value is `False`. This is unverified; I have no access to the source.\n2. The analogous keyword `tight_layout=False` may have the same defect, and should be covered under the same criteria.\n3. The `bbox_inches='tight'` symptom shares the same root cause as the `subplots_adjust` symptom. The issue gives no separate reproduction for it.\n4. This is a regression introduced in 3.6.0, when the layout-engine mechanism was introduced. The exact \"previous version\" is not stated in the issue.\n5. Explicit `False` should also not attach any engine that blocks later user-chosen layouts. The figure should behave like the default, no-argument case.\n6. The fix should not change behavior for `constrained_layout=True`, `layout=\"constrained\"`, `layout=\"tight\"`, or the default `None`.\n\n## Tech Stack\n- Python library: Matplotlib (reported against 3.6.0, installed via conda, OS X).\n- Test framework: **unknown**. Presumably pytest, but this is not confirmed from the issue.\n- Python version and backend: not specified in the issue. The bug appears to be backend-independent.\n\n## Commands\n- Build: **unknown**\n- Test: **unknown**\n- Lint: **unknown**\n- Run reproduction: `python repro.py`, using the snippet above saved locally. Run it with warnings turned into errors, e.g. `python -W error::UserWarning repro.py`.\n\n## Project Structure\n**Unknown.** The repository is not visible. The relevant code is the figure construction path that handles the `constrained_layout` / `tight_layout` / `layout` keyword arguments. It is reached via `plt.subplots` \u2192 figure creation, and also `plt.figure` and direct `Figure(...)` construction. Exact file locations are unknown.\n\n## Code Style\n**Unknown.** Follow the existing conventions of the Matplotlib codebase, which are not visible here. No new public API should be introduced.\n\n## Testing Strategy\n- **Level:** Unit/regression tests at the figure API level. No image-comparison tests should be needed.\n- **Regression tests to add (behavioral, framework TBD):**\n  - Create a figure with `constrained_layout=False`, call `fig.subplots_adjust(wspace=0)`. Assert:\n    - no `UserWarning` is raised;\n    - the figure's subplot parameters reflect `wspace == 0`.\n  - The same check via `plt.subplots(..., constrained_layout=False)` followed by `plt.subplots_adjust(...)`.\n  - The same check with `tight_layout=False` (see Assumption 2).\n  - With `constrained_layout=False`, call `fig.tight_layout()` and save with `bbox_inches='tight'` to an in-memory buffer. Assert no layout-engine incompatibility warning is raised.\n  - Control case: `constrained_layout=True` followed by `subplots_adjust` still emits the incompatibility warning.\n  - Control case: omitting the argument behaves identically to `constrained_layout=False`. Compare the layout engine state and the subplot params.\n- **Coverage expectation:** All new branches in the keyword-handling logic are exercised. The specific threshold is unknown.\n\n## Boundaries\n- **Always:**\n  - Preserve existing behavior for truthy values and for the `layout=` keyword.\n  - Add regression tests that fail on 3.6.0 behavior.\n  - Run the existing figure/layout test suites before committing.\n- **Ask first:**\n  - Changing the warning text.\n  - Changing what happens when *both* `layout=` and `constrained_layout=`/`tight_layout=` are passed.\n  - Changing behavior for non-bool falsy values (e.g. `{}` used as a constrained-layout kwargs dict).\n  - Adding deprecations.\n- **Never:**\n  - Suppress or remove the incompatibility warning globally to hide the symptom.\n  - Make `subplots_adjust` silently succeed when constrained layout *is* active.\n  - Remove or loosen existing tests.\n\n## Success Criteria\n1. Running the reproduction snippet with `-W error::UserWarning` completes without error.\n2. With `constrained_layout=False`, `subplots_adjust(wspace=0)` actually changes the figure's `wspace` to 0.\n3. With `constrained_layout=False`, `tight_layout()` and `savefig(..., bbox_inches='tight')` produce no layout-engine incompatibility warning.\n4. With `constrained_layout=True`, `subplots_adjust` still warns, as it does today.\n5. A figure created with `constrained_layout=False` is behaviorally indistinguishable, in layout-engine terms, from one created without the argument.\n6. All existing tests pass, and the new regression tests pass.\n\n## Open Questions\n1. Should `tight_layout=False` be fixed in the same change? Is it confirmed to have the same defect?\n2. What should a figure created with `constrained_layout=False` report as its layout engine? Should it be no engine at all (identical to the default), or some neutral placeholder that remains compatible with `subplots_adjust` / `tight_layout`?\n3. How should non-bool values be treated? A dict of constrained-layout parameters presumably enables constrained layout; what about an empty dict? Does \"falsy\" mean only `False`/`None`, or Python truthiness?\n4. Is `bbox_inches='tight'` really affected by this bug, or does it emit a different warning? A separate reproduction for that path would confirm it.\n5. Which release is the \"previous version\" that didn't warn? Is this targeted as a 3.6.x bugfix backport?\n6. Is `subplots_adjust` actually being skipped, so the requested spacing is lost, as the warning text implies? Or is the reporter right that the output is unaffected? This determines whether the bug is a spurious warning or a functional regression.\n7. Where are the relevant source and test files, and what are the project's test/lint commands? All unknown without repository access.",
+ "ttft_ms": 2381,
+ "type": "result",
+ "duration_ms": 29113,
+ "uuid": "dccfd53b-6489-4192-af64-be174ed1e588",
+ "ttft_stream_ms": 1113,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 206,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 233,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1113,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

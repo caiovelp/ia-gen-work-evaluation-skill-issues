@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13264,
+ "stop_reason": "end_turn",
+ "session_id": "0c46948a-82c3-4386-b937-aa0ee8611140",
+ "total_cost_usd": 0.0437042,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1667,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1508,
+  "output_tokens_details": {
+   "thinking_tokens": 72
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1667,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1508,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1667,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1667
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1877,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020020000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1508,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1667,
+   "webSearchRequests": 0,
+   "costUSD": 0.043504,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 72,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`LabelEncoder.transform([])` behaves differently depending on the data type used to fit the encoder. After fitting on integer labels, transforming an empty list returns an empty array. After fitting on string labels, the same call raises a `TypeError` from `np.searchsorted` because a `float64` array cannot be cast to `<U32`.\n\n## Steps to reproduce\n\n1. Import `LabelEncoder` from `sklearn.preprocessing` and create an instance: `le = LabelEncoder()`.\n2. Fit it on integer labels: `le.fit([1, 2])`.\n3. Call `le.transform([])`. This returns `array([], dtype=int64)` as expected.\n4. Fit the same encoder on string labels: `le.fit([\"a\", \"b\"])`.\n5. Call `le.transform([])` again. This raises a `TypeError`.\n\n## Observed behavior\n\n- Fitted on `[1, 2]`: `le.transform([])` returns `array([], dtype=int64)`.\n- Fitted on `[\"a\", \"b\"]`: `le.transform([])` raises `TypeError: Cannot cast array data from dtype('float64') to dtype('<U32') according to the rule 'safe'`.\n\n## Expected behavior\n\n`le.transform([])` should return an empty array in both cases, whatever data type was used to fit the encoder.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"[...]\\Python36\\lib\\site-packages\\numpy\\core\\fromnumeric.py\", line 57, in _wrapfunc\n    return getattr(obj, method)(*args, **kwds)\nTypeError: Cannot cast array data from dtype('float64') to dtype('<U32') according to the rule 'safe'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"[...]\\Python36\\lib\\site-packages\\sklearn\\preprocessing\\label.py\", line 134, in transform\n    return np.searchsorted(self.classes_, y)\n  File \"[...]\\Python36\\lib\\site-packages\\numpy\\core\\fromnumeric.py\", line 1075, in searchsorted\n    return _wrapfunc(a, 'searchsorted', v, side=side, sorter=sorter)\n  File \"[...]\\Python36\\lib\\site-packages\\numpy\\core\\fromnumeric.py\", line 67, in _wrapfunc\n    return _wrapit(obj, method, *args, **kwds)\n  File \"[...]\\Python36\\lib\\site-packages\\numpy\\core\\fromnumeric.py\", line 47, in _wrapit\n    result = getattr(asarray(obj), method)(*args, **kwds)\nTypeError: Cannot cast array data from dtype('float64') to dtype('<U32') according to the rule 'safe'\n```\n\n## Test case\n\nMinimal test derived from the reproduction in the report:\n\n```python\nfrom sklearn.preprocessing import LabelEncoder\n\n\ndef test_label_encoder_transform_empty_list_numeric_fit():\n    le = LabelEncoder()\n    le.fit([1, 2])\n    result = le.transform([])\n    assert len(result) == 0  # passes in the reported version\n\n\ndef test_label_encoder_transform_empty_list_string_fit():\n    le = LabelEncoder()\n    le.fit([\"a\", \"b\"])\n    result = le.transform([])  # raises TypeError in the reported version\n    assert len(result) == 0\n```\n\n## Code example\n\nInteractive session from the original report:\n\n```python\n>>> from sklearn.preprocessing import LabelEncoder\n>>> le = LabelEncoder()\n>>> le.fit([1,2])\nLabelEncoder()\n>>> le.transform([])\narray([], dtype=int64)\n>>> le.fit([\"a\",\"b\"])\nLabelEncoder()\n>>> le.transform([])\n# TypeError: Cannot cast array data from dtype('float64') to dtype('<U32') according to the rule 'safe'\n```\n\n## Version and environment\n\n- Python 3.6.3\n- scikit-learn 0.19.1\n- NumPy version: Not provided in the original report.\n- Operating system: Not provided in the original report. The `[...]\\Python36\\lib\\site-packages` paths in the traceback suggest Windows.",
+ "ttft_ms": 2551,
+ "type": "result",
+ "duration_ms": 12155,
+ "uuid": "f20e7c58-7136-43f8-b10a-324d167b718d",
+ "ttft_stream_ms": 1953,
+ "time_to_request_ms": 362,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 331,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 225,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1953,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

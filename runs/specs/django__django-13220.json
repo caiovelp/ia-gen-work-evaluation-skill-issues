@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 37295,
+ "stop_reason": "end_turn",
+ "session_id": "9ed61f6c-6dd5-4104-a6dc-2616519f9f72",
+ "total_cost_usd": 0.08119109999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 774,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3696,
+  "output_tokens_details": {
+   "thinking_tokens": 279
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 774,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3696,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 774,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 774
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1358,
+   "outputTokens": 145,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020830000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 125,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3696,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 774,
+   "webSearchRequests": 0,
+   "costUSD": 0.0809828,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 279,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Equality Comparison for `django.core.exceptions.ValidationError`\n\n## Objective\n\nTwo `ValidationError` instances built from the same inputs currently compare unequal, because they fall back to identity comparison. This is counter-intuitive and makes tests harder to write. For example, `assertEqual(raised_error, expected_error)` fails even when the errors are semantically identical.\n\nWe will add value-based equality (`__eq__`) to `ValidationError` so that identically created instances compare equal. The comparison must not depend on the order of errors:\n\n- within a single field's error list,\n- within `non_field_errors`, or\n- within a flat list of errors.\n\n**Users:** Django developers writing tests, and developers comparing validation outcomes in application code (form validation, model `clean()` and `full_clean()`, custom validators).\n\n**User stories / acceptance criteria:**\n- As a developer, when I build two `ValidationError`s with the same message, code and params, they compare equal.\n- As a developer, when I build two list-form `ValidationError`s holding the same errors in a different order, they compare equal.\n- As a developer, when I build two dict-form `ValidationError`s with the same fields, and each field holds the same errors in a different order, they compare equal. This includes `NON_FIELD_ERRORS`.\n- As a developer, when two `ValidationError`s differ in message content, they compare unequal. They also compare unequal when they differ in field keys, or when one is dict-form and the other is list-form.\n- As a developer, comparing a `ValidationError` with an object of another type does not raise, and does not report equality.\n\n## Assumptions\n\n1. The target class is `django.core.exceptions.ValidationError`. It is defined in the `django/core/exceptions.py` module, which I infer from the dotted path in the issue; I have not seen the file.\n2. `ValidationError` has three internal shapes, based on general knowledge of Django that I have not verified against this repository:\n   - **single:** has `message`, `code` and `params` attributes.\n   - **list:** has `error_list`.\n   - **dict:** has `error_dict`, which maps field name to a list of errors.\n3. \"Created identically\" means equivalent constructor inputs. A simple comparison of rendered `messages` strings is explicitly called \"not enough\" by the issue author. So the comparison should consider at least `message`, `code` and `params`, not only the interpolated text. This needs confirmation; see Open Questions.\n4. Order independence applies to errors within a list, whether that is a flat `error_list` or a per-field list in `error_dict`. Dict key order is already irrelevant for dict equality.\n5. When the other operand is not a `ValidationError`, `__eq__` returns `NotImplemented` rather than `False`, which follows normal Python protocol.\n6. In Python 3, defining `__eq__` without `__hash__` makes instances unhashable. Exceptions are currently hashable, and code may put them in sets or dicts. So a consistent `__hash__` must also be defined to avoid a backward-incompatible change.\n7. This is a feature addition to Django, not a bug fix. It needs release notes and possibly documentation in the exceptions reference docs.\n8. Lazy translation strings (`gettext_lazy`) may be used as messages. Comparison must work for them without crashing, though it may force evaluation.\n9. Duplicate errors are significant. `[e1, e1]` and `[e1]` should compare unequal, which means multiset semantics rather than set semantics. This needs confirmation.\n\n## Tech Stack\n\n- Python, within the Django framework codebase. The supported Python and Django versions are **unknown** because they are not stated in the issue.\n- No new dependencies.\n\n## Commands\n\nThe exact commands are **unknown**, because the repository is not visible. Django's test suite is typically run through the test runner in its `tests/` directory, but the exact invocation, settings and lint tooling must be confirmed from the repository.\n\n```\nBuild: unknown (no build step expected for a pure-Python change)\nTest:  unknown \u2014 run the test module(s) covering django.core.exceptions / ValidationError\nLint:  unknown \u2014 use the project's configured linters (e.g. flake8/isort if configured)\n```\n\n## Project Structure\n\nOnly what can be inferred from the issue:\n\n```\ndjango/core/exceptions.py   \u2192 ValidationError definition (inferred from dotted path)\ntests/\u2026                     \u2192 Location of existing ValidationError tests: unknown\ndocs/\u2026                      \u2192 Release notes / exceptions reference: exact paths unknown\n```\n\n## Code Style\n\nThe existing conventions are **unknown**. Follow the project's existing style in the module being changed: PEP 8, and the surrounding naming and docstring conventions. No style example is reproduced here because no source code is visible.\n\nKey conventions to respect:\n- Return `NotImplemented` for unsupported operand types.\n- Keep `__eq__` and `__hash__` consistent: equal objects must have equal hashes.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite, which uses `unittest` and `django.test`. The exact module location is unknown.\n- **Level:** Unit tests on `ValidationError` directly. No integration or end-to-end tests are needed.\n- **Cases to cover:**\n  - **Single-message errors:**\n    - The same message compares equal.\n    - Different messages compare unequal.\n    - The same message with a different `code` compares unequal, if Open Question 1 is resolved that way.\n    - The same message with different `params` compares unequal.\n    - The same rendered text produced by different `params` follows the decided semantics.\n  - **List-form errors:**\n    - The same errors in the same order compare equal.\n    - The same errors in a different order compare equal.\n    - Different contents compare unequal.\n    - Different multiplicity compares unequal, per Assumption 9.\n  - **Dict-form errors:**\n    - The same fields with errors in a different order within each field compare equal.\n    - Different field keys compare unequal.\n    - The same messages under different fields compare unequal.\n    - `NON_FIELD_ERRORS` ordering is handled the same way as other fields.\n  - **Cross-shape comparisons** (single vs list, list vs dict): behaviour as decided in Open Question 3.\n  - **Nested construction:** a `ValidationError` built from a list of `ValidationError`s equals one built from equivalent plain messages, if they normalize to the same internal form.\n  - **Other types:** comparing with a non-`ValidationError` such as a string, `None` or another exception returns unequal and does not raise.\n  - **Inequality operator:** `!=` behaves as the negation of `==`.\n  - **Hashing:**\n    - Instances remain hashable.\n    - Equal instances produce equal hashes, including for differently ordered lists and dicts.\n  - **Lazy strings:** errors built with lazy translation strings compare without error.\n- **Coverage:** every branch of the new `__eq__` and `__hash__` is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep the comparison order-independent within error lists.\n  - Keep `__hash__` consistent with `__eq__`.\n  - Add tests for every acceptance criterion.\n  - Add a release note entry.\n- **Ask first:**\n  - Changing the existing constructor or attribute structure of `ValidationError`.\n  - Changing `messages`, `message_dict` or `__repr__` behaviour.\n  - Changing the equality semantics of subclasses or related exceptions.\n- **Never:**\n  - Make `ValidationError` unhashable.\n  - Raise from `__eq__` for foreign types.\n  - Modify unrelated exception classes.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. `ValidationError('msg') == ValidationError('msg')` is `True`.\n2. `ValidationError('msg', code='a') == ValidationError('msg', code='b')` follows the decided semantics, expected to be `False`.\n3. `ValidationError('%(v)s', params={'v': 1}) == ValidationError('%(v)s', params={'v': 2})` is `False`.\n4. `ValidationError(['a', 'b']) == ValidationError(['b', 'a'])` is `True`.\n5. `ValidationError({'f': ['a', 'b']}) == ValidationError({'f': ['b', 'a']})` is `True`. The same holds for `NON_FIELD_ERRORS`.\n6. `ValidationError({'f1': ['a']}) == ValidationError({'f2': ['a']})` is `False`.\n7. `ValidationError('msg') == 'msg'` is `False` and does not raise.\n8. `hash()` succeeds on all shapes of `ValidationError`. Instances that compare equal have equal hashes.\n9. All existing tests in the suite continue to pass.\n10. A release note documents the new behaviour.\n\n## Open Questions\n\n1. **What does \"created identically\" compare?** Should equality compare raw `message`, `code` and `params`, or only rendered message text? Example: are `ValidationError('x', code='a')` and `ValidationError('x', code='b')` equal? The assumed answer is that all three are compared.\n2. **Rendered vs. raw message:** should `ValidationError('%(v)s', params={'v': 'x'})` equal `ValidationError('x')`? They produce identical `messages` but were not created identically.\n3. **Cross-shape equality:** should a single-message error equal a list-form error containing that one message? For example, `ValidationError('a') == ValidationError(['a'])`.\n4. **Duplicates:** should duplicate errors affect equality? This is the choice between multiset and set semantics.\n5. **Unhashable or unorderable params:** how should order-independent comparison and hashing handle `params` containing values that are unhashable or unorderable, such as dicts or lists? Is a best-effort normalization acceptable?\n6. **Subclasses:** should equality consider exact type, so that a `ValidationError` subclass instance never equals a base instance with the same content?\n7. **Target version:** which Django version should this land in, and which docs pages need updating beyond the release notes?\n8. **Test location:** where do existing `ValidationError` tests live, and what are the exact commands to run them? Both are unknown without repository access.",
+ "ttft_ms": 5047,
+ "type": "result",
+ "duration_ms": 36350,
+ "uuid": "560eaea8-034f-4782-8c77-9c89d41e52b4",
+ "ttft_stream_ms": 1738,
+ "time_to_request_ms": 327,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 15,
+  "input_hooks": 24,
+  "tool_pool_refresh": 1,
+  "init_message": 27,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 221,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 287,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 51,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1739,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27448,
+ "stop_reason": "end_turn",
+ "session_id": "6636d885-3807-4232-a65c-230cdd0e840b",
+ "total_cost_usd": 0.0648591,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1199,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2710,
+  "output_tokens_details": {
+   "thinking_tokens": 263
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1199,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2710,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1199,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1199
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1788,
+   "outputTokens": 35,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001963,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2710,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1199,
+   "webSearchRequests": 0,
+   "costUSD": 0.0646628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 263,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: BoundWidget.id_for_label should honor the id computed by ChoiceWidget.options\n\n## Objective\n\n`BoundWidget.id_for_label()` builds its own id string, `'id_%s_%s' % (name, index)`. It ignores the id that `BoundField.subwidgets()` and the widget's `subwidgets()`/`options()` already computed and stored in `self.data['attrs']['id']`.\n\nThe two ids can diverge in two cases:\n\n- The form is created with a custom `auto_id` format string, for example `auto_id='custom_%s'`.\n- The widget has an explicit `attrs={'id': ...}`.\n\nWhen they diverge, each subwidget's `<input>` gets one id while its `<label for=\"...\">` (and any template using `subwidget.id_for_label`) gets a different one. Labels are then not associated with their inputs. This breaks click-to-select and accessibility.\n\n**Users:** Developers rendering multi-choice widgets subwidget by subwidget, such as `CheckboxSelectMultiple` (the case reported) and possibly `RadioSelect`, with a non-default `auto_id` or a widget-level `id`.\n\n**Desired behavior:** `BoundWidget.id_for_label` returns the same id that is rendered on the corresponding subwidget's input element. That id is the one present in `self.data['attrs']['id']`.\n\n**Acceptance criteria:**\n\n1. With a custom `auto_id`, each `BoundWidget.id_for_label` equals the `id` attribute of the matching rendered input. For example, with `auto_id='prefix_%s'` the expected value is `prefix_<name>_<index>`, assuming the existing per-option suffix scheme.\n2. With an explicit widget `attrs={'id': 'X'}`, each `BoundWidget.id_for_label` equals the rendered option id, for example `X_<index>`.\n3. With the default `auto_id` (`'id_%s'`), output is unchanged from today: `id_<name>_<index>`.\n4. When ids are disabled (`auto_id=False` or empty, and no widget id), `id_for_label` does not raise. It returns an empty or None value, consistent with how `BoundField.id_for_label` behaves without ids, and no bogus `for` attribute is rendered.\n5. `BoundField.id_for_label` is unaffected. The issue states this explicitly.\n\n## Assumptions\n\n1. This is the Django forms framework. The classes involved are `BoundField`, `BoundWidget`, and `ChoiceWidget`. The issue suggests these live in Django's forms modules, but exact file paths are **unknown** (not visible).\n2. `self.data` in `BoundWidget` is a per-option dict produced by `ChoiceWidget.options()`/`create_option()`. When an id is set, its `attrs` already contains the fully formatted per-option id, including the index suffix.\n3. The issue says `subwidgets()` \"returns a dict\". I assume it actually yields one dict per option, and each `BoundWidget` wraps one of them.\n4. `data['attrs']` always exists, but `'id'` may be absent when ids are disabled. The issue's proposed `self.data['attrs']['id']` could therefore raise `KeyError`, so a safe lookup is needed (AC 4).\n5. Under default settings, the id stored in `attrs` today is identical to the hard-coded `'id_%s_%s'` string. The change is therefore backward compatible for default usage.\n6. The issue says only `CheckboxSelectMultiple` is affected. I assume any `ChoiceWidget` subclass whose subwidgets are rendered through `BoundWidget` (e.g. `RadioSelect`) shares the bug and the fix.\n7. Correct label/input association is the intended behavior, and nobody relies on the old divergent ids. This is a bug fix, not a breaking change.\n\n## Tech Stack\n\n- Python and Django (forms package). Versions are **unknown**.\n\n## Commands\n\n- Build: **unknown** (not visible in the issue)\n- Test: **unknown**. Presumably the project's standard test runner, targeted at the forms tests.\n- Lint: **unknown**\n- Dev: N/A\n\n## Project Structure\n\n- Location of `BoundField` / `BoundWidget`: **unknown**. The issue does not give file paths.\n- Location of `ChoiceWidget` / `CheckboxSelectMultiple`: **unknown**\n- Location of forms tests: **unknown**\n\n## Code Style\n\n- Follow the existing style of the surrounding Django code. No snippet beyond the issue's excerpts is visible.\n- The behavior currently quoted in the issue is:\n  ```python\n  def id_for_label(self):\n      return 'id_%s_%s' % (self.data['name'], self.data['index'])\n  ```\n\n## Testing Strategy\n\n- Unit or regression tests in the existing forms test suite. The location is **unknown**.\n- Cover these cases:\n  - A form using `CheckboxSelectMultiple` with a custom `auto_id`. Assert that each subwidget's `id_for_label` matches its rendered input id. Optionally assert that the rendered `<label for>` matches too.\n  - A widget with an explicit `attrs['id']`. Make the same assertions.\n  - The default `auto_id`. Assert the values are unchanged (regression guard).\n  - `auto_id=False`. Assert there is no exception and the result is empty or None.\n  - Optionally, `RadioSelect` for parity.\n- All existing forms and widget tests must continue to pass.\n\n## Boundaries\n\n- **Always:**\n  - Derive the label id from the already-computed option attrs (one source of truth).\n  - Keep default-output compatibility.\n  - Add regression tests.\n- **Ask first:**\n  - Changing how `ChoiceWidget.options()` / `id_for_label(id_, index)` formats per-option ids.\n  - Changing `BoundField.id_for_label`.\n  - Any change to rendered HTML under default settings.\n- **Never:**\n  - Change public signatures.\n  - Remove or loosen existing tests.\n  - Introduce `KeyError` when ids are disabled.\n\n## Success Criteria\n\n- Acceptance criteria 1\u20135 are covered by passing automated tests.\n- For every subwidget, `BoundWidget.id_for_label == data['attrs'].get('id')` holds. This equals the rendered input id across default, custom `auto_id`, explicit widget id, and disabled-id configurations.\n- The full existing test suite passes with no change to default rendered HTML.\n\n## Open Questions\n\n1. When ids are disabled, should `BoundWidget.id_for_label` return `None` or `''`? What does the subwidget label template expect, so that it omits the `for` attribute?\n2. Should the fix explicitly cover all `ChoiceWidget` subclasses rendered via `BoundWidget` (e.g. `RadioSelect`), or is scope limited to `CheckboxSelectMultiple` as the issue states?\n3. Does any template or third-party code depend on the old hard-coded `id_<name>_<index>` value even when a custom `auto_id` is set? Should this be noted in release notes?\n4. Which Django versions or branches should receive the fix (main only, or backports)?\n5. What are the test command and test file locations for the forms suite in this repository?",
+ "ttft_ms": 4011,
+ "type": "result",
+ "duration_ms": 26318,
+ "uuid": "119d2297-bba9-45ae-9db9-364e84f9f34a",
+ "ttft_stream_ms": 1262,
+ "time_to_request_ms": 278,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 7,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 216,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 24,
+ "time_to_request_cpu_ms": 276,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1262,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

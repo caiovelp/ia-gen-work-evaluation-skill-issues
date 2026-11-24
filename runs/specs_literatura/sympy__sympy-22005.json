@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11978,
+ "stop_reason": "end_turn",
+ "session_id": "c74079b4-95e0-4d1e-8b47-84288a19e6ef",
+ "total_cost_usd": 0.03660410000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1657,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1157,
+  "output_tokens_details": {
+   "thinking_tokens": 232
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1657,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1157,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1657,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1657
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1866,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1157,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1657,
+   "webSearchRequests": 0,
+   "costUSD": 0.036404000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 232,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`solve_poly_system` fails to detect that a system has infinitely many solutions in one case. With generators `x, y`, the system `(x - 1,)` correctly raises `NotImplementedError`, since only zero-dimensional systems are supported. The equivalent system `(y - 1,)` does not raise. It returns `[(1,)]`, which ignores the free variable `x`.\n\n## Steps to reproduce\n\n1. Import `solve_poly_system` and define the symbols `x` and `y`.\n2. Call `solve_poly_system((x - 1,), x, y)`. It raises `NotImplementedError`, which is correct.\n3. Call `solve_poly_system((y - 1,), x, y)`. It returns a result instead of raising.\n\n## Observed behavior\n\n- `solve_poly_system((x - 1,), x, y)` raises:\n  `NotImplementedError: only zero-dimensional systems supported (finite number of solutions)`\n- `solve_poly_system((y - 1,), x, y)` returns `[(1,)]` without any error.\n\n## Expected behavior\n\n`solve_poly_system((y - 1,), x, y)` should raise `NotImplementedError`, just as `solve_poly_system((x - 1,), x, y)` does. The system has infinitely many solutions because `x` is unconstrained, so it is not zero-dimensional.\n\n## Stack trace / error output\n\nError raised in the correctly handled case. The traceback was abbreviated in the original report.\n\n```\n>>> solve_poly_system((x - 1,), x, y)\nTraceback (most recent call last):\n...\nNotImplementedError:\nonly zero-dimensional systems supported (finite number of solutions)\n```\n\nNo error is raised in the faulty case:\n\n```\n>>> solve_poly_system((y - 1,), x, y)\n[(1,)]\n```\n\n## Test case\n\nThe report includes these assertions, intended for `test_solve_poly_system` in `sympy/solvers/tests/test_polysys.py`:\n\n```python\nraises(NotImplementedError, lambda: solve_poly_system(\n    Poly(x - 1, x, y), (x, y)))\nraises(NotImplementedError, lambda: solve_poly_system(\n    Poly(y - 1, x, y), (x, y)))\n```\n\nThe second assertion currently fails because no exception is raised.\n\n## Code example\n\n```python\n>>> solve_poly_system((x - 1,), x, y)\nTraceback (most recent call last):\n...\nNotImplementedError:\nonly zero-dimensional systems supported (finite number of solutions)\n>>> solve_poly_system((y - 1,), x, y)  # not handled correctly\n[(1,)]\n```\n\n## Version and environment\n\nNot provided in the original report. The affected code is in `sympy/solvers/polysys.py`.",
+ "ttft_ms": 3856,
+ "type": "result",
+ "duration_ms": 10731,
+ "uuid": "b9273416-d61f-461d-bb0a-bd484aaeb79d",
+ "ttft_stream_ms": 1450,
+ "time_to_request_ms": 297,
+ "time_to_request_phases_ms": {
+  "other": 25,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 33,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 201,
+  "autocompact": 4,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 35,
+ "time_to_request_cpu_ms": 307,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1450,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

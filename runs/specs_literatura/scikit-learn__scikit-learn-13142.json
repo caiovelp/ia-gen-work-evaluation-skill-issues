@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 16381,
+ "stop_reason": "end_turn",
+ "session_id": "0b08de62-9d01-4377-8cb8-996f4653eb52",
+ "total_cost_usd": 0.05905029999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2250,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2039,
+  "output_tokens_details": {
+   "thinking_tokens": 82
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2250,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2039,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2250,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2250
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2463,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00026230000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2039,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2250,
+   "webSearchRequests": 0,
+   "costUSD": 0.05878799999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 82,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`GaussianMixture.fit_predict(X)` and `GaussianMixture.predict(X)` often return different labels when `n_init` is greater than 1. With the default `n_init`, the two methods agree. The existing unit test `test_gaussian_mixture_fit_predict` does not catch this because it does not set `n_init`.\n\n## Steps to reproduce\n\n1. Generate random data: `X = numpy.random.randn(1000, 5)`.\n2. Create `GaussianMixture(n_components=5)` with the default `n_init`.\n3. Call `c1 = gm.fit_predict(X)`, then `c2 = gm.predict(X)`.\n4. Compare with `assert_array_equal(c1, c2)`. This passes.\n5. Create `GaussianMixture(n_components=5, n_init=5)`.\n6. Call `c1 = gm.fit_predict(X)`, then `c2 = gm.predict(X)` on the same `X`.\n7. Compare with `assert_array_equal(c1, c2)`. This fails.\n\n## Observed behavior\n\nWith `n_init=5`, the labels from `fit_predict(X)` and the labels from a later `predict(X)` on the same fitted model and data differ. In the reported run, 88.6% of the labels did not match, so `assert_array_equal` raised an `AssertionError`. The reporter says the results are \"often\" different, not always.\n\n## Expected behavior\n\n`fit_predict(X)` and `predict(X)` should return identical labels for the same data, whatever the value of `n_init`. The script should print:\n\n```\nno n_init\nn_init=5\n```\n\nand raise no exception.\n\n## Stack trace / error output\n\n```\nno n_init\nn_init=5\nTraceback (most recent call last):\n  File \"test_gm.py\", line 17, in <module>\n    assert_array_equal(c1,c2)\n  File \"/home/scott/.local/lib/python2.7/site-packages/numpy/testing/_private/utils.py\", line 872, in assert_array_equal\n    verbose=verbose, header='Arrays are not equal')\n  File \"/home/scott/.local/lib/python2.7/site-packages/numpy/testing/_private/utils.py\", line 796, in assert_array_compare\n    raise AssertionError(msg)\nAssertionError: \nArrays are not equal\n\n(mismatch 88.6%)\n x: array([4, 0, 1, 1, 1, 3, 3, 4, 4, 2, 0, 0, 1, 2, 0, 2, 0, 1, 3, 1, 1, 3,\n       2, 1, 0, 2, 1, 0, 2, 0, 3, 1, 2, 3, 3, 1, 0, 2, 2, 0, 3, 0, 2, 0,\n       4, 2, 3, 0, 4, 2, 4, 1, 0, 2, 2, 1, 3, 2, 1, 4, 0, 2, 2, 1, 1, 2,...\n y: array([4, 1, 0, 2, 2, 1, 1, 4, 4, 0, 4, 1, 0, 3, 1, 0, 2, 2, 1, 2, 0, 0,\n       1, 0, 4, 1, 0, 4, 0, 1, 1, 2, 3, 1, 4, 0, 1, 4, 4, 4, 0, 1, 0, 2,\n       4, 1, 1, 2, 4, 3, 4, 0, 2, 3, 2, 3, 0, 0, 2, 3, 3, 3, 3, 0, 3, 2,...\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction snippet. It fails on the reported version.\n\n```python\nimport numpy\nfrom sklearn.mixture import GaussianMixture\nfrom sklearn.utils.testing import assert_array_equal\n\ndef test_gaussian_mixture_fit_predict_n_init():\n    X = numpy.random.randn(1000, 5)\n    gm = GaussianMixture(n_components=5, n_init=5)\n    c1 = gm.fit_predict(X)\n    c2 = gm.predict(X)\n    assert_array_equal(c1, c2)\n```\n\nThe data is random and no seed is set, and the reporter says the mismatch happens \"often\". The test may therefore not fail on every run.\n\n## Code example\n\nThis is the original reproduction script (Python 2 syntax), as given in the report:\n\n```python\nfrom sklearn.mixture import GaussianMixture\nfrom sklearn.utils.testing import assert_array_equal\nimport numpy\nX = numpy.random.randn(1000,5)\nprint 'no n_init'\ngm = GaussianMixture(n_components=5)\nc1 = gm.fit_predict(X)\nc2 = gm.predict(X)\nassert_array_equal(c1,c2)\nprint 'n_init=5'\ngm = GaussianMixture(n_components=5, n_init=5)\nc1 = gm.fit_predict(X)\nc2 = gm.predict(X)\nassert_array_equal(c1,c2)\n```\n\n## Version and environment\n\n```\nSystem:\n    python: 2.7.15rc1 (default, Nov 12 2018, 14:31:15)  [GCC 7.3.0]\n   machine: Linux-4.15.0-43-generic-x86_64-with-Ubuntu-18.04-bionic\nexecutable: /usr/bin/python\n\nBLAS:\n    macros: HAVE_CBLAS=None, NO_ATLAS_INFO=-1\ncblas_libs: cblas\n  lib_dirs: /usr/lib/x86_64-linux-gnu\n\nPython deps:\n    Cython: 0.28.5\n     scipy: 1.2.0\nsetuptools: 39.0.1\n       pip: 19.0.1\n     numpy: 1.16.0\n    pandas: 0.23.1\n   sklearn: 0.20.2\n```",
+ "ttft_ms": 2469,
+ "type": "result",
+ "duration_ms": 15949,
+ "uuid": "b8747354-0d9a-45de-9c97-761791967f07",
+ "ttft_stream_ms": 1410,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 9,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 194,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 167,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1410,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

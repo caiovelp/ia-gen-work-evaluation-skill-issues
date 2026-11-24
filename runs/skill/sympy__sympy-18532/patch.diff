@@ -1,0 +1,35 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 6866648d4e..c8d6583a46 100755
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -447,6 +447,9 @@ def atoms(self, *types):
+         >>> (1 + x + 2*sin(y + I*pi)).atoms()
+         {1, 2, I, pi, x, y}
+ 
++        With no arguments, the leaves of the expression tree (objects
++        with no ``.args``) are returned.
++
+         If one or more types are given, the results will contain only
+         those types of atoms.
+ 
+@@ -503,13 +506,13 @@ def atoms(self, *types):
+         if types:
+             types = tuple(
+                 [t if isinstance(t, type) else type(t) for t in types])
+-        else:
+-            types = (Atom,)
+-        result = set()
+-        for expr in preorder_traversal(self):
+-            if isinstance(expr, types):
+-                result.add(expr)
+-        return result
++            result = set()
++            for expr in preorder_traversal(self):
++                if isinstance(expr, types):
++                    result.add(expr)
++            return result
++        # no types given: return the leaves, i.e. nodes with no args
++        return {expr for expr in preorder_traversal(self) if not expr.args}
+ 
+     @property
+     def free_symbols(self):

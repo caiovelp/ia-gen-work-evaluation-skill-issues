@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14702,
+ "stop_reason": "end_turn",
+ "session_id": "cef7ef64-0ffe-4062-968d-14e15f804dec",
+ "total_cost_usd": 0.040494300000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1461,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1431,
+  "output_tokens_details": {
+   "thinking_tokens": 380
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1461,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1431,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1461,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1461
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1668,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017830000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1431,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1461,
+   "webSearchRequests": 0,
+   "costUSD": 0.040316000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 380,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nIn the Django admin, when an inline form contains an `ArrayField` with a callable default (`default=list`), validation is bypassed on the second submission. If the inline fails validation and the form is resubmitted without changes, no error is shown, the inline is dismissed, and the `ArrayField` value is lost. The reporter suspects the hidden input that holds the field's initial value. The original title is \"ModelForm fields with callable defaults don't correctly propagate default values.\"\n\n## Steps to reproduce\n1. Define the models and admin configuration shown in **Code example**. The inline form's `clean()` always raises a `ValidationError`.\n2. Go to `/admin/my_app/thing/add/`.\n3. Type anything into the `plop` field of the inline.\n4. Submit the form.\n5. Submit the form again without changing anything.\n\n## Observed behavior\n- After the first submission (step 4), the inline shows a validation error, as expected.\n- After the second submission (step 5), no errors are shown. The inline is dismissed (validation is bypassed) and `plop` becomes empty.\n\nThe rendered form contains a hidden input that holds the initial value of `plop`:\n```html\n<input type=\"hidden\" name=\"initial-relatedmodel_set-0-plop\" value=\"test\" id=\"initial-relatedmodel_set-0-id_relatedmodel_set-0-plop\">\n```\n\n## Expected behavior\nThe second submission should behave like the first. The inline should still fail validation and show the error, and the value entered in `plop` should be kept. Submitting again without changes should not bypass validation or dismiss the inline.\n\n## Stack trace / error output\nNot provided in the original report.\n\n## Test case\nNot provided in the original report. A minimal scenario based on the reproduction:\n1. Using the models and admin from **Code example**, POST the `Thing` add form in the admin with a value in the inline's `plop` field. Expect a validation error on the inline.\n2. POST the form again without changes, including the hidden `initial-relatedmodel_set-0-plop` field as rendered in the response to step 1.\n3. Assert that the inline still reports the validation error and that `plop` keeps its submitted value.\n\n## Code example\n```python\n# models.py\nclass Thing(models.Model):\n    pass\n\nclass RelatedModel(models.Model):\n    thing = models.ForeignKey(Thing, on_delete=models.CASCADE)\n    plop = ArrayField(\n        models.CharField(max_length=42),\n        default=list,\n    )\n```\n\n```python\n# admin.py\nclass RelatedModelForm(forms.ModelForm):\n    def clean(self):\n        raise ValidationError(\"whatever\")\n\nclass RelatedModelInline(admin.TabularInline):\n    form = RelatedModelForm\n    model = RelatedModel\n    extra = 1\n\n@admin.register(Thing)\nclass ThingAdmin(admin.ModelAdmin):\n    inlines = [\n        RelatedModelInline\n    ]\n```\n\n## Version and environment\nNot provided in the original report. The report uses `ArrayField` (a PostgreSQL-specific field) in a Django admin inline (`TabularInline`), but gives no Django, Python, database, or browser versions.",
+ "ttft_ms": 6012,
+ "type": "result",
+ "duration_ms": 14233,
+ "uuid": "e52c4e2f-e7c7-4389-b391-d56a83693c31",
+ "ttft_stream_ms": 1615,
+ "time_to_request_ms": 445,
+ "time_to_request_phases_ms": {
+  "other": 37,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 53,
+  "input_hooks": 6,
+  "tool_pool_refresh": 3,
+  "init_message": 23,
+  "engine_pickup": 3,
+  "message_prep": 2,
+  "model_config_wait": 286,
+  "autocompact": 5,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 3,
+  "message_normalization": 2,
+  "client_creation": 4,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 62,
+ "time_to_request_cpu_ms": 452,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 27,
+  "cpu_ms": 72,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1617,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

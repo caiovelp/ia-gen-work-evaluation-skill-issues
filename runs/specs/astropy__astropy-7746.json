@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28637,
+ "stop_reason": "end_turn",
+ "session_id": "f5010d92-e900-4af7-bd92-85be4033fa83",
+ "total_cost_usd": 0.0708671,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1460,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2905,
+  "output_tokens_details": {
+   "thinking_tokens": 204
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1460,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2905,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1460,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1460
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2048,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002163,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2905,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1460,
+   "webSearchRequests": 0,
+   "costUSD": 0.0706508,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 204,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Empty Input Handling in WCS Transformations\n\n## Objective\n\nCalling a WCS transformation with empty coordinate inputs raises an error. It should return empty output instead.\n\n**Reproduction (from the issue):**\n\n```python\nfrom astropy.wcs import WCS\nwcs = WCS('2MASS_h.fits')\nwcs.wcs_pix2world([], [], 0)\n# InconsistentAxisTypesError: ERROR 4 in wcsp2s() at line 2646 of file\n# cextern/wcslib/C/wcs.c: ncoord and/or nelem inconsistent with the wcsprm.\n```\n\n**Expected:** The call succeeds and returns empty lists/arrays, one per world axis.\n\n**Root cause path (from the traceback):**\n`WCS.wcs_pix2world` \u2192 `WCS._array_converter` \u2192 inner `_return_list_of_arrays` \u2192 `func(xy, origin)` \u2192 `self.wcs.p2s(xy, o)['world']` \u2192 wcslib `wcsp2s()`. The wcslib C routine rejects `ncoord == 0`. The empty input reaches the C layer without being short-circuited.\n\n**Users:** Astropy users who transform coordinate collections that may legitimately be empty, such as filtered source lists or masked selections. Today they must special-case empty input themselves.\n\n**User stories / acceptance:**\n- As a user, when I call `wcs.wcs_pix2world([], [], 0)`, I get empty results rather than an exception.\n- As a user, when I pass an empty array in the single-array form (shape `(0, naxis)`), I get an empty array of shape `(0, naxis)` rather than an exception.\n- As a user, empty input behaves the same across all public transformation methods routed through `_array_converter`.\n\n## Assumptions\n\n1. The fix belongs in the Python layer (`astropy/wcs/wcs.py`, `_array_converter` and/or its inner helpers), not in vendored wcslib (`cextern/wcslib`).\n2. \"Empty\" means zero coordinates (length-0 per-axis arrays, or an `(0, naxis)` array). It does not mean a wrong number of axes. Passing the wrong number of axes should still raise the existing errors.\n3. All public methods that delegate to `_array_converter` share this bug. Examples include `wcs_pix2world`, `wcs_world2pix`, `all_pix2world`, `all_world2pix`, and the SIP/distortion helpers. All of them should get the same empty-input behavior. Only `wcs_pix2world` is shown in the issue.\n4. Output types for empty input should mirror non-empty input:\n   - **List-of-arrays form:** a list of `naxis` empty `ndarray`s, each with the same shape as the input arrays (e.g. `(0,)`).\n   - **Single-array form:** an `ndarray` of shape `(0, naxis)`.\n5. Output dtype should be float, matching the normal output.\n6. The `ra_dec_order=True` path should return empty results too, in the same `(ra, dec)` tuple structure it normally uses.\n7. Inputs with zero size but more than one dimension (e.g. shape `(0, 3)` per axis, if broadcasting allows it) should keep their input shape in the output.\n8. `origin` validation and axis-count validation still run for empty input. Empty input does not bypass argument checking.\n\n## Tech Stack\n\n- Python package `astropy`, subpackage `astropy.wcs`\n- NumPy arrays\n- Vendored C library wcslib (`cextern/wcslib`), accessed through the `Wcsprm.p2s` / `s2p` wrappers\n- Versions: **unknown**\n\n## Commands\n\nAll unknown. They are not visible in the issue.\n\n- Build: unknown\n- Test: unknown (presumably a pytest invocation scoped to `astropy/wcs`, exact command unknown)\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n\nKnown from the traceback:\n\n```\nastropy/wcs/wcs.py      \u2192 WCS class; _array_converter, wcs_pix2world, etc.\ncextern/wcslib/C/wcs.c  \u2192 vendored wcslib; wcsp2s() raises the error\n```\n\nTest location: **unknown** (likely under `astropy/wcs/tests/`, unconfirmed).\n\n## Code Style\n\nUnknown beyond what is visible in the traceback. Follow the existing conventions in `astropy/wcs/wcs.py`. No snippet is provided, to avoid inventing code.\n\n## Testing Strategy\n\n- **Framework:** unknown (assumed pytest, consistent with astropy).\n- **Levels:** unit tests on `WCS` transformation methods. A FITS header fixture or a programmatically constructed `WCS` is preferred over the user's `2MASS_h.fits`, which may not exist in the repository.\n- **Required test cases:**\n  - Each public transformation method receives empty per-axis lists. It returns `naxis` empty arrays.\n  - Each public transformation method receives an empty `(0, naxis)` array. It returns an empty `(0, naxis)` array.\n  - The `ra_dec_order=True` variant receives empty input. It returns an empty `(ra, dec)` result.\n  - Regression: empty input with the wrong number of axes still raises the existing error.\n  - Regression: existing non-empty transformation tests stay green.\n- **Coverage expectations:** unknown. At minimum, the new empty-input branch must be exercised for both input forms.\n\n## Boundaries\n\n- **Always:**\n  - Keep return types and shapes consistent between empty and non-empty input.\n  - Keep existing argument validation.\n  - Add regression tests.\n  - Run the existing `astropy.wcs` test suite.\n- **Ask first:**\n  - Modifying vendored wcslib in `cextern/`.\n  - Changing the public return types of any transformation method.\n  - Extending the change to `Wcsprm.p2s` / `s2p` directly, since that is a lower-level public API.\n- **Never:**\n  - Swallow genuine errors by catching `InconsistentAxisTypesError` broadly.\n  - Remove or weaken existing tests.\n  - Change behavior for non-empty input.\n\n## Success Criteria\n\n1. `wcs.wcs_pix2world([], [], 0)` returns a list of 2 empty float arrays for a 2-axis WCS, without raising.\n2. `wcs.wcs_pix2world(np.empty((0, 2)), 0)` returns a float array of shape `(0, 2)`.\n3. Criteria 1 and 2 hold for every public method routed through `_array_converter`, including `wcs_world2pix`, `all_pix2world`, and `all_world2pix`.\n4. Empty input with `ra_dec_order=True` returns an empty result in the normal `(ra, dec)` structure.\n5. Malformed input (wrong axis count, missing origin) raises the same errors as before.\n6. All existing `astropy.wcs` tests pass.\n\n## Open Questions\n\n1. Should the guard live in `_array_converter`, applying to all methods, or only in specific methods? (Assumed: `_array_converter`.)\n2. Should `Wcsprm.p2s` / `s2p` and other low-level wrappers also accept empty input, or only the high-level `WCS` methods?\n3. What exact output type is expected for empty list input: Python lists or NumPy arrays? The issue says \"lists/arrays\". Non-empty input currently returns arrays.\n4. Are there iterative methods (e.g. `all_world2pix` with its convergence options) where empty input needs special handling of keyword arguments such as `quiet` or `detect_divergence`?\n5. Should zero-size inputs with extra dimensions (e.g. shape `(0, 3)`) preserve their shape? Is that case supported at all?\n6. Which test command and test file should be used, and is there an existing FITS fixture that matches the `2MASS_h.fits` case?\n7. Should this be backported to maintenance branches? Does it need a changelog entry?",
+ "ttft_ms": 3467,
+ "type": "result",
+ "duration_ms": 28101,
+ "uuid": "c205ea14-09f8-455c-b84f-a1a3005fdb88",
+ "ttft_stream_ms": 1622,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 183,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1622,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,78 @@
+diff --git a/app/views/assertions/_params_form.html.erb b/app/views/assertions/_params_form.html.erb
+index 11bf2c6b..ff0305bc 100644
+--- a/app/views/assertions/_params_form.html.erb
++++ b/app/views/assertions/_params_form.html.erb
+@@ -59,7 +59,7 @@
+ 
+       $("._onchange_param_field").change(function () {
+           var link = $($(this).data("link-target"));
+-          var p = link.prop("search").replace(/^\?/, "");
++          var p = (link.prop("search") || "").replace(/^\?/, "");
+           var params = queryStringToHash(p);
+           var params_elements = $("._onchange_param_field");
+           for (var i = 0, len = params_elements.length; i < len; i++) {
+@@ -67,7 +67,11 @@
+               params[current_param.data("name")] = current_param.val()
+           }
+           link.prop("search", $.param(params));
+-      }).first().trigger("change");
++      });
++
++$(function () {
++  $("._onchange_param_field").first().trigger("change");
++});
+ 
+       $("._param_type_date").datepicker();
+ 
+diff --git a/app/views/notifications/_params_form.html.erb b/app/views/notifications/_params_form.html.erb
+index 8722b2df..a032fca5 100644
+--- a/app/views/notifications/_params_form.html.erb
++++ b/app/views/notifications/_params_form.html.erb
+@@ -76,7 +76,7 @@
+ 
+       $("._onchange_param_field").change(function () {
+           var link = $($(this).data("link-target"));
+-          var p = link.prop("search").replace(/^\?/, "");
++          var p = (link.prop("search") || "").replace(/^\?/, "");
+           var params = queryStringToHash(p);
+           var params_elements = $("._onchange_param_field");
+           for (var i = 0, len = params_elements.length; i < len; i++) {
+@@ -84,7 +84,11 @@
+               params[current_param.data("name")] = current_param.val()
+           }
+           link.prop("search", $.param(params));
+-      }).first().trigger("change");
++      });
++
++$(function () {
++  $("._onchange_param_field").first().trigger("change");
++});
+ 
+       $("._param_type_date").datepicker();
+ 
+diff --git a/app/views/queries/_params_form.html.erb b/app/views/queries/_params_form.html.erb
+index b026ec53..0099c5d7 100644
+--- a/app/views/queries/_params_form.html.erb
++++ b/app/views/queries/_params_form.html.erb
+@@ -67,7 +67,7 @@
+ 
+     $("._onchange_param_field").change(function () {
+       var link = $($(this).data("link-target"));
+-      var p = link.prop("search").replace(/^\?/, "");
++      var p = (link.prop("search") || "").replace(/^\?/, "");
+       var params = queryStringToHash(p);
+       var params_elements = $("._onchange_param_field");
+       for (var i = 0, len = params_elements.length; i < len; i++) {
+@@ -75,7 +75,11 @@
+         params[current_param.data("name")] = current_param.val()
+       }
+       link.prop("search", $.param(params));
+-    }).first().trigger("change");
++    });
++
++$(function () {
++  $("._onchange_param_field").first().trigger("change");
++});
+ 
+     $("._param_type_date").datepicker();
+   </script>

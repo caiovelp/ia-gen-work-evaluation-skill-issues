@@ -1,0 +1,273 @@
+diff --git a/app/controllers/four_n_articles_controller.rb b/app/controllers/four_n_articles_controller.rb
+new file mode 100644
+index 00000000..b0eb2c47
+--- /dev/null
++++ b/app/controllers/four_n_articles_controller.rb
+@@ -0,0 +1,26 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class FourNArticlesController < ApplicationController
++  authorize_resource
++
++  active_scaffold :four_n_article do |config|
++    config.create.label = :create_four_n_article_label
++    config.columns = [:title, :journal, :publication_year, :doi, :professor, :justification]
++    config.list.columns = [:title, :journal, :publication_year, :professor]
++    config.actions.swap :search, :field_search
++    config.columns[:professor].form_ui = :record_select
++    config.columns[:publication_year].options[:format] = "%d"
++    config.actions.exclude :deleted_records
++  end
++
++  protected
++  def do_new
++    super
++    unless current_user.professor.blank?
++      @record.professor = current_user.professor
++    end
++  end
++end
+diff --git a/app/helpers/four_n_articles_helper.rb b/app/helpers/four_n_articles_helper.rb
+new file mode 100644
+index 00000000..4a819034
+--- /dev/null
++++ b/app/helpers/four_n_articles_helper.rb
+@@ -0,0 +1,17 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++module FourNArticlesHelper
++  def professor_form_column(record, options)
++    if can?(:edit_professor, record)
++      record_select_field :professor, record.professor || Professor.new, options
++    else
++      options[:value] = record.professor_id
++      label(
++        :record_value_1_params, record.id, record.professor.name
++      ) + hidden_field(:record, :professor, options)
++    end
++  end
++end
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index 95d66b3c..096a9708 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -16,7 +16,7 @@ class Ability
+   PROFESSOR_MODELS = [
+     Professor, Advisement, AdvisementAuthorization,
+     ThesisDefenseCommitteeParticipation,
+-    ProfessorResearchArea, Grant
++    ProfessorResearchArea, Grant, FourNArticle
+   ]
+ 
+   SCHOLARSHIP_MODELS = [
+@@ -148,6 +148,9 @@ class Ability
+       cannot :edit_professor, Grant
+       can :create, Grant
+       can :update, Grant, professor: user.professor
++      cannot :edit_professor, FourNArticle
++      can :create, FourNArticle
++      can :update, FourNArticle, professor: user.professor
+     end
+   end
+ 
+diff --git a/app/models/four_n_article.rb b/app/models/four_n_article.rb
+new file mode 100644
+index 00000000..fa1f69bc
+--- /dev/null
++++ b/app/models/four_n_article.rb
+@@ -0,0 +1,38 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class FourNArticle < ApplicationRecord
++  has_paper_trail
++  belongs_to :professor, optional: false
++
++  validates :title, presence: true
++  validates :journal, presence: true
++  validates :publication_year, presence: true,
++    numericality: { only_integer: true, greater_than: 0 }
++  validates :professor, presence: true
++  validates :title, uniqueness: {
++    scope: [:professor_id, :publication_year], case_sensitive: false
++  }
++  validate :that_professor_cannot_edit_other_articles, if: -> { cannot?(:edit_professor, self) }
++
++  def that_professor_cannot_edit_other_articles
++    current_professor = current_user&.professor
++    return if current_professor.nil?
++    if self.changes[:professor_id].present? && self.changes[:professor_id] != [nil, current_professor.id]
++      self.errors.add(:professor, :cannot_edit_other_articles)
++    end
++  end
++
++  def to_label
++    "[#{self.publication_year}] #{self.title}"
++  end
++
++  private
++    delegate :can?, :cannot?, to: :ability
++
++    def ability
++      @ability ||= Ability.new(current_user)
++    end
++end
+diff --git a/config/locales/four_n_article.pt-BR.yml b/config/locales/four_n_article.pt-BR.yml
+new file mode 100644
+index 00000000..b6c2d1e3
+--- /dev/null
++++ b/config/locales/four_n_article.pt-BR.yml
+@@ -0,0 +1,24 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++pt-BR:
++  activerecord:
++    attributes:
++      four_n_article:
++        title: "Título"
++        journal: "Periódico"
++        publication_year: "Ano de Publicação"
++        doi: "DOI"
++        justification: "Justificativa"
++        professor: "Docente"
++    errors:
++      models:
++        four_n_article:
++          cannot_edit_other_articles: "não pode ser editado por este usuário"
++    models:
++      four_n_article:
++        one: "Artigo 4N"
++        other: "Artigos 4N"
++
++  active_scaffold:
++    create_four_n_article_label: "Adicionar Artigo 4N"
+diff --git a/config/locales/navigation.pt-BR.yml b/config/locales/navigation.pt-BR.yml
+index a8809e2c..43b03267 100644
+--- a/config/locales/navigation.pt-BR.yml
++++ b/config/locales/navigation.pt-BR.yml
+@@ -22,6 +22,7 @@ pt-BR:
+       advisement_authorization: Credenciamentos
+       thesis_defense_committee_participation: Bancas
+       grant: Coordenações de Projetos
++      four_n_article: Artigos 4N
+ 
+     scholarships:
+       label: Bolsas
+diff --git a/config/navigation.rb b/config/navigation.rb
+index 640a3206..9932c83b 100644
+--- a/config/navigation.rb
++++ b/config/navigation.rb
+@@ -150,6 +150,7 @@ SimpleNavigation::Configuration.run do |navigation|
+       submenu.modelitem AdvisementAuthorization
+       submenu.modelitem ThesisDefenseCommitteeParticipation
+       submenu.modelitem Grant
++      submenu.modelitem FourNArticle
+     end
+ 
+     scholar_models = [Scholarship, ScholarshipType, ScholarshipDuration]
+diff --git a/config/routes.rb b/config/routes.rb
+index 0ef13e69..bc3a23ae 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -538,4 +538,8 @@ Rails.application.routes.draw do
+     concerns :active_scaffold
+   end
+ 
++  resources :four_n_articles do
++    concerns :active_scaffold
++  end
++
+ end
+diff --git a/db/migrate/20241203180000_create_four_n_articles.rb b/db/migrate/20241203180000_create_four_n_articles.rb
+new file mode 100644
+index 00000000..c231cce6
+--- /dev/null
++++ b/db/migrate/20241203180000_create_four_n_articles.rb
+@@ -0,0 +1,19 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class CreateFourNArticles < ActiveRecord::Migration[7.0]
++  def change
++    create_table :four_n_articles do |t|
++      t.string :title
++      t.string :journal
++      t.integer :publication_year
++      t.string :doi
++      t.text :justification
++      t.references :professor, null: false, foreign_key: true
++
++      t.timestamps
++    end
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 2d4d0379..d2033b27 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_11_29_022042) do
++ActiveRecord::Schema[7.0].define(version: 2024_12_03_180000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -582,6 +582,18 @@ ActiveRecord::Schema[7.0].define(version: 2024_11_29_022042) do
+     t.datetime "updated_at", null: false
+   end
+ 
++  create_table "four_n_articles", force: :cascade do |t|
++    t.string "title"
++    t.string "journal"
++    t.integer "publication_year"
++    t.string "doi"
++    t.text "justification"
++    t.integer "professor_id", null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["professor_id"], name: "index_four_n_articles_on_professor_id"
++  end
++
+   create_table "grants", force: :cascade do |t|
+     t.string "title"
+     t.integer "start_year"
+@@ -1043,6 +1055,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_11_29_022042) do
+     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
+   end
+ 
++  add_foreign_key "four_n_articles", "professors"
+   add_foreign_key "grants", "professors"
+   add_foreign_key "reports", "carrier_wave_files", column: "carrierwave_file_id"
+   add_foreign_key "reports", "users", column: "generated_by_id"
+diff --git a/spec/factories/factory_four_n_article.rb b/spec/factories/factory_four_n_article.rb
+new file mode 100644
+index 00000000..9ec7ca33
+--- /dev/null
++++ b/spec/factories/factory_four_n_article.rb
+@@ -0,0 +1,13 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++FactoryBot.define do
++  factory :four_n_article do
++    title { "Artigo" }
++    journal { "Revista" }
++    publication_year { 2024 }
++    professor
++  end
++end

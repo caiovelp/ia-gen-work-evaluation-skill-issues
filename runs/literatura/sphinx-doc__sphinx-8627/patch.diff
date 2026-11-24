@@ -1,0 +1,43 @@
+diff --git a/sphinx/util/typing.py b/sphinx/util/typing.py
+index 2d4f67bba..c4a4841cd 100755
+--- a/sphinx/util/typing.py
++++ b/sphinx/util/typing.py
+@@ -9,6 +9,7 @@
+ """
+ 
+ import sys
++from struct import Struct
+ import typing
+ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, TypeVar, Union
+ 
+@@ -80,6 +81,12 @@ def get_type_hints(obj: Any, globalns: Dict = None, localns: Dict = None) -> Dic
+         return {}
+ 
+ 
++# classes whose __module__ is not importable (e.g. '_struct') mapped to public names
++INVALID_BUILTIN_CLASSES = {
++    Struct: 'struct.Struct',  # Before Python 3.9
++}
++
++
+ def is_system_TypeVar(typ: Any) -> bool:
+     """Check *typ* is system defined TypeVar."""
+     modname = getattr(typ, '__module__', '')
+@@ -96,6 +103,8 @@ def restify(cls: Optional["Type"]) -> str:
+         return '...'
+     elif inspect.isNewType(cls):
+         return ':class:`%s`' % cls.__name__
++    elif cls in INVALID_BUILTIN_CLASSES:
++        return ':class:`%s`' % INVALID_BUILTIN_CLASSES[cls]
+     elif cls.__module__ in ('__builtin__', 'builtins'):
+         return ':class:`%s`' % cls.__name__
+     else:
+@@ -300,6 +309,8 @@ def stringify(annotation: Any) -> str:
+         return repr(annotation)
+     elif annotation is NoneType:
+         return 'None'
++    elif annotation in INVALID_BUILTIN_CLASSES:
++        return INVALID_BUILTIN_CLASSES[annotation]
+     elif (getattr(annotation, '__module__', None) == 'builtins' and
+           hasattr(annotation, '__qualname__')):
+         return annotation.__qualname__

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25967,
+ "stop_reason": "end_turn",
+ "session_id": "526e29bf-5d84-428b-be4c-47869aef945f",
+ "total_cost_usd": 0.057743800000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 933,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2462,
+  "output_tokens_details": {
+   "thinking_tokens": 286
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 933,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2462,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 933,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 933
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1520,
+   "outputTokens": 34,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016900000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2462,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 933,
+   "webSearchRequests": 0,
+   "costUSD": 0.0575748,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 286,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: ExpressionWrapper with negated empty `pk__in` Q (`~Q(pk__in=[])`) produces invalid SQL\n\n## Objective\n\nMake `ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())` compile to valid SQL that evaluates to **true** for every row. It is used in `QuerySet.annotate()`.\n\n**Background (from the issue):**\n\nThe non-negated form already works:\n\n```python\nqueryset.annotate(\n    foo=ExpressionWrapper(Q(pk__in=[]), output_field=BooleanField())\n).values(\"foo\").query\n# SELECT 0 AS \"foo\" FROM \"table\"\n```\n\nThe negated form produces invalid SQL. The selected expression is missing:\n\n```python\nqueryset.annotate(\n    foo=ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())\n).values(\"foo\").query\n# SELECT  AS \"foo\" FROM \"table\"\n```\n\n**Who is affected:** Developers who build or reduce Q objects programmatically (see ticket #32554) and wrap the result in `ExpressionWrapper` for annotation. Reduction can legitimately produce an always-false condition, and its negation, an always-true condition.\n\n**User story:** As a developer who annotates a queryset with a wrapped boolean Q expression, I want logically constant conditions to compile to valid constant SQL. Then my query runs no matter how my Q objects reduce.\n\n**Semantics:**\n- `Q(pk__in=[])` matches nothing, so it is always false.\n- `~Q(pk__in=[])` matches everything, so it is always true.\n\n## Assumptions\n\n1. The project is Django (ORM). The issue does not state the version. The fix targets the current development branch.\n2. The empty SQL comes from how the compiler handles a condition that \"matches everything\". An empty `__in` raises an empty-result signal, and negation turns it into a match-all condition with an empty SQL string. When that condition is inlined as a select expression through `ExpressionWrapper`, nothing is emitted. *This is a hypothesis about the cause, not something the issue confirms.*\n3. The expected SQL for the negated case mirrors the working case: a constant true literal, such as `1`, or `TRUE` on backends that support boolean literals. Exact rendering per backend is acceptable as long as it is valid and evaluates to true.\n4. The issue was shown with one backend, not stated. The fix should be backend-agnostic.\n5. The non-negated behavior (`SELECT 0 AS \"foo\"`) is correct and must not change.\n6. Fixing the annotate/select path is in scope. The same expression used elsewhere (filter, order_by, Case/When) is in scope only where it shares the same code path. See Open Questions.\n\n## Tech Stack\n\n- Python and Django ORM. Exact versions are **unknown**.\n- Database backend(s): **unknown**. The issue output looks SQLite/PostgreSQL-style quoting.\n\n## Commands\n\nAll **unknown**. The repository is not visible.\n\n- Build: unknown\n- Test: unknown (Django's own test runner invocation is not given in the issue)\n- Lint: unknown\n\n## Project Structure\n\n**Unknown**. The repository is not visible. The relevant areas are presumably the ORM expression and SQL compilation layers and the expressions/annotations test suites. Exact paths are to be confirmed.\n\n## Code Style\n\n**Unknown** beyond following the existing project conventions. The only code visible is the reproduction in the issue (above).\n\n## Testing Strategy\n\n- Add regression test(s) in the existing expression/annotation test suite. The location is unknown.\n- Test levels:\n  - **SQL compilation:** the negated case produces a non-empty select expression for the annotation.\n  - **Query execution:** evaluating the annotated queryset against the database returns `True` for every row of `~Q(pk__in=[])`. It returns `False` for every row of `Q(pk__in=[])`.\n- Keep existing tests for the non-negated case passing.\n- Run the tests on all backends the project's CI covers, if available. The details are unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests reproducing the exact issue examples.\n  - Keep `Q(pk__in=[])` behavior unchanged.\n  - Keep the fix backend-agnostic.\n- **Ask first:**\n  - Changing how empty/match-all conditions are represented globally, such as in WHERE-clause compilation.\n  - Changing the public behavior of `filter()` or `exclude()` with empty `__in`.\n  - Changing the SQL emitted for already-working cases.\n- **Never:**\n  - Raise errors for this now-valid usage instead of compiling it.\n  - Special-case only `pk` when the problem applies to any field lookup with an empty `__in`.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. `str(qs.annotate(foo=ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())).values(\"foo\").query)` contains a non-empty constant expression before `AS \"foo\"`, such as `1` or `TRUE`, and is valid SQL.\n2. Executing that queryset returns `foo == True` for every row.\n3. `Q(pk__in=[])` still compiles to the false constant (e.g. `SELECT 0 AS \"foo\"`), and executing it returns `foo == False` for every row.\n4. The same holds for an empty `__in` on a non-pk field, e.g. `~Q(name__in=[])`.\n5. The existing test suite passes with no changes to unrelated expected SQL.\n\n## Open Questions\n\n1. Which Django version(s) and database backend(s) were used to reproduce? Should the fix be backported?\n2. What SQL literal is preferred for the always-true case on each backend (`1` vs `TRUE`)? Should it match the existing false rendering (`0`)?\n3. Should the fix also cover other contexts where a match-all condition is used as an expression? Examples are `Case(When(~Q(pk__in=[]), ...))`, `order_by()`, `alias()`, and nested negations such as `~~Q(pk__in=[])`.\n4. Should compound reductions also be covered, such as `~Q(pk__in=[]) & Q(...)` and `~Q(pk__in=[]) | Q(...)`, or only the bare negation from the issue?\n5. Is ticket #32554 already resolved? Does its fix interact with this one?",
+ "ttft_ms": 4416,
+ "type": "result",
+ "duration_ms": 24961,
+ "uuid": "e525c95a-1c53-4bfe-90db-a1fb814440f6",
+ "ttft_stream_ms": 1391,
+ "time_to_request_ms": 248,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 4,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 218,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 116,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1391,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

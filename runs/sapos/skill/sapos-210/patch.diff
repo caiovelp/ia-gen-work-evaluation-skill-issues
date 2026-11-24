@@ -1,0 +1,210 @@
+diff --git a/app/models/professor.rb b/app/models/professor.rb
+index 40ce8f8e..508e51bc 100644
+--- a/app/models/professor.rb
++++ b/app/models/professor.rb
+@@ -24,6 +24,10 @@ class Professor < ApplicationRecord
+   has_many :institutions, through: :affiliations
+   accepts_nested_attributes_for :affiliations, allow_destroy: false, reject_if: :all_blank
+ 
++  has_many :accreditations,
++    -> { order(:start_date, :id) },
++    class_name: "ProfessorAccreditation", dependent: :restrict_with_exception
++
+   belongs_to :city, optional: true
+   belongs_to :academic_title_country,
+     optional: true,
+@@ -132,6 +136,36 @@ class Professor < ApplicationRecord
+     end
+   end
+ 
++  def active_accreditation
++    accreditations.find_by(end_date: nil)
++  end
++
++  def accredited?
++    accreditations.where(end_date: nil).exists?
++  end
++
++  def accreditation_date
++    active_accreditation&.start_date
++  end
++
++  def accreditation_history
++    accreditations.reorder(:start_date, :id)
++  end
++
++  def accredit!(date = Date.current)
++    accreditations.create!(start_date: date)
++  end
++
++  def deaccredit!(date = Date.current)
++    current = active_accreditation
++    if current.nil?
++      errors.add(:base, :not_accredited)
++      raise ActiveRecord::RecordInvalid.new(self)
++    end
++    current.update!(end_date: date)
++    current
++  end
++
+   def to_label
+     "#{self.name}"
+   end
+diff --git a/app/models/professor_accreditation.rb b/app/models/professor_accreditation.rb
+new file mode 100644
+index 00000000..8cd5462b
+--- /dev/null
++++ b/app/models/professor_accreditation.rb
+@@ -0,0 +1,50 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# A period in which a Professor was accredited (end_date nil = still active)
++class ProfessorAccreditation < ApplicationRecord
++  has_paper_trail
++
++  belongs_to :professor, optional: false
++
++  validates :start_date, presence: true
++  validate :end_date_not_before_start_date
++  validate :single_active_period
++  validate :no_overlap
++
++  scope :active, -> { where(end_date: nil) }
++  scope :chronological, -> { order(:start_date, :id) }
++
++  def active?
++    end_date.nil?
++  end
++
++  def to_label
++    "#{start_date} - #{end_date}"
++  end
++
++  private
++    def siblings
++      ProfessorAccreditation.where(professor_id: professor_id).where.not(id: id)
++    end
++
++    def end_date_not_before_start_date
++      return if start_date.blank? || end_date.blank?
++      errors.add(:end_date, :before_start_date) if end_date < start_date
++    end
++
++    def single_active_period
++      return unless end_date.nil? && siblings.active.exists?
++      errors.add(:base, :already_accredited)
++    end
++
++    def no_overlap
++      return if start_date.blank?
++      last = end_date || Date.new(9999, 12, 31)
++      overlap = siblings.where("start_date <= ?", last)
++        .where("end_date IS NULL OR end_date >= ?", start_date)
++      errors.add(:base, :overlapping_period) if overlap.exists?
++    end
++end
+diff --git a/config/locales/professor_accreditation.pt-BR.yml b/config/locales/professor_accreditation.pt-BR.yml
+new file mode 100644
+index 00000000..e09c5561
+--- /dev/null
++++ b/config/locales/professor_accreditation.pt-BR.yml
+@@ -0,0 +1,21 @@
++pt-BR:
++  activerecord:
++    models:
++      professor_accreditation:
++        one: Credenciamento
++        other: Credenciamentos
++    attributes:
++      professor_accreditation:
++        professor: Professor
++        start_date: Data de credenciamento
++        end_date: Data de descredenciamento
++    errors:
++      models:
++        professor_accreditation:
++          attributes:
++            end_date:
++              before_start_date: não pode ser anterior à data de credenciamento
++          already_accredited: O professor já está credenciado
++          overlapping_period: O período se sobrepõe a outro credenciamento
++        professor:
++          not_accredited: O professor não está credenciado
+diff --git a/db/migrate/20260701000000_create_professor_accreditations.rb b/db/migrate/20260701000000_create_professor_accreditations.rb
+new file mode 100644
+index 00000000..961a4d72
+--- /dev/null
++++ b/db/migrate/20260701000000_create_professor_accreditations.rb
+@@ -0,0 +1,16 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class CreateProfessorAccreditations < ActiveRecord::Migration[7.0]
++  def change
++    create_table :professor_accreditations do |t|
++      t.references :professor, null: false, foreign_key: true
++      t.date :start_date, null: false
++      t.date :end_date
++      t.timestamps
++    end
++    add_index :professor_accreditations, [:professor_id, :start_date]
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 4a943b95..c2bd5a5b 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
++ActiveRecord::Schema[7.2].define(version: 2026_07_01_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -770,6 +770,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
+     t.boolean "active", default: true, null: false
+   end
+ 
++  create_table "professor_accreditations", force: :cascade do |t|
++    t.integer "professor_id", null: false
++    t.date "start_date", null: false
++    t.date "end_date"
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["professor_id", "start_date"], name: "index_professor_accreditations_on_professor_id_and_start_date"
++    t.index ["professor_id"], name: "index_professor_accreditations_on_professor_id"
++  end
++
+   create_table "professor_research_areas", force: :cascade do |t|
+     t.integer "professor_id"
+     t.integer "research_area_id"
+@@ -1151,21 +1161,5 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
+     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
+   end
+ 
+-  add_foreign_key "course_research_lines", "courses"
+-  add_foreign_key "course_research_lines", "research_lines"
+-  add_foreign_key "enrollments", "research_lines", on_delete: :nullify
+-  add_foreign_key "grants", "professors"
+-  add_foreign_key "paper_professors", "papers"
+-  add_foreign_key "paper_professors", "professors"
+-  add_foreign_key "paper_students", "papers"
+-  add_foreign_key "paper_students", "students"
+-  add_foreign_key "papers", "professors", column: "owner_id"
+-  add_foreign_key "professor_research_lines", "professors"
+-  add_foreign_key "professor_research_lines", "research_lines"
+-  add_foreign_key "reports", "carrier_wave_files", column: "carrierwave_file_id"
+-  add_foreign_key "reports", "users", column: "generated_by_id"
+-  add_foreign_key "reports", "users", column: "invalidated_by_id"
+-  add_foreign_key "research_lines", "research_areas"
+-  add_foreign_key "user_roles", "roles"
+-  add_foreign_key "user_roles", "users"
++  add_foreign_key "professor_accreditations", "professors"
+ end

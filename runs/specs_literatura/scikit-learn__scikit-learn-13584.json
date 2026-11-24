@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9747,
+ "stop_reason": "end_turn",
+ "session_id": "eebd65ff-fb71-4832-9c61-a4eff90f0a6d",
+ "total_cost_usd": 0.0250792,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1111,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 802,
+  "output_tokens_details": {
+   "thinking_tokens": 109
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1111,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 802,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1111,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1111
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1317,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001432,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 802,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1111,
+   "webSearchRequests": 0,
+   "costUSD": 0.024936,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 109,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWith `print_changed_only=True`, printing an estimator whose parameter is a NumPy array fails with a `ValueError`. Example: `LogisticRegressionCV(Cs=np.array([0.1, 1]))`. The bug is in the new `repr` when it handles vector (array-valued) parameters.\n\n## Steps to reproduce\n\n1. Import `sklearn`, `numpy` and `LogisticRegressionCV`.\n2. Turn on changed-only printing with `sklearn.set_config(print_changed_only=True)`.\n3. Create a `LogisticRegressionCV` estimator and pass a NumPy array for `Cs`, e.g. `Cs=np.array([0.1, 1])`.\n4. Call `print()` on the estimator.\n\n## Observed behavior\n\nPrinting the estimator raises a `ValueError` about the truth value of an array being ambiguous. No representation is printed.\n\n## Expected behavior\n\nThe estimator should print without error, like it does for scalar parameter values.\n\n## Stack trace / error output\n\n```\nValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()\n```\n\nThe original report includes only this error message, not the full traceback.\n\n## Test case\n\nMinimal test derived from the reproduction snippet:\n\n```python\nimport numpy as np\nimport sklearn\nfrom sklearn.linear_model import LogisticRegressionCV\n\n\ndef test_repr_print_changed_only_with_array_param():\n    sklearn.set_config(print_changed_only=True)\n    # Currently raises ValueError; should not raise.\n    repr(LogisticRegressionCV(Cs=np.array([0.1, 1])))\n```\n\n## Code example\n\n```python\nimport sklearn\nimport numpy as np\nfrom sklearn.linear_model import LogisticRegressionCV\nsklearn.set_config(print_changed_only=True)\nprint(LogisticRegressionCV(Cs=np.array([0.1, 1])))\n```\n\n## Version and environment\n\nNot provided in the original report. The report only says this affects the \"new repr\" with the `print_changed_only` setting.",
+ "ttft_ms": 2765,
+ "type": "result",
+ "duration_ms": 8813,
+ "uuid": "589fd457-af6f-439b-bb4f-4d83e7dd5bd0",
+ "ttft_stream_ms": 1404,
+ "time_to_request_ms": 239,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 10,
+  "input_attachments": 12,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 193,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 190,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1405,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

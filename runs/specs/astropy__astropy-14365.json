@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28875,
+ "stop_reason": "end_turn",
+ "session_id": "85700553-7325-4efd-93f3-5b411012c665",
+ "total_cost_usd": 0.0682971,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1177,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2891,
+  "output_tokens_details": {
+   "thinking_tokens": 242
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1177,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2891,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1177,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1177
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1768,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019030000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2891,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1177,
+   "webSearchRequests": 0,
+   "costUSD": 0.0681068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 242,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Case-Insensitive QDP Command Parsing in `ascii.qdp`\n\n## Objective\n\nThe `ascii.qdp` reader in astropy only recognizes QDP commands written in upper case, such as `READ SERR 1 2`. QDP itself is case-insensitive, and many QDP files are written by hand in lower or mixed case. Such files are valid for the `qdp` tool, but astropy fails to read them:\n\n```\nValueError: Unrecognized QDP line: read serr 1 2\n```\n\n**Goal:** `Table.read(..., format='ascii.qdp')` recognizes QDP commands in any letter case and produces the same `Table` it would produce for the upper-case equivalent.\n\n**Users:** Astronomers and astropy users reading QDP files that were hand-written or produced by tools that don't use upper case.\n\n**User story:** As a user with a QDP file containing `read serr 1 2`, I want `Table.read('test.qdp', format='ascii.qdp')` to return a table with symmetric error columns for columns 1 and 2. I don't want a `ValueError`.\n\n**Reference case from the issue:**\n\n```\nread serr 1 2\n1 0.5 1 0.5\n```\n\n- Expected: a `Table` with error columns. This file has one row with a value plus symmetric error for column 1 and the same for column 2.\n- Actual (astropy 5.1): `ValueError: Unrecognized QDP line: read serr 1 2`.\n- Running `qdp test.qdp` on the same file works.\n\n## Assumptions\n\n1. The fix covers **command lines** that the reader currently recognizes in upper case. Per the issue, this includes at least `READ SERR`, and presumably `READ TERR` too. It does not add support for new QDP commands.\n2. \"Case-insensitive\" covers all lower-case input (`read serr`) and mixed-case input (`Read Serr`, `READ serr`), not only all-lower-case input.\n3. Upper-case input must keep working exactly as it does today, so existing behavior is not affected.\n4. The `ascii.qdp` **writer** keeps emitting upper-case commands. This change affects only the reader.\n5. Column indices and numeric data lines are already case-neutral and need no change. Mantissa/exponent forms such as `1e3` vs `1E3` may be an exception; see Open Questions.\n6. The trailing whitespace in the issue's example (`read serr 1 2 `) must also be tolerated. This is assumed to be handled already for upper-case lines, but it must be verified for lower case.\n7. The fix should be made in the `astropy.io.ascii.qdp` module, which is named in the warning output in the issue. The exact file path and the function or regex that classifies lines are not visible in the issue and are **unknown**.\n8. The issue was reported against astropy 5.1. The fix targets the current development branch.\n\n## Tech Stack\n\n- Python. The issue reports 3.10.9; the project's supported range is unknown.\n- astropy (`astropy.io.ascii`, `astropy.table.Table`). The issue reports 5.1.\n- NumPy. The issue reports 1.24.1.\n- Other dependency versions for the dev branch: **unknown**.\n\n## Commands\n\nThe project's build, test and lint commands are not visible in the issue and are **unknown**. To be confirmed from the repository's contributor docs or CI config:\n\n```\nBuild:   unknown\nTest:    unknown (likely a pytest invocation scoped to the io.ascii QDP tests \u2014 unconfirmed)\nLint:    unknown\n```\n\nReproduction, taken from the issue:\n\n```\ncat > test.qdp <<'EOF'\nread serr 1 2\n1 0.5 1 0.5\nEOF\npython -c \"from astropy.table import Table; print(Table.read('test.qdp', format='ascii.qdp'))\"\n```\n\n## Project Structure\n\nNot visible in the issue; **unknown**. Known only:\n\n- The reader lives in the `astropy.io.ascii.qdp` module.\n- The error originates from a line-classification step that raises `ValueError(f'Unrecognized QDP line: {line}')`.\n- The location of the existing QDP tests: **unknown**.\n\n## Code Style\n\nUnknown from the issue. Follow the existing conventions in `astropy.io.ascii.qdp` and astropy's contributor guidelines, which have not been seen. No snippet is provided here, so as not to invent code.\n\n## Testing Strategy\n\n- **Framework:** assumed to be pytest, as used by astropy (unconfirmed).\n- **Location:** alongside the existing `ascii.qdp` tests (path unknown).\n\n**Unit tests (reader):**\n- The issue's exact file (`read serr 1 2` plus one data row) reads successfully and produces the expected columns and values.\n- Mixed-case variants (`Read Serr 1 2`, `READ serr 1 2`) produce a table identical to the upper-case version.\n- `read terr ...` in lower case behaves identically to `READ TERR ...`.\n- Upper-case input still produces identical results (regression).\n\n**Round-trip test:**\n- Write a table with errors using the writer, convert the command lines to lower case, read it back, and check equality with the original.\n\n**Negative test:**\n- Genuinely unrecognized lines still raise `ValueError: Unrecognized QDP line: ...`. Case-insensitivity must not make the parser accept garbage.\n\n**Coverage:** every command form the reader recognizes is tested in at least one non-upper-case variant.\n\n## Boundaries\n\n**Always:**\n- Keep upper-case parsing behavior unchanged.\n- Add regression tests for the lower-case case from the issue.\n- Run the existing `io.ascii` test suite before committing.\n- Add a changelog entry if the project requires one (format unknown).\n\n**Ask first:**\n- Changing writer output case.\n- Extending case-insensitivity to non-command tokens such as `NO` missing-value markers or `NaN`.\n- Changing the public reader API or adding new options, such as a strict-case flag.\n\n**Never:**\n- Silently accept lines that QDP itself would reject.\n- Remove or weaken existing tests.\n- Change the error message text for genuinely unrecognized lines without approval.\n\n## Success Criteria\n\n1. `Table.read('test.qdp', format='ascii.qdp')` on the issue's file returns a `Table` without raising. The table has a data column and a symmetric-error column for each of columns 1 and 2, with values `1`, `0.5`, `1`, `0.5`. The exact column names follow existing reader conventions.\n2. For every command the reader supports (at minimum `READ SERR` and `READ TERR`), lower-case and mixed-case forms produce a `Table` identical to the upper-case form.\n3. All existing `ascii.qdp` tests pass unchanged.\n4. Lines that are not valid QDP commands or data still raise `ValueError: Unrecognized QDP line: ...`.\n5. Writer output is byte-for-byte unchanged.\n\n## Open Questions\n\n1. Which commands does the reader currently recognize besides `READ SERR` and `READ TERR`? All of them should become case-insensitive. Please confirm the full list.\n2. Should the `NO` missing-value marker also be accepted as `no` or `No`? Is that how QDP itself behaves?\n3. Should other case-sensitive tokens be accepted in any case, such as `NaN`/`nan` and exponent markers (`e` vs `E`), or is this out of scope?\n4. Should the writer continue emitting upper-case commands? (Assumed yes.)\n5. Which version or branch should receive the fix, and should it be backported to a 5.x maintenance release?\n6. What are the exact test, lint and changelog commands and locations for this repository?\n7. Are there other QDP behaviors that differ from the `qdp` tool and should be tracked separately rather than handled here, for example command abbreviations like `rea ser`?",
+ "ttft_ms": 3497,
+ "type": "result",
+ "duration_ms": 27973,
+ "uuid": "e2a76412-99a3-48e5-84b1-87f98bfb66e0",
+ "ttft_stream_ms": 1027,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 174,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1027,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

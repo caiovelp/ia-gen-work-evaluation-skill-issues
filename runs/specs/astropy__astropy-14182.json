@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27062,
+ "stop_reason": "end_turn",
+ "session_id": "fd0f8228-9521-4e96-9362-538af75321a5",
+ "total_cost_usd": 0.06504650000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1376,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2648,
+  "output_tokens_details": {
+   "thinking_tokens": 201
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1376,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2648,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1376,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1376
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1967,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002077,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2648,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1376,
+   "webSearchRequests": 0,
+   "costUSD": 0.0648388,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 201,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Support `header_rows` in the RestructuredText (`ascii.rst`) writer\n\n## Assumptions\n\n1. The `header_rows` keyword should behave the same way in `ascii.rst` as it already does in `ascii.fixed_width`. The issue shows `header_rows=[\"name\", \"unit\"]` working there and producing one header line per requested attribute.\n2. The `RST` writer is related to the fixed-width writer family, since both produce aligned, column-separated output. The exact class relationship is **unknown** because the source is not visible.\n3. In the expected RST output, all header rows sit between the top `=` border line and the second `=` border line, in the order given. Example:\n   ```\n   ===== ========\n    wave response\n      nm       ct\n   ===== ========\n   350.0      0.7\n   950.0      1.2\n   ===== ========\n   ```\n4. Column widths are computed over all header rows and all data values. A unit string longer than the name or the data therefore widens the column, including its `=` borders.\n5. Default behaviour without `header_rows` must stay byte-for-byte identical to current output. The implicit default is equivalent to `[\"name\"]`.\n6. The `ascii.rst` reader is in scope only for round-trip symmetry. This is to be confirmed (see Open Questions).\n7. Unit strings are rendered the same way as in `ascii.fixed_width`. For example, `u.count` renders as `ct`.\n\n## Objective\n\nUsers who generate documentation from astropy tables want RST \"simple table\" output that includes extra header lines, such as units. Today the following call fails:\n\n```python\ntbl.write(sys.stdout, format=\"ascii.rst\", header_rows=[\"name\", \"unit\"])\n```\n\nIt raises `TypeError: RST.__init__() got an unexpected keyword argument 'header_rows'`. The equivalent `ascii.fixed_width` call works.\n\n**User story:** As a user writing a `Table`/`QTable` to RST, I can pass `header_rows` so that the header shows column names and other attributes such as units. The result must be valid RST that renders correctly in docs.\n\n**Acceptance criteria:**\n\n- `tbl.write(..., format=\"ascii.rst\", header_rows=[\"name\", \"unit\"])` no longer raises. It produces output matching Assumption 3 for the issue's example table.\n- `header_rows=[\"name\"]` produces output identical to omitting `header_rows`.\n- Omitting `header_rows` produces output identical to the current behaviour shown in the issue.\n- Other header row attributes accepted by `ascii.fixed_width` (e.g. `dtype`, `format`, `description`, if supported there) are accepted with the same semantics.\n- Border lines (`=`) are sized to the widest cell across all header rows and data.\n\n## Tech Stack\n\n- Python, astropy (`astropy.io.ascii`, `astropy.table`, `astropy.units`).\n- Supported Python and astropy versions: **unknown**.\n\n## Commands\n\nAll commands are **unknown** because the repository is not visible. Fill these in from the project's contributor docs:\n\n- Build: unknown\n- Test: unknown (likely pytest-based; exact invocation unknown)\n- Lint: unknown\n\n## Project Structure\n\nOnly these locations are known, from the traceback (installed paths under `astropy/`):\n\n- `astropy/io/ascii/core.py`: `_get_writer`, which instantiates `Writer(**writer_kwargs)`\n- `astropy/io/ascii/ui.py`: `write`, `get_writer`\n- `astropy/io/ascii/connect.py`: `io_write`\n- `astropy/table/connect.py`, `astropy/io/registry/core.py`: unified I/O dispatch\n\nThe following locations are **unknown**:\n\n- The module defining the `RST` class.\n- The module defining the fixed-width writer's `header_rows` handling.\n- The location of the test files for `ascii.rst`.\n\n## Code Style\n\nUnknown. Follow the conventions of the existing `RST` and fixed-width writer code. Mirror the existing `header_rows` keyword name and semantics exactly; do not introduce a new parameter name.\n\n## Testing Strategy\n\n- **Framework:** the existing `astropy.io.ascii` test suite. The framework and location are **unknown** (presumably pytest).\n- **Unit tests for the RST writer:**\n  - The issue's example table with `header_rows=[\"name\", \"unit\"]`, checked against the expected exact string.\n  - No `header_rows`, checked as a regression test against current output.\n  - `header_rows=[\"name\"]`, checked to be identical to the default.\n  - A unit or attribute string wider than the name and data, verifying that column and border widths expand.\n  - At least one other attribute (e.g. `dtype`) if `fixed_width` supports it.\n- **Round-trip test (if the reader is in scope):** write with `header_rows=[\"name\", \"unit\"]` and read back with the same `header_rows`. Names and units should be preserved.\n- **Optional:** confirm the produced text is valid RST, for example by parsing it with docutils if that is already a test dependency. Whether it is a dependency is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep default `ascii.rst` output unchanged.\n  - Match the `ascii.fixed_width` `header_rows` semantics.\n  - Add tests for every new behaviour.\n- **Ask first:**\n  - Changing the `RST` class hierarchy or the shared fixed-width base behaviour that other formats depend on.\n  - Adding the feature to the reader.\n  - Adding new dependencies, such as docutils for validation.\n  - Changing the fast writer path.\n- **Never:**\n  - Change the output of other formats (`fixed_width`, `fixed_width_two_line`, etc.).\n  - Remove or loosen existing tests.\n  - Silently ignore an unsupported `header_rows` value.\n\n## Success Criteria\n\n- The issue's reproduction prints the table with the `wave`/`response` names line and the `nm`/`ct` units line between the first two `=` borders, followed by the data and the closing border. It does not raise `TypeError`.\n- All existing `ascii.rst` and fixed-width tests pass unchanged.\n- The new tests listed in the Testing Strategy pass.\n- A changelog or what's-new entry is added, if that is the project convention (convention **unknown**).\n\n## Open Questions\n\n1. Is the exact layout in Assumption 3 correct? Specifically, should all header rows sit inside the top two `=` borders, with no separator between the name row and the unit row?\n2. Should the `ascii.rst` **reader** also accept `header_rows`, so that a written table can be read back with units? Or is this a writer-only change?\n3. What should happen with missing attributes, for example a column without a unit? Should the cell be blank, as presumably in `fixed_width`?\n4. Should the feature also be documented in the `ascii.rst` format docs or examples, and where do those docs live?\n5. How should header cell alignment be handled? The current output shows names right-aligned with a leading space (` wave`). Should unit rows follow the same alignment as names, or as data?\n6. Are there other `fixed_width`-derived formats lacking `header_rows` that should be fixed at the same time, or is the scope strictly `ascii.rst`?\n7. What are the project's test, build, and changelog commands and conventions?",
+ "ttft_ms": 2858,
+ "type": "result",
+ "duration_ms": 26499,
+ "uuid": "581b2e87-c619-4878-8f4d-ac03c7b47395",
+ "ttft_stream_ms": 972,
+ "time_to_request_ms": 261,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 221,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 198,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 972,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

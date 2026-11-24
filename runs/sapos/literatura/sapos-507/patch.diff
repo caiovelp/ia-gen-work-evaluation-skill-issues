@@ -1,0 +1,81 @@
+diff --git a/app/controllers/admissions/admission_phases_controller.rb b/app/controllers/admissions/admission_phases_controller.rb
+index 04ddc077..cadbbbae 100644
+--- a/app/controllers/admissions/admission_phases_controller.rb
++++ b/app/controllers/admissions/admission_phases_controller.rb
+@@ -17,7 +17,7 @@ class Admissions::AdmissionPhasesController < ApplicationController
+     form_columns = [
+       :name, :member_form, :shared_form, :consolidation_form, :candidate_form, :can_edit_candidate,
+       :candidate_can_edit, :candidate_can_see_member, :candidate_can_see_shared,
+-      :candidate_can_see_consolidation,
++      :candidate_can_see_consolidation, :committee_can_see_members,
+       :approval_condition, :keep_in_phase_condition, :admission_phase_committees,
+     ]
+ 
+diff --git a/app/models/admissions/admission_phase.rb b/app/models/admissions/admission_phase.rb
+index 6506145f..f1d00f98 100644
+--- a/app/models/admissions/admission_phase.rb
++++ b/app/models/admissions/admission_phase.rb
+@@ -246,8 +246,12 @@ class Admissions::AdmissionPhase < ActiveRecord::Base
+         ) && (phase_form[:mode] == :candidate)
+       end
+       if committee_permission_user.present?
+-        next false if phase_form[:mode] == :member && phase_form[:user_id] != committee_permission_user.id
+-        if phase_form[:mode] == :candidate
++        is_other_member = phase_form[:mode] == :member &&
++          phase_form[:user_id] != committee_permission_user.id
++        next false if is_other_member && !self.committee_can_see_members
++        if is_other_member
++          can_edit_form = false
++        elsif phase_form[:mode] == :candidate
+           can_edit_form = can_edit_override || current_phase.try(:can_edit_candidate)
+         end
+       end
+diff --git a/config/locales/admissions/admission_phase.pt-BR.yml b/config/locales/admissions/admission_phase.pt-BR.yml
+index cc880776..f89f351c 100644
+--- a/config/locales/admissions/admission_phase.pt-BR.yml
++++ b/config/locales/admissions/admission_phase.pt-BR.yml
+@@ -21,6 +21,7 @@ pt-BR:
+         candidate_can_edit: "Candidato pode editar"
+         candidate_can_see_member: "Candidato pode ver preenchimento de formulário individual"
+         candidate_can_see_shared: "Candidato pode ver preenchimento de formulário compartilhado"
++        committee_can_see_members: "Membros do comitê podem ver notas individuais dos outros membros"
+         candidate_can_see_consolidation: "Candidato pode ver preenchimento de consolidação"
+     models:
+       admissions/admission_phase:
+diff --git a/db/migrate/20241210000000_add_committee_can_see_members_to_admission_phases.rb b/db/migrate/20241210000000_add_committee_can_see_members_to_admission_phases.rb
+new file mode 100644
+index 00000000..039fffd3
+--- /dev/null
++++ b/db/migrate/20241210000000_add_committee_can_see_members_to_admission_phases.rb
+@@ -0,0 +1,10 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class AddCommitteeCanSeeMembersToAdmissionPhases < ActiveRecord::Migration[7.0]
++  def change
++    add_column :admission_phases, :committee_can_see_members, :boolean, default: false, null: false
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 489b3ff4..673ce316 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_12_08_052442) do
++ActiveRecord::Schema[7.0].define(version: 2024_12_10_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -128,6 +128,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_12_08_052442) do
+     t.boolean "candidate_can_see_member", default: false, null: false
+     t.boolean "candidate_can_see_shared", default: false, null: false
+     t.boolean "candidate_can_see_consolidation", default: false, null: false
++    t.boolean "committee_can_see_members", default: false, null: false
+     t.index ["approval_condition_id"], name: "index_admission_phases_on_approval_condition_id"
+     t.index ["candidate_form_id"], name: "index_admission_phases_on_candidate_form_id"
+     t.index ["consolidation_form_id"], name: "index_admission_phases_on_consolidation_form_id"

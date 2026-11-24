@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6012,
+ "stop_reason": "end_turn",
+ "session_id": "c6480b05-bad2-4ab6-aa58-8c5408a009b2",
+ "total_cost_usd": 0.0191836,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1097,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 513,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1097,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 513,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1097,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1097
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1306,
+   "outputTokens": 18,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001396,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 513,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1097,
+   "webSearchRequests": 0,
+   "costUSD": 0.019044,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nThe pretty printer misaligns the summand of a `Sum` with an expression added to it. For `Sum(x, (x, 1, oo)) + 3`, the summand `x` and the `+ 3` end up on different lines when they should share one baseline.\n\n## Steps to reproduce\n1. In an interactive session with `pprint`, `Sum`, `x` and `oo` available, run:\n   ```python\n   >>> pprint(Sum(x, (x, 1, oo)) + 3)\n   ```\n2. Compare the line holding the summand `x` with the line holding `+ 3`.\n\n## Observed behavior\nThe summand `x` is printed one line above the `+ 3`:\n```\n  \u221e\n ___\n \u2572\n  \u2572   x\n  \u2571     + 3\n \u2571\n \u203e\u203e\u203e\nx = 1\n```\n\n## Expected behavior\nThe summand `x` and the `+ 3` should be vertically aligned on the same line. The reporter is not sure whether the `x` should move down or the `+ 3` should move up.\n\n## Stack trace / error output\nNot provided in the original report. No error is raised; the problem is the formatting of the output.\n\n## Test case\nMinimal reproduction based on the report:\n```python\npprint(Sum(x, (x, 1, oo)) + 3)\n```\nIn the output, the summand `x` and the `+ 3` should appear on the same line.\n\n## Code example\n```python\n>>> pprint(Sum(x, (x, 1, oo)) + 3)\n```\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 5200,
+ "type": "result",
+ "duration_ms": 5273,
+ "uuid": "b8e6a22a-87c4-418c-9655-13adaef43526",
+ "ttft_stream_ms": 1380,
+ "time_to_request_ms": 282,
+ "time_to_request_phases_ms": {
+  "other": 21,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 17,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 206,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 312,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1381,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

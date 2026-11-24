@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 37267,
+ "stop_reason": "end_turn",
+ "session_id": "2173f08b-63d7-4e56-a352-98946816e153",
+ "total_cost_usd": 0.09168090000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1340,
+  "cache_read_input_tokens": 4361,
+  "output_tokens": 3994,
+  "output_tokens_details": {
+   "thinking_tokens": 517
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1340,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3994,
+    "cache_read_input_tokens": 4361,
+    "cache_creation_input_tokens": 1340,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1340
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1917,
+   "outputTokens": 18,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020070000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3994,
+   "cacheReadInputTokens": 4361,
+   "cacheCreationInputTokens": 1340,
+   "webSearchRequests": 0,
+   "costUSD": 0.09148020000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 517,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1340,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Aplicar a expira\u00e7\u00e3o do documento (`Report#expires_at`) na decis\u00e3o de download\n\n## Objetivo\n\nHoje um documento gerado pelo SAPOS (`Report`) s\u00f3 deixa de ser baix\u00e1vel depois que a rotina di\u00e1ria `maintenance:remove_expired_reports` zera `carrierwave_file_id`. Entre o vencimento e a pr\u00f3xima execu\u00e7\u00e3o do cron, que pode levar at\u00e9 um dia, o PDF continua sendo servido, embora o pr\u00f3prio rodap\u00e9 diga \"v\u00e1lido at\u00e9 DD/MM/AAAA\".\n\nO objetivo \u00e9 que a regra de neg\u00f3cio \"documento vencido n\u00e3o \u00e9 servido\" fique na decis\u00e3o de download (`ReportsController#cant_download?`), e n\u00e3o na rotina de limpeza. A partir disso:\n\n- Um documento vencido passa a exibir a tela `reports/expired_or_invalid_report`, j\u00e1 criada na #510, assim que vence, sem depender do cron.\n- A rotina `maintenance:remove_expired_reports` passa a ser s\u00f3 limpeza de armazenamento.\n- O que o PDF afirma e o que o sistema faz deixam de divergir.\n\n**Usu\u00e1rios afetados:** quem baixa documentos gerados pelo SAPOS. Quem exatamente pode baixar (usu\u00e1rios autenticados, terceiros com link ou c\u00f3digo de valida\u00e7\u00e3o) n\u00e3o est\u00e1 informado na issue.\n\n**Rela\u00e7\u00e3o com outras issues:** complementa a #510, que definiu a tela de documento expirado ou invalidado. Esta issue trata da **condi\u00e7\u00e3o** que decide quando mostrar essa tela.\n\n**Hist\u00f3rias de usu\u00e1rio / crit\u00e9rios de aceita\u00e7\u00e3o:**\n\n- Como usu\u00e1rio, ao tentar baixar um documento cujo `expires_at` j\u00e1 passou, vejo a tela de documento expirado ou invalidado, mesmo que o arquivo ainda exista no armazenamento.\n- Como usu\u00e1rio, ao baixar um documento dentro da validade, recebo o arquivo normalmente.\n- Como usu\u00e1rio, ao tentar baixar um documento invalidado manualmente (`Report#invalidate!`) ou sem arquivo, continuo vendo a mesma tela de hoje.\n\n## Premissas\n\n1. A aplica\u00e7\u00e3o \u00e9 Rails, inferido de `ReportsController`, `lib/tasks/maintenance.rake`, views em `reports/` e da men\u00e7\u00e3o ao \"404 do Rails\".\n2. O arquivo \u00e9 gerenciado via CarrierWave, inferido de `carrierwave_file` e `carrierwave_file_id`. A biblioteca e a vers\u00e3o exatas s\u00e3o desconhecidas.\n3. O framework de testes \u00e9 RSpec, inferido do pedido de \"spec de request\". A exist\u00eancia e a localiza\u00e7\u00e3o de `spec/requests/` n\u00e3o foram confirmadas.\n4. `cant_download?` \u00e9 o \u00fanico ponto de decis\u00e3o que leva \u00e0 view `reports/expired_or_invalid_report`. Todo caminho de download de `Report` passa por ele.\n5. A view `reports/expired_or_invalid_report` j\u00e1 trata os casos expirado e invalidado e n\u00e3o precisa ser alterada.\n6. Um `Report` com `expires_at` nulo \u00e9 considerado sem expira\u00e7\u00e3o e continua baix\u00e1vel se tiver arquivo. Isso precisa ser confirmado (ver Perguntas em Aberto).\n7. Um documento \u00e9 considerado vencido quando o instante atual \u00e9 posterior a `expires_at`. A sem\u00e2ntica exata da fronteira est\u00e1 em aberto.\n8. A rotina `maintenance:remove_expired_reports` continua existindo e continua apagando arquivos de documentos vencidos. S\u00f3 deixa de ser a respons\u00e1vel pela regra de neg\u00f3cio.\n9. A listagem de documentos, que exibe `expires_at`, est\u00e1 fora do escopo.\n\n## Stack Tecnol\u00f3gica\n\n- Ruby on Rails (premissa). Vers\u00e3o: N\u00e3o informado na issue original.\n- CarrierWave (premissa). Vers\u00e3o: N\u00e3o informado na issue original.\n- RSpec para specs de request (premissa). Vers\u00e3o: N\u00e3o informado na issue original.\n- Ferramenta de controle de tempo nos testes (por exemplo, helpers de tempo do Rails): N\u00e3o informado na issue original.\n\n## Comandos\n\nN\u00e3o informado na issue original.\n\n- Build: desconhecido\n- Testes: desconhecido (presumivelmente RSpec, mas o comando exato n\u00e3o est\u00e1 na issue)\n- Lint: desconhecido\n- Dev: desconhecido\n- Rotina de manuten\u00e7\u00e3o: a task `maintenance:remove_expired_reports` \u00e9 citada, mas a forma exata de invoca\u00e7\u00e3o (por exemplo, via `rake` ou `bin/rails`) e o agendamento do cron s\u00e3o desconhecidos.\n\n## Estrutura do Projeto\n\nArquivos e artefatos citados na issue:\n\n```\nReportsController                          \u2192 cont\u00e9m #cant_download? (caminho do arquivo n\u00e3o informado)\nReport (model)                             \u2192 expires_at, carrierwave_file, carrierwave_file_id, #invalidate!\nreports/expired_or_invalid_report          \u2192 view exibida para documento expirado/invalidado (#510)\nlib/tasks/maintenance.rake                 \u2192 task maintenance:remove_expired_reports\n```\n\nLocal dos specs de request: desconhecido. Presumivelmente um diret\u00f3rio de specs do RSpec, mas n\u00e3o confirmado.\n\n## Estilo de C\u00f3digo\n\n\u00danico trecho dispon\u00edvel na issue, que mostra o estado atual:\n\n```ruby\ndef cant_download?(record)\n  record.carrierwave_file.blank?\nend\n```\n\nConven\u00e7\u00f5es gerais de nomenclatura, formata\u00e7\u00e3o e linter: N\u00e3o informado na issue original.\n\n## Estrat\u00e9gia de Testes\n\n- **N\u00edvel:** spec de request, que hoje n\u00e3o existe, cobrindo o fluxo de download de `Report`.\n- **Cen\u00e1rios m\u00ednimos, pedidos na issue:**\n  - Documento vencido (`expires_at` no passado) **com arquivo presente**: exibe `reports/expired_or_invalid_report` e n\u00e3o serve o arquivo.\n  - Documento n\u00e3o vencido (`expires_at` no futuro) com arquivo presente: serve o arquivo.\n- **Cen\u00e1rios recomendados, como regress\u00e3o e fronteira:**\n  - Documento invalidado via `Report#invalidate!`: continua exibindo a tela.\n  - Documento sem arquivo (`carrierwave_file` em branco): continua exibindo a tela.\n  - Documento com `expires_at` nulo: comportamento conforme a resposta \u00e0s Perguntas em Aberto.\n  - Fronteira de vencimento, no \u00faltimo dia de validade e no instante logo ap\u00f3s: conforme a sem\u00e2ntica definida.\n- **Controle de tempo:** os testes devem fixar o \"agora\" para n\u00e3o ficarem inst\u00e1veis. A ferramenta \u00e9 desconhecida.\n- **Cobertura m\u00ednima exigida:** N\u00e3o informado na issue original.\n\n## Limites\n\n- **Sempre:**\n  - Manter a decis\u00e3o de download centralizada em `cant_download?`.\n  - Manter o comportamento atual para documentos invalidados e documentos sem arquivo.\n  - Rodar a su\u00edte de testes antes de commitar.\n- **Perguntar antes:**\n  - Alterar a sem\u00e2ntica ou o tipo de `expires_at`, incluindo migra\u00e7\u00f5es.\n  - Mudar o comportamento da rotina `maintenance:remove_expired_reports` al\u00e9m do necess\u00e1rio para alinh\u00e1-la \u00e0 mesma regra.\n  - Alterar a view `reports/expired_or_invalid_report` ou o status HTTP da resposta.\n  - Adicionar depend\u00eancias, por exemplo para controle de tempo nos testes.\n- **Nunca:**\n  - Servir um documento cujo `expires_at` j\u00e1 passou.\n  - Remover a rotina de manuten\u00e7\u00e3o sem aprova\u00e7\u00e3o.\n  - Remover ou desativar testes existentes que falhem sem aprova\u00e7\u00e3o.\n\n## Crit\u00e9rios de Sucesso\n\n1. Uma requisi\u00e7\u00e3o de download de um `Report` com `expires_at` no passado e `carrierwave_file` presente exibe `reports/expired_or_invalid_report` e n\u00e3o entrega o arquivo, sem qualquer execu\u00e7\u00e3o do cron.\n2. Uma requisi\u00e7\u00e3o de download de um `Report` com `expires_at` no futuro e arquivo presente entrega o arquivo normalmente.\n3. Documentos invalidados (`Report#invalidate!`) e documentos sem arquivo continuam exibindo a mesma tela de hoje.\n4. A fronteira de vencimento \u00e9 coerente com o texto impresso no PDF (\"v\u00e1lido at\u00e9 DD/MM/AAAA\"), conforme a sem\u00e2ntica definida nas Perguntas em Aberto.\n5. A rotina `maintenance:remove_expired_reports` continua removendo arquivos vencidos, e sua defini\u00e7\u00e3o de \"vencido\" \u00e9 a mesma usada em `cant_download?`.\n6. Existe uma spec de request cobrindo pelo menos os casos vencido e n\u00e3o vencido, e ela passa.\n7. A su\u00edte de testes existente continua passando.\n\n## Perguntas em Aberto\n\n1. **Sem\u00e2ntica da fronteira:** \"v\u00e1lido at\u00e9 DD/MM/AAAA\" inclui o dia inteiro? `expires_at` \u00e9 data ou data e hora? O documento deve vencer em `expires_at` exato ou s\u00f3 no fim do dia exibido?\n2. **Fuso hor\u00e1rio:** a compara\u00e7\u00e3o deve usar o fuso configurado da aplica\u00e7\u00e3o? O fuso do PDF \u00e9 o mesmo usado na compara\u00e7\u00e3o?\n3. **`expires_at` nulo:** existem documentos sem data de expira\u00e7\u00e3o? Se existirem, devem ser sempre baix\u00e1veis?\n4. **Consist\u00eancia com o cron:** a rotina usa hoje a mesma condi\u00e7\u00e3o de vencimento? Se a condi\u00e7\u00e3o for diferente, deve ser alinhada nesta issue ou em outra?\n5. **Outros caminhos de download:** h\u00e1 outros pontos que servem o arquivo de `Report` (por exemplo, valida\u00e7\u00e3o p\u00fablica por c\u00f3digo ou QR code, API) sem passar por `cant_download?`?\n6. **Status HTTP:** qual status a tela `reports/expired_or_invalid_report` deve retornar, por exemplo 200, 404 ou 410? A spec de request deve verificar o status ou s\u00f3 o template renderizado?\n7. **Listagem:** a listagem deve passar a sinalizar visualmente documentos vencidos, ou isso fica fora do escopo?\n8. **Ambiente de testes:** qual o comando para rodar os testes, onde ficam as specs de request e qual ferramenta de controle de tempo j\u00e1 \u00e9 usada no projeto?",
+ "ttft_ms": 7459,
+ "type": "result",
+ "duration_ms": 36840,
+ "uuid": "f973b6c7-3b97-4a1a-88d1-874591579a64",
+ "ttft_stream_ms": 1600,
+ "time_to_request_ms": 386,
+ "time_to_request_phases_ms": {
+  "other": 4,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 26,
+  "input_hooks": 3,
+  "conversation_append": 0,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "init_frame_send": 4,
+  "engine_pickup": 2,
+  "loop_entry": 4,
+  "message_prep": 1,
+  "model_config_wait": 311,
+  "autocompact": 1,
+  "request_announcements": 5,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 33,
+ "time_to_request_cpu_ms": 257,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 61,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 5,
+  "render_ms": 15,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 1,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 0,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1600,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

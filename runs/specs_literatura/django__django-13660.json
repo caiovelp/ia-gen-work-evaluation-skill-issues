@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14935,
+ "stop_reason": "end_turn",
+ "session_id": "133959f8-c070-4eff-bea1-828310e29bc0",
+ "total_cost_usd": 0.0484531,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1893,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1654,
+  "output_tokens_details": {
+   "thinking_tokens": 259
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1893,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1654,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1893,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1893
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2106,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002211,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1654,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1893,
+   "webSearchRequests": 0,
+   "costUSD": 0.048232,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 259,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`python -m django shell -c` raises `NameError` when the passed Python code defines a function that uses a name imported at the top level of that same code. The same code runs correctly with plain `python -c`.\n\n## Steps to reproduce\n\n1. Use Python 3.7 and Django 2.2.16. The reporter says the relevant code is the same on master and behaves the same on Python 3.8.\n2. For comparison, run the snippet with plain Python:\n   ```bash\n   $ python -c <<EOF \"\n   import django\n   def f():\n       print(django.__version__)\n   f()\"\n   EOF\n   ```\n   It prints `2.2.16`.\n3. Run the same snippet through Django's `shell` command:\n   ```bash\n   $ python -m django shell -c <<EOF \"\n   import django\n   def f():\n       print(django.__version__)\n   f()\"\n   EOF\n   ```\n4. The command crashes with `NameError: name 'django' is not defined`.\n\n## Observed behavior\n\n`python -m django shell -c` raises `NameError: name 'django' is not defined`. The error comes from inside function `f`, even though `django` was imported at the top of the same code.\n\n## Expected behavior\n\n`python -m django shell -c` should behave like `python -c`. The function should see the module-level import, and the command should print the Django version (`2.2.16`).\n\n## Stack trace / error output\n\nPaths were shortened by the reporter.\n\n```\nTraceback (most recent call last):\n  File \"{sys.base_prefix}/lib/python3.7/runpy.py\", line 193, in _run_module_as_main\n    \"__main__\", mod_spec)\n  File \"{sys.base_prefix}/lib/python3.7/runpy.py\", line 85, in _run_code\n    exec(code, run_globals)\n  File \"{sys.prefix}/lib/python3.7/site-packages/django/__main__.py\", line 9, in <module>\n    management.execute_from_command_line()\n  File \"{sys.prefix}/lib/python3.7/site-packages/django/core/management/__init__.py\", line 381, in execute_from_command_line\n    utility.execute()\n  File \"{sys.prefix}/lib/python3.7/site-packages/django/core/management/__init__.py\", line 375, in execute\n    self.fetch_command(subcommand).run_from_argv(self.argv)\n  File \"{sys.prefix}/lib/python3.7/site-packages/django/core/management/base.py\", line 323, in run_from_argv\n    self.execute(*args, **cmd_options)\n  File \"{sys.prefix}/lib/python3.7/site-packages/django/core/management/base.py\", line 364, in execute\n    output = self.handle(*args, **options)\n  File \"{sys.prefix}/lib/python3.7/site-packages/django/core/management/commands/shell.py\", line 86, in handle\n    exec(options['command'])\n  File \"<string>\", line 5, in <module>\n  File \"<string>\", line 4, in f\nNameError: name 'django' is not defined\n```\n\n## Test case\n\nThis is a minimal input for `shell -c`. It should print the Django version, but it currently raises `NameError`:\n\n```python\nimport django\ndef f():\n    print(django.__version__)\nf()\n```\n\nRun it with:\n\n```bash\npython -m django shell -c \"<code above>\"\n```\n\n## Code example\n\nThe reporter points to the use of `exec` in the `handle` method of `django/core/management/commands/shell.py`. Both the `-c` command and the stdin input are passed to `exec`:\n\n```python\ndef handle(self, **options):\n    # Execute the command and exit.\n    if options['command']:\n        exec(options['command'])\n        return\n    # Execute stdin if it has anything to read and exit.\n    # Not supported on Windows due to select.select() limitations.\n    if sys.platform != 'win32' and not sys.stdin.isatty() and select.select([sys.stdin], [], [], 0)[0]:\n        exec(sys.stdin.read())\n        return\n```\n\n## Version and environment\n\n- Django 2.2.16. The reporter says the code is the same on master.\n- Python 3.7. The reporter says behavior is the same on Python 3.8.\n- Commands were run from a shell using heredoc input. The OS is not provided in the original report.",
+ "ttft_ms": 4294,
+ "type": "result",
+ "duration_ms": 14429,
+ "uuid": "b67a9024-86f8-4569-8a89-919a412b487c",
+ "ttft_stream_ms": 1533,
+ "time_to_request_ms": 329,
+ "time_to_request_phases_ms": {
+  "other": 25,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 253,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 365,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1534,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

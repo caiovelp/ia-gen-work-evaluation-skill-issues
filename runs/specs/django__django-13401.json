@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30918,
+ "stop_reason": "end_turn",
+ "session_id": "dc8b8e12-e95a-4740-b727-a273f133cd19",
+ "total_cost_usd": 0.0679347,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 997,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2946,
+  "output_tokens_details": {
+   "thinking_tokens": 79
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 997,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2946,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 997,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 997
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1584,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016790000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2946,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 997,
+   "webSearchRequests": 0,
+   "costUSD": 0.0677668,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 79,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fields Inherited from an Abstract Model Must Not Compare Equal Across Concrete Models\n\n## Objective\n\nWhen a concrete model inherits a field from an abstract base model, Django gives each concrete model its own copy of that field. Today those copies compare equal and hash identically, because field comparison uses only `self.creation_counter`. Copies made from the same abstract field share that counter.\n\nReproduction from the issue:\n\n```python\nclass A(models.Model):\n    class Meta:\n        abstract = True\n    myfield = IntegerField()\n\nclass B(A):\n    pass\n\nclass C(A):\n    pass\n\nB._meta.get_field('myfield') == C._meta.get_field('myfield')                 # currently True\nlen({B._meta.get_field('myfield'), C._meta.get_field('myfield')}) == 1       # currently True\n```\n\n**Goal:** Field identity should account for the model the field is attached to. Fields from different models then stay distinct in sets and dicts and compare unequal. Existing orderings of fields that do not hit this collision must not change.\n\n**Users:** Developers and Django internals that collect fields from several models into sets, dict keys, or sorted sequences. Examples include introspection tools, migrations tooling and admin utilities.\n\n**Acceptance criteria / user stories:**\n- As a developer, if I put `B._meta.get_field('myfield')` and `C._meta.get_field('myfield')` into one set, I get two elements.\n- As a developer, `B._meta.get_field('myfield') != C._meta.get_field('myfield')`.\n- As a developer, sorting fields gives the same order as today for every pair whose `creation_counter` values differ.\n\n## Assumptions\n\n1. The affected code is the base field class in Django's ORM (`django.db.models.Field`), specifically `__eq__`, `__hash__` and `__lt__`. The exact file path is not given in the issue and is treated as unknown here.\n2. A field may have no `model` attribute yet, for example on an abstract model before `contribute_to_class`, or as a standalone unbound field. Comparison must still work in that state and must not raise.\n3. Two fields count as \"the same model\" only when they have the same `model` object. Comparison by identity or equality of the model class is enough; app label or name matching is not needed.\n4. `creation_counter` stays the primary key for ordering. `model` is only a tie-breaker, as the issue recommends, so that unaffected orderings are preserved.\n5. The tie-breaker for `__lt__` must be deterministic and must not depend on memory addresses. A likely key is the model's app label and model name, but this is a design choice to confirm (see Open Questions).\n6. `__eq__` and `__hash__` stay consistent: equal fields have equal hashes.\n7. Comparing a field with a non-`Field` object keeps its current behaviour, i.e. returns `NotImplemented`. This is assumed and not verified against the source.\n8. Fields within a single model keep comparing as they do today, because their `creation_counter` values already differ.\n9. The change targets the current Django development branch. Backporting is out of scope unless maintainers request it.\n\n## Tech Stack\n\n- Python, Django ORM (`django.db.models` field classes).\n- Exact supported Python and Django versions: **unknown**, not stated in the issue.\n\n## Commands\n\nThe issue does not specify any commands, and the repository is not available.\n\n| Purpose | Command |\n|---|---|\n| Build | Unknown (Django is a pure-Python package; no build step stated) |\n| Test (full) | Unknown, presumably the Django test runner under `tests/` |\n| Test (targeted) | Unknown, the relevant test module or label is not identified |\n| Lint | Unknown |\n\n## Project Structure\n\nUnknown; no repository access. Expected areas, to be confirmed:\n\n```\n<django source>/db/models/fields/  \u2192 Field base class (__eq__, __hash__, __lt__): exact file unknown\n<django tests>/                     \u2192 existing tests for field comparison/ordering: location unknown\n<django docs>/                      \u2192 release notes for behaviour change: location unknown\n```\n\n## Code Style\n\n- Follow Django's existing coding style for the field module. The conventions are not visible here, so no snippet is given.\n- Keep the comparison logic minimal and symmetric across `__eq__`, `__hash__` and `__lt__`.\n- Use a safe lookup for `model`, since the attribute may be absent on unbound fields (Assumption 2).\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The exact runner invocation is unknown.\n- **Unit tests** for the field comparison behaviour should cover:\n  - Abstract-inherited fields on two different concrete models are unequal, hash to distinct values in practice, and both survive in a set.\n  - A field compares equal to itself, and its hash is stable.\n  - Two different fields on the same model keep today's ordering, driven by `creation_counter`.\n  - Fields with equal `creation_counter` but different models get a deterministic, consistent order: `a < b` and `b < a` are never both true, and the order does not vary between runs.\n  - Comparing and hashing works for fields with no `model` attribute, and does not raise.\n  - Comparing with a non-field object behaves as before.\n- **Regression:** the full existing suite must pass. Particular attention goes to the test the reporter saw break when ordering by model first. Which test that was is unknown (see Open Questions).\n- **Coverage expectation:** every new branch in `__eq__`, `__hash__` and `__lt__` is exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Keep `__eq__` and `__hash__` consistent.\n  - Order by `creation_counter` first.\n  - Handle a missing `model` attribute safely.\n  - Add regression tests reproducing the issue example.\n  - Run the full test suite.\n- **Ask first:**\n  - Choosing the tie-breaker key for `__lt__` (e.g. app label and model name, or something else).\n  - Adding a release note or documenting this as a backwards-incompatible change.\n  - Any change to how fields are copied from abstract models.\n  - Touching `Field.__copy__`/`__deepcopy__` or `creation_counter` assignment.\n- **Never:**\n  - Change ordering for fields whose `creation_counter` values differ.\n  - Make ordering depend on `id()` or other non-deterministic values.\n  - Remove or weaken existing tests to make the change pass.\n  - Alter field behaviour unrelated to comparison and hashing.\n\n## Success Criteria\n\n1. `B._meta.get_field('myfield') == C._meta.get_field('myfield')` evaluates to `False` for the issue's example models.\n2. `len({B._meta.get_field('myfield'), C._meta.get_field('myfield')}) == 2`.\n3. For any two fields `f1` and `f2`, if `f1 == f2` then `hash(f1) == hash(f2)`.\n4. For any fields `f1` and `f2` with `f1.creation_counter != f2.creation_counter`, the result of `f1 < f2` is unchanged from the current behaviour.\n5. For fields with equal `creation_counter` on different models, `<` gives a strict, deterministic order.\n6. Comparison and hashing do not raise for fields that are not attached to any model.\n7. The full existing Django test suite passes, including the test the reporter saw break, without modification.\n\n## Open Questions\n\n1. Which existing test broke in the reporter's branch when ordering by model first? It should be identified so it can be explicitly protected.\n2. What tie-breaker should `__lt__` use when `creation_counter` is equal but models differ? App label plus model name is one option. Is another key preferred, and how should a field with no model sort against one that has a model?\n3. Should `__hash__` include the model? Including it gives better set and dict distribution. Keeping `creation_counter` only is still correct, given the inequality, but causes collisions. Is there a concern about the hash changing once a field is attached to a model, e.g. a field placed in a set before `contribute_to_class`?\n4. Should this be documented as a backwards-incompatible change in the release notes? Code that relied on cross-model equality of inherited fields would change behaviour.\n5. Is equality by model identity enough? Or must swapped or proxy models and other edge cases (e.g. the same model class reloaded) be considered?\n6. Which Django version or branch does this target, and is a backport expected?\n7. Do any internal callers, such as migrations autodetector, `Options` field caches, or admin, rely on fields from different models comparing equal? If so, what is expected of them?",
+ "ttft_ms": 1901,
+ "type": "result",
+ "duration_ms": 30175,
+ "uuid": "151720c2-5d2d-4d7b-bfe1-d9e4a0d6f404",
+ "ttft_stream_ms": 1067,
+ "time_to_request_ms": 276,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 273,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1067,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

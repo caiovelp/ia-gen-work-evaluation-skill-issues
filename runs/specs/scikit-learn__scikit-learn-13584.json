@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25575,
+ "stop_reason": "end_turn",
+ "session_id": "daff8ee6-89fb-4a1d-a6c4-57e748e9ab31",
+ "total_cost_usd": 0.05577,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 732,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2445,
+  "output_tokens_details": {
+   "thinking_tokens": 106
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 732,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2445,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 732,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 732
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1317,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001432,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2445,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 732,
+   "webSearchRequests": 0,
+   "costUSD": 0.0556268,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 106,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix `print_changed_only=True` repr crash for array-valued parameters\n\n## Objective\n\nWith `sklearn.set_config(print_changed_only=True)`, printing an estimator whose parameter value is a NumPy array raises an exception instead of producing a repr.\n\n**Reproduction (from the issue):**\n\n```python\nimport sklearn\nimport numpy as np\nfrom sklearn.linear_model import LogisticRegressionCV\nsklearn.set_config(print_changed_only=True)\nprint(LogisticRegressionCV(Cs=np.array([0.1, 1])))\n```\n\n**Observed:**\n`ValueError: The truth value of an array with more than one element is ambiguous. Use a.any() or a.all()`\n\n**Expected:** The estimator prints normally. `Cs` appears in the output because its value differs from the default (`Cs=10`), for example `LogisticRegressionCV(Cs=array([0.1, 1. ]))`. The exact formatting is an open question.\n\n**Likely cause (hypothesis, not verified):** The \"changed only\" logic decides whether to show a parameter by comparing its current value with the constructor default, using something like `value != default` in a boolean context. When the value is a multi-element `ndarray`, that comparison returns an array, and evaluating it as a bool raises the error.\n\n**Users:** Anyone using the new repr with `print_changed_only=True` who passes array-like hyperparameters, such as `Cs`, `alphas`, `class_weight` arrays or `priors`. This includes indirect cases like notebooks, logging, and `repr()` inside error messages.\n\n**Success means:** Printing never crashes because of a parameter's type. Changed parameters are shown and unchanged ones are hidden, as `print_changed_only` intends.\n\n## Assumptions\n\n1. The bug lives in the shared estimator pretty-printing / \"changed parameters\" helper. It is not specific to `LogisticRegressionCV`, so any estimator with an array-valued parameter is affected.\n2. The failing step is the comparison between the current parameter value and the `__init__` default signature value. Array formatting itself is not the problem.\n3. With `print_changed_only=False`, the same estimator prints without error. This is not stated in the issue and needs to be confirmed.\n4. An array-valued parameter should be treated as \"changed\" whenever it is not the default. The default for `Cs` is a scalar (`10`), so any array counts as changed.\n5. The fix must not change repr output for estimators whose parameters are all scalars, strings, `None` or estimators.\n6. NaN defaults, if the current logic handles them specially, must keep working.\n\n## Tech Stack\n\n- Python, NumPy, scikit-learn. Exact supported versions are **unknown** (not in the issue).\n- Global configuration via `sklearn.set_config(print_changed_only=...)`.\n\n## Commands\n\nAll are **unknown**; they are not visible in the issue. These are placeholders to be filled from the repository's contributor docs.\n\n```\nBuild:     unknown\nTest:      unknown (likely a pytest invocation; exact command/flags not confirmed)\nLint:      unknown\n```\n\n## Project Structure\n\n**Unknown.** The file containing the pretty-printer / changed-params logic and its test file are not visible in the issue. They must be located in the repository before implementation.\n\n## Code Style\n\nFollow the existing scikit-learn conventions in the affected module. No code snippet is available from the issue. The style reference is **unknown** until the file is inspected.\n\n## Testing Strategy\n\n- **Level:** Unit tests next to the existing tests for the estimator repr / pretty-printer. The location is unknown.\n- **Regression test:** Reproduce the issue exactly. With `print_changed_only=True`, `repr(LogisticRegressionCV(Cs=np.array([0.1, 1])))` must not raise, and its output must contain `Cs`.\n- **Additional cases to cover:**\n  - Array parameter whose default is a scalar. This is the issue case.\n  - Array parameter whose default is `None`.\n  - Single-element array, which does not raise today but may be compared wrongly.\n  - An unchanged scalar default is still hidden.\n  - NaN-valued parameters keep their current behavior.\n  - The same estimator with `print_changed_only=False` still prints correctly.\n- **Config isolation:** Tests must restore the global config afterward, for example with a config context manager if one exists. Leaking `print_changed_only=True` into other tests must be avoided.\n- **Coverage expectation:** Every newly added branch in the comparison logic is exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after.\n  - Keep repr output unchanged for scalar-only estimators.\n  - Run the existing repr / pretty-print test suite.\n- **Ask first:**\n  - Changing the documented semantics of \"changed\", for example comparing arrays element-wise against array defaults versus treating any array as changed.\n  - Changing how arrays are formatted in the repr.\n  - Touching public API or `set_config` behavior.\n- **Never:**\n  - Silence the error with a blanket `try/except` that hides parameters or prints wrong output.\n  - Special-case `LogisticRegressionCV` or `Cs` only.\n  - Remove or loosen existing repr tests.\n\n## Success Criteria\n\n1. The issue's reproduction script prints without raising.\n2. The output includes `Cs` with its array value.\n3. With `print_changed_only=True`, any estimator with an `ndarray` parameter value whose default is not an equal array prints without error and shows that parameter.\n4. Parameters equal to their defaults remain hidden, including the NaN-default case if currently supported.\n5. All existing repr / pretty-printer tests pass unchanged.\n6. A regression test for this issue exists in the test suite.\n\n## Open Questions\n\n1. **Array vs. array defaults:** If a default value is itself an array and the user passes an equal array, should the parameter be hidden (element-wise equality) or shown (treat arrays as always changed)? Which do maintainers prefer for simplicity?\n2. **Other array-likes:** Should lists, tuples, sparse matrices and pandas objects be handled too, or only `ndarray`? Lists compare fine with `!=`, but sparse and pandas objects may have their own ambiguous-truth behavior.\n3. **Output format:** What exact repr string is expected for the array, e.g. `Cs=array([0.1, 1. ])`? Should long arrays be truncated?\n4. **Affected versions:** Which released versions include the new repr with `print_changed_only`? Does the fix need a changelog entry or a backport?\n5. **Location:** Which module and test file own the changed-params logic? Not visible from the issue.\n6. **Commands:** What are the project's test and lint commands for this area? Unknown.\n7. **Scope check with @NicolasHug:** Should other places that compare parameter values to defaults get the same fix in this change, or in a separate one?",
+ "ttft_ms": 2535,
+ "type": "result",
+ "duration_ms": 25110,
+ "uuid": "895d4210-93e4-48af-aba4-c9cf473f885d",
+ "ttft_stream_ms": 1468,
+ "time_to_request_ms": 388,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 23,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 326,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 296,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 12,
+  "cpu_ms": 30,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1468,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

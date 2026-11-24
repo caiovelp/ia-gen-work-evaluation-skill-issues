@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 24044,
+ "stop_reason": "end_turn",
+ "session_id": "e0480e45-3176-45af-b31d-064e021d996a",
+ "total_cost_usd": 0.05488900000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 912,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2328,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 912,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2328,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 912,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 912
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1502,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001622,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2328,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 912,
+   "webSearchRequests": 0,
+   "costUSD": 0.054726800000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: LaTeX printer \u2014 consistent monomial order for `Poly`\n\n## Assumptions\n\n1. This is the SymPy project, a Python library. The relevant code is the LaTeX printer's handling of `Poly` objects. The exact file and method are **unknown**, because I cannot see the repository.\n2. The expected order is the one the `str` and `pretty` printers already produce for the same `Poly`. That means the polynomial's own term order: descending by degree, or more generally by the Poly's monomial ordering.\n3. The issue output suggests that LaTeX prints the polynomial through a path that loses the Poly's term order. One likely cause is converting it to an `Add` expression and letting the default `Add` ordering apply. This explains the symptom but has not been verified.\n4. The issue shows `pretty(p)` returning a string identical to `str(p)`. I assume this reflects how the reporter's session was configured, and that the pretty printer in normal 2D mode also follows the Poly order.\n5. Only the term order of the polynomial expression should change. The rest of the LaTeX output should stay the same: `\\operatorname{Poly}{\\left( ... \\right)}`, the generator list, and the `domain=` part.\n6. Multivariate Polys should also follow the Poly's term order, which is the ordering `str` uses.\n7. Each term should keep the LaTeX formatting it has today: coefficients (`2 x^{2}`), symbolic coefficients (`a x^{5}`), unit coefficients (`x^{4}`), and constants (`3`).\n\n## Objective\n\nThe LaTeX printer should render the terms of a `Poly` in the same order as the `str` and `pretty` printers: from highest to lowest degree, following the Poly's monomial ordering.\n\n**User:** SymPy users who render polynomials in LaTeX (Jupyter, documentation, papers) and expect that output to match the textual and pretty forms.\n\n**Current behavior (from the issue):**\n```\n>>> var('a b c x')\n>>> p = Poly([a, 1, b, 2, c, 3], x)\n>>> latex(p)\n'\\\\operatorname{Poly}{\\\\left( a x^{5} + b x^{3} + c x + x^{4} + 2 x^{2} + 3, x, domain=\\\\mathbb{Z}\\\\left[a, b, c\\\\right] \\\\right)}'\n```\n\n**Expected behavior:**\n```\n'\\\\operatorname{Poly}{\\\\left( a x^{5} + x^{4} + b x^{3} + 2 x^{2} + c x + 3, x, domain=\\\\mathbb{Z}\\\\left[a, b, c\\\\right] \\\\right)}'\n```\n\n**Acceptance criteria:**\n- `latex(Poly([a, 1, b, 2, c, 3], x))` produces the expected string above.\n- For any `Poly`, the order of terms in `latex(p)` matches the order in `str(p)`.\n- Signs are rendered correctly when coefficients are negative. For example, a Poly such as `Poly([-1, 2, -3], x)` gives `- x^{2} + 2 x - 3`, not `+ -...`.\n- Everything outside the polynomial expression is unchanged: generators, domain, and the wrapping `\\operatorname{Poly}`.\n\n## Tech Stack\n\n- Python, SymPy. The supported Python and SymPy versions are **unknown**.\n- Components involved: the LaTeX printer, the `Poly` class and its term iteration, and `str` printing for reference behavior.\n\n## Commands\n\nAll **unknown**, since I don't have repository access. Presumably:\n- Test: the project's pytest or `bin/test` runner targeting the LaTeX printer tests. The exact command is unknown.\n\n## Project Structure\n\n**Unknown.** Expected locations to confirm:\n- The LaTeX printer module, containing the `Poly` printing method.\n- The LaTeX printer test module.\n- The `str` printer's `Poly` method, as a reference for how terms are iterated in order.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the LaTeX printer module and match the formatting of the existing printing methods. No snippet is available.\n\n## Testing Strategy\n\n- **Unit tests** in the LaTeX printer test module:\n  - The exact reproduction from the issue.\n  - A Poly with negative coefficients, to check sign handling.\n  - A Poly with rational or composite coefficients, such as `(a+b)*x`, to check that coefficients get parentheses where needed.\n  - A multivariate Poly, to check that term order is consistent with `str`.\n  - A Poly with zero coefficients, to check that zero terms are omitted.\n  - A constant-only Poly and the zero Poly.\n- **Regression:** existing LaTeX printer tests involving `Poly` must still pass. If existing expected strings encode the old, inconsistent order, they should be updated, and the change should be called out.\n- **Consistency check (optional):** a test comparing the term sequence of `latex` with that of `str` for several Polys.\n\n## Boundaries\n\n- **Always:** keep LaTeX term formatting consistent with the existing printer conventions, add regression tests for the reported case, and run the full printing test suite.\n- **Ask first:** changing the order used by `str` or `pretty`, changing `Poly`'s public API, changing `latex()` output for non-`Poly` objects (such as `Add` or `PurePoly` beyond the order fix), or adding new printer settings.\n- **Never:** change the global `Add` ordering for LaTeX, alter the `domain=` or generators rendering, or remove or weaken existing tests without justification.\n\n## Success Criteria\n\n1. The issue's reproduction returns `a x^{5} + x^{4} + b x^{3} + 2 x^{2} + c x + 3` inside the Poly wrapper.\n2. For every test Poly, the term order of `latex(p)` equals that of `str(p)`.\n3. Negative, rational, symbolic-compound, zero, and constant coefficients render correctly.\n4. Univariate and multivariate cases are covered.\n5. The existing printing tests pass, and any updated expectations are justified by the order fix.\n\n## Open Questions\n\n1. Should `PurePoly` follow the same rule? I assume yes.\n2. If the user passes `order=` to `latex()`, should it override the Poly's native term order? Or should the Poly's order always win, matching `str`?\n3. Should the pretty printer, in 2D Unicode or ASCII mode, be verified and fixed as part of this issue if it is also inconsistent? Or should that be kept separate?\n4. Are there existing tests whose expected LaTeX strings depend on the current, `Add`-sorted order? If so, is updating them acceptable?\n5. For composite coefficients such as `(a + b)`, what is the expected parenthesization, `\\left(a + b\\right) x`? Should it match the existing `Mul` LaTeX conventions?\n6. Which SymPy versions or branches should get the fix?",
+ "ttft_ms": 23306,
+ "type": "result",
+ "duration_ms": 23326,
+ "uuid": "d402b382-e961-437d-827f-fbe496e15816",
+ "ttft_stream_ms": 1462,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 206,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 147,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1463,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

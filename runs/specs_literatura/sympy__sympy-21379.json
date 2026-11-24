@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13700,
+ "stop_reason": "end_turn",
+ "session_id": "d80f180b-598e-43c6-b345-1bb639f29b2c",
+ "total_cost_usd": 0.0411376,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1619,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1399,
+  "output_tokens_details": {
+   "thinking_tokens": 44
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1619,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1399,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1619,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1619
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1826,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001976,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1399,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1619,
+   "webSearchRequests": 0,
+   "costUSD": 0.040940000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 44,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`expr.subs({1: 1.0})` raises `PolynomialError: Piecewise generators do not make sense` for expressions of the form `exp(sinh(Piecewise(...) / z))` when `x` and `y` are declared `real=True`. The failure depends on the cache: running the same `subs` call again without clearing the cache succeeds.\n\nThe reporter found this while casting every integer atom to float across many expressions, before lambdifying them for TensorFlow, to avoid TensorFlow type errors. In the real use case the expression has a `+ 1` at the end. The snippet below is the minimal example they could produce.\n\n## Steps to reproduce\n\n1. Import SymPy and `clear_cache` from `sympy.core.cache`.\n2. Define `x, y, z = symbols('x y z', real=True)`.\n3. Call `clear_cache()`.\n4. Build `expr = exp(sinh(Piecewise((x, y > x), (y, True)) / z))`.\n5. Call `expr.subs({1: 1.0})`. This raises the error.\n6. Call `expr.subs({1: 1.0})` again without clearing the cache. This succeeds.\n\nFor comparison, the same steps with plain symbols (`symbols('x y z')`, no `real=True`) do not raise.\n\nThe reporter observed these conditions:\n\n- **Function:** The error occurs with `sinh`, `cosh` or `tanh`. As far as the reporter knows, other functions in that position succeed.\n- **Division by `z`:** Removing `/ z` makes the error go away.\n- **Outer `exp`:** Removing the outer `exp` makes the error go away. Replacing `exp` with most other unary functions (for example `sin` or `log`) keeps the error.\n- **Real assumptions:** The error only happens when `x` and `y` are real. `z` does not need to be real.\n\n## Observed behavior\n\nWith `x` and `y` real, the first call to `expr.subs({1: 1.0})` after `clear_cache()` raises:\n\n```\nPolynomialError: Piecewise generators do not make sense\n```\n\nRunning `expr.subs({1: 1.0})` again without clearing the cache (for example in isympy) works without error.\n\n## Expected behavior\n\n`expr.subs({1: 1.0})` should complete without raising, whatever the symbol assumptions and cache state are. It should behave the way it does with non-real symbols, or on the second call.\n\n## Stack trace / error output\n\nOnly the error message was given; the full traceback is not provided in the original report.\n\n```\nPolynomialError: Piecewise generators do not make sense\n```\n\n## Test case\n\nMinimal test case derived from the report's snippet:\n\n```python\nfrom sympy import symbols, exp, sinh, Piecewise\nfrom sympy.core.cache import clear_cache\n\ndef test_subs_piecewise_sinh_real_symbols():\n    clear_cache()\n    x, y, z = symbols('x y z', real=True)\n    expr = exp(sinh(Piecewise((x, y > x), (y, True)) / z))\n    # Currently raises PolynomialError: Piecewise generators do not make sense\n    expr.subs({1: 1.0})\n```\n\n## Code example\n\nThe reporter's original snippet:\n\n```python\nfrom sympy import *\nfrom sympy.core.cache import clear_cache\n\nx, y, z = symbols('x y z')\n\nclear_cache()\nexpr = exp(sinh(Piecewise((x, y > x), (y, True)) / z))\n# This works fine\nexpr.subs({1: 1.0})\n\nclear_cache()\nx, y, z = symbols('x y z', real=True)\nexpr = exp(sinh(Piecewise((x, y > x), (y, True)) / z))\n# This fails with \"PolynomialError: Piecewise generators do not make sense\"\nexpr.subs({1: 1.0})  # error\n# Now run it again (isympy...) w/o clearing cache and everything works as expected without error\nexpr.subs({1: 1.0})\n```\n\n## Version and environment\n\n- SymPy version: 1.8.dev\n- Python version, operating system and other environment details: Not provided in the original report.",
+ "ttft_ms": 2996,
+ "type": "result",
+ "duration_ms": 13169,
+ "uuid": "043579fe-ce5c-40cf-af69-58752a9ed797",
+ "ttft_stream_ms": 2261,
+ "time_to_request_ms": 285,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 5,
+  "message_prep": 1,
+  "model_config_wait": 216,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 12,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 33,
+ "time_to_request_cpu_ms": 306,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2262,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

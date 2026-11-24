@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31733,
+ "stop_reason": "end_turn",
+ "session_id": "26b28a78-55e1-4812-b876-2a25daadb673",
+ "total_cost_usd": 0.0664532,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 703,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2985,
+  "output_tokens_details": {
+   "thinking_tokens": 325
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 703,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2985,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 703,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 703
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1294,
+   "outputTokens": 258,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002584,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 231,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2985,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 703,
+   "webSearchRequests": 0,
+   "costUSD": 0.0661948,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 325,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Squashed migrations should drop `index_together` after an `index_together` \u2192 `indexes` transition\n\n## Objective\n\nIn Django 4.2, `Meta.index_together` is deprecated in favour of `Meta.indexes`. A project that has already migrated from `index_together` to `indexes` still has historical migrations that reference `index_together`, through `CreateModel` options or `AlterIndexTogether` operations. Loading those migrations emits deprecation warnings.\n\nThe documented way to clean up migration history is `squashmigrations`. Today the squashed output still contains `index_together`, so the warnings remain. The only workaround is to rewrite migrations by hand. The issue calls this a 4.2 release blocker for that reason.\n\n**Goal:** when a migration history moves a model from `index_together` to equivalent `indexes`, squashing it should produce migrations that contain no `index_together` references. That removes the deprecation warnings without any manual rewriting.\n\n**Users:** Django project maintainers upgrading to 4.2+ who want a warning-free migration history ahead of `index_together` removal.\n\n**Acceptance criteria (user-level):**\n- Given migrations that create a model with `index_together`, then transition to equivalent `Meta.indexes`, running `squashmigrations` produces a squashed migration with no `index_together` option and no `AlterIndexTogether` operation.\n- Loading or applying the squashed migration emits no `index_together` deprecation warning.\n- The database schema after applying the squashed migration matches the schema after applying the original migrations, including index names.\n\n## Assumptions\n\n1. The fix belongs in the migration optimizer, i.e. operation reduction used by `squashmigrations`. It does not belong in the autodetector or in a new command.\n2. The typical transition is what the autodetector generates when a user replaces `index_together` with `indexes`. This is believed to be a `RenameIndex` with `old_fields=...` (so existing DB indexes are renamed, not dropped and recreated), plus removal of `index_together`. The exact operation sequence still needs to be confirmed (see Open Questions).\n3. Folding into `CreateModel` is the relevant case. A `CreateModel` with `index_together` followed by transition operations should collapse into a single `CreateModel` with `indexes` only.\n4. \"Equivalent\" means same model, same field list in the same order, with the resulting index name preserved as the user's `Meta.indexes` name.\n5. The target is the Django 4.2 branch (release blocker), with forward-port to main.\n6. Migrations already squashed or partially transitioned are out of scope beyond what the optimizer can reduce.\n7. Behaviour for `unique_together` is unchanged.\n\n## Tech Stack\n\n- Python / Django (4.2 release line). The exact supported Python versions are **unknown**.\n- Components involved (based on assumptions; locations not visible in the issue): migration operations (`CreateModel`, `AlterIndexTogether`, `AddIndex`, `RenameIndex`, `RemoveIndex`), the migration optimizer, and the `squashmigrations` management command.\n\n## Commands\n\n- Build: **unknown** (not stated in the issue)\n- Test: **unknown**. Presumably Django's own test runner, targeting the migrations test suites. The exact command and flags need confirmation.\n- Lint: **unknown**\n- Reproduce: `python manage.py squashmigrations <app_label> <migration_name>` on a project with the transition described above, then load the squashed migrations with deprecation warnings enabled (e.g. `python -W error::DeprecationWarning ...`). The exact warning class name is **unknown**.\n\n## Project Structure\n\n**Unknown.** The issue gives no paths. The expected areas to touch are the migration operations module, the optimizer, and the corresponding migration/optimizer tests, plus release notes for 4.2.x. These need confirming against the repository.\n\n## Code Style\n\n**Unknown** from the issue. Follow existing conventions in the migration operations' `reduce()` implementations and the existing optimizer tests, which typically assert an input operation list optimizes to an expected output list.\n\n## Testing Strategy\n\n- **Unit (optimizer) tests:** given an input list of operations, assert the optimized output. Cases:\n  - `CreateModel(options={\"index_together\": [...]})` followed by a `RenameIndex(old_fields=...)` collapses to `CreateModel(options={\"indexes\": [Index(fields=..., name=new_name)]})` with no `index_together`.\n  - `CreateModel` with multiple `index_together` entries where only some are renamed. Converted entries move to `indexes` and the remaining ones stay in `index_together`.\n  - `AlterIndexTogether` followed by the transition operations reduces correctly. The exact case is pending confirmation of the real operation sequence.\n  - Negative cases: field lists that don't match, a different model, or intervening operations that block reduction must **not** be reduced.\n- **Command-level test:** `squashmigrations` on a fixture app with the transition produces output with no `index_together`.\n- **Warning test:** loading the squashed migration raises no `index_together` deprecation warning.\n- **Schema equivalence:** applying the original and the squashed migrations yields the same indexes, with the same names, on supported backends.\n- Coverage expectation: **unknown**. At minimum, every new reduction path needs positive and negative tests.\n\n## Boundaries\n\n- **Always:**\n  - Preserve schema equivalence and index names between the squashed and original migrations.\n  - Add optimizer tests for every new reduction.\n  - Keep reductions conservative: if equivalence isn't certain, don't reduce.\n- **Ask first:**\n  - Changing autodetector output or the shape of operations it generates.\n  - Changing the public signatures of migration operations.\n  - Backporting scope beyond 4.2.\n  - Any change to deprecation timing or warning text.\n- **Never:**\n  - Silently drop `index_together` entries that have no equivalent `indexes` entry.\n  - Change `unique_together` behaviour.\n  - Suppress the deprecation warning instead of removing the cause.\n  - Alter applied-migration semantics for existing databases.\n\n## Success Criteria\n\n1. Squashing a migration history that contains the full `index_together` \u2192 `indexes` transition yields squashed migrations containing no `index_together` and no `AlterIndexTogether`.\n2. No `index_together` deprecation warning is emitted when loading or running the squashed migrations.\n3. Partial transitions keep only the untransitioned `index_together` entries.\n4. Schema, including index names, is identical between the original and squashed histories.\n5. The existing migrations/optimizer test suites pass, and the new optimizer and squash tests pass.\n6. A release note entry is added for the 4.2.x fix (exact file **unknown**).\n\n## Open Questions\n\n1. What exact operation sequence does the autodetector emit for an `index_together` \u2192 `indexes` change? Is it `RenameIndex(old_fields=...)` alone, `AddIndex` + `AlterIndexTogether`, or something else? The reduction rules depend on this.\n2. The issue refers to \"see comment\" without its content. What scenario or reproduction does that comment describe?\n3. Should transitions that are *not* preceded by a `CreateModel` in the squashed range also be handled? Example: `AlterIndexTogether(...)` \u2192 `AlterIndexTogether(set())` where `RenameIndex` sits in between.\n4. Should matching consider field order and index name only, or also other `Index` attributes (`db_tablespace`, `opclasses`, `condition`), and treat any mismatch as non-equivalent?\n5. Should this be backported only to 4.2 or also to earlier supported branches?\n6. What are the expected test command, test locations, and release-notes file in the repository?\n7. If a project's history never reaches a `CreateModel` within the squash range, is it acceptable that some warnings remain, and should that be documented?",
+ "ttft_ms": 4545,
+ "type": "result",
+ "duration_ms": 30197,
+ "uuid": "728cd061-7c1f-4cfe-bdae-c61d825f86f6",
+ "ttft_stream_ms": 1412,
+ "time_to_request_ms": 234,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 200,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 117,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1412,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 5752,
+ "stop_reason": "end_turn",
+ "session_id": "d75f792a-2c38-41c2-ad00-f2a67760f9fd",
+ "total_cost_usd": 0.019904099999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1203,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 506,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1203,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 506,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1203,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1203
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1376,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001521,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 506,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1203,
+   "webSearchRequests": 0,
+   "costUSD": 0.019752,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1203,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nPossibilitar o desligamento por desist\u00eancia de um aluno durante o per\u00edodo de trancamento de matr\u00edcula.\n\n## Descri\u00e7\u00e3o\nAtualmente, quando se tenta desligar por desist\u00eancia um aluno cuja matr\u00edcula est\u00e1 trancada, o SAPOS n\u00e3o permite a opera\u00e7\u00e3o. A issue original inclu\u00eda uma captura da tela que mostra o bloqueio:\n\n![image](https://github.com/gems-uff/sapos/assets/170034455/6447d7be-6292-44d1-ac2a-031fe2c492a3)\n\nO pedido \u00e9 verificar e configurar o sistema para que esse desligamento seja permitido durante o trancamento.\n\n## Vers\u00e3o do produto\nN\u00e3o informado na issue original.\n\n## Justificativa\nO autor conversou com a Coordena\u00e7\u00e3o do Curso, que o orientou a abrir esta issue para pedir que o desligamento por desist\u00eancia seja poss\u00edvel durante o trancamento. A issue n\u00e3o explica por que o sistema deveria permitir esse desligamento.\n\n## Caso de uso ou cen\u00e1rio\nUm aluno est\u00e1 com a matr\u00edcula trancada e desiste do curso. O usu\u00e1rio do SAPOS tenta registrar o desligamento por desist\u00eancia durante o per\u00edodo de trancamento. Hoje o sistema bloqueia a opera\u00e7\u00e3o. O comportamento esperado \u00e9 que o desligamento seja registrado normalmente.\n\n## Poss\u00edvel solu\u00e7\u00e3o\nA issue pede que o sistema seja verificado e configurado para permitir o desligamento por desist\u00eancia durante o trancamento de matr\u00edcula. N\u00e3o detalha como isso deve ser implementado.",
+ "ttft_ms": 5404,
+ "type": "result",
+ "duration_ms": 5428,
+ "uuid": "5c86ed7e-e62b-4c94-854b-a84b637720a9",
+ "ttft_stream_ms": 1209,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 4,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "conversation_append": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "init_frame_send": 3,
+  "engine_pickup": 1,
+  "loop_entry": 4,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 2,
+  "request_announcements": 4,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 246,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 9,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 1,
+  "render_ms": 1,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 0,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 0,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1209,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

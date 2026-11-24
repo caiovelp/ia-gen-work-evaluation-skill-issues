@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32586,
+ "stop_reason": "end_turn",
+ "session_id": "950c83c8-ee7a-4e01-8a5d-d6c931016509",
+ "total_cost_usd": 0.0749953,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1364,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3150,
+  "output_tokens_details": {
+   "thinking_tokens": 432
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1364,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3150,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1364,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1364
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1950,
+   "outputTokens": 35,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002125,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3150,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1364,
+   "webSearchRequests": 0,
+   "costUSD": 0.0747828,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 432,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix `to_unstacked_dataset` Roundtrip for Single-Dimension Variables\n\n## Objective\n\n`DataArray.to_unstacked_dataset` should invert `Dataset.to_stacked_array`. Today the roundtrip fails when every stacked variable has only the sample dimension(s). In that case nothing is left to stack beyond the variable name.\n\n**Who is affected:** Users who stack several variables into one array (for example, to feed a model) and later need the original `Dataset` back.\n\n**Current behavior:**\n\n```python\narr = xr.DataArray(np.arange(3), coords=[(\"x\", [0, 1, 2])])\ndata = xr.Dataset({\"a\": arr, \"b\": arr})\nstacked = data.to_stacked_array('y', sample_dims=['x'])\nunstacked = stacked.to_unstacked_dataset('y')\n# MergeError: conflicting values for variable 'y' on objects to be combined.\n# You can skip this check by specifying compat='override'.\n```\n\n**Desired behavior:** `stacked.to_unstacked_dataset('y')` returns a `Dataset` equal to `data`. It must not raise, and it must not leave a leftover `y` coordinate behind.\n\n**User story:** As a user who stacks variables with `to_stacked_array(..., sample_dims=[...])`, I want `to_unstacked_dataset` to give me back my original `Dataset`, whatever the dimensionality of the variables.\n\n## Assumptions\n\n1. The bug is in `DataArray.to_unstacked_dataset`, not in `Dataset.to_stacked_array`. The stacked array produced in the MCVE is assumed to be valid and correctly shaped.\n2. The `MergeError` probably comes from the per-variable pieces still carrying a scalar coordinate for the stacked dimension (`y`). That coordinate has a different value for each variable, so merging the pieces conflicts. This is a hypothesis to confirm during investigation, not a prescribed fix.\n3. The roundtrip contract is `to_stacked_array(...).to_unstacked_dataset(...)`, judged with `Dataset.identical` or at least `Dataset.equals`. Which of the two is an open question.\n4. The fix must not change behavior for cases that already work. This includes variables with extra dimensions beyond `sample_dims`, and mixes of 1-D and N-D variables.\n5. The fix must not suppress the conflict globally, for example by switching to `compat='override'` unconditionally. Real conflicts in other coordinates should still surface.\n6. The reported version is xarray 0.15.1. The fix targets the current development branch.\n7. Dtype upcasting that `to_stacked_array` itself causes is out of scope. That happens when variables of different dtypes are stacked together.\n\n## Tech Stack\n\n- Python library: xarray. The reporter uses 0.15.1; the target branch is unknown.\n- Key dependencies, per the issue environment: numpy, pandas (the `MultiIndex` for the stacked dimension).\n- Test framework: pytest is listed in the reporter's environment. The project's own test tooling is **unknown, not visible in the issue**.\n\n## Commands\n\n**Unknown, not visible in the issue.** These need confirming from the repository:\n\n- Build/install: unknown\n- Test: unknown (pytest is likely; exact invocation and target test file unknown)\n- Lint/format: unknown\n\n## Project Structure\n\n**Unknown, not visible in the issue.** Locations still to be identified:\n\n- The implementation of `DataArray.to_unstacked_dataset`: unknown file\n- The implementation of `Dataset.to_stacked_array`: unknown file\n- Existing tests covering the stack/unstack roundtrip: unknown file(s)\n- Docs/changelog entry location (e.g. a \"what's new\" file): unknown\n\n## Code Style\n\nFollow the existing conventions of the module that contains `to_unstacked_dataset`. Those conventions are not visible here.\n\nThe regression test should mirror the MCVE, in this illustrative shape. The test name and placement are to be decided.\n\n```python\ndef test_to_stacked_array_to_unstacked_dataset_single_dim():\n    arr = xr.DataArray(np.arange(3), coords=[(\"x\", [0, 1, 2])])\n    data = xr.Dataset({\"a\": arr, \"b\": arr})\n    stacked = data.to_stacked_array(\"y\", sample_dims=[\"x\"])\n    unstacked = stacked.to_unstacked_dataset(\"y\")\n    assert_identical(data, unstacked)  # helper name per project conventions\n```\n\n## Testing Strategy\n\n- **Level:** Unit tests in the project's existing test suite, next to the current `to_stacked_array` / `to_unstacked_dataset` tests (location unknown).\n- **Regression test:** Encode the exact MCVE (all variables 1-D, sharing sample dim `x`) as a failing test before the fix.\n- **Additional cases to cover:**\n  - All variables have only the sample dims, with more than one sample dim (e.g. `sample_dims=['x', 't']`) if supported.\n  - Variables with different values (e.g. `a = arr`, `b = arr * 2`), so the test checks that values map back to the right variable names.\n  - Mixed: one 1-D variable and one variable with an extra non-sample dimension. This path already works and must keep working.\n  - A single variable only.\n- **Existing tests:** All current stack/unstack tests must keep passing unchanged.\n- **Coverage expectation:** Unknown project threshold. The new code path must be exercised by the regression test.\n\n## Boundaries\n\n**Always:**\n- Add a regression test reproducing the MCVE.\n- Keep the public signature of `to_unstacked_dataset` (and `to_stacked_array`) unchanged.\n- Run the relevant existing test module(s) before considering the change done.\n- Add a changelog entry if the project keeps one (location unknown).\n\n**Ask first:**\n- Changing the output structure of `to_stacked_array`, such as the `MultiIndex` levels or coordinate names.\n- Using `compat='override'` or otherwise loosening merge conflict checks.\n- Changing behavior for existing multi-dimensional cases, including dropped or retained coordinates and attrs.\n- Adding any new dependency.\n\n**Never:**\n- Remove or weaken existing tests to make the fix pass.\n- Silently drop non-stacked coordinates that users rely on.\n- Modify vendored or third-party code.\n\n## Success Criteria\n\n1. The MCVE runs without raising.\n2. For the MCVE, `stacked.to_unstacked_dataset('y')` is equal to the original `data`. The strictness (`equals` vs `identical`) is set by Open Question 1.\n3. The result has no residual coordinate named after the stacked dimension (`y`), as a scalar or otherwise.\n4. Variable names (`a`, `b`), the sample dimension `x`, its coordinate values, and the data values are all preserved.\n5. Roundtrips that already worked return the same results as before. This covers variables with extra dimensions and mixed 1-D/N-D datasets.\n6. The new regression test fails before the change and passes after it. The full existing test suite for this area passes.\n\n## Open Questions\n\n1. Should the roundtrip be **`identical`** (including attrs and names) or just **`equals`** (values and coords)? What is the expected handling of `DataArray.name` and attrs?\n2. Is the `MultiIndex` built by `to_stacked_array` correct and well-formed when there are no non-sample dimensions? Or is part of the fix expected on the stacking side?\n3. Should `to_unstacked_dataset` accept stacked arrays whose `MultiIndex` has only the variable level, plus the case where extra levels exist but are all-NaN for some variables? Is the latter in scope?\n4. What `level` argument behavior is expected in the single-dim case, given it defaults to `0`?\n5. Which branch or version should the fix target, and does the project require a changelog entry?\n6. What are the exact test, lint, and build commands, and where do the existing roundtrip tests live?",
+ "ttft_ms": 6641,
+ "type": "result",
+ "duration_ms": 31644,
+ "uuid": "49b6b0dd-78d6-4f8d-b5a4-8f8b0b1ae8b9",
+ "ttft_stream_ms": 1625,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 211,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 175,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1626,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

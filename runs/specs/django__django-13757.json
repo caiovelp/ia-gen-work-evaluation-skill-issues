@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28762,
+ "stop_reason": "end_turn",
+ "session_id": "5401ede9-c77d-4e1d-adcd-324f33570a69",
+ "total_cost_usd": 0.0666257,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 938,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2904,
+  "output_tokens_details": {
+   "thinking_tokens": 266
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 938,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2904,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 938,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 938
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1529,
+   "outputTokens": 36,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001709,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2904,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 938,
+   "webSearchRequests": 0,
+   "costUSD": 0.0664548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 266,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `KeyTransformIsNull` with `isnull=True` must not match JSON `null` on SQLite and Oracle\n\n## Objective\n\nMake `__isnull=True` on a JSONField key transform behave the same on every supported database backend.\n\n`isnull=True` should match only rows where the key is **absent**. A row where the key is present with the JSON value `null` must not match.\n\n**Current behavior (from the issue):**\n\n| Backend | `key__isnull=False` | `key__isnull=True` |\n|---|---|---|\n| MariaDB | Correct (borrows `HasKey` logic) | Correct |\n| MySQL | Correct | Correct |\n| PostgreSQL | Correct | Correct |\n| SQLite | Correct | **Wrong**: also matches rows where the key holds JSON `null` |\n| Oracle | Correct | **Wrong**: also matches rows where the key holds JSON `null` |\n\n**Users affected:** Developers who filter `JSONField` data with `filter(<field>__<key>__isnull=True)` on SQLite or Oracle. They currently get extra rows, so results differ from the other backends.\n\n**Acceptance criteria:**\n- On every backend, `filter(value__<key>__isnull=True)` returns exactly the rows that do not contain `<key>`.\n- Rows where `<key>` is present with JSON `null` are excluded from that result.\n- `isnull=False` behavior is unchanged on all backends. It still mirrors `HasKey`.\n\n## Assumptions\n\n1. The fix belongs in the `KeyTransformIsNull` lookup, or in backend-specific SQL compilation it delegates to, for SQLite and Oracle. The issue names the lookup but not its file path, so the exact location is unknown.\n2. The `isnull=True` path for MariaDB, MySQL and PostgreSQL is correct and must not change.\n3. \"Does not have the key\" means the key is absent at that path in the JSON document. This includes rows where the whole field is SQL `NULL`, which the existing expected result `self.objs[:4] + self.objs[5:]` implies.\n4. In the `test_isnull_key` fixture data, `self.objs[4]` is the only object that has key `j`, and `j` holds JSON `null`. This is inferred from the expected result in the issue and not verified against the fixture.\n5. Natural fix direction: express `isnull=True` as the negation of the `HasKey` condition on SQLite and Oracle. This is a direction to evaluate, not a decision.\n6. No database schema, migration or public API change is needed. This is a query-generation bug fix only.\n\n## Tech Stack\n\n- Django ORM, `JSONField` and its key transform and lookup classes (`KeyTransform`, `KeyTransformIsNull`, `HasKey`). Versions are unknown.\n- Affected backends: SQLite and Oracle. Regression coverage is also needed on MariaDB, MySQL and PostgreSQL.\n- Database and library versions: unknown.\n\n## Commands\n\n- Build: unknown (not given in the issue).\n- Test: unknown. Target the test `tests.model_fields.test_jsonfield.TestQuerying.test_isnull_key` with the project's test runner. The exact runner invocation and settings for each backend are not given.\n- Lint: unknown.\n- Running the tests against Oracle, MySQL, MariaDB and PostgreSQL: unknown. This needs a database settings module for each backend, which is not described.\n\n## Project Structure\n\nKnown from the issue:\n- `tests/model_fields/test_jsonfield.py`. This contains `TestQuerying.test_isnull_key`, the `NullableJSONModel` queries and the `self.objs` fixture.\n\nUnknown:\n- The source file that defines `KeyTransformIsNull` and `HasKey`.\n- Any backend-specific operations or feature modules involved.\n\n## Code Style\n\nFollow the existing conventions in the JSONField lookup module and in `test_jsonfield.py`. No style snippet beyond the test change in the issue is available.\n\nThe test change specified by the issue is to replace this:\n\n```python\nself.assertSequenceEqual(\n    NullableJSONModel.objects.filter(value__a__isnull=True),\n    self.objs[:3] + self.objs[5:],\n)\n```\n\nwith this:\n\n```python\nself.assertSequenceEqual(\n    NullableJSONModel.objects.filter(value__j__isnull=True),\n    self.objs[:4] + self.objs[5:],\n)\n```\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. It uses `TestCase`-style tests in `tests/model_fields/test_jsonfield.py`.\n- **Regression test:** Update the first assertion in `TestQuerying.test_isnull_key` as shown above.\n  - It must **fail** on SQLite and Oracle before the fix, because `self.objs[4]` is wrongly included.\n  - It must **pass** on all backends after the fix.\n- **Why the old test missed the bug:** key `a` never holds JSON `null`. Key `j` does.\n- **Keep the existing assertions:** Retain or extend the other assertions in `test_isnull_key`, including the `isnull=False` ones, so that `isnull=False` behavior provably does not change.\n- **Optional:** Add an assertion that keeps the original `value__a__isnull=True` check, so coverage for a key whose value is not `null` is not lost. This is decided in Open Questions.\n- **Backend coverage:** Run the test on SQLite (required) and on Oracle, MySQL, MariaDB and PostgreSQL wherever available.\n\n## Boundaries\n\n**Always:**\n- Keep `isnull=False` semantics identical to `HasKey`.\n- Run the JSONField test module on SQLite before considering the fix done.\n- Add a regression assertion that uses a key whose value is JSON `null`.\n\n**Ask first:**\n- Changing behavior or generated SQL for MariaDB, MySQL or PostgreSQL.\n- Changing the shared fixture data in `test_jsonfield.py`.\n- Adding release notes or documentation changes.\n\n**Never:**\n- Change the documented semantics of `isnull=False`.\n- Delete or weaken existing JSONField tests to make the new assertion pass.\n- Introduce schema or migration changes.\n\n## Success Criteria\n\n1. `NullableJSONModel.objects.filter(value__j__isnull=True)` returns `self.objs[:4] + self.objs[5:]` on SQLite and Oracle, and on all other backends.\n2. A row whose key is present with JSON `null` is never returned by `key__isnull=True` on any backend.\n3. All existing `isnull=False` assertions in `test_isnull_key` still pass on all backends.\n4. The rest of `tests/model_fields/test_jsonfield.py` passes on SQLite with no new failures.\n5. The generated SQL for MariaDB, MySQL and PostgreSQL is unchanged, or any change is justified and approved.\n\n## Open Questions\n\n1. Where do `KeyTransformIsNull` and `HasKey` live, and is the SQLite/Oracle behavior implemented through backend-specific methods such as `as_sqlite` and `as_oracle`?\n2. Should the test **replace** the `value__a__isnull=True` assertion as the issue says, or **add** the `value__j` assertion next to it to keep both cases covered?\n3. Should nested key paths (for example `value__d__0__isnull=True`) also get a JSON-`null` regression check? Does the bug affect them too?\n4. Can the fix be verified on Oracle, or is SQLite-only verification acceptable, with Oracle covered by CI?\n5. Does this behavior change need a release note? It is a fix, but some users may have relied on the old SQLite/Oracle results.\n6. Which test runner command and backend settings should be used? The issue does not specify them.",
+ "ttft_ms": 3865,
+ "type": "result",
+ "duration_ms": 27935,
+ "uuid": "6fef0117-8815-46d3-b21c-72d677a7fff7",
+ "ttft_stream_ms": 1431,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 216,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 208,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1431,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32852,
+ "stop_reason": "end_turn",
+ "session_id": "455e505c-ffc1-445b-9e66-6796565a777d",
+ "total_cost_usd": 0.07779479999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1456,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3253,
+  "output_tokens_details": {
+   "thinking_tokens": 115
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1456,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3253,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1456,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1456
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2045,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00021600000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3253,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1456,
+   "webSearchRequests": 0,
+   "costUSD": 0.07757879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 115,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Consistent String Representation of `TextChoices` / `IntegerChoices` Members\n\n## Assumptions\n\n1. This is a bug report against Django's enumeration types (`models.TextChoices`, `models.IntegerChoices`, and presumably the base `models.Choices`), introduced in Django 3.0. The reporter's environment is named `django30`.\n2. The root behavior is that `str()` (and likely `format()` / f-strings) on a Choices member returns the `enum.Enum` default representation (`'MyChoice.FIRST_CHOICE'`), not the underlying value (`'first'`).\n3. The model attribute keeps the enum member on a freshly created instance, because the field stores whatever was assigned and does not coerce it until a save/load round-trip. A retrieved instance holds a plain `str`/`int` from the database. This explains why one test fails and the other passes.\n4. `isinstance(MyChoice.FIRST_CHOICE, str)` is already `True`, because `TextChoices` mixes in `str`. Only the string representation differs. The first assertion in the failing test passes and the second fails.\n5. The expected fix scope is the string representation of Choices members. Changing field assignment semantics, such as coercing enum members to raw values on `__set__`, is out of scope unless maintainers decide otherwise. See Open Questions.\n6. `IntegerChoices` has the same issue: `str(MyIntChoice.ONE)` returns `'MyIntChoice.ONE'` rather than `'1'`. The issue implies this but does not demonstrate it.\n7. The fix must not break the `.label`, `.value`, `.name`, `.choices`, `.labels`, `.values`, and `.names` APIs, nor equality and hashing between members and raw values.\n\n## Objective\n\n**What:** Make `str()` of a Django Choices enum member return the string form of its value. For example, `str(MyChoice.FIRST_CHOICE)` should return `\"first\"`.\n\n**Why:** A freshly created model instance holds the enum member, while a retrieved instance holds the raw value. Today the two stringify differently (`'MyChoice.FIRST_CHOICE'` vs `'first'`). Code that serializes model data, such as templates, API payloads, logging, and string formatting, therefore sends inconsistent data depending on whether the instance was just created or loaded from the database.\n\n**Users:** Django application developers who use `TextChoices` / `IntegerChoices` with `choices=` on model fields.\n\n**Acceptance criteria (user stories):**\n- As a developer, when I create an object with `my_str_value=MyChoice.FIRST_CHOICE`, `str(obj.my_str_value)` returns `\"first\"`. This matches what I get after `MyObject.objects.last()`.\n- As a developer, the same holds for `IntegerChoices`: `str(obj.my_int_value)` returns the decimal string of the integer value on both created and retrieved instances.\n- As a developer, string formatting of a member (f-strings / `format()`) produces the value, not `ClassName.MEMBER`. This needs confirmation; see Open Questions.\n\n## Tech Stack\n\n- Python, with the `enum` standard library module. The minimum Python version supported by the target Django branch is **unknown**.\n- Django `django.db.models` enumeration types (`Choices`, `TextChoices`, `IntegerChoices`). The exact module path is **unknown** from the issue.\n- Target Django version/branch for the fix is **unknown**. The bug was reported on 3.0.\n\n## Commands\n\nAll commands are **unknown**; the repository is not visible. The reporter used `./manage.py test` in their own project, which is not the Django test suite.\n\n```\nBuild: unknown\nTest: unknown (Django core test runner command not visible in issue)\nLint: unknown\nDev: n/a (library)\n```\n\n## Project Structure\n\n**Unknown.** The issue does not show Django's source layout. Needed locations:\n- The source file defining `Choices` / `TextChoices` / `IntegerChoices`: unknown path.\n- The existing tests for enumeration types: unknown path.\n- The documentation for enumeration types in the model field reference, plus release notes for the target version: unknown paths.\n\n## Code Style\n\nFollow existing Django conventions in the enums module (unknown; not visible). The reproduction from the issue serves as the behavioral reference:\n\n```python\nclass MyChoice(models.TextChoices):\n    FIRST_CHOICE = \"first\", _(\"The first choice, it is\")\n    SECOND_CHOICE = \"second\", _(\"The second choice, it is\")\n\nclass MyObject(models.Model):\n    my_str_value = models.CharField(max_length=10, choices=MyChoice.choices)\n\nobj = MyObject.objects.create(my_str_value=MyChoice.FIRST_CHOICE)\nassert isinstance(obj.my_str_value, str)\nassert str(obj.my_str_value) == \"first\"            # currently fails: 'MyChoice.FIRST_CHOICE'\nassert str(MyObject.objects.last().my_str_value) == \"first\"   # currently passes\n```\n\n## Testing Strategy\n\n- **Unit tests (enum level):** Add tests in Django's existing enumeration-type test module (path unknown) asserting that:\n  - `str(member) == str(member.value)` for `TextChoices` members.\n  - `str(member) == str(member.value)` for `IntegerChoices` members.\n  - The same holds for custom `Choices` subclasses with other mixin types (e.g. a `float` or `date` mixin), if the base `Choices` is in scope.\n  - `format(member)` / f-string output equals the value's string form (pending Open Question 2).\n- **Model-level tests:** A model with a `CharField` and an `IntegerField` using `choices=`. Assert that `str(field_value)` is identical on a freshly created instance and on a re-fetched instance. This mirrors the issue's two tests.\n- **Regression:** The existing enumeration tests (`.label`, `.choices`, `.values`, `.names`, equality with raw values, membership, `repr`) must continue to pass.\n- Coverage expectations: **unknown** project policy. At minimum, both failing paths described above must be covered.\n\n## Boundaries\n\n- **Always:**\n  - Keep `repr(member)` informative, i.e. unchanged as `<MyChoice.FIRST_CHOICE: 'first'>` unless maintainers decide otherwise.\n  - Preserve equality and hashing between members and raw values.\n  - Add tests that fail before the change and pass after.\n  - Add a release note if behavior changes in a released version.\n- **Ask first:**\n  - Changing field descriptor or assignment behavior so that enum members are coerced to raw values on assignment or `save()`.\n  - Changing `__format__` behavior.\n  - Applying the change to the base `Choices` class (arbitrary mixins) rather than only `TextChoices` / `IntegerChoices`.\n  - Backporting to stable branches.\n- **Never:**\n  - Change `.label`, `.value`, or `.choices` output.\n  - Alter the database storage format.\n  - Remove or weaken existing enumeration tests.\n\n## Success Criteria\n\n1. `str(MyChoice.FIRST_CHOICE) == \"first\"` for a `TextChoices` member.\n2. `str(MyIntChoice.X) == str(MyIntChoice.X.value)` for an `IntegerChoices` member.\n3. For a model field with `choices=MyChoice.choices`, `str(obj.field)` returns the same string for an instance returned by `objects.create(field=MyChoice.FIRST_CHOICE)` and the same row re-fetched from the database. Both tests from the issue pass.\n4. `repr()` of members, `.label`, `.value`, `.name`, `.choices`, equality (`MyChoice.FIRST_CHOICE == \"first\"`), and existing enum tests are unchanged and pass.\n5. Documentation and release notes reflect the behavior, if maintainers consider it a user-visible change. Doc location is unknown.\n\n## Open Questions\n\n1. **Scope of fix:** Should only `str()` of Choices members change? Or should model field assignment also normalize enum members to their raw value, so created and retrieved instances hold identical types (`str` vs `MyChoice`)? The latter is a larger behavior change.\n2. **Formatting:** Should `format(member)` and f-strings also yield the value? On some Python versions, `str`/`int` mixin enums already format as the value while `str()` does not. Should behavior be made consistent across `str()` and `format()` regardless of Python version?\n3. **Base class:** Should the `__str__` change live on the base `Choices` class, so it covers custom mixins like `float` or `datetime.date`? Or only on `TextChoices` and `IntegerChoices`?\n4. **Target versions:** Is this treated as a bug in a new 3.0 feature, eligible for backport to the 3.0.x stable branch? Or is it a behavior change for the next feature release only?\n5. **Backward compatibility:** Is any existing code expected to rely on `str(member) == 'ClassName.MEMBER'`? Does this warrant a release-note callout?\n6. **Repository details:** What are the exact source path for the enums module, the test module location, and the test/lint commands for the Django codebase? All are unknown from the issue.",
+ "ttft_ms": 2190,
+ "type": "result",
+ "duration_ms": 32234,
+ "uuid": "8b0ed85c-91d0-4413-8752-89e18d10bd1b",
+ "ttft_stream_ms": 1021,
+ "time_to_request_ms": 268,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 228,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 246,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1021,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

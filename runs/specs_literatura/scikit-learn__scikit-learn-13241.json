@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13980,
+ "stop_reason": "end_turn",
+ "session_id": "d0a7b161-87ab-46f0-b08b-a15d25890773",
+ "total_cost_usd": 0.0364088,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1312,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1287,
+  "output_tokens_details": {
+   "thinking_tokens": 386
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1312,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1287,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1312,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1312
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1523,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016480000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1287,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1312,
+   "webSearchRequests": 0,
+   "costUSD": 0.036244,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 386,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nRunning `KernelPCA` with the `rbf` kernel several times on the same dataset gives results that differ in sign. The absolute values match across runs, but the signs of some or all components flip from run to run.\n\n## Steps to reproduce\n\n1. Take a dataset `X`. The dataset is not provided in the original report.\n2. Create a `KernelPCA` instance that reduces to 7 dimensions with the `rbf` kernel:\n   `KernelPCA(n_components=7, kernel='rbf', copy_X=False, n_jobs=-1)`\n3. Call `fit_transform(X)`.\n4. Repeat steps 2\u20133 on the same dataset and compare the outputs.\n\n## Observed behavior\n\nThe outputs have the same absolute values but different signs. Three runs gave these results for the same row:\n\n```\n[[-0.44457617 -0.18155886 -0.10873474  0.13548386 -0.1437174  -0.057469    0.18124364]]\n\n[[ 0.44457617  0.18155886  0.10873474 -0.13548386 -0.1437174  -0.057469   -0.18124364]]\n\n[[-0.44457617 -0.18155886  0.10873474  0.13548386  0.1437174   0.057469    0.18124364]]\n```\n\nDifferent components flip sign in different runs. Compared with the first run:\n- In the second run, components 1, 2, 3, 4 and 7 have the opposite sign.\n- In the third run, components 3, 5 and 6 have the opposite sign.\n\n## Expected behavior\n\nRunning `fit_transform` on the same dataset with the same parameters should give the same result, including signs.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the problem is inconsistent output.\n\n## Test case\n\nNot provided in the original report. A minimal check based on the reporter's snippet (the dataset `X` is not provided):\n\n```python\npca1 = KernelPCA(n_components=7, kernel='rbf', copy_X=False, n_jobs=-1)\nr1 = pca1.fit_transform(X)\n\npca2 = KernelPCA(n_components=7, kernel='rbf', copy_X=False, n_jobs=-1)\nr2 = pca2.fit_transform(X)\n\n# Expected: r1 and r2 are equal, including signs.\n# Observed: values are equal in absolute value but signs differ.\n```\n\n## Code example\n\n```python\npca = KernelPCA(n_components=7, kernel='rbf', copy_X=False, n_jobs=-1)\npca.fit_transform(X)\n```\n\n## Version and environment\n\n- Version: 0.18.1 (the report does not name the package)\n- OS, Python version and other environment details: Not provided in the original report.",
+ "ttft_ms": 5669,
+ "type": "result",
+ "duration_ms": 12735,
+ "uuid": "aadd98fa-9a70-4792-96be-543c85454ff3",
+ "ttft_stream_ms": 1553,
+ "time_to_request_ms": 274,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 199,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 11,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 307,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1554,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

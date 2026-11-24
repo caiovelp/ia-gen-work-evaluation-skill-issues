@@ -1,0 +1,503 @@
+diff --git a/app/controllers/admissions/apply_controller.rb b/app/controllers/admissions/apply_controller.rb
+index ec9d005e..41183a22 100644
+--- a/app/controllers/admissions/apply_controller.rb
++++ b/app/controllers/admissions/apply_controller.rb
+@@ -33,6 +33,17 @@ class Admissions::ApplyController < Admissions::ProcessBaseController
+   end
+ 
+   def update(creating: false)
++    unless params[:record].present?
++      return redirect_to(
++        creating ?
++          new_admission_apply_path(admission_id: @admission_process.simple_id) :
++          edit_admission_apply_path(
++            admission_id: @admission_process.simple_id,
++            id: @admission_application.token
++          ),
++        alert: I18n.t("errors.admissions.missing_form_data")
++      )
++    end
+     prepare_edit_update_application(creating: creating)
+     was_filled = @admission_application.filled_form.is_filled
+     @admission_application.assign_form(
+diff --git a/app/controllers/application_controller.rb b/app/controllers/application_controller.rb
+index 99c64318..c2770eeb 100644
+--- a/app/controllers/application_controller.rb
++++ b/app/controllers/application_controller.rb
+@@ -21,6 +21,16 @@ class ApplicationController < ActionController::Base
+ 
+   clear_helpers
+ 
++  rescue_from ActionController::InvalidAuthenticityToken do |exception|
++    session_data = session.to_h.except("_csrf_token", "session_id")
++    if session_data.empty? && request.format.html? && !request.xhr?
++      # Expired session: not a defect nor an attack, so no notification
++      redirect_to root_path, alert: I18n.t("errors.session_expired")
++    else
++      raise exception
++    end
++  end
++
+   # Defines which controller and action should be shown when the base
+   # URL is acessed (root route in routes.rb).
+   def root
+diff --git a/app/controllers/notifications_controller.rb b/app/controllers/notifications_controller.rb
+index 79b5c759..e3c84c5f 100644
+--- a/app/controllers/notifications_controller.rb
++++ b/app/controllers/notifications_controller.rb
+@@ -92,7 +92,12 @@ class NotificationsController < ApplicationController
+   def simulate
+     @notification = Notification.find(params[:id])
+     # Execute notification with current parameters
+-    args = @notification.prepare_params_and_derivations(get_query_params)
++    begin
++      args = @notification.prepare_params_and_derivations(get_query_params)
++    rescue Date::Error
++      flash.now[:alert] = I18n.t("notifications.simulate.invalid_query_date")
++      args = {}
++    end
+     result = @notification.execute(skip_update: true, override_params: args)
+     @messages = result[:notifications]
+     @query_sql = result[:query]
+diff --git a/app/controllers/student_enrollment_controller.rb b/app/controllers/student_enrollment_controller.rb
+index 4af1982b..a3f47e61 100644
+--- a/app/controllers/student_enrollment_controller.rb
++++ b/app/controllers/student_enrollment_controller.rb
+@@ -102,7 +102,12 @@ class StudentEnrollmentController < ApplicationController
+         .and(ClassSchedule.arel_table[:semester].eq(params[:semester]))
+       )
+       if @semester.nil?
+-        raise CanCan::AccessDenied.new
++        return redirect_to student_enrollment_path(@enrollment.id),
++          alert: I18n.t(
++            "student_enrollment.alert.semester_unavailable",
++            year: params[:year],
++            semester: params[:semester]
++          )
+       end
+       if check_time && ! @semester.enroll_open?
+         return redirect_to student_enrollment_path(@enrollment.id),
+diff --git a/app/views/admissions/filled_form/edit/_generic_city_field.html.erb b/app/views/admissions/filled_form/edit/_generic_city_field.html.erb
+index 879368da..123fc5b6 100644
+--- a/app/views/admissions/filled_form/edit/_generic_city_field.html.erb
++++ b/app/views/admissions/filled_form/edit/_generic_city_field.html.erb
+@@ -50,12 +50,14 @@
+ <script>
+ 
+ $(document).ready(function() {
+-  $(`#<%= options[:id] %> .city-field`).on("change", function() {
++  const syncCity = function() {
+     let value = $(`#<%= options[:id] %> .city-field`)
+       .map((i, el) => $(el).val()).toArray().reverse()
+       .join(" <$> ")
+     $(`#<%= options[:id] %> .hidden`).val(value)
+-  })
++  }
++  $(`#<%= options[:id] %> .city-field`).on("change input keyup", syncCity)
++  $(`#<%= options[:id] %> .city-field`).closest("form").on("submit", syncCity)
+ 
+   $(`#<%= options[:id] %> input[name="city"]`).autocomplete({
+     source: autocomplete_search("<%= city_form_autocompletes_path %>", (request) => {
+diff --git a/app/views/admissions/filled_form/edit/_generic_residency_field.html.erb b/app/views/admissions/filled_form/edit/_generic_residency_field.html.erb
+index 958fd87b..8d059f04 100644
+--- a/app/views/admissions/filled_form/edit/_generic_residency_field.html.erb
++++ b/app/views/admissions/filled_form/edit/_generic_residency_field.html.erb
+@@ -43,12 +43,14 @@
+ <script>
+ 
+ $(document).ready(function() {
+-  $(`#<%= options[:id] %> .residency-field`).on("change", function() {
++  const syncResidency = function() {
+     let value = $(`#<%= options[:id] %> .residency-field`)
+       .map((i, el) => $(el).val()).toArray()
+       .join(" <$> ")
+     $(`#<%= options[:id] %> .hidden`).val(value)
+-  })
++  }
++  $(`#<%= options[:id] %> .residency-field`).on("change input keyup", syncResidency)
++  $(`#<%= options[:id] %> .residency-field`).closest("form").on("submit", syncResidency)
+ })
+ 
+ </script>
+diff --git a/app/views/admissions/filled_form/edit/_scholarity_item.html.erb b/app/views/admissions/filled_form/edit/_scholarity_item.html.erb
+index 5273c2e8..0af6579f 100644
+--- a/app/views/admissions/filled_form/edit/_scholarity_item.html.erb
++++ b/app/views/admissions/filled_form/edit/_scholarity_item.html.erb
+@@ -90,12 +90,14 @@
+ 
+ function scholarity_item_activate_js(sid) {
+   $(`#${sid} .remove-scholarity input[type=hidden]`).addClass("<%= filled_class %>");
+-  $(`#${sid} .scholarity-location .city-field`).on("change", function() {
++  const syncLocation = function() {
+     let value = $(`#${sid} .scholarity-location .city-field`)
+       .map((i, el) => $(el).val()).toArray().reverse()
+       .join(", ")
+     $(`#${sid} .scholarity-location .hidden`).val(value)
+-  })
++  }
++  $(`#${sid} .scholarity-location .city-field`).on("change input keyup", syncLocation)
++  $(`#${sid} .scholarity-location .city-field`).closest("form").on("submit", syncLocation)
+ 
+   $(`#${sid} .scholarity-location input[name="city"]`).autocomplete({
+     source: autocomplete_search("<%= city_form_autocompletes_path %>", (request) => {
+diff --git a/app/views/enrollments/_show_defense_committee_table.html.erb b/app/views/enrollments/_show_defense_committee_table.html.erb
+index 5e5d080e..ceb1ce54 100644
+--- a/app/views/enrollments/_show_defense_committee_table.html.erb
++++ b/app/views/enrollments/_show_defense_committee_table.html.erb
+@@ -10,7 +10,7 @@
+     <% thesis_defense_committee_professors.each do |professor| %>
+       <% count += 1 %>
+       <% tr_class = count.even? ? "even-record" : "" %>
+-      <% date =  thesis_defense_date || dismissal_date %>
++      <% date =  thesis_defense_date || local_assigns[:dismissal_date] %>
+       <% affiliation = Affiliation.professor_date(professor, date&.to_date)&.last || Affiliation.of_professor(professor)&.last %>
+       <tr class="record <%= tr_class %>">
+         <td><%= professor.name %></td>
+diff --git a/config/locales/admissions/admissions.pt-BR.yml b/config/locales/admissions/admissions.pt-BR.yml
+index 0e94960a..c6f91da3 100644
+--- a/config/locales/admissions/admissions.pt-BR.yml
++++ b/config/locales/admissions/admissions.pt-BR.yml
+@@ -89,6 +89,7 @@ pt-BR:
+         one: "Não foi possível prosseguir com o envio da carta: 1 erro"
+         other: "Não foi possível prosseguir com o envio da carta: %{count} erros"
+       application_exists: Já existe uma inscrição preenchida para este email. Use a opção de recuperar inscrição
++      missing_form_data: Não foi possível receber os dados da inscrição. Tente novamente.
+       invalid_application: A inscrição acessada é inválida ou o edital está fechado
+       application_not_found: Inscrição não encontrada
+       application_process_not_found: Inscrição não encontrada neste edital de seleção
+diff --git a/config/locales/notification.pt-BR.yml b/config/locales/notification.pt-BR.yml
+index fc7778a7..5fe1515f 100644
+--- a/config/locales/notification.pt-BR.yml
++++ b/config/locales/notification.pt-BR.yml
+@@ -2,6 +2,9 @@
+ # This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
+ 
+ pt-BR:
++  notifications:
++    simulate:
++      invalid_query_date: A data de consulta informada é inválida. Use o formato dd/mm/aaaa.
+   activerecord:
+     attributes:
+       notification:
+diff --git a/config/locales/pt-BR.yml b/config/locales/pt-BR.yml
+index 0e19b5b1..8917f650 100644
+--- a/config/locales/pt-BR.yml
++++ b/config/locales/pt-BR.yml
+@@ -1,152 +1,153 @@
+-# Copyright (c) Universidade Federal Fluminense (UFF).
+-# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
+-
+-pt-BR:
+-
+-  errors:
+-    format: "%{attribute} %{message}"
+-
+-    messages: &errors_messages
+-      accepted: "deve ser aceito"
+-      blank: "não pode ficar em branco"
+-      confirmation: "não está igual à %{attribute}"
+-      empty: "não pode ficar vazio"
+-      equal_to: "deve ser igual a %{count}"
+-      even: "deve ser par"
+-      exclusion: "não está disponível"
+-      greater_than: "deve ser maior que %{count}"
+-      greater_than_or_equal_to: "deve ser maior ou igual a %{count}"
+-      inclusion: "não está incluído na lista"
+-      invalid: "não é válido"
+-      less_than: "deve ser menor que %{count}"
+-      less_than_or_equal_to: "deve ser menor ou igual a %{count}"
+-      not_a_number: "não é um número"
+-      not_an_integer: "não é um número inteiro"
+-      odd: "deve ser ímpar"
+-      taken: "já existe"
+-      too_long: "é muito longo (máximo: %{count} caracteres)"
+-      too_short: "é muito curto (mínimo: %{count} caracteres)"
+-      wrong_length: "não possui o tamanho esperado (%{count} caracteres)"
+-      required: "não pode ficar em branco"
+-
+-    template:
+-      header:
+-        one: "Não foi possível gravar %{model}: 1 erro"
+-        other: "Não foi possível gravar %{model}: %{count} erros."
+-      body: "Por favor, verifique o(s) seguinte(s) campo(s):"
+-
+-  activerecord:
+-    errors:
+-      full_messages:
+-        format: "%{attribute} %{message}"
+-
+-      messages:
+-        record_invalid: "A validação falhou: %{errors}"
+-
+-        taken: "já existe"
+-        <<: *errors_messages
+-
+-      template:
+-        body: "Por favor, verifique o(s) seguinte(s) campo(s):"
+-        header:
+-          one: "Não foi possível gravar %{model}: 1 erro"
+-          other: "Não foi possível gravar %{model}: %{count} erros."
+-
+-
+-  active_scaffold:
+-    'false': "Não"
+-    'true': "Sim"
+-    _select_: "Selecione uma opção"
+-    _short_select_: "Selecione"
+-    add: "Adicionar"
+-    add_existing: "Adicionar Existente"
+-    cancel: "Cancelar"
+-    cant_destroy_record: "Não é possível excluir %{record}"
+-    click_to_reset: "Clique aqui para remover o filtro criado"
+-    close: "Fechar"
+-    create: "Salvar"
+-    validate: "Validar"
+-    save: "Salvar"
+-    forms:
+-      repeat: "Repetir %{attribute}"
+-    create_another : "Criar Outro"
+-    create_link: "Adicionar"
+-    create_new: "Criar Novo"
+-    delete_link: "Excluir"
+-    remove_file: "Remover arquivo"
+-    delete_message: "Tem certeza que deseja excluir?"
+-    deleted_records: 'Registros Removidos'
+-    duplicate: "Duplicar"
+-    filtered: ""
+-    found:
+-      one: "Registro Encontrado"
+-      other: "Registros Encontrados"
+-    hide: "Ocultar"
+-    live_search: "Buscar"
+-    nested_for_model: ""
+-    next: "Próximo"
+-    no_entries: "Nenhum Dado Cadastrado"
+-    no_options: "Sem Opções"
+-    previous: "Anterior"
+-    replace_with_new: ""
+-    reset: "Resetar"
+-    search: "Buscar"
+-    search_link: "Buscar"
+-    show: "Mostrar"
+-    show_block: "Mostrar"
+-    show_link: "Visualizar"
+-    show_model: ""
+-    download_link: "Download"
+-    invalidate_link: "Invalidar"
+-    to_pdf: "Gerar relatório"
+-    total_label: "Total"
+-    update: "Atualizar"
+-    update_link: "Editar"
+-    update_model: ""
+-    record_not_saved: "A validação falhou!"
+-
+-    errors:
+-      full_messages:
+-        format: "%{attribute} %{message}"
+-
+-      messages:
+-        record_invalid: "A validação falhou: %{errors}"
+-        taken: "já existe"
+-        <<: *errors_messages
+-
+-      template:
+-        body: "Por favor, verifique o(s) seguinte(s) campo(s):"
+-        header:
+-          one: "Não foi possível gravar %{model}: 1 erro"
+-          other: "Não foi possível gravar %{model}: %{count} erros."
+-
+-  doc:
+-    authors: "Lista de Autores"
+-    credits: "Créditos"
+-    license: "Arquivo de Licensa"
+-
+-  helpers:
+-    city_widget:
+-      select_city: "Selecione a cidade"
+-      select_country: "Selecione o país"
+-      select_state: "Selecione o estado"
+-
+-    select:
+-      prompt: "Por favor selecione"
+-
+-    submit:
+-      create: 'Criar %{model}'
+-      submit: 'Salvar %{model}'
+-      update: 'Atualizar %{model}'
+-
+-    class_enrollments:
+-      justification_grade_not_count_in_gpr: "    Justificativa     "
+-
+-  pdf_content:
+-    watermark: "DOCUMENTO PARA USO INTERNO E SEM VALOR OFICIAL"
+-
+-  rescue_blank_text: "Não informado"
+-
+-  unauthorized:
+-    access_denied: "Acesso negado"
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++pt-BR:
++
++  errors:
++    session_expired: Sua sessão expirou. Entre novamente e repita a operação.
++    format: "%{attribute} %{message}"
++
++    messages: &errors_messages
++      accepted: "deve ser aceito"
++      blank: "não pode ficar em branco"
++      confirmation: "não está igual à %{attribute}"
++      empty: "não pode ficar vazio"
++      equal_to: "deve ser igual a %{count}"
++      even: "deve ser par"
++      exclusion: "não está disponível"
++      greater_than: "deve ser maior que %{count}"
++      greater_than_or_equal_to: "deve ser maior ou igual a %{count}"
++      inclusion: "não está incluído na lista"
++      invalid: "não é válido"
++      less_than: "deve ser menor que %{count}"
++      less_than_or_equal_to: "deve ser menor ou igual a %{count}"
++      not_a_number: "não é um número"
++      not_an_integer: "não é um número inteiro"
++      odd: "deve ser ímpar"
++      taken: "já existe"
++      too_long: "é muito longo (máximo: %{count} caracteres)"
++      too_short: "é muito curto (mínimo: %{count} caracteres)"
++      wrong_length: "não possui o tamanho esperado (%{count} caracteres)"
++      required: "não pode ficar em branco"
++
++    template:
++      header:
++        one: "Não foi possível gravar %{model}: 1 erro"
++        other: "Não foi possível gravar %{model}: %{count} erros."
++      body: "Por favor, verifique o(s) seguinte(s) campo(s):"
++
++  activerecord:
++    errors:
++      full_messages:
++        format: "%{attribute} %{message}"
++
++      messages:
++        record_invalid: "A validação falhou: %{errors}"
++
++        taken: "já existe"
++        <<: *errors_messages
++
++      template:
++        body: "Por favor, verifique o(s) seguinte(s) campo(s):"
++        header:
++          one: "Não foi possível gravar %{model}: 1 erro"
++          other: "Não foi possível gravar %{model}: %{count} erros."
++
++
++  active_scaffold:
++    'false': "Não"
++    'true': "Sim"
++    _select_: "Selecione uma opção"
++    _short_select_: "Selecione"
++    add: "Adicionar"
++    add_existing: "Adicionar Existente"
++    cancel: "Cancelar"
++    cant_destroy_record: "Não é possível excluir %{record}"
++    click_to_reset: "Clique aqui para remover o filtro criado"
++    close: "Fechar"
++    create: "Salvar"
++    validate: "Validar"
++    save: "Salvar"
++    forms:
++      repeat: "Repetir %{attribute}"
++    create_another : "Criar Outro"
++    create_link: "Adicionar"
++    create_new: "Criar Novo"
++    delete_link: "Excluir"
++    remove_file: "Remover arquivo"
++    delete_message: "Tem certeza que deseja excluir?"
++    deleted_records: 'Registros Removidos'
++    duplicate: "Duplicar"
++    filtered: ""
++    found:
++      one: "Registro Encontrado"
++      other: "Registros Encontrados"
++    hide: "Ocultar"
++    live_search: "Buscar"
++    nested_for_model: ""
++    next: "Próximo"
++    no_entries: "Nenhum Dado Cadastrado"
++    no_options: "Sem Opções"
++    previous: "Anterior"
++    replace_with_new: ""
++    reset: "Resetar"
++    search: "Buscar"
++    search_link: "Buscar"
++    show: "Mostrar"
++    show_block: "Mostrar"
++    show_link: "Visualizar"
++    show_model: ""
++    download_link: "Download"
++    invalidate_link: "Invalidar"
++    to_pdf: "Gerar relatório"
++    total_label: "Total"
++    update: "Atualizar"
++    update_link: "Editar"
++    update_model: ""
++    record_not_saved: "A validação falhou!"
++
++    errors:
++      full_messages:
++        format: "%{attribute} %{message}"
++
++      messages:
++        record_invalid: "A validação falhou: %{errors}"
++        taken: "já existe"
++        <<: *errors_messages
++
++      template:
++        body: "Por favor, verifique o(s) seguinte(s) campo(s):"
++        header:
++          one: "Não foi possível gravar %{model}: 1 erro"
++          other: "Não foi possível gravar %{model}: %{count} erros."
++
++  doc:
++    authors: "Lista de Autores"
++    credits: "Créditos"
++    license: "Arquivo de Licensa"
++
++  helpers:
++    city_widget:
++      select_city: "Selecione a cidade"
++      select_country: "Selecione o país"
++      select_state: "Selecione o estado"
++
++    select:
++      prompt: "Por favor selecione"
++
++    submit:
++      create: 'Criar %{model}'
++      submit: 'Salvar %{model}'
++      update: 'Atualizar %{model}'
++
++    class_enrollments:
++      justification_grade_not_count_in_gpr: "    Justificativa     "
++
++  pdf_content:
++    watermark: "DOCUMENTO PARA USO INTERNO E SEM VALOR OFICIAL"
++
++  rescue_blank_text: "Não informado"
++
++  unauthorized:
++    access_denied: "Acesso negado"
+     default: "Acesso negado à URL. Tentativa de acesso reportada."
+\ No newline at end of file
+diff --git a/config/locales/student_enrollment.pt-BR.yml b/config/locales/student_enrollment.pt-BR.yml
+index 186d1763..fe5e5895 100644
+--- a/config/locales/student_enrollment.pt-BR.yml
++++ b/config/locales/student_enrollment.pt-BR.yml
+@@ -55,6 +55,7 @@ pt-BR:
+       dismissed_enrollment: Matrícula %{enrollment} desligada
+       invalid_semester: Semestre %{year}.%{semester} inválido
+       closed_enrollment: O período de inscrições no semestre %{year}.%{semester} fechou
++      semester_unavailable: O semestre %{year}.%{semester} ainda não está disponível para inscrições
+ 
+     notice:
+       request_removed: Pedido de inscrição removido!

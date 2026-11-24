@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14796,
+ "stop_reason": "end_turn",
+ "session_id": "afa4c734-3ccc-4aea-b322-94e95c8c3eb8",
+ "total_cost_usd": 0.0429222,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1294,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1620,
+  "output_tokens_details": {
+   "thinking_tokens": 358
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1294,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1620,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1294,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1294
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1502,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001622,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1620,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1294,
+   "webSearchRequests": 0,
+   "costUSD": 0.04276,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 358,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen printing a `Poly`, the `str` and `pretty` printers order monomials logically, from highest to lowest degree. The LaTeX printer (`latex`) does not. Its output uses a different order, so it does not match the other printers.\n\n## Steps to reproduce\n\n1. In an interactive session (SymPy, implied by the API used), declare the symbols: `var('a b c x')`.\n2. Create a polynomial: `p = Poly([a, 1, b, 2, c, 3], x)`.\n3. Print `p` with `str` (by evaluating `p`), with `pretty(p)` and with `latex(p)`.\n4. Compare the order of the monomials in the three outputs.\n\n## Observed behavior\n\n`str` and `pretty` list the monomials from highest to lowest degree:\n\n```\na*x**5 + x**4 + b*x**3 + 2*x**2 + c*x + 3\n```\n\n`latex` lists them in a different order. The terms with symbolic coefficients come first, followed by the remaining terms:\n\n```\na x^{5} + b x^{3} + c x + x^{4} + 2 x^{2} + 3\n```\n\n## Expected behavior\n\n`latex(p)` should use the same monomial order as `str` and `pretty`, from highest to lowest degree:\n\n```\na x^{5} + x^{4} + b x^{3} + 2 x^{2} + c x + 3\n```\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the issue is the order of terms in the output.\n\nFull output from the original report:\n\n```\n>>> p\nPoly(a*x**5 + x**4 + b*x**3 + 2*x**2 + c*x + 3, x, domain='ZZ[a,b,c]')\n>>> pretty(p)\n\"Poly(a*x**5 + x**4 + b*x**3 + 2*x**2 + c*x + 3, x, domain='ZZ[a,b,c]')\"\n>>> latex(p)\n'\\\\operatorname{Poly}{\\\\left( a x^{5} + b x^{3} + c x + x^{4} + 2 x^{2} + 3, x, domain=\\\\mathbb{Z}\\\\left[a, b, c\\\\right] \\\\right)}'\n```\n\n## Test case\n\nMinimal test derived from the reproduction snippet. It checks only the order of the monomials in the LaTeX output:\n\n```python\nfrom sympy import var, Poly, latex\n\ndef test_latex_poly_monomial_order():\n    a, b, c, x = var('a b c x')\n    p = Poly([a, 1, b, 2, c, 3], x)\n    s = latex(p)\n    terms = [\"a x^{5}\", \"x^{4}\", \"b x^{3}\", \"2 x^{2}\", \"c x\", \"3\"]\n    positions = [s.index(t) for t in terms]\n    # Monomials should appear from highest to lowest degree, as in str/pretty\n    assert positions == sorted(positions)\n```\n\n## Code example\n\n```python\n>>> var('a b c x')\n>>> p = Poly([a, 1, b, 2, c, 3], x)\n>>> p\nPoly(a*x**5 + x**4 + b*x**3 + 2*x**2 + c*x + 3, x, domain='ZZ[a,b,c]')\n>>> pretty(p)\n\"Poly(a*x**5 + x**4 + b*x**3 + 2*x**2 + c*x + 3, x, domain='ZZ[a,b,c]')\"\n>>> latex(p)\n'\\\\operatorname{Poly}{\\\\left( a x^{5} + b x^{3} + c x + x^{4} + 2 x^{2} + 3, x, domain=\\\\mathbb{Z}\\\\left[a, b, c\\\\right] \\\\right)}'\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 5329,
+ "type": "result",
+ "duration_ms": 13966,
+ "uuid": "5a1ced47-39a0-4cb9-93ee-88519247effc",
+ "ttft_stream_ms": 1552,
+ "time_to_request_ms": 272,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 19,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 218,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 253,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 27,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1552,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

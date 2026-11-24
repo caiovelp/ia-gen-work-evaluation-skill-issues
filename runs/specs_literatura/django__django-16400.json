@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15535,
+ "stop_reason": "end_turn",
+ "session_id": "f789ed42-9643-401d-876b-ed6f30504c57",
+ "total_cost_usd": 0.0493922,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1821,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1730,
+  "output_tokens_details": {
+   "thinking_tokens": 333
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1821,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1730,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1821,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1821
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2032,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002162,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1730,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1821,
+   "webSearchRequests": 0,
+   "costUSD": 0.049176,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 333,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe `migrate` management command does not respect the database parameter when adding Permissions. When `migrate` is invoked with a database parameter, the migration itself succeeds. However, a DB read request runs after the migration, and that read does not use the specified database. Instead it calls the configured DB router (`db_for_read`).\n\nThe reporter expects every DB call made in the context of the `migrate` command to use the specified database. They found the problem while using a thread-local variable and a custom DB router to select the active DB in a multi-tenant service.\n\n## Steps to reproduce\n\n1. Add the custom middleware (`TenantSubdomainMiddleware`) and custom DB router (`TenantDatabaseRouter`) shown in the Code example section, in a module such as `utils/tenant_db_router.py`.\n2. Configure `settings.py`:\n   - Add `\"utils.tenant_db_router.TenantSubdomainMiddleware\"` to `MIDDLEWARE`.\n   - Set `TENANT_MAP = {\"localhost\": \"default\", \"tenant_1\": \"default\"}`.\n   - Set `DATABASE_ROUTERS = [\"utils.tenant_db_router.TenantDatabaseRouter\"]`.\n3. Run any DB migration using the `migrate` management command with the database parameter specified.\n4. Watch the console output.\n\n## Observed behavior\n\n- The migration runs successfully.\n- A DB read request then runs after the migration (according to the title, while adding Permissions). It does not respect the database parameter and goes through the DB router.\n- `read {}` is printed by the router's `db_for_read` method, followed by an exception message. No thread-local subdomain is set outside a request, so the router's `_default_db()` raises `InvalidTenantException`.\n\n## Expected behavior\n\nWhen a database is passed as a parameter to `migrate`, all DB calls made by the command should use that database. The router's `db_for_read` / `db_for_write` should not be called, because the database was already specified.\n\n## Stack trace / error output\n\nThe only output described is:\n\n```\nread {}\n```\n\nThis is printed before an exception message. The full exception message and stack trace are not provided in the original report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\n```python\nfrom threading import local\nfrom django.conf import settings\n\nlocal_state = local()\n\nclass InvalidTenantException(Exception):\n    pass\n\nclass TenantSubdomainMiddleware:\n    def __init__(self, get_response):\n        self.get_response = get_response\n\n    def __call__(self, request):\n        ## Get Subdomain\n        host = request.get_host().split(\":\")[0]\n        local_state.subdomain = (\n            # We assume single level of subdomain : app.service.com\n            # HOST_IP : used to for local dev.\n            host if host in settings.HOST_IP else host.split(\".\")[0]\n        )\n        response = self.get_response(request)\n        return response\n\nclass TenantDatabaseRouter:\n    def _default_db(self):\n        subdomain = getattr(local_state, \"subdomain\", None)\n        if subdomain is not None and subdomain in settings.TENANT_MAP:\n            db_name = settings.TENANT_MAP[local_state.subdomain]\n            return db_name\n        else:\n            raise InvalidTenantException()\n\n    def db_for_read(self, model, **hints):\n        print(\"read\", hints)\n        return self._default_db()\n\n    def db_for_write(self, model, **hints):\n        print(\"write\", hints)\n        return self._default_db()\n\n    def allow_relation(self, obj1, obj2, **hints):\n        return None\n\n    def allow_migrate(self, db, app_label, model_name=None, **hints):\n        return None\n```\n\n```python\n## settings.py\nMIDDLEWARE = [\n    \"utils.tenant_db_router.TenantSubdomainMiddleware\",\n    \"django.middleware.security.SecurityMiddleware\",\n    ...\n]\nTENANT_MAP = {\"localhost\": \"default\", \"tenant_1\": \"default\"}\nDATABASE_ROUTERS = [\"utils.tenant_db_router.TenantDatabaseRouter\"]\n```\n\n## Version and environment\n\nNot provided in the original report. The only context given is a multi-tenant service that uses a thread-local variable and a custom DB router to select the active database.",
+ "ttft_ms": 4961,
+ "type": "result",
+ "duration_ms": 15106,
+ "uuid": "5250679e-0728-4b4d-a1b7-bc757accfd40",
+ "ttft_stream_ms": 1357,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 216,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 170,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1357,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

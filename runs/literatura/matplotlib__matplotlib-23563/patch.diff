@@ -1,0 +1,21 @@
+diff --git a/lib/mpl_toolkits/mplot3d/axes3d.py b/lib/mpl_toolkits/mplot3d/axes3d.py
+index e470295393..19ddf5f4e0 100755
+--- a/lib/mpl_toolkits/mplot3d/axes3d.py
++++ b/lib/mpl_toolkits/mplot3d/axes3d.py
+@@ -1280,8 +1280,14 @@ class Axes3D(Axes):
+         zs = np.broadcast_to(zs, np.shape(xs))
+ 
+         lines = super().plot(xs, ys, *args, **kwargs)
+-        for line in lines:
+-            art3d.line_2d_to_3d(line, zs=zs, zdir=zdir)
++        try:
++            for line in lines:
++                art3d.line_2d_to_3d(line, zs=zs, zdir=zdir)
++        except Exception:
++            # Don't leave half-converted lines behind on the axes.
++            for line in lines:
++                line.remove()
++            raise
+ 
+         xs, ys, zs = art3d.juggle_axes(xs, ys, zs, zdir)
+         self.auto_scale_xyz(xs, ys, zs, had_data)

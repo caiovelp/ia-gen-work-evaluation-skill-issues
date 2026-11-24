@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11373,
+ "stop_reason": "end_turn",
+ "session_id": "d85fe622-7781-4bfb-bc0a-5700f7c5a498",
+ "total_cost_usd": 0.0311316,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1310,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1024,
+  "output_tokens_details": {
+   "thinking_tokens": 229
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1310,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1024,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1310,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1310
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1521,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016360000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1024,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1310,
+   "webSearchRequests": 0,
+   "costUSD": 0.030968,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 229,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nFor subplots created with `projection=\"3d\"`, calling `Axes.set_visible(False)` has no effect. The 3D subplot is still drawn.\n\n## Steps to reproduce\n\n1. Create a figure with two subplots using the 3D projection: `plt.subplots(1, 2, subplot_kw={'projection': '3d'})`.\n2. Plot a point on each axes: `ax1.scatter(1, 1, 1)` and `ax2.scatter(1, 1, 1, c='r')`.\n3. Hide the first axes with `ax1.set_visible(False)`.\n4. Show the figure with `plt.show()`.\n5. Look at the left subplot (`ax1`).\n\n## Observed behavior\n\nThe subplot `ax1` is still visible, even though `set_visible(False)` was called on it.\n\n## Expected behavior\n\nThe subplot `ax1` is not shown after `set_visible(False)` is called on it.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nThis minimal reproduction comes from the report's snippet. The unused `GridSpec` import has been removed. Run it and check the figure by eye:\n\n```python\nimport matplotlib.pyplot as plt\n\nfig, (ax1, ax2) = plt.subplots(1, 2, subplot_kw={'projection': '3d'})\nax1.scatter(1, 1, 1)\nax2.scatter(1, 1, 1, c='r')\nax1.set_visible(False)\n\nplt.show()\n# Expected: only the right subplot (ax2, red point) is shown.\n# Observed: the left subplot (ax1) is still shown.\n```\n\n## Code example\n\nThe original reproduction code from the report:\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib.gridspec import GridSpec\n\nfig, (ax1, ax2) = plt.subplots(1, 2, subplot_kw={'projection': '3d'})\nax1.scatter(1,1,1)\nax2.scatter(1,1,1, c='r')\nax1.set_visible(False)\n\nplt.show()\n```\n\n## Version and environment\n\n- Matplotlib version: 3.4.2\n- Matplotlib backend: Qt5Agg\n- Python version: 3.8.10\n- Operating system: Not provided in the original report.\n- Jupyter version: Not provided in the original report.\n- Installation method: Not provided in the original report.",
+ "ttft_ms": 4917,
+ "type": "result",
+ "duration_ms": 10858,
+ "uuid": "3616419f-787e-409e-bb0e-93f922a0cdb0",
+ "ttft_stream_ms": 1625,
+ "time_to_request_ms": 308,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 10,
+  "input_hooks": 5,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 234,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 290,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1626,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

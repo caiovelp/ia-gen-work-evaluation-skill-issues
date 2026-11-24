@@ -1,0 +1,19 @@
+diff --git a/lib/mpl_toolkits/mplot3d/art3d.py b/lib/mpl_toolkits/mplot3d/art3d.py
+index 8fe6e7a9c1..7de4ff2cfc 100755
+--- a/lib/mpl_toolkits/mplot3d/art3d.py
++++ b/lib/mpl_toolkits/mplot3d/art3d.py
+@@ -221,8 +221,13 @@ class Line3D(lines.Line2D):
+ def line_2d_to_3d(line, zs=0, zdir='z'):
+     """Convert a 2D line to 3D."""
+ 
++    orig_class = line.__class__
+     line.__class__ = Line3D
+-    line.set_3d_properties(zs, zdir)
++    try:
++        line.set_3d_properties(zs, zdir)
++    except Exception:
++        line.__class__ = orig_class
++        raise
+ 
+ 
+ def _path_to_3d_segment(path, zs=0, zdir='z'):

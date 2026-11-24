@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8491,
+ "stop_reason": "end_turn",
+ "session_id": "2bb0b84a-565d-4244-abd0-f71ddfae7230",
+ "total_cost_usd": 0.027099400000000003,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1212,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 862,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1212,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 862,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1212,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1212
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1424,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015539999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 862,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1212,
+   "webSearchRequests": 0,
+   "costUSD": 0.026944000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nWhen a parent model defines `Meta.ordering = [\"-pk\"]`, querying a child model that inherits from it (multi-table inheritance) produces a query ordered ascending (`ASC`) instead of descending (`DESC`).\n\n## Steps to reproduce\n1. Define the following models in an app named `myapp`:\n   ```python\n   from django.db import models\n\n   class Parent(models.Model):\n       class Meta:\n           ordering = [\"-pk\"]\n\n   class Child(Parent):\n       pass\n   ```\n2. Build a queryset on the child model and print its SQL:\n   ```python\n   >>> print(Child.objects.all().query)\n   ```\n3. Inspect the `ORDER BY` clause of the generated SQL.\n\n## Observed behavior\nThe generated query orders by the parent's primary key in ascending order:\n```sql\nSELECT \"myapp_parent\".\"id\", \"myapp_child\".\"parent_ptr_id\" FROM \"myapp_child\" INNER JOIN \"myapp_parent\" ON (\"myapp_child\".\"parent_ptr_id\" = \"myapp_parent\".\"id\") ORDER BY \"myapp_parent\".\"id\" ASC\n```\n\n## Expected behavior\nThe query should honor the inherited `ordering = [\"-pk\"]` and order descending, i.e. the `ORDER BY` clause should be `\"myapp_parent\".\"id\" DESC`.\n\n## Stack trace / error output\nNot provided in the original report. (No error is raised; the problem is the incorrect SQL shown under \"Observed behavior\".)\n\n## Test case\nA minimal test derived from the report's reproduction:\n```python\n# Models (in app \"myapp\")\nfrom django.db import models\n\nclass Parent(models.Model):\n    class Meta:\n        ordering = [\"-pk\"]\n\nclass Child(Parent):\n    pass\n```\n```python\n# Check\nsql = str(Child.objects.all().query)\n# Expected: ORDER BY \"myapp_parent\".\"id\" DESC\n# Observed: ORDER BY \"myapp_parent\".\"id\" ASC\nassert sql.endswith('ORDER BY \"myapp_parent\".\"id\" DESC')\n```\n\n## Code example\n```python\nfrom django.db import models\n\nclass Parent(models.Model):\n    class Meta:\n        ordering = [\"-pk\"]\n\nclass Child(Parent):\n    pass\n```\n```python\n>>> print(Child.objects.all().query)\n```\n\n## Version and environment\nNot provided in the original report. (The quoted identifiers in the SQL output suggest a database backend that uses double-quoted identifiers, but no Django version, Python version, or database backend is specified.)",
+ "ttft_ms": 7991,
+ "type": "result",
+ "duration_ms": 8024,
+ "uuid": "af0431a7-0da1-4473-a54e-c4930972925d",
+ "ttft_stream_ms": 1533,
+ "time_to_request_ms": 291,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 26,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 41,
+ "time_to_request_cpu_ms": 251,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1533,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

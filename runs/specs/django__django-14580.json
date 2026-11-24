@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28384,
+ "stop_reason": "end_turn",
+ "session_id": "f0f6c5c5-97e9-470f-a273-ccbe8037448b",
+ "total_cost_usd": 0.060035000000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1182,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2471,
+  "output_tokens_details": {
+   "thinking_tokens": 153
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1182,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2471,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1182,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1182
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1767,
+   "outputTokens": 223,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002882,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 205,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2471,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1182,
+   "webSearchRequests": 0,
+   "costUSD": 0.0597468,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 153,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Missing `models` import in generated migration when `bases` includes `models.Model`\n\n## Objective\n\n`makemigrations` can write a migration file that is not valid Python. When a model's bases are serialized as `models.Model`, the file does not include `from django.db import models`. Importing the migration then raises `NameError: name 'models' is not defined`.\n\n**User:** A Django developer who runs `makemigrations` on a project whose models combine a plain Python mixin with an abstract base model.\n\n**Reproduction (from the issue, Django 3.2.4):**\n\n```python\nfrom django.db import models\n\nclass MyField(models.TextField):\n    pass\n\nclass MyBaseModel(models.Model):\n    class Meta:\n        abstract = True\n\nclass MyMixin:\n    pass\n\nclass MyModel(MyMixin, MyBaseModel):\n    name = MyField(primary_key=True)\n```\n\n**Generated migration (abridged):**\n\n```python\nimport app.models\nfrom django.db import migrations\n...\n            bases=(app.models.MyMixin, models.Model),\n```\n\n**Observed:** `NameError: name 'models' is not defined` at the `bases=` line when the migration module is loaded.\n\n**Expected:** The generated migration is valid Python. It imports everything it references, so it can be loaded and applied.\n\n**Observations from the reproduction:**\n- The abstract `MyBaseModel` is replaced by `models.Model` in `bases`. This is expected behaviour.\n- `app.models` is imported because of `MyField` and `MyMixin`.\n- The `migrations` import is present.\n- The `models` import is not emitted. In other generated migrations it is normally merged into `from django.db import migrations, models`.\n- In this file, nothing else (for example a built-in field) references `models`, so nothing else pulls the import in.\n\n**User stories / acceptance criteria:**\n- When a model's serialized `bases` includes `models.Model`, the migration file includes `from django.db import models`. With the usual merge this reads `from django.db import migrations, models`.\n- This holds even when no field or other operation argument references `models`.\n\n## Assumptions\n\n1. The bug is in migration *serialization/writing*, not in autodetection. The `bases` value `(MyMixin, models.Model)` is correct; only the import set is incomplete. The reporter suspects `django.db.migrations.writer`. The exact responsible component (writer vs. serializer) has not been confirmed.\n2. The serialization of the `models.Model` class reference produces the string `models.Model` but does not register the matching import. This is the most likely mechanism. It is a hypothesis, not yet verified.\n3. The existing import-merging behaviour stays unchanged: `django.db` `migrations` and `models` combine into one line, and imports are sorted.\n4. The fix should apply to supported branches affected by the bug, starting with 3.2.x. Backport policy is the maintainers' decision.\n5. Output formatting of unaffected migrations must not change. Existing generated files and snapshot-style tests should stay stable.\n\n## Tech Stack\n\n- Python, Django (bug reported on 3.2.4).\n- Affected area: migration framework. The reporter names `django.db.migrations.writer`; the serializer module may also be involved (unconfirmed).\n- Exact supported Python versions for the target branch: **unknown** (not in the issue).\n\n## Commands\n\n- Build: **unknown** (not applicable / not stated in the issue)\n- Test: **unknown.** The Django test runner invocation and the relevant test labels for migration writer tests are not visible.\n- Lint: **unknown**\n- Reproduce manually: create an app containing the `models.py` above, run `makemigrations`, then load or apply the migration (for example with `migrate`). The exact `manage.py` invocation and project layout are not given beyond the app being named `app`.\n\n## Project Structure\n\n- Source location of the migration writer/serializer: **unknown** (only the module path `django.db.migrations.writer` is mentioned).\n- Location of existing migration writer tests: **unknown**.\n- Documentation and release-notes location for a bugfix entry: **unknown**.\n\n## Code Style\n\n- Follow the existing conventions of the Django codebase. No code from the affected modules is visible in the issue, so there is no style snippet to show.\n- The generated migration output must match Django's existing migration formatting:\n  - header comment\n  - sorted imports\n  - `from django.db import migrations, models` merging\n\n## Testing Strategy\n\n- **Regression test (unit level):** Serialize or write a migration whose `CreateModel` has `bases` containing `models.Model` together with a non-Django class. Assert two things:\n  - The output contains the `models` import.\n  - The output is valid, executable Python (it compiles and loads without `NameError`).\n- **Serializer-level test (if the cause is confirmed there):** Serializing `models.Model` returns both the expected string and the `from django.db import models` import.\n- **Scenario test:** The exact reproduction from the issue (mixin + abstract base + custom primary-key field) yields a loadable migration.\n- **Non-regression:** The existing migration writer and serializer test suites pass unchanged.\n- Test framework and file locations: **unknown** (Django's own test suite assumed).\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue.\n  - Keep generated output for unaffected migrations byte-identical.\n  - Run the existing migration test suites.\n- **Ask first:**\n  - Changing how abstract bases are collapsed into `models.Model`.\n  - Changing import ordering or merging rules.\n  - Touching autodetector logic.\n  - Deciding on backport targets.\n- **Never:**\n  - Work around the problem by emitting unconditional or unused imports in every migration, unless maintainers approve.\n  - Alter existing migration files in the repository.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. Running `makemigrations` on the issue's `models.py` produces a migration that imports `models` from `django.db` and loads and applies without error.\n2. Every serialized reference to `models.Model` in a migration comes with its required import, whatever other operations or fields are present.\n3. A new automated test fails before the fix and passes after it.\n4. All existing migration writer/serializer tests pass. Formatting of other generated migrations is unchanged.\n\n## Open Questions\n\n1. Is the root cause in the serializer, e.g. the special-case handling for the `models.Model` type reference? Or is it in the writer's import collection? Confirming this decides where the fix and its test belong.\n2. Are other special-cased type references affected by the same missing-import problem and in need of the same fix? For example, other `django.db` references emitted without imports.\n3. Which branches should receive the fix: 3.2.x only, or also the development branch and other supported releases?\n4. Is a release-notes entry needed for this bugfix, and in which release-notes file?\n5. What are the exact test command and test labels for the migration writer/serializer tests in the target branch?",
+ "ttft_ms": 3488,
+ "type": "result",
+ "duration_ms": 26198,
+ "uuid": "1ab767fb-8e9e-4d07-9517-79f17a9c85bd",
+ "ttft_stream_ms": 1870,
+ "time_to_request_ms": 230,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 196,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 128,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1871,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

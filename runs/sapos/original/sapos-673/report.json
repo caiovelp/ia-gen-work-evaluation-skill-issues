@@ -1,0 +1,1 @@
+{"resolved": false, "f2p_falhou": ["./spec/helpers/pdf_helper_spec.rb[1:5:1]", "./spec/helpers/pdf_helper_spec.rb[1:5:2]", "./spec/helpers/pdf_helper_spec.rb[1:5:3]", "./spec/helpers/pdf_helper_spec.rb[1:5:4]", "./spec/helpers/pdf_helper_spec.rb[1:6:5]"], "p2p_falhou": []}

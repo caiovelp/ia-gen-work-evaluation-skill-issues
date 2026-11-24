@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30442,
+ "stop_reason": "end_turn",
+ "session_id": "8420f4c1-80d4-4720-9864-c33212492364",
+ "total_cost_usd": 0.0782937,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1697,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3180,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1697,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3180,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1697,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1697
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2289,
+   "outputTokens": 36,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002469,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3180,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1697,
+   "webSearchRequests": 0,
+   "costUSD": 0.0780468,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Allow subclasses of BigAutoField / SmallAutoField as `DEFAULT_AUTO_FIELD`\n\n## Assumptions\n\n1. The issue describes Django's handling of the `DEFAULT_AUTO_FIELD` setting. The traceback suggests Django 3.2.x (`venv/.../django/db/models/options.py`, Python 3.9). The exact version and branch are **unknown**.\n2. The failing check is in `Options._get_default_pk_class()` (`django/db/models/options.py`, around line 246 in the reporter's install). It raises `ValueError` when the configured class does not \"subclass AutoField\".\n3. That check uses `issubclass(pk_class, AutoField)`. The result comes from `AutoFieldMeta.__subclasscheck__` (the reporter names this), which consults a `_subclasses` property. I assume that property contains `BigAutoField` and `SmallAutoField` and checks them by **identity/membership**, not by subclass relationship. Under that assumption, `BigAutoField` passes but a user subclass of it does not. The source itself was not seen.\n4. The same metaclass likely implements `__instancecheck__` as well. I assume it has the same identity-based flaw for instances of user subclasses, though the issue does not show this.\n5. Direct subclasses of `AutoField` (e.g. `class MyAutoField(models.AutoField)`) already work, through normal inheritance.\n6. Multi-level subclasses (e.g. `class A(BigAutoField)`, `class B(A)`) should be accepted the same way as single-level ones.\n7. No change to the error message or to the `DEFAULT_AUTO_FIELD` / `AppConfig.default_auto_field` semantics is intended. Only the subclass detection is wrong.\n8. Any setting that resolves through `_get_default_pk_class()` is affected the same way. This includes the per-app `AppConfig.default_auto_field`, which I assume uses the same code path (not confirmed).\n\n## Objective\n\nDjango users must be able to set `DEFAULT_AUTO_FIELD` (or `AppConfig.default_auto_field`) to a custom subclass of `models.BigAutoField` or `models.SmallAutoField`. Today, Django crashes during `django.setup()` / model import with:\n\n```\nValueError: Primary key 'example.core.models.MyBigAutoField' referred by DEFAULT_AUTO_FIELD must subclass AutoField.\n```\n\nThe fix scope is the subclass check: `issubclass(X, AutoField)` must return `True` for any class that inherits, directly or indirectly, from `BigAutoField` or `SmallAutoField`. It must return `False` for classes that do not.\n\n**User story:** As a Django developer, I define `class MyBigAutoField(models.BigAutoField): pass` and set `DEFAULT_AUTO_FIELD` to it. I expect my models to get an auto-created primary key of that type, without errors.\n\n**Reproduction (from the issue):**\n\n```python\n# example/core/models.py\nfrom django.db import models\n\nclass MyBigAutoField(models.BigAutoField):\n    pass\n\nclass MyModel(models.Model):\n    pass\n```\n\n```python\n# settings\nDEFAULT_AUTO_FIELD = \"example.core.models.MyBigAutoField\"\n```\n\n## Tech Stack\n\n- Python (3.9 in the report; supported range unknown)\n- Django (3.2.x inferred from the traceback; exact version unknown)\n- Relevant modules named in the traceback/issue:\n  - `django/db/models/options.py` (`Options._prepare`, `Options._get_default_pk_class`)\n  - `django/db/models/base.py` (`ModelBase.__new__`, `_prepare`)\n  - `AutoFieldMeta` (`__subclasscheck__`, `_subclasses`). Its location is presumed to be `django/db/models/fields/__init__.py`, which is **unconfirmed**.\n\n## Commands\n\nUnknown. The repository is not visible. The project's test runner invocation and any lint commands must be confirmed. See Open Questions.\n\n- Build: unknown / not applicable\n- Test: unknown\n- Lint: unknown\n\n## Project Structure\n\nOnly the paths visible in the traceback are known:\n\n```\ndjango/db/models/base.py      \u2192 ModelBase metaclass, model preparation\ndjango/db/models/options.py   \u2192 Options._get_default_pk_class (raises the ValueError)\ndjango/apps/config.py         \u2192 AppConfig.import_models\ndjango/apps/registry.py       \u2192 Apps.populate\n```\n\nThe location of `AutoFieldMeta` and of the relevant existing test modules is **unknown**.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the surrounding code in `AutoFieldMeta` and `options.py`. No style sample is available from the issue.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test suite. The runner and command are unknown.\n- **Unit level (metaclass):**\n  - `issubclass(MyBigAutoField, models.AutoField)` is `True`.\n  - `issubclass(MySmallAutoField, models.AutoField)` is `True`.\n  - The same holds for a second-level subclass.\n  - The existing truths still hold: `issubclass(BigAutoField, AutoField)`, `issubclass(SmallAutoField, AutoField)`, `issubclass(AutoField, AutoField)`.\n  - Unrelated fields still return `False`, e.g. `issubclass(models.TextField, AutoField)`, and also `IntegerField` / `BigIntegerField`.\n- **Instance level (if assumption 4 holds):** `isinstance(MyBigAutoField(), models.AutoField)` is `True`.\n- **Integration level (options):**\n  - A model defined under `override_settings(DEFAULT_AUTO_FIELD=<path to subclass of BigAutoField>)` gets an auto-created `id` primary key of that subclass type, without raising. Repeat for a `SmallAutoField` subclass.\n  - Repeat for `AppConfig.default_auto_field` if it shares the code path.\n- **Regression:** a non-AutoField class (e.g. `TextField`) set as `DEFAULT_AUTO_FIELD` still raises the same `ValueError` with the same message.\n- Existing tests for `DEFAULT_AUTO_FIELD` and the AutoField hierarchy must continue to pass.\n\n## Boundaries\n\n- **Always:**\n  - Keep the fix limited to subclass/instance detection for the AutoField family.\n  - Add regression tests for both `BigAutoField` and `SmallAutoField` subclasses.\n  - Run the existing model/options test suites.\n- **Ask first:**\n  - Changing the `ValueError` message.\n  - Changing the public `AutoField` / `BigAutoField` / `SmallAutoField` class hierarchy (e.g. making them true `AutoField` subclasses), rather than fixing the metaclass check.\n  - Backporting to release branches.\n  - Changing `__instancecheck__` behavior beyond mirroring the subclass fix.\n- **Never:**\n  - Remove or weaken the validation that `DEFAULT_AUTO_FIELD` must be an AutoField-family class.\n  - Make unrelated fields (e.g. `BigIntegerField`) pass the check.\n  - Alter behavior for the built-in default (`AutoField`).\n\n## Success Criteria\n\n1. With the reproduction above, `django.setup()` / importing the models module completes without `ValueError`.\n2. `MyModel._meta.pk` is an instance of `MyBigAutoField`.\n3. Points 1 and 2 also hold for a subclass of `SmallAutoField`, and for a multi-level subclass (subclass of a subclass) of either.\n4. `issubclass(X, models.AutoField)` is `True` for subclasses of `BigAutoField`/`SmallAutoField`. It is unchanged (`True`) for `AutoField`, `BigAutoField`, `SmallAutoField` and direct `AutoField` subclasses.\n5. `issubclass(X, models.AutoField)` remains `False` for non-AutoField-family classes. Setting such a class as `DEFAULT_AUTO_FIELD` still raises the existing `ValueError`.\n6. New regression tests covering points 1\u20135 pass. All pre-existing tests pass.\n\n## Open Questions\n\n1. Which Django version(s)/branches does the fix target, and should it be backported to the 3.2 release branch?\n2. Where exactly is `AutoFieldMeta` defined, and what is the current implementation of `_subclasses`, `__subclasscheck__` and `__instancecheck__`? This would confirm assumptions 3 and 4.\n3. Should `isinstance()` checks for instances of user subclasses also be fixed in the same change, if they are affected?\n4. Does `AppConfig.default_auto_field` go through the same `_get_default_pk_class()` check, so it should be covered by tests too?\n5. What are the exact test command and the appropriate test modules for metaclass and `DEFAULT_AUTO_FIELD` tests?\n6. Is the reporter's suggested approach the preferred one: fixing `AutoFieldMeta.__subclasscheck__` / `_subclasses` to recognize subclasses of `BigAutoField` and `SmallAutoField`? Or is a broader hierarchy change acceptable?",
+ "ttft_ms": 29849,
+ "type": "result",
+ "duration_ms": 29876,
+ "uuid": "18005505-382f-4db2-85b8-33e872faa6cb",
+ "ttft_stream_ms": 1447,
+ "time_to_request_ms": 256,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 12,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 198,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1447,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13595,
+ "stop_reason": "end_turn",
+ "session_id": "a66f72f8-39d1-4226-917d-da6d30f6a641",
+ "total_cost_usd": 0.0329443,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1119,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1192,
+  "output_tokens_details": {
+   "thinking_tokens": 247
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1119,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1192,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1119,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1119
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1328,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001443,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1192,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1119,
+   "webSearchRequests": 0,
+   "costUSD": 0.0328,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 247,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nPretty printing of a `sympy.vector` expression is broken when a vector basis element is multiplied by a power expression such as `(x/y)**t`. The basis vector name (`e_j`) is printed twice: once inside the expression and once outside it, and the layout is malformed. The report also notes a separate problem: even when such expressions print correctly, the baseline is wrong. It should be centered.\n\n## Steps to reproduce\n\n1. Start an interactive session (the report uses IPython).\n2. Run `from sympy.vector import *`.\n3. Create a Cartesian coordinate system: `e = CoordSysCartesian('e')`.\n4. Evaluate `(x/y)**t*e.j` and view the pretty-printed output.\n\nNote: the report does not show how `x`, `y` and `t` are defined. They appear to be SymPy symbols.\n\n## Observed behavior\n\nThe output is malformed. `e_j` appears twice, once embedded in the parenthesized power and once trailing on the first line:\n\n```\nOut[3]:\n\u239b   t\u239e e_j\n\u239c\u239bx\u239e e_j \u239f\n\u239c\u239c\u2500\u239f \u239f\n\u239d\u239dy\u23a0 \u23a0\n```\n\nAdditionally, according to the reporter, when vector expressions do print correctly, the baseline is wrong (not centered). No example output is given for this case.\n\n## Expected behavior\n\n- The expression `(x/y)**t*e.j` should pretty print correctly, with the basis vector `e_j` appearing once alongside the power expression `(x/y)**t`.\n- The baseline of the printed vector expression should be centered.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the problem is incorrect output.\n\n## Test case\n\nThe following minimal check is derived from the report's reproduction. It assumes `x`, `y` and `t` are plain SymPy symbols, which the report does not show.\n\n```py\nfrom sympy import symbols, pretty\nfrom sympy.vector import CoordSysCartesian\n\nx, y, t = symbols('x y t')\ne = CoordSysCartesian('e')\n\nout = pretty((x/y)**t*e.j)\nprint(out)\n# The basis vector should appear only once in the output\nassert out.count('e_j') == 1\n```\n\n## Code example\n\nFrom the original report:\n\n```py\nIn [1]: from sympy.vector import *\n\nIn [2]: e = CoordSysCartesian('e')\n\nIn [3]: (x/y)**t*e.j\nOut[3]:\n\u239b   t\u239e e_j\n\u239c\u239bx\u239e e_j \u239f\n\u239c\u239c\u2500\u239f \u239f\n\u239d\u239dy\u23a0 \u23a0\n```\n\n## Version and environment\n\nNot provided in the original report. The reproduction uses an IPython session, the `sympy.vector` module, and `CoordSysCartesian`.",
+ "ttft_ms": 3897,
+ "type": "result",
+ "duration_ms": 12067,
+ "uuid": "059003a9-fe1e-47d3-8de4-4122fcae332b",
+ "ttft_stream_ms": 1332,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 201,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 152,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1332,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

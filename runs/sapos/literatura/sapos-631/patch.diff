@@ -1,0 +1,12 @@
+diff --git a/app/controllers/reports_controller.rb b/app/controllers/reports_controller.rb
+index f4636ab3..3fb30ba3 100644
+--- a/app/controllers/reports_controller.rb
++++ b/app/controllers/reports_controller.rb
+@@ -83,6 +83,6 @@ class ReportsController < ApplicationController
+     end
+ 
+     def cant_download?(record)
+-      record.carrierwave_file.blank?
++      record.carrierwave_file.blank? || (record.expires_at.present? && record.expires_at.to_date < Date.today)
+     end
+ end

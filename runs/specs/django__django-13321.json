@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 36508,
+ "stop_reason": "end_turn",
+ "session_id": "7f633744-73aa-452d-9739-871d8c71fa7d",
+ "total_cost_usd": 0.0901274,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2401,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3487,
+  "output_tokens_details": {
+   "thinking_tokens": 225
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2401,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3487,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2401,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2401
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2991,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003086000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3487,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2401,
+   "webSearchRequests": 0,
+   "costUSD": 0.08981879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 225,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Graceful handling of undecodable session data (legacy-format fallback)\n\n## Objective\n\n**Problem.** After upgrading to Django 3.1, a request whose session cookie points to a stored session with invalid or corrupt `session_data` fails with an unhandled exception and returns HTTP 500. The affected user cannot reach any page, including the login page, until the session is removed by other means.\n\n**Failure path, taken from the traceback:**\n\n1. `request.user` is evaluated, which calls `auth.get_user`, then `_get_user_session_key`, then `request.session[SESSION_KEY]`.\n2. `SessionStore._get_session` calls `self.load()`, which in `backends/db.py`, line 44, calls `self.decode(s.session_data)`.\n3. `SessionBase.decode` (`backends/base.py`, line 118) calls `signing.loads(...)`, which raises `BadSignature`.\n4. `decode` then falls back to `self._legacy_decode(session_data)` (line 122).\n5. `_legacy_decode` (line 126) calls `base64.b64decode(session_data.encode('ascii'))`, which raises `binascii.Error: Incorrect padding`. Nothing catches this error.\n\n**Expected behavior.** Session data that cannot be decoded should not crash the request. It should be treated the way Django already treats other invalid or tampered session data: the session loads as empty, and the user appears anonymous and can log in again. This applies whether the data fails in the new signing format, the legacy format, or both.\n\n**Users affected.**\n- End users with stale or corrupt sessions after an upgrade.\n- Operators of Django sites that use the sessions framework.\n\nThe reporter's setup was the DB backend, Gunicorn and nginx, with django-otp installed.\n\n**Acceptance criteria**\n- AC1: Calling `SessionBase.decode()` on data that is neither valid signed data nor valid legacy-format data returns `{}` and does not raise.\n- AC2: This holds specifically for data that is not valid base64 (for example, incorrect padding), which is the reported case.\n- AC3: Valid new-format session data still decodes correctly.\n- AC4: Valid legacy-format (pre-3.1) session data still decodes correctly, if legacy decoding is supported in this version.\n- AC5: Legacy data with a valid base64 shape but a hash mismatch or a malformed payload keeps its existing behavior: it returns `{}`, with any existing logging of suspicious sessions preserved.\n- AC6: A request carrying a cookie for such a session gets a normal response instead of a 500. `request.user` is anonymous.\n\n## Assumptions\n\n1. The fix belongs in Django's sessions framework (`django/contrib/sessions/backends/base.py`). It does not belong in django-otp or in the reporter's deployment.\n2. The intended contract of `decode()` is: \"invalid data yields an empty session, never an exception.\" The existing `_legacy_decode` already returns `{}` for some failure modes, such as a hash mismatch, but not for base64 errors raised before those checks.\n3. The root cause is independent of the backend. Every backend that calls `decode()` (db, cache, cached_db, file) is affected. The signed-cookie backend may follow a different path.\n4. The Chrome/Firefox difference only reflects which browser still held the stale session cookie. It is not a browser bug.\n5. The Gunicorn/nginx deployment is not relevant to the fix.\n6. Corrupt session rows do not need to be deleted or repaired as part of this change. Returning an empty session is sufficient, and the session is then replaced on the next save or login.\n7. The target is the Django 3.1.x line where `decode()` falls back to `_legacy_decode`. Whether a fix is backported is decided by the project.\n\n## Tech Stack\n\n- Python: 3.8 in the reporter's environment. The supported range is unknown.\n- Django: 3.1. The exact patch version is unknown.\n- Modules involved, taken from the traceback:\n  - `django.contrib.sessions.backends.base`\n  - `django.contrib.sessions.backends.db`\n  - `django.core.signing`\n  - `django.contrib.auth`\n  - `django.contrib.auth.middleware`\n- Third party in the report: `django_otp`. It triggers evaluation of `request.user` but is not the cause.\n\n## Commands\n\n- Build: unknown (not provided in the issue)\n- Test: unknown (Django's test runner invocation is not given in the issue)\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n\nOnly these paths are known, from the traceback:\n\n```\ndjango/contrib/sessions/backends/base.py \u2192 SessionBase: decode(), _legacy_decode(), _get_session()\ndjango/contrib/sessions/backends/db.py   \u2192 SessionStore.load() calls decode()\ndjango/core/signing.py                   \u2192 loads(), TimestampSigner.unsign() \u2192 BadSignature\ndjango/contrib/auth/__init__.py          \u2192 get_user(), _get_user_session_key()\ndjango/contrib/auth/middleware.py        \u2192 lazy request.user\n```\n\nThe location of the session tests is unknown.\n\n## Code Style\n\nFollow the existing conventions in `django/contrib/sessions/backends/base.py`. No repository code is available beyond the traceback lines. The relevant existing lines are:\n\n```python\n# base.py, decode()\nreturn signing.loads(session_data, salt=self.key_salt, serializer=self.serializer)\n...\nreturn self._legacy_decode(session_data)\n\n# base.py, _legacy_decode()\nencoded_data = base64.b64decode(session_data.encode('ascii'))\n```\n\nConventions:\n- Match surrounding Django style. The specific linter and formatter config is unknown.\n- Keep exception handling explicit and narrow enough not to hide programming errors. Whether to catch broadly or list specific exceptions is an open question (Q2).\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The exact runner command is unknown.\n- **Unit level, on the session base or each backend's test class:**\n  - `decode()` on non-base64 or badly padded data returns `{}`. This test must fail before the fix with `binascii.Error`.\n  - `decode()` on base64-valid data that is neither signed nor in valid legacy format returns `{}`.\n  - The existing tests for valid new-format data, valid legacy data, and tampered legacy data (hash mismatch) still pass.\n- **Integration level:**\n  - A stored session whose `session_data` is invalid loads as an empty session through `SessionStore.load()`.\n  - Accessing a key on it, as in `request.session[SESSION_KEY]`, raises `KeyError`, not `binascii.Error`. As a result, `auth.get_user` returns an anonymous user.\n- **Coverage:** every exception path in `decode()` and `_legacy_decode()` that can be reached from untrusted stored data.\n- **Out of scope:** browser-level or deployment-level (Gunicorn/nginx) testing.\n\n## Boundaries\n\n- **Always:**\n  - Treat stored session data as untrusted input.\n  - Preserve backward compatibility for valid legacy sessions.\n  - Preserve the existing suspicious-session logging where it currently applies.\n  - Add a regression test that reproduces the reported `Incorrect padding` error.\n- **Ask first:**\n  - Changing which exceptions `decode()` or `_legacy_decode()` swallow beyond the decoding and validation failures.\n  - Adding new logging or security warnings for this case.\n  - Changing the behavior of the signed-cookie backend.\n  - Deleting invalid session rows automatically.\n- **Never:**\n  - Let malformed session data cause a 500.\n  - Silently accept tampered data as valid.\n  - Weaken signature or hash verification.\n  - Swallow exceptions so broadly that `SECRET_KEY` or configuration errors are hidden.\n  - Change the session serialization format as part of this fix.\n\n## Success Criteria\n\n- [ ] AC1\u2013AC6 are satisfied.\n- [ ] A regression test that uses session data with invalid base64 padding passes, and it fails without the change.\n- [ ] All existing session and auth tests pass.\n- [ ] Reproducing the scenario (a stored session row with garbage `session_data` plus a matching cookie, then a request to a login-protected view) yields a redirect to login or an anonymous response, not a 500.\n\n## Open Questions\n\n1. **Which exceptions must `_legacy_decode` tolerate?** Candidates are `binascii.Error`, `UnicodeEncodeError` from `.encode('ascii')` on non-ASCII data, `ValueError` from the hash/data split, and unpickling or deserialization errors. Should the policy be \"any exception means an empty session,\" or should it be an explicit list?\n2. **Should the new failure mode be logged?** The existing code may log `SuspiciousSession` for hash mismatches. Should undecodable data also be logged, or be silent?\n3. **Do other backends need changes?** Are the signed-cookie and file backends affected through a different code path?\n4. **Which branches should get the fix?** Is it 3.1.x only, or also the main branch? When is legacy-decode support planned for removal?\n5. **Should a corrupt session be invalidated server-side?** It could be flushed or deleted on detection, rather than only returning `{}` and being overwritten on the next save.\n6. **What is the corrupt data's origin?** Is it a pre-3.1 session, a `SECRET_KEY` change, truncation, or something else? This does not block the fix, but it may affect the tests and release notes.\n7. **What are the project's build, test and lint commands and test file locations?** These are unknown from the issue.",
+ "ttft_ms": 3845,
+ "type": "result",
+ "duration_ms": 35119,
+ "uuid": "5a5771d5-72cb-4dca-8357-e4908e858610",
+ "ttft_stream_ms": 1390,
+ "time_to_request_ms": 316,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 21,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 251,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 8,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 275,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1390,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,204 @@
+diff --git a/db/migrate/20250601000000_create_default_admission_process_example.rb b/db/migrate/20250601000000_create_default_admission_process_example.rb
+new file mode 100644
+index 00000000..0d9e9719
+--- /dev/null
++++ b/db/migrate/20250601000000_create_default_admission_process_example.rb
+@@ -0,0 +1,198 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# Creates an example admission process (modeled after the IC process).
++class CreateDefaultAdmissionProcessExample < ActiveRecord::Migration[7.0]
++  PROCESS_NAME = "Exemplo de Processo Seletivo (modelo do IC)"
++  COMMITTEE_NAMES = {
++    homologation: "Exemplo - Comitê de Homologação",
++    evaluation: "Exemplo - Comitê de Avaliação",
++  }
++
++  def up
++    return if Admissions::AdmissionProcess.exists?(name: PROCESS_NAME)
++    transaction do
++      create_example
++    end
++  end
++
++  def down
++    process = Admissions::AdmissionProcess.find_by(name: PROCESS_NAME)
++    return if process.nil? || process.admission_applications.exists?
++    transaction do
++      process.rankings.destroy_all
++      process.phases.destroy_all
++      process.destroy
++      Admissions::AdmissionPhase.where(name: ["Exemplo - Homologação", "Exemplo - Avaliação"]).destroy_all
++      Admissions::RankingConfig.where(name: ["Exemplo - Ranking Padrão", "Exemplo - Ranking de Bolsas"]).destroy_all
++      Admissions::RankingMachine.where(name: machine_names).destroy_all
++      Admissions::AdmissionCommittee.where(name: COMMITTEE_NAMES.values).destroy_all
++      Admissions::FormTemplate.where(name: [
++        "Exemplo - Candidatura", "Exemplo - Homologação", "Exemplo - Homologação (consolidação)",
++        "Exemplo - Avaliação", "Exemplo - Avaliação (consolidação)"
++      ]).destroy_all
++    end
++  end
++
++  private
++    FF = Admissions::FormField
++    FC = Admissions::FormCondition
++
++    def machine_names
++      ["Ampla concorrência", "Racial", "PcD", "Bolsa"].map { |n| "Exemplo - #{n}" }
++    end
++
++    def cond(field, op, value)
++      { mode: FC::CONDITION, field: field, condition: op, value: value }
++    end
++
++    def template(name, type, fields)
++      t = Admissions::FormTemplate.create!(name: name, template_type: type)
++      fields.each_with_index do |(fname, ftype, config), i|
++        t.fields.create!(
++          name: fname, field_type: ftype, order: i + 1,
++          configuration: (config || {}).to_json
++        )
++      end
++      t
++    end
++
++    def pick_users
++      admin = User.where(role_id: Role::ROLE_ADMINISTRADOR).order(:id).first ||
++        User.find_by(name: "admin")
++      secretary = User.where(role_id: Role::ROLE_SECRETARIA).order(:id).first
++      [admin, secretary || admin]
++    end
++
++    def committee(name, user)
++      c = Admissions::AdmissionCommittee.create!(name: name)
++      c.members.create!(user_id: user.id) if user.present?
++      c
++    end
++
++    def create_example
++      admin, secretary = pick_users
++
++      application_form = template("Exemplo - Candidatura", Admissions::FormTemplate::ADMISSION_FORM, [
++        ["Nome", FF::STUDENT_FIELD, { field: "name", required: true }],
++        ["Solicitou bolsa", FF::SINGLE_CHECKBOX, { default_check: false }],
++      ])
++      application_form.fields.find_by(name: "Nome").update_columns(sync: FF::SYNC_NAME)
++
++      yes_no = { values: ["Sim", "Não"], default: "Não" }
++      homologation_form = template("Exemplo - Homologação", Admissions::FormTemplate::ADMISSION_FORM, [
++        ["Optante negro ou indígena", FF::SINGLE_CHECKBOX, { default_check: false }],
++        ["PcD", FF::SINGLE_CHECKBOX, { default_check: false }],
++        ["Homologação", FF::SELECT, { values: ["Deferida", "Indeferida"], required: true }],
++        ["Razão de indeferimento", FF::TEXT, {}],
++      ])
++      evaluation_form = template("Exemplo - Avaliação", Admissions::FormTemplate::ADMISSION_FORM, [
++        ["Nota da formação acadêmica", FF::NUMBER, { required: true }],
++        ["Nota da experiência acadêmica e profissional", FF::NUMBER, { required: true }],
++        ["Observação", FF::TEXT, {}],
++      ])
++
++      liquid = "Liquid"
++      deferred = cond("Homologação", FC::EQUALS, "Deferida")
++      rejected = cond("Homologação", FC::EQUALS, "Indeferida")
++      homologation_consolidation = template(
++        "Exemplo - Homologação (consolidação)", Admissions::FormTemplate::CONSOLIDATION_FORM, [
++          ["Email de deferimento", FF::EMAIL, {
++            to: "{{ application.email }}",
++            subject: "Candidatura deferida",
++            body: "Olá {{ application.name }}, sua candidatura em {{ process.name }} foi deferida.",
++            template_type: liquid, condition: deferred,
++          }],
++          ["Email de indeferimento", FF::EMAIL, {
++            to: "{{ application.email }}",
++            subject: "Candidatura indeferida",
++            body: "Olá {{ application.name }}, sua candidatura em {{ process.name }} foi indeferida. Motivo: {{ fields[\"Razão de indeferimento\"] }}",
++            template_type: liquid, condition: rejected,
++          }],
++        ]
++      )
++      evaluation_consolidation = template(
++        "Exemplo - Avaliação (consolidação)", Admissions::FormTemplate::CONSOLIDATION_FORM, [
++          ["Média da formação acadêmica", FF::CODE, {
++            code: "{{ committees | avg: 'Nota da formação acadêmica' }}",
++            template_type: liquid, code_type: "number",
++          }],
++          ["Média da experiência acadêmica e profissional", FF::CODE, {
++            code: "{{ committees | avg: 'Nota da experiência acadêmica e profissional' }}",
++            template_type: liquid, code_type: "number",
++          }],
++          ["Nota final", FF::CODE, {
++            code: "{% assign a = fields['Média da formação acadêmica'] %}{% assign b = fields['Média da experiência acadêmica e profissional'] %}{{ a | plus: b | divided_by: 2.0 }}",
++            template_type: liquid, code_type: "number",
++          }],
++        ]
++      )
++
++      homologation = Admissions::AdmissionPhase.create!(
++        name: "Exemplo - Homologação",
++        shared_form: homologation_form,
++        consolidation_form: homologation_consolidation,
++        approval_condition: FC.new(cond("Homologação", FC::EQUALS, "Deferida")),
++      )
++      homologation.admission_phase_committees.create!(
++        admission_committee: committee(COMMITTEE_NAMES[:homologation], secretary)
++      )
++      evaluation = Admissions::AdmissionPhase.create!(
++        name: "Exemplo - Avaliação",
++        member_form: evaluation_form,
++        consolidation_form: evaluation_consolidation,
++        approval_condition: FC.new(cond("Nota final", FC::GE, "6")),
++      )
++      evaluation.admission_phase_committees.create!(
++        admission_committee: committee(COMMITTEE_NAMES[:evaluation], admin)
++      )
++
++      machines = {}
++      {
++        "Ampla concorrência" => { mode: FC::NONE },
++        "Racial" => cond("Optante negro ou indígena", FC::EQUALS, "1"),
++        "PcD" => cond("PcD", FC::EQUALS, "1"),
++        "Bolsa" => { mode: FC::NONE },
++      }.each do |name, c|
++        machines[name] = Admissions::RankingMachine.create!(
++          name: "Exemplo - #{name}", form_condition: FC.new(c)
++        )
++      end
++
++      columns = ->(config) {
++        [["Nota final", Admissions::RankingColumn::DESC],
++         ["Média da formação acadêmica", Admissions::RankingColumn::DESC]].each do |n, o|
++          config.ranking_columns.build(name: n, order: o)
++        end
++      }
++      default_ranking = Admissions::RankingConfig.new(name: "Exemplo - Ranking Padrão")
++      columns.(default_ranking)
++      ["Ampla concorrência", "Racial", "PcD"].each_with_index do |n, i|
++        default_ranking.ranking_processes.build(ranking_machine: machines[n], order: i + 1)
++      end
++      default_ranking.save!
++
++      scholarship_ranking = Admissions::RankingConfig.new(
++        name: "Exemplo - Ranking de Bolsas",
++        form_condition: FC.new(cond("Solicitou bolsa", FC::EQUALS, "1")),
++      )
++      columns.(scholarship_ranking)
++      scholarship_ranking.ranking_processes.build(ranking_machine: machines["Bolsa"], order: 1)
++      scholarship_ranking.save!
++
++      today = Date.today
++      process = Admissions::AdmissionProcess.create!(
++        name: PROCESS_NAME,
++        year: today.year, semester: today.month <= 6 ? 1 : 2,
++        start_date: today, end_date: today,
++        form_template: application_form,
++        visible: false,
++      )
++      process.phases.create!(admission_phase: homologation, order: 1)
++      process.phases.create!(admission_phase: evaluation, order: 2)
++      process.rankings.create!(ranking_config: default_ranking, admission_phase: evaluation, order: 1)
++      process.rankings.create!(ranking_config: scholarship_ranking, admission_phase: evaluation, order: 2)
++    end
++end

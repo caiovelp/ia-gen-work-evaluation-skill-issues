@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12103,
+ "stop_reason": "end_turn",
+ "session_id": "812a285c-85d1-4354-afbf-5ba8572a8f5e",
+ "total_cost_usd": 0.0345089,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1263,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1212,
+  "output_tokens_details": {
+   "thinking_tokens": 320
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1263,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1212,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1263,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1263
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1469,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1212,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1263,
+   "webSearchRequests": 0,
+   "costUSD": 0.034352,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 320,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWith `@pytest.mark.skip` / `skipif`, pytest normally reports the location of the skipped test item. When `--runxfail` is added, the reported skip location points to pytest's own internals (`src/_pytest/skipping.py:238`) instead. `--runxfail` only concerns xfail and should not affect skip location reporting.\n\nThe reporter notes that the bug is in the `pytest_runtest_makereport` hook in `src/_pytest/skipping.py`.\n\n## Steps to reproduce\n\n1. Create a file `test_it.py` with this content:\n   ```py\n   import pytest\n   @pytest.mark.skip\n   def test_skip_location() -> None:\n       assert 0\n   ```\n2. Run `pytest -rs`. The skip location is reported correctly as `test_it.py:3`.\n3. Run `pytest -rs --runxfail`. The skip location is now wrong.\n\n## Observed behavior\n\nWith `pytest -rs --runxfail`, the skip summary points to pytest's internal source file instead of the test:\n\n```\nSKIPPED [1] src/_pytest/skipping.py:238: unconditional skip\n```\n\n## Expected behavior\n\nThe skip location should point to the test item itself, as it does without `--runxfail`:\n\n```\nSKIPPED [1] test_it.py:3: unconditional skip\n```\n\nAdding `--runxfail` should not change skip location reporting, because the option only relates to xfail.\n\n## Stack trace / error output\n\nThere is no stack trace. Here is the relevant output from the original report.\n\n`pytest -rs` (correct):\n```\nSKIPPED [1] test_it.py:3: unconditional skip\n```\n\n`pytest -rs --runxfail` (incorrect):\n```\nSKIPPED [1] src/_pytest/skipping.py:238: unconditional skip\n```\n\n## Test case\n\nA minimal test case based on the reproduction in the report:\n\n1. Use `test_it.py` from the code example below.\n2. Run `pytest -rs --runxfail`.\n3. Assert that the output contains `SKIPPED [1] test_it.py:3: unconditional skip`.\n4. Assert that the output does not contain `src/_pytest/skipping.py`.\n\nThe same assertion holds today for `pytest -rs` without `--runxfail`. It fails today with `--runxfail`.\n\n## Code example\n\n```py\nimport pytest\n@pytest.mark.skip\ndef test_skip_location() -> None:\n    assert 0\n```\n\nThe report says the same problem applies to `@pytest.mark.skipif`.\n\n## Version and environment\n\n- pytest versions: 5.4.x and current master (at the time of the report)\n- Python version, OS and plugins: Not provided in the original report.",
+ "ttft_ms": 4316,
+ "type": "result",
+ "duration_ms": 11544,
+ "uuid": "9fb58510-105f-404b-a9f8-afb16cf97ba9",
+ "ttft_stream_ms": 1067,
+ "time_to_request_ms": 262,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 24,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 183,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 16,
+  "cpu_ms": 39,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1068,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

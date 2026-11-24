@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31119,
+ "stop_reason": "end_turn",
+ "session_id": "a8f6292a-4619-4ac2-a5c2-f6e9509c29ca",
+ "total_cost_usd": 0.0773731,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1880,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3060,
+  "output_tokens_details": {
+   "thinking_tokens": 206
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1880,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3060,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1880,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1880
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2463,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00026230000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3060,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1880,
+   "webSearchRequests": 0,
+   "costUSD": 0.0771108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 206,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Consistent labels from `GaussianMixture.fit_predict` and `predict` when `n_init > 1`\n\n## Objective\n\nMake `GaussianMixture.fit_predict(X)` return the same labels as calling `fit(X)` and then `predict(X)` on the fitted model, for every value of `n_init`.\n\n**Current behaviour (from the issue, sklearn 0.20.2):**\n\n- With the default `n_init`, `fit_predict(X)` and a later `predict(X)` agree.\n- With `n_init=5`, they disagree on 88.6% of samples in the reported run (`X = numpy.random.randn(1000, 5)`, `n_components=5`).\n- The existing unit test `test_gaussian_mixture_fit_predict` does not set `n_init`, so it misses this.\n\n**Who is affected:** Anyone calling `fit_predict` on `GaussianMixture` with `n_init > 1`. The labels they get do not match the model that is actually stored on the estimator.\n\n**What success means:**\n\n- Labels from `fit_predict(X)` always match labels from `predict(X)` on the resulting fitted estimator.\n- Both reflect the best of the `n_init` initializations, which is the one kept as the fitted model.\n\n## Assumptions\n\n1. The fitted model's stored parameters (the \"best of `n_init`\" run) are the correct reference. `predict` is right, and `fit_predict` is what must be brought into line, not the reverse. *(Needs confirmation; see Open Questions.)*\n2. Suspected cause, to be verified and not yet confirmed: `fit_predict` derives its labels from state that does not belong to the selected best initialization. Examples would be the last initialization run, or responsibilities computed before the best parameters are restored. This hypothesis must be proven by reading the code before any change is made.\n3. The shared fitting logic may live in a common mixture base class. If so, `BayesianGaussianMixture` likely has the same defect and falls in scope. *(Unverified; see Open Questions.)*\n4. The fix must not change which initialization is selected as best, or the fitted parameters themselves (`weights_`, `means_`, `covariances_`, etc.). Only the labels returned by `fit_predict` should change.\n5. Agreement is expected to be exact (`assert_array_equal`), not approximate, when `random_state` is fixed and the same `X` is used.\n6. The reporter used Python 2.7 with sklearn 0.20.2. The fix targets the current development branch, whose supported Python versions are unknown to me.\n\n## Tech Stack\n\n- Language: Python (supported versions on the target branch: **unknown**)\n- Library: scikit-learn, module `sklearn.mixture` (`GaussianMixture`)\n- Dependencies seen in the report: numpy 1.16.0, scipy 1.2.0, Cython 0.28.5. Minimum versions on the target branch: **unknown**.\n- Test helper used in the report: `sklearn.utils.testing.assert_array_equal`\n\n## Commands\n\nNot visible in the issue; all **unknown**:\n\n- Build: unknown\n- Test: unknown (the repo's test runner and the path to the mixture test module are not shown)\n- Lint: unknown\n- Reproduce: the script in the issue, ported to Python 3 `print()` syntax and run with a fixed `random_state`\n\n## Project Structure\n\nOnly these locations are known or implied:\n\n- `sklearn/mixture/`: public `GaussianMixture` (known from the import path)\n- The test module containing `test_gaussian_mixture_fit_predict`: exact path **unknown**\n- The base class or shared module implementing `fit` / `fit_predict` for mixtures: **unknown** (assumed to exist; see Assumption 3)\n\n## Code Style\n\nFollow the existing scikit-learn conventions in the surrounding mixture code. No style snippet is available from the issue (**unknown**). Any change should be minimal and localized to the fit / fit-predict path.\n\n## Testing Strategy\n\n**Framework:** the repo's existing test framework (assumed pytest; confirm). Use `assert_array_equal` as in the existing test.\n\n**Regression tests to add or extend:**\n\n1. **Extend `test_gaussian_mixture_fit_predict`**, or add a sibling test, to parametrize over `n_init` values, including `1` and at least one value `> 1` (e.g. 2 and 5).\n2. **Assert exact equality** between:\n   - labels from `fit_predict(X)` on one estimator, and\n   - labels from `predict(X)` on that same estimator after the call.\n3. **Cover all `covariance_type` values** the existing test already covers.\n4. **Use a fixed `random_state`** so the test is deterministic. The data and settings should make the failure reproducible before the fix, e.g. the issue's `randn(1000, 5)`, `n_components=5`, `n_init=5`, with a seed confirmed to fail on the current code.\n5. **If Assumption 3 holds**, add the equivalent test for `BayesianGaussianMixture`.\n6. **Optionally**, assert that `fit_predict(X)` labels match `fit(X).predict(X)` on a separately constructed estimator with the same `random_state`. This guards against fitted parameters drifting between the two entry points.\n\n**Test levels:** unit tests only. No integration or performance tests are needed.\n\n**Pre-fix check:** the new test must fail on the current code before the fix (red), then pass after it (green).\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the bug with a deterministic test before changing code.\n  - Keep `fit`, `fit_predict`, and `predict` consistent.\n  - Run the full mixture test suite.\n  - Add a changelog / what's-new entry if the project requires one (process **unknown**).\n- **Ask first:**\n  - Changing which initialization counts as \"best\".\n  - Changing the public API, parameter defaults, or warning behaviour (e.g. convergence warnings).\n  - Extending the fix beyond `GaussianMixture` / `BayesianGaussianMixture`.\n  - Changing behaviour of the default `n_init=1` path in any observable way.\n- **Never:**\n  - Weaken or delete existing assertions in `test_gaussian_mixture_fit_predict`.\n  - Make the test pass by loosening exact equality or by skipping `n_init > 1`.\n  - Change the fitted parameters produced by `fit`.\n\n## Success Criteria\n\n- [ ] **Agreement for all `n_init`:** for `n_init \u2208 {1, 2, 5}` and every supported `covariance_type`, with fixed `random_state`, `gm.fit_predict(X)` equals `gm.predict(X)` element-wise (exact).\n- [ ] **Issue script passes:** the reproduction script from the issue (`n_components=5`, `n_init=5`, `X = randn(1000, 5)`, seeded) runs without `AssertionError`.\n- [ ] **Fitted parameters unchanged:** after `fit_predict(X)`, the parameters are identical to those after `fit(X)` with the same `random_state` and data. This holds both before and after the fix.\n- [ ] **No regressions:** existing mixture tests pass unchanged.\n- [ ] **Tests fail before the fix:** the new or extended tests fail on the unfixed code.\n- [ ] **Bayesian variant (if affected):** `BayesianGaussianMixture` satisfies the same agreement property.\n\n## Open Questions\n\n1. **Reference behaviour:** Is the intended contract that `fit_predict(X)` must equal `fit(X).predict(X)`, with the stored best-of-`n_init` model as the reference? (Assumed yes.)\n2. **Root cause:** What is the actual cause? Assumption 2 is a hypothesis only and needs confirmation from the source.\n3. **Shared code:** Does `BayesianGaussianMixture` share the affected code path, and should it be fixed in the same change?\n4. **Non-convergence:** How should agreement behave when no initialization converges (convergence warning raised)? Should the labels still come from the best-by-lower-bound run?\n5. **Other parameters:** Does `warm_start=True` interact with `n_init` here, and does it need its own test case?\n6. **Repo specifics:** What are the exact test file path, test command, supported Python/numpy versions, and changelog process for the target branch?\n7. **Backport:** Should the fix be backported to a 0.20.x maintenance release, or land only on the development branch?",
+ "ttft_ms": 3442,
+ "type": "result",
+ "duration_ms": 29949,
+ "uuid": "1c1345fa-9282-4423-ae6d-9eddb4b24ce8",
+ "ttft_stream_ms": 1501,
+ "time_to_request_ms": 245,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 18,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 189,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1502,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 16202,
+ "stop_reason": "end_turn",
+ "session_id": "ae452f54-f92c-4657-97b7-c18eb81eb1f6",
+ "total_cost_usd": 0.056932500000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2206,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1951,
+  "output_tokens_details": {
+   "thinking_tokens": 163
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2206,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1951,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2206,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2206
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2415,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002565,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1951,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2206,
+   "webSearchRequests": 0,
+   "costUSD": 0.056676000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 163,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`seaborn.pairplot` raises a `KeyError` when given a pandas DataFrame whose columns are a `MultiIndex`. The error is raised while drawing the diagonal plots (`PairGrid.map_diag`), when the grid indexes the DataFrame with a column variable (`self.data[var]`).\n\n## Steps to reproduce\n\n1. Create a DataFrame with two-level (`MultiIndex`) columns, e.g. `(\"A\", \"1\")`, `(\"A\", \"2\")`, `(\"B\", \"1\")`, `(\"B\", \"2\")`, each holding 100 random floats.\n2. Call `sns.pairplot(df)` with default arguments.\n3. A `KeyError` is raised.\n\n## Observed behavior\n\n`pairplot` fails with:\n\n```\nKeyError: \"['1'] not in index\"\n```\n\nThe error comes from `grid.map_diag(histplot, **diag_kws)` (the default `diag_kind == \"hist\"` path) at the line `vector = self.data[var]` in `seaborn/axisgrid.py`. pandas raises the error in `MultiIndex._get_indexer_strict` / `_raise_if_missing`.\n\n## Expected behavior\n\nThe report does not state this explicitly. It implies that `pairplot` should draw the pair grid for a DataFrame with `MultiIndex` columns without raising an error, as it does once the columns are flattened (see workaround below).\n\n## Stack trace / error output\n\n```\nc:\\Users\\KLuu\\anaconda3\\lib\\site-packages\\seaborn\\axisgrid.py in pairplot(data, hue, hue_order, palette, vars, x_vars, y_vars, kind, diag_kind, markers, height, aspect, corner, dropna, plot_kws, diag_kws, grid_kws, size)\n   2142     diag_kws.setdefault(\"legend\", False)\n   2143     if diag_kind == \"hist\":\n-> 2144         grid.map_diag(histplot, **diag_kws)\n   2145     elif diag_kind == \"kde\":\n   2146         diag_kws.setdefault(\"fill\", True)\n\nc:\\Users\\KLuu\\anaconda3\\lib\\site-packages\\seaborn\\axisgrid.py in map_diag(self, func, **kwargs)\n   1488                 plt.sca(ax)\n   1489 \n-> 1490             vector = self.data[var]\n   1491             if self._hue_var is not None:\n   1492                 hue = self.data[self._hue_var]\n\nc:\\Users\\KLuu\\anaconda3\\lib\\site-packages\\pandas\\core\\frame.py in __getitem__(self, key)\n   3765             if is_iterator(key):\n   3766                 key = list(key)\n-> 3767             indexer = self.columns._get_indexer_strict(key, \"columns\")[1]\n   3768 \n   3769         # take() does not accept boolean indexers\n\nc:\\Users\\KLuu\\anaconda3\\lib\\site-packages\\pandas\\core\\indexes\\multi.py in _get_indexer_strict(self, key, axis_name)\n   2534             indexer = self._get_indexer_level_0(keyarr)\n   2535 \n-> 2536             self._raise_if_missing(key, indexer, axis_name)\n   2537             return self[indexer], indexer\n   2538 \n\nc:\\Users\\KLuu\\anaconda3\\lib\\site-packages\\pandas\\core\\indexes\\multi.py in _raise_if_missing(self, key, indexer, axis_name)\n   2552                 cmask = check == -1\n   2553                 if cmask.any():\n-> 2554                     raise KeyError(f\"{keyarr[cmask]} not in index\")\n   2555                 # We get here when levels still contain values which are not\n   2556                 # actually in Index anymore\n\nKeyError: \"['1'] not in index\"\n```\n\n## Test case\n\nMinimal test derived from the reproduction snippet in the report:\n\n```python\nimport numpy as np\nimport pandas as pd\nimport seaborn as sns\n\n\ndef test_pairplot_multiindex_columns():\n    data = {\n        (\"A\", \"1\"): np.random.rand(100),\n        (\"A\", \"2\"): np.random.rand(100),\n        (\"B\", \"1\"): np.random.rand(100),\n        (\"B\", \"2\"): np.random.rand(100),\n    }\n    df = pd.DataFrame(data)\n    # Currently raises: KeyError: \"['1'] not in index\"\n    sns.pairplot(df)\n```\n\n## Code example\n\nReproduction (from the report):\n\n```python\nimport numpy as np\nimport pandas as pd\nimport seaborn as sns\n\n\ndata = {\n    (\"A\", \"1\"): np.random.rand(100),\n    (\"A\", \"2\"): np.random.rand(100),\n    (\"B\", \"1\"): np.random.rand(100),\n    (\"B\", \"2\"): np.random.rand(100),\n}\ndf = pd.DataFrame(data)\nsns.pairplot(df)\n```\n\nWorkaround reported by the author, which flattens the columns before calling `pairplot`:\n\n```python\ndf.columns = [\"\".join(column) for column in df.columns]\n```\n\n## Version and environment\n\n- seaborn version: Not provided in the original report.\n- pandas version: Not provided in the original report.\n- Environment: The paths in the traceback (`c:\\Users\\KLuu\\anaconda3\\lib\\site-packages\\...`) show a Windows machine with an Anaconda Python installation. No other details are provided in the original report.",
+ "ttft_ms": 3145,
+ "type": "result",
+ "duration_ms": 15563,
+ "uuid": "449fb115-4094-4742-8154-caee56d3151b",
+ "ttft_stream_ms": 1479,
+ "time_to_request_ms": 268,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 267,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1479,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

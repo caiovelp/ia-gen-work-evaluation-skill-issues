@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25328,
+ "stop_reason": "end_turn",
+ "session_id": "89479e4a-9061-4e66-ab86-510f92158331",
+ "total_cost_usd": 0.0608065,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1050,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2568,
+  "output_tokens_details": {
+   "thinking_tokens": 101
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1050,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2568,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1050,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1050
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1642,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017570000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2568,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1050,
+   "webSearchRequests": 0,
+   "costUSD": 0.0606308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 101,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Preserve empty-string `extra_tags` across message serialization round-trips\n\n## Assumptions\n\n1. This is a bug in Django's `django.contrib.messages` framework. The modules named in the issue are `django.contrib.messages.storage.base` (`Message`) and `django.contrib.messages.storage.cookie` (`MessageEncoder`, `MessageDecoder`).\n2. The root cause is the one the issue states. `MessageEncoder` checks whether `extra_tags` is truthy rather than checking `is not None`, so `\"\"` is dropped during encoding and the decoder rebuilds it as `None`.\n3. \"Any of the built-in storage backends\" means every backend that serializes through `MessageEncoder`/`MessageDecoder`. The cookie backend does so directly. Session storage and fallback storage are assumed to reuse the same encoder/decoder, but this is not verified.\n4. `extra_tags=None` must stay distinct from `extra_tags=\"\"`. A message created with `None` should still decode as `None`. Only the `\"\"` case is broken.\n5. The fix must stay backward-compatible with cookies/sessions already in flight. Payloads encoded by the old encoder, which omit `extra_tags`, must still decode without error.\n6. The public API defaults (`messages.debug`, `messages.info`, `messages.success`, `messages.warning`, `messages.error`, `messages.add_message`) pass `extra_tags=\"\"`. That is why the issue says all standard usage is affected. This has not been verified against source.\n7. This is a single capability (one serialization bug), so no capability map is needed.\n\n## Objective\n\n**What:** When a `Message` with `extra_tags=\"\"` is encoded and then decoded by the messages framework, the decoded message must have `extra_tags == \"\"`, not `None`.\n\n**Why:** Messages that survive a redirect are serialized by the storage backend. After the round-trip, template code that treats `extra_tags` as a string fails. For example, `{% if x not in message.extra_tags %}` raises an error when the value is `None`. Every standard API call defaults `extra_tags` to `\"\"`, so the bug affects nearly all messages that cross a request boundary.\n\n**Who:** Django developers using `django.contrib.messages` whose templates or code operate on `message.extra_tags` as a string.\n\n**Acceptance criteria (user-level):**\n- A message added via `messages.info(request, \"...\")` and shown after a redirect has `extra_tags == \"\"`.\n- Template expressions that treat `extra_tags` as a string, such as `in` / `not in` checks, do not error after a round-trip.\n\n## Tech Stack\n\n- Python / Django, inside the `django.contrib.messages` contrib app.\n- Exact Python and Django versions: **unknown** (not stated in the issue).\n\n## Commands\n\nNot visible in the issue; all **unknown**:\n- Build: unknown\n- Test (full suite / messages tests only): unknown\n- Lint: unknown\n- Dev: not applicable (library change)\n\n## Project Structure\n\nKnown from the issue (module paths only):\n- `django/contrib/messages/storage/base.py`: defines `Message`\n- `django/contrib/messages/storage/cookie.py`: defines `MessageEncoder`, `MessageDecoder`\n\nUnknown:\n- Location of the existing messages tests\n- Location of the session/fallback storage modules, and whether they reuse the cookie encoder/decoder\n- Where release notes or changelog entries live\n\n## Code Style\n\n- Follow existing Django project conventions. The specific style guide and linter config are **unknown** because they cannot be seen.\n- Behavioral convention required by this fix: distinguish \"absent\" from \"empty\" with explicit `is not None` checks, not truthiness.\n\n## Testing Strategy\n\n- **Framework:** unknown. Assumed to be the Django project's own test suite, colocated with existing messages tests.\n- **Unit level (encoder/decoder):**\n  - Round-trip `Message(level, \"text\", extra_tags=\"\")` and assert `decoded.extra_tags == \"\"`.\n  - Round-trip `Message(level, \"text\", extra_tags=None)` and assert `decoded.extra_tags is None`.\n  - Round-trip `Message(level, \"text\", extra_tags=\"tag1 tag2\")` and assert the value is preserved.\n  - Decode a payload in the old format, without `extra_tags`, and assert it still decodes successfully. The expected value (`None` vs `\"\"`) is listed under Open Questions.\n- **Integration level (storage backends):** for each built-in backend that serializes messages (cookie, session, fallback), store a message added with default `extra_tags`, retrieve it on a subsequent request, and assert `extra_tags == \"\"`.\n- **Regression:** all existing messages tests must still pass.\n- **Coverage expectations:** unknown. At minimum, every branch of the encoder's `extra_tags` handling must be exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep `None` and `\"\"` as distinct, preserved values through the round-trip.\n  - Keep decoding of previously encoded payloads working.\n  - Add regression tests reproducing the exact scenario in the issue.\n  - Run the messages test suite before committing.\n- **Ask first:**\n  - Changing the serialized wire format beyond what is needed. Payload size matters for cookie storage, which has a size limit.\n  - Normalizing `None` to `\"\"` in `Message` itself, or changing the default value of `extra_tags` anywhere in the public API.\n  - Touching storage backends other than the encoder/decoder path.\n- **Never:**\n  - Break decoding of existing cookies or session data.\n  - Change the public signatures of `messages.add_message`, `messages.debug`, `messages.info`, `messages.success`, `messages.warning`, or `messages.error`.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. The reproduction from the issue passes: `MessageDecoder().decode(MessageEncoder().encode(Message(10, \"Here is a message\", extra_tags=\"\"))).extra_tags == \"\"`.\n2. The same round-trip with `extra_tags=None` yields `None`.\n3. The same round-trip with a non-empty `extra_tags` string yields the identical string.\n4. Messages added through the standard API and retrieved after a redirect have `extra_tags == \"\"` for every built-in storage backend that serializes messages.\n5. Payloads produced before the fix still decode without raising.\n6. All pre-existing messages tests pass.\n\n## Open Questions\n\n1. Do the session and fallback storage backends serialize through `MessageEncoder`/`MessageDecoder`? Are there other serialization paths that check `extra_tags` by truthiness?\n2. For legacy payloads that omit `extra_tags`, should the decoded value be `None` (current behavior) or `\"\"`? Old payloads cannot tell `None` and `\"\"` apart.\n3. Is any increase in encoded payload size acceptable for the cookie backend? Encoding `\"\"` explicitly adds bytes per message.\n4. Should `Message.extra_tags` instead be normalized so it is never `None` (e.g. coerced to `\"\"`)? That would be a broader behavioral change than this bug requires.\n5. Which Django versions or branches should receive this fix? Is a release note required?\n6. What are the exact commands to run the messages test suite and linters in this repository?",
+ "ttft_ms": 2389,
+ "type": "result",
+ "duration_ms": 24376,
+ "uuid": "a64fdb96-56cf-409c-b02b-83ce913d77d8",
+ "ttft_stream_ms": 1316,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 258,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1316,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

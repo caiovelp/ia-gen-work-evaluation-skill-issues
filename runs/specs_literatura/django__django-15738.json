@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14805,
+ "stop_reason": "end_turn",
+ "session_id": "e93c353b-45f2-433f-bca4-cd2474a3f7ee",
+ "total_cost_usd": 0.044602100000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1696,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1541,
+  "output_tokens_details": {
+   "thinking_tokens": 245
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1696,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1541,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1696,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1696
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1901,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020610000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1541,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1696,
+   "webSearchRequests": 0,
+   "costUSD": 0.044396000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 245,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nRunning `makemigrations` and then `migrate` fails with `ValueError: Found wrong number (0) of constraints` when a single change does both of the following:\n\n- converts a `ForeignKey` field to a `ManyToManyField`\n- removes a `unique_together` that included that field\n\n## Steps to reproduce\n\n1. Create the models shown in \"Code example \u2013 initial models\". `Authors.project_data_set` is a `ForeignKey` to `ProjectDataSet`, and `Authors` has `unique_together = (('project_data_set', 'state', 'start_date'),)`.\n2. Run `python3 manage.py makemigrations` and `python3 manage.py migrate` to create and apply the initial migration.\n3. Change `Authors` to match \"Code example \u2013 modified `Authors` model\" in one edit:\n   - change `project_data_set` from `ForeignKey` to `ManyToManyField(ProjectDataSet)`\n   - remove the `unique_together` from `Authors.Meta`, because it can't include a many-to-many field\n4. Run `python3 manage.py makemigrations`.\n5. Run `python3 manage.py migrate`.\n\n## Observed behavior\n\nThe migration fails with:\n\n```\nValueError: Found wrong number (0) of constraints for app_authors(project_data_set, state, start_date)\n```\n\nThe reporter says the error does not depend on the database. They deleted the database and got the same error.\n\nThe reporter cannot delete the earlier initial migrations because the database is in production.\n\nWorkaround used by the reporter:\n\n1. Remove `unique_together` only, then run `makemigrations` and `migrate`.\n2. Change the field from `ForeignKey` to `ManyToManyField`, then run `makemigrations` and `migrate` again.\n\nThis works, but it produces two migrations instead of one.\n\n## Expected behavior\n\n`makemigrations` and `migrate` should succeed for this change done in one step. That is, removing the `unique_together` and changing the field to `ManyToManyField` should produce one migration that applies without error.\n\n## Stack trace / error output\n\n```\nValueError: Found wrong number (0) of constraints for app_authors(project_data_set, state, start_date)\n```\n\nThe original report gives no full traceback.\n\n## Test case\n\nNot provided in the original report. The reporter says a sample project was attached that shows the error when you run `makemigrations` and then `migrate`, but the attachment is not part of this report.\n\n## Code example\n\n**Initial models:**\n\n```python\nclass Authors(models.Model):\n    project_data_set = models.ForeignKey(\n        ProjectDataSet,\n        on_delete=models.PROTECT\n    )\n    state = models.IntegerField()\n    start_date = models.DateField()\n\n    class Meta:\n        unique_together = (('project_data_set', 'state', 'start_date'),)\n\n\nclass DataSet(models.Model):\n    name = models.TextField(max_length=50)\n\n\nclass Project(models.Model):\n    data_sets = models.ManyToManyField(\n        DataSet,\n        through='ProjectDataSet',\n    )\n    name = models.TextField(max_length=50)\n\n\nclass ProjectDataSet(models.Model):\n    \"\"\"\n    Cross table of data set and project\n    \"\"\"\n    data_set = models.ForeignKey(DataSet, on_delete=models.PROTECT)\n    project = models.ForeignKey(Project, on_delete=models.PROTECT)\n\n    class Meta:\n        unique_together = (('data_set', 'project'),)\n```\n\n**Modified `Authors` model (the change that triggers the error):**\n\n```python\nclass Authors(models.Model):\n    project_data_set = models.ManyToManyField(\n        ProjectDataSet,\n    )\n    state = models.IntegerField()\n    start_date = models.DateField()\n```\n\n## Version and environment\n\nNot provided in the original report. The commands are run with `python3 manage.py`. The reporter says the error happens regardless of the database, but does not name the database backend or the Django version.",
+ "ttft_ms": 4218,
+ "type": "result",
+ "duration_ms": 14099,
+ "uuid": "5c58aa34-4b7e-4a2c-a9bc-a84da6ac7508",
+ "ttft_stream_ms": 1339,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 203,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 268,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1340,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

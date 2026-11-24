@@ -1,0 +1,21 @@
+diff --git a/sympy/polys/polytools.py b/sympy/polys/polytools.py
+index c9e77a901f..9454a03449 100755
+--- a/sympy/polys/polytools.py
++++ b/sympy/polys/polytools.py
+@@ -5950,6 +5950,16 @@ def _symbolic_factor_list(expr, opt, method):
+ 
+                 factors.append((_factors_product(other), exp))
+ 
++    if method == 'sqf':
++        merged, rest = {}, []
++        for f, k in factors:
++            k = sympify(k)
++            if f.is_Poly and k.is_Integer:
++                merged[k] = merged[k]*f if k in merged else f
++            else:
++                rest.append((f, k))
++        factors = [(f, k) for k, f in merged.items()] + rest
++
+     return coeff, factors
+ 
+ 

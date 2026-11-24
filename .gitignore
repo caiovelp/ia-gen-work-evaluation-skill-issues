@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.log
+logs/
+# relatórios soltos do harness do SWE-bench (já copiados em runs/*/report.json)
+/*.json
+# cópias de arquivos do repositório usadas só para o ruff
+runs/*/*/antes/
+runs/*/*/depois/
+docs/paper_overleaf.zip
+runs/.download.lock

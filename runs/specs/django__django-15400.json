@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29590,
+ "stop_reason": "end_turn",
+ "session_id": "c9a83628-1e3f-486f-85b8-b24275d32c83",
+ "total_cost_usd": 0.0664197,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 859,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2926,
+  "output_tokens_details": {
+   "thinking_tokens": 393
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 859,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2926,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 859,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 859
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1444,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2926,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 859,
+   "webSearchRequests": 0,
+   "costUSD": 0.0662628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 393,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Add `__radd__` support to `SimpleLazyObject`\n\n## Objective\n\n`SimpleLazyObject` is a lazy proxy that defers evaluating a wrapped object until first use. It forwards many magic methods to the wrapped object, but it does not implement `__radd__`. Because of this, an expression with the lazy object on the **right** of `+` fails even when the same expression works on the unwrapped value:\n\n```python\nlazy = SimpleLazyObject(lambda: 1)\n5 + lazy   # expected: 6 (same as 5 + 1); currently raises TypeError\n```\n\n**Goal:** `other + lazy_obj` should behave exactly like `other + wrapped_obj`. Evaluating the expression must trigger setup of the wrapped object if that has not happened yet.\n\n**User:** Developers who pass `SimpleLazyObject` instances into code that puts them on the right-hand side of `+`. Examples include string concatenation, numeric arithmetic and `sum()`-style accumulation.\n\n**Why the obvious one-liner fails** (from the issue):\n- `new_method_proxy(operator.radd)` cannot be used because `operator.radd` does not exist.\n- `new_method_proxy(operator.attrgetter(\"__radd__\"))` is incorrect. Many types (for example `str`) have no `__radd__`, and `attrgetter` would raise `AttributeError` instead of following Python's normal binary-operator fallback.\n\n**Reporter's working implementation (reference only, not yet adopted):**\n```python\ndef __radd__(self, other):\n    if self._wrapped is empty:\n        self._setup()\n    return other + self._wrapped\n```\n\n### Acceptance criteria\n1. `other + lazy` returns the same value as `other + wrapped` for wrapped types that support it, including types with no `__radd__` of their own:\n   - `int`: `1 + SimpleLazyObject(lambda: 2) == 3`\n   - `str`: `\"a\" + SimpleLazyObject(lambda: \"b\") == \"ab\"`\n   - `list`: `[1] + SimpleLazyObject(lambda: [2]) == [1, 2]`\n2. If the wrapped object has not been set up yet, `other + lazy` sets it up (lazy setup is triggered exactly as for other proxied methods).\n3. If `other + wrapped` would raise `TypeError`, then `other + lazy` also raises `TypeError` and not some other exception such as `AttributeError`.\n4. A custom type that defines `__radd__` has that `__radd__` invoked when wrapped.\n5. Existing proxied behaviour of `SimpleLazyObject`/`LazyObject` does not regress, including `lazy + other` via `__add__` if it exists.\n\n## Assumptions\n1. This issue is about Django, and `SimpleLazyObject`, `LazyObject`, `new_method_proxy` and the `empty` sentinel live in `django.utils.functional`. This is inferred from the names; the file was not seen.\n2. The scope is `__radd__` only. Other missing reflected or in-place operators (`__rsub__`, `__rmul__`, `__iadd__`, \u2026) are out of scope unless the Open Questions say otherwise.\n3. The correct semantics are \"evaluate `other + wrapped` using normal Python operator dispatch\", not \"call `wrapped.__radd__(other)` directly\". This is what makes types without `__radd__` (such as `str`) work.\n4. The method may be defined on `SimpleLazyObject` or on its base `LazyObject`. The placement should follow wherever the existing proxied magic methods are defined, which is unknown here.\n5. Tests are added to the project's existing test suite for `django.utils.functional` lazy objects. The location is unknown.\n6. No new dependencies are needed (for example, `wrapt` must not be introduced).\n\n## Tech Stack\n- Python, in the Django codebase (assumed). The supported Python and Django versions are **unknown**.\n\n## Commands\n- Build: **unknown** (not stated in the issue)\n- Test: **unknown** (likely the project's own test runner; exact command and flags not visible)\n- Lint: **unknown**\n\n## Project Structure\n- Implementation: **unknown path** (assumed module `django.utils.functional`)\n- Tests: **unknown path** (existing tests for `SimpleLazyObject`/`LazyObject`)\n- Docs/release notes: **unknown** whether a release note is required\n\n## Code Style\n- Follow the existing conventions for proxied magic methods in the same class. Use `new_method_proxy` if a suitable callable can be expressed. Otherwise use an explicit method that performs lazy setup using the same `_wrapped is empty` / `_setup()` pattern the class already uses.\n- No concrete style snippet is available from the repository. The reporter's snippet above is the only reference.\n\n## Testing Strategy\n- **Unit tests** cover each acceptance criterion:\n  - int, str and list on the right-hand side\n  - a custom class with `__radd__`\n  - an unsupported combination raising `TypeError`\n  - setup triggered from the un-evaluated state\n- Run tests against both `SimpleLazyObject` and, if the method is placed there, `LazyObject` subclasses.\n- Run the full existing lazy-object test suite to confirm there are no regressions.\n- The test framework and coverage expectations are **unknown**; use whatever the existing tests use.\n\n## Boundaries\n- **Always:**\n  - Preserve laziness (no evaluation before the operator is used).\n  - Keep normal Python operator semantics.\n  - Add regression tests.\n  - Run existing lazy-object tests.\n- **Ask first:**\n  - Adding other reflected or in-place operators beyond `__radd__`.\n  - Changing `new_method_proxy`'s behaviour.\n  - Moving methods between `LazyObject` and `SimpleLazyObject`.\n- **Never:**\n  - Add a dependency such as `wrapt`.\n  - Use `operator.attrgetter(\"__radd__\")`.\n  - Swallow or convert `TypeError` into other exceptions.\n  - Change public behaviour of existing proxied methods.\n\n## Success Criteria\n- All five acceptance criteria above are covered by passing automated tests.\n- `1 + SimpleLazyObject(lambda: 2) == 3` and `\"a\" + SimpleLazyObject(lambda: \"b\") == \"ab\"` both hold.\n- An unsupported combination raises `TypeError`, matching unwrapped behaviour.\n- The existing test suite passes with no regressions.\n\n## Open Questions\n1. Should this fix cover only `__radd__`, or all missing reflected operators (`__rsub__`, `__rmul__`, `__rtruediv__`, \u2026) for consistency? The issue notes \"a whole bunch\" are missing.\n2. Should `__radd__` live on `LazyObject` (so all lazy subclasses get it) or only on `SimpleLazyObject`?\n3. Is `other + self._wrapped` the agreed semantics, or should it be `self._wrapped.__radd__(other)` with a `NotImplemented` fallback? They differ when `other.__add__` accepts the wrapped type: Python already tried `other.__add__(lazy)` before reaching `__radd__`.\n4. Should behaviour be specified when both operands are lazy objects (for example, `lazy_a + lazy_b`)?\n5. Which Django and Python versions does this target, and does it need a release note or backport?\n6. What are the exact test command and test file location for lazy-object tests?",
+ "ttft_ms": 5505,
+ "type": "result",
+ "duration_ms": 28272,
+ "uuid": "c458bcd3-a72f-47c6-be6d-7ee7e26f4887",
+ "ttft_stream_ms": 1583,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 24,
+ "time_to_request_cpu_ms": 189,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1584,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

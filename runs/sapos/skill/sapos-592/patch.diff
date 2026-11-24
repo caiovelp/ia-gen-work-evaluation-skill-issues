@@ -1,0 +1,42 @@
+diff --git a/config/database.yml.example b/config/database.yml.example
+index 6c48dff3..58a0e4fa 100644
+--- a/config/database.yml.example
++++ b/config/database.yml.example
+@@ -6,6 +6,8 @@
+ #   gem install sqlite3
+ development:
+   adapter: mysql2
++  encoding: utf8mb4
++  collation: utf8mb4_unicode_ci
+   database: sapos_development
+   pool: 5
+   username: root
+diff --git a/db/migrate/20260320120000_change_enrollments_thesis_title_to_utf8mb4.rb b/db/migrate/20260320120000_change_enrollments_thesis_title_to_utf8mb4.rb
+new file mode 100644
+index 00000000..be08f17a
+--- /dev/null
++++ b/db/migrate/20260320120000_change_enrollments_thesis_title_to_utf8mb4.rb
+@@ -0,0 +1,10 @@
++class ChangeEnrollmentsThesisTitleToUtf8mb4 < ActiveRecord::Migration[7.1]
++  def up
++    return unless connection.adapter_name =~ /mysql|trilogy/i
++    execute "ALTER TABLE enrollments MODIFY thesis_title VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
++  end
++
++  def down
++    # Irreversible without data loss risk; keep utf8mb4.
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 32196898..075d1780 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.1].define(version: 2026_03_18_155403) do
++ActiveRecord::Schema[7.1].define(version: 2026_03_20_120000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"

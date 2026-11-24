@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29095,
+ "stop_reason": "end_turn",
+ "session_id": "49457cb0-8883-4f5e-9d14-f9c764eb9a04",
+ "total_cost_usd": 0.0653686,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1023,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2807,
+  "output_tokens_details": {
+   "thinking_tokens": 403
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1023,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2807,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1023,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1023
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1608,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001738,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2807,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1023,
+   "webSearchRequests": 0,
+   "costUSD": 0.0651948,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 403,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Napoleon over-escapes the trailing underscore in attribute names\n\n## Objective\n\n**Problem.** With `sphinx.ext.autodoc` and `sphinx.ext.napoleon` enabled, an attribute named `hello_` in a NumPy-style `Attributes` section renders in HTML as `hello\\_`, with a visible backslash. The reporter says Sphinx 2.4.3 rendered it correctly and 3.0.4 does not, so this is a regression.\n\n**Reproducer (from the issue):**\n\n```python\nclass A:\n    \"\"\"\n    Attributes\n    ----------\n    hello_: int\n        hi\n    \"\"\"\n    pass\n```\n\n- `conf.py` has `extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon']`.\n- `index.rst` contains `.. autoclass:: a.A`.\n- The docs are built with `PYTHONPATH=. make clean html`.\n\n**Expected.** The attribute name shows as `hello_` with no backslash. The output should match hand-written reST:\n\n```rst\n.. attribute:: hello_\n   :type: int\n\n   hi\n```\n\nHow the type is displayed is out of scope. The reporter states it renders differently but \"that's not the point here\".\n\n**User.** Sphinx users who document Python classes with napoleon (NumPy-style, and possibly Google-style) docstrings. Their attribute names end with an underscore, which is a common convention, for example fitted attributes in scikit-learn-style APIs.\n\n**Acceptance criteria.**\n\n- AC1: A NumPy-style `Attributes` entry named `hello_` renders as `hello_` in HTML, with no visible backslash.\n- AC2: The reST napoleon generates for that entry names the attribute `hello_` in the `attribute` directive argument, not `hello\\_`.\n- AC3: Contexts that genuinely need escaping keep their current correct rendering, with no regression. Examples are parameter names such as `*args` and `**kwargs`, and names rendered as inline reST text.\n- AC4: The behavior matches Sphinx 2.4.3 for this case.\n\n## Assumptions\n\n1. The backslash comes from napoleon escaping names for inline reST and then applying that same escaping to text used as a directive argument (`.. attribute:: <name>`). Directive arguments are not parsed as inline markup, so the backslash appears literally. This is inferred from the symptom and has not been verified in the code.\n2. The regression was introduced between Sphinx 2.4.3 and 3.0.4. The issue does not identify the exact commit.\n3. Only the `Attributes` section is affected in the reported form. Other sections may be affected too; see Open Questions.\n4. The fix belongs in `sphinx.ext.napoleon`, not in autodoc or the Python domain, because hand-written `.. attribute:: hello_` renders correctly.\n5. Python 3.8.3 on Linux is not relevant to the bug.\n6. Google-style docstrings likely share the same code path and should get the same fix. The issue only demonstrates NumPy style.\n\n## Tech Stack\n\n- Python (the reporter used 3.8.3). The supported range is unknown.\n- Sphinx (bug seen on 3.0.4, fine on 2.4.3).\n- Extensions involved: `sphinx.ext.napoleon` and `sphinx.ext.autodoc`.\n- Other dependency versions are unknown.\n\n## Commands\n\nThe issue does not show any of these, and I have no repository access.\n\n- Build: unknown\n- Test: unknown\n- Lint: unknown\n- Docs build for manual reproduction: `PYTHONPATH=. make clean html`, run in a `sphinx-quickstart`-generated project (from the issue)\n\n## Project Structure\n\nUnknown, because I have no repository access.\n\n- The module implementing napoleon's docstring conversion is unknown. Presumably it lives under the `sphinx.ext.napoleon` package.\n- The location of the napoleon tests is unknown.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the napoleon module and its tests once they are visible.\n\n## Testing Strategy\n\n- Framework and test locations are unknown.\n- **Unit level:** convert the reproducer docstring (NumPy style, and Google style if it shares the path) with napoleon. Assert that the generated reST contains `.. attribute:: hello_` and does not contain `hello\\_`.\n- **Regression guard:** keep or add assertions that escaping still applies where it is needed, such as `*args` and `**kwargs` in parameter lists. Cover any other context identified under Open Questions.\n- **Manual / integration:** build the reproducer project and confirm the HTML shows `hello_` with no backslash.\n\n## Boundaries\n\n- **Always:**\n  - Add a test that fails on current behavior and passes after the fix.\n  - Run the existing napoleon test suite.\n  - Limit the change to how napoleon escapes names.\n- **Ask first:**\n  - Changing escaping behavior in sections other than `Attributes`.\n  - Changing napoleon config options or their defaults.\n  - Touching autodoc or the Python domain.\n  - Changing how the attribute type is rendered.\n- **Never:**\n  - Remove escaping globally in a way that breaks `*args`/`**kwargs` or inline-text contexts.\n  - Delete or weaken existing tests without approval.\n  - Bundle in the unrelated type-display difference.\n\n## Success Criteria\n\n- [ ] For the reproducer, napoleon's output for the `Attributes` entry uses `hello_` as the `attribute` directive argument, with no backslash.\n- [ ] The HTML for the reproducer shows `hello_` with no visible `\\`.\n- [ ] Existing napoleon tests pass, including any that cover escaping of `*args` and `**kwargs`.\n- [ ] A new automated test covers the trailing-underscore attribute case in NumPy style, and in Google style if that style is affected.\n- [ ] Rendering of trailing-underscore names in contexts that need escaping (to be determined; see Open Questions) is unchanged or verified correct.\n\n## Open Questions\n\n1. Is the Google-style `Attributes` section also affected? Should it be fixed in the same change?\n2. Which other napoleon outputs put a name in a directive argument or a field name rather than inline text? Candidates include `Methods`, `:ivar:` output when `napoleon_use_ivar = True`, and `:param:` when `napoleon_use_param = True`. Should they also stop escaping?\n3. Where must a trailing underscore still be escaped, so that it is not read as a reST reference such as inline names in field bodies? The fix needs to preserve escaping there.\n4. Which commit between 2.4.3 and 3.0.4 introduced the escaping? Knowing what it was meant to fix helps avoid re-breaking that case.\n5. Should the fix be backported to a 3.0.x bugfix release, or only land on the current development branch?\n6. What are the test, lint, and build commands, and where are the napoleon tests located?\n7. Is the type-rendering difference the reporter mentioned (`:type: int` vs napoleon's output) worth tracking in a separate issue?",
+ "ttft_ms": 5851,
+ "type": "result",
+ "duration_ms": 27747,
+ "uuid": "b4936b14-6baf-4bd0-a9fe-33d0ccf4f3a0",
+ "ttft_stream_ms": 1633,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 219,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 129,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1633,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

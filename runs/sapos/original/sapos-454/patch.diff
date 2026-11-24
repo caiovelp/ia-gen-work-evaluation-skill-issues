@@ -1,0 +1,31 @@
+diff --git a/app/controllers/class_enrollment_requests_controller.rb b/app/controllers/class_enrollment_requests_controller.rb
+index a5343ab1..717c445a 100644
+--- a/app/controllers/class_enrollment_requests_controller.rb
++++ b/app/controllers/class_enrollment_requests_controller.rb
+@@ -59,11 +59,11 @@ class ClassEnrollmentRequestsController < ApplicationController
+     columns = [:enrollment_request, :course_class, :status, :class_enrollment]
+     config.list.columns = [
+       :enrollment_request, :enrollment, :course_class, :class_enrollment,
+-      :allocations, :professor, :action, :status
++      :allocations, :professor, :action, :status, :created_at, :updated_at
+     ]
+     config.show.columns = [
+       :enrollment_request, :course_class, :class_enrollment,
+-      :allocations, :professor, :action, :status
++      :allocations, :professor, :action, :status, :created_at, :updated_at
+     ]
+     config.create.columns = columns
+     config.update.columns = columns
+diff --git a/config/locales/class_enrollment_request.pt-BR.yml b/config/locales/class_enrollment_request.pt-BR.yml
+index 92f04e4e..29930424 100644
+--- a/config/locales/class_enrollment_request.pt-BR.yml
++++ b/config/locales/class_enrollment_request.pt-BR.yml
+@@ -12,6 +12,8 @@ pt-BR:
+         class_enrollment: "Inscrição"
+         allocations: "Alocações"
+         status: "Situação"
++        created_at: "Solicitada em"
++        updated_at: "Atualizada em"
+         year: "Ano"
+         semester: "Semestre"
+         enrollment: "Matrícula"

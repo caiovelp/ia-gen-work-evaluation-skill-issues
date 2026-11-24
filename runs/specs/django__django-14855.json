@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31304,
+ "stop_reason": "end_turn",
+ "session_id": "a715705d-6760-4fb8-b2f1-77687ed499a5",
+ "total_cost_usd": 0.07020200000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 933,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3085,
+  "output_tokens_details": {
+   "thinking_tokens": 81
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 933,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3085,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 933,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 933
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1522,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016720000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3085,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 933,
+   "webSearchRequests": 0,
+   "costUSD": 0.07003480000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 81,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct Admin Site Namespace for Readonly ForeignKey Links in Custom Admin Sites\n\n## Assumptions\n\n1. The codebase is Django. The affected code is `get_admin_url` in `django.contrib.admin.helpers`, which the issue describes as a method with access to `self.model_admin`. I have not seen the file, so its exact signature and surroundings are unverified.\n2. The faulty line is the one quoted in the issue: `url = reverse(url_name, args=[quote(remote_obj.pk)])`. Because it has no `current_app`, `reverse` falls back to the default `admin` instance namespace.\n3. A \"custom Admin Site\" means an `AdminSite` instance whose `name` differs from `\"admin\"`, mounted at a different URL prefix such as `/custom-admin/`.\n4. The intended behavior matches other admin code paths, such as `ModelAdmin.response_add`, which pass `current_app=self.admin_site.name` (or an equivalent) to `reverse`.\n5. `self.model_admin.admin_site.name` is the correct source for the current admin site's name inside `get_admin_url`.\n6. This spec covers only the link generated for a readonly ForeignKey. Other readonly relation types (for example OneToOne, if it shares the same helper) are covered only to the extent that they go through the same `get_admin_url` code path.\n7. Existing behavior for the default admin site (`name=\"admin\"`) must not change.\n8. A test can be added to Django's existing admin test suites. The suite name and location are not visible from the issue and are therefore unknown.\n\n## Objective\n\nWhen a model instance is viewed or edited in a custom `AdminSite`, a ForeignKey listed in `readonly_fields` renders as a link to the related object's change page. That link currently points to the default admin site (`/admin/...`) instead of the custom admin site the user is working in (`/custom-admin/...`).\n\n**Who is affected:** Developers who register models on a non-default `AdminSite`, and their staff users, who are sent to the wrong admin site. That site may not exist, may not have the model registered, or may have different permissions.\n\n**What success looks like:** The readonly ForeignKey link resolves inside the same admin site that rendered the page, consistent with how the rest of `ModelAdmin` reverses admin URLs.\n\n### Acceptance Criteria (user stories)\n\n- As a staff user on a custom admin site, when I open a change or view page whose ForeignKey field is readonly, the link to the related object takes me to that object's change page **in the same custom admin site**.\n- As a staff user on the default admin site, the readonly ForeignKey link behaves exactly as it does today.\n- When the related object's change URL cannot be reversed (for example, the related model is not registered on the current site), the existing fallback behavior is kept. I assume the fallback is to render plain text without a link, but this is unverified (see Open Questions).\n\n## Tech Stack\n\n- Python / Django. Versions are unknown and not stated in the issue.\n- Affected module: `django.contrib.admin.helpers`, function or method `get_admin_url` (assumed to live on `AdminReadonlyField`; unverified).\n- Related reference: `django.contrib.admin.options.ModelAdmin.response_add`, which already uses `current_app`.\n- URL reversal: `django.urls.reverse` with the `current_app` argument.\n\n## Commands\n\n| Purpose | Command |\n|---|---|\n| Build | Unknown. Not stated in the issue. |\n| Test (full suite) | Unknown. Not stated in the issue. |\n| Test (admin-related subsets) | Unknown. The relevant test module names are not visible. |\n| Lint / format | Unknown. Not stated in the issue. |\n\n## Project Structure\n\nOnly the paths named in the issue are known:\n\n```\ndjango/contrib/admin/helpers.py   \u2192 contains get_admin_url (the defect location)\ndjango/contrib/admin/options.py   \u2192 contains ModelAdmin.response_add (reference pattern using current_app)\n```\n\nThe test directory layout and the location of existing tests for custom admin sites and readonly fields are **unknown**.\n\n## Code Style\n\nThe style to follow is the existing pattern already used elsewhere in the admin, as reported in the issue: pass the admin site's name as `current_app` when reversing admin URLs. The issue reporter suggests this shape:\n\n```python\nurl = reverse(\n    url_name,\n    args=[quote(remote_obj.pk)],\n    current_app=self.model_admin.admin_site.name,\n)\n```\n\nThis snippet records the reporter's proposal to show the convention. It is not an approved implementation. Other conventions (formatting tool, line length, and so on) are unknown.\n\n## Testing Strategy\n\n- **Framework:** Django's own test framework (`django.test`). The exact test runner invocation is unknown.\n- **Required test levels:**\n  - **Regression test (integration level, admin views):** Use a model with a ForeignKey in `readonly_fields`, registered on a custom `AdminSite` with a non-default `name` and URL prefix. Render the change page in that site and assert that the readonly field's link points to the custom site's URL prefix and not to `/admin/`.\n  - **Non-regression test for the default site:** The same scenario on the default admin site still produces `/admin/...` links. Existing tests may already cover this; confirming that is an open question.\n  - **Fallback behavior:** If a test exists for the unreversible case (related model not registered on the site), it must keep passing unchanged.\n- **Where tests live:** Unknown. Ideally next to existing tests that cover custom admin sites and/or readonly fields.\n- **Coverage expectation:** The changed line is exercised by at least one test that fails before the fix and passes after it.\n- **Full suite:** The reporter has not run the full test suite. The full admin-related tests must pass before the change is considered done.\n\n## Boundaries\n\n- **Always:**\n  - Keep default admin site behavior byte-for-byte identical in rendered link output.\n  - Follow the existing `current_app` pattern used in `ModelAdmin` rather than inventing a new mechanism.\n  - Add a regression test that reproduces the `/admin/` vs `/custom-admin/` mismatch.\n  - Run the admin-related test suites before considering the change complete.\n- **Ask first:**\n  - Changing the signature of `get_admin_url` or of `AdminReadonlyField`'s constructor.\n  - Extending the fix to other `reverse` calls in `helpers.py` or elsewhere that may have the same omission. That would broaden the scope beyond this issue.\n  - Any change to the fallback behavior when reversal fails.\n  - Adding release notes or documentation entries, since the project's conventions for these are unknown.\n- **Never:**\n  - Hard-code the `\"admin\"` namespace or any URL prefix.\n  - Remove or weaken existing tests to make the change pass.\n  - Change URL routing or `AdminSite` registration semantics as part of this fix.\n\n## Success Criteria\n\n1. On a custom `AdminSite` (non-default `name`, non-`/admin/` prefix), the readonly ForeignKey link on the change and view page resolves to `<custom-prefix>/<app_label>/<model_name>/<pk>/change/` (or the project's equivalent change URL) within that custom site.\n2. On the default admin site, the rendered readonly ForeignKey link is unchanged from current behavior.\n3. A new automated test fails on the current code and passes after the fix.\n4. All existing admin-related tests pass, including any existing tests for readonly fields and custom admin sites.\n5. The case where the related model is not registered on the current site still follows the existing fallback behavior without raising an error.\n\n## Open Questions\n\n1. Is `self.model_admin` always available and non-`None` in `get_admin_url`? For example, could it be `None` for inline formsets, or for readonly fields rendered outside a `ModelAdmin` context? If it can be absent, what should the fallback be?\n2. Should the fix use `self.model_admin.admin_site.name`, or is there a more canonical source of the current app in this context (for example `request.current_app`)?\n3. Are there other `reverse` calls in `django/contrib/admin/helpers.py`, or in related admin helpers, with the same missing `current_app`? Should they be fixed in this change or tracked separately?\n4. What is the current fallback when reversing the related object's URL fails (`NoReverseMatch`)? Does passing `current_app` change which cases fall back? For example, if the related model is registered only on the default site but not on the custom site, should the link now disappear (plain text) rather than pointing to `/admin/`?\n5. Does this behavior also apply to readonly fields in inlines on a custom admin site? Should those be covered by the regression test?\n6. Which Django versions or branches should receive the fix, and does the project expect a release note for this kind of bug fix?\n7. What are the exact commands for running the full test suite and the admin-specific test modules, and where should the new regression test be placed?",
+ "ttft_ms": 2125,
+ "type": "result",
+ "duration_ms": 30928,
+ "uuid": "1edd5935-f0dd-467e-87cb-611766e451f0",
+ "ttft_stream_ms": 1532,
+ "time_to_request_ms": 541,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 511,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 136,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1532,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

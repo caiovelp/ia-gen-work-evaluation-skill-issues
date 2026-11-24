@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25993,
+ "stop_reason": "end_turn",
+ "session_id": "d988bf96-fc4d-49da-a515-8b2aad728f5d",
+ "total_cost_usd": 0.0613917,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1288,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2501,
+  "output_tokens_details": {
+   "thinking_tokens": 133
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1288,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2501,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1288,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1288
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1874,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2501,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1288,
+   "webSearchRequests": 0,
+   "costUSD": 0.0611948,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 133,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Support Boolean Data in `so.Plot` Color Mapping\n\n## Objective\n\n**Problem.** In the seaborn objects interface, passing boolean data to the `color` semantic raises a `TypeError` during scale setup:\n\n```python\nso.Plot([\"a\", \"b\"], [1, 2], color=[True, False]).add(so.Bar())\n```\n\n```\nTypeError: numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.\n```\n\nThe traceback shows the following:\n\n- The failure happens in `Plotter._setup_scales` (`seaborn/_core/plot.py`), which calls `scale._setup(var_df[var], prop)`.\n- The scale chosen is a continuous one: `ContinuousBase._setup` in `seaborn/_core/scales.py`.\n- The crash is at `b = forward(vmax) - forward(vmin)`, where `vmin` and `vmax` are numpy booleans and subtracting them is not allowed.\n\nSo boolean data is inferred as numeric and gets a continuous scale. The normalization step then subtracts numpy booleans, which numpy rejects.\n\n**User.** Someone using `seaborn.objects` who maps a boolean column, such as a flag, mask, or yes/no field, to `color`. Other semantics may be affected as well (see Open Questions).\n\n**Goal.** Boolean data passed to `color` produces a valid plot instead of an exception. The default mapping is sensible and documented.\n\n**User stories / acceptance**\n\n- As a user, I can pass a list, array, or Series of `bool` to `color=` and get a rendered plot.\n- As a user, the legend shows meaningful entries for `True` and `False`.\n- As a user, I can still force a specific scale type explicitly via `.scale(color=...)` without a crash. Exactly which scale types must work is an open question.\n\n## Tech Stack\n\n- Python, seaborn objects interface (`seaborn/_core/plot.py`, `seaborn/_core/scales.py`, both seen in the traceback).\n- numpy, whose boolean `-` restriction triggers the error. pandas is presumably involved for data handling.\n- Exact versions of Python, numpy, pandas, and matplotlib are **unknown**.\n\n## Commands\n\nAll unknown; none were visible in the issue.\n\n- Build: unknown\n- Test: unknown (likely pytest, unconfirmed)\n- Lint: unknown\n- Dev / reproduce: run the snippet from the issue in a Python session with seaborn installed from source\n\n## Project Structure\n\nKnown from the traceback:\n\n```\nseaborn/_core/plot.py    \u2192 Plot / Plotter; scale setup (Plotter._setup_scales)\nseaborn/_core/scales.py  \u2192 Scale classes, incl. ContinuousBase._setup\n```\n\nUnknown or not visible:\n\n- Where variable-type inference and default-scale selection live\n- The test directory layout and the relevant test modules\n- The location of the docs and changelog\n\n## Code Style\n\nUnknown. Follow existing conventions in `seaborn/_core/`. No style guide or snippet is available beyond the traceback lines.\n\n## Testing Strategy\n\n- **Regression test.** The exact snippet from the issue must run without raising.\n- **Unit tests at the scale and property level:**\n  - Default scale inference for boolean data on `color`.\n  - Mapping of `True` and `False` to distinct colors.\n  - Legend entries for boolean data.\n- **Explicit-scale tests.** Boolean data with an explicitly requested scale, covering whichever types are decided under Open Questions, behaves as specified (works, or raises a clear error).\n- **Input variants:**\n  - Python `list[bool]`\n  - numpy `bool` array\n  - pandas `bool` Series\n  - pandas nullable `boolean` dtype with missing values, if in scope\n- **Non-regression.** Existing numeric, continuous, and categorical color tests still pass.\n- Framework, test file locations, and coverage expectations are **unknown**.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test for the reported snippet.\n  - Keep existing behavior for non-boolean numeric and categorical data unchanged.\n  - Run the existing test suite before committing.\n- **Ask first:**\n  - Changing the default scale type for booleans in a user-visible way that affects semantics other than `color`.\n  - Changing public APIs or adding parameters, such as a scale-inference option for booleans.\n  - Adding dependencies.\n- **Never:**\n  - Silently swallow the error or drop the boolean variable.\n  - Remove or weaken existing tests.\n  - Change unrelated scale behavior.\n\n## Success Criteria\n\n1. `so.Plot([\"a\", \"b\"], [1, 2], color=[True, False]).add(so.Bar())` renders without exception.\n2. The two bars receive distinct colors, and the legend lists `True` and `False`, or labels as decided in Open Questions.\n3. The same holds for numpy bool arrays and pandas bool Series inputs.\n4. If the user explicitly requests a continuous color scale for boolean data, the result is either a working mapping (booleans cast to 0/1) or a clear, documented error. A raw numpy `TypeError` is not acceptable.\n5. All pre-existing tests pass.\n\n## Assumptions\n\n1. The root cause is that boolean data is inferred as numeric and assigned a continuous scale. The traceback shows `ContinuousBase._setup` being used for `color`.\n2. The preferred default is to treat boolean data as **categorical/nominal** for `color`, since there are two discrete levels.\n3. The fix belongs in seaborn's `_core` (scale inference and/or `ContinuousBase._setup`), not in user code.\n4. Other semantic properties that infer continuous scales could hit the same crash with booleans. Fixing `color` is the required scope; others are desirable.\n5. Coordinate variables (x/y) with boolean data are out of scope unless they share the same code path.\n\n## Open Questions\n\n1. **Default semantics.** Should boolean data default to a categorical scale or a continuous one (cast to 0/1)? Should this apply to all semantic properties, or only to `color`?\n2. **Explicit continuous scale.** If a user requests a continuous scale for boolean data, should booleans be cast to numeric, or should a clear error be raised?\n3. **Legend ordering and labels.** Should the order be `True, False`, `False, True`, or the order of appearance? Should the labels read \"True\"/\"False\" verbatim?\n4. **Missing values.** How should pandas nullable `boolean` dtype with `NA` values be handled?\n5. **Scope beyond color.** Should the fix also cover the other properties (marker, linestyle, pointsize, alpha, etc.) and x/y coordinates in this change?\n6. **Tooling.** What are the exact test, lint, and build commands, where do the tests live, and what dependency versions are supported?\n7. **Release notes.** Does this need a changelog or release-notes entry, and where?",
+ "ttft_ms": 3297,
+ "type": "result",
+ "duration_ms": 25135,
+ "uuid": "edbd56fb-c377-47d7-9f76-577d41873eef",
+ "ttft_stream_ms": 1585,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 215,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 3,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 206,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1586,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

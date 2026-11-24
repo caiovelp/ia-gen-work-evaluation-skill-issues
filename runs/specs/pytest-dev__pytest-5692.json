@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31749,
+ "stop_reason": "end_turn",
+ "session_id": "d203f551-78b7-4e75-863c-24971e269b41",
+ "total_cost_usd": 0.0698464,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1109,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2996,
+  "output_tokens_details": {
+   "thinking_tokens": 191
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1109,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2996,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1109,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1109
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1701,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018360000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2996,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1109,
+   "webSearchRequests": 0,
+   "costUSD": 0.0696628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 191,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Add `hostname` and `timestamp` attributes to the JUnit XML `<testsuite>` element\n\n## Objective\n\npytest can write JUnit XML reports (the `--junitxml` feature). Its `<testsuite>` element is missing two attributes that JUnit-style reports commonly include:\n\n- `hostname`: the machine that ran the tests.\n- `timestamp`: when the test run started.\n\nMany CI dashboards, report aggregators and archival tools read these attributes to sort, group or trace runs. Because pytest leaves them out, users cannot tell from the report alone where or when a run happened. The reporter asked whether an option exists to include them. This spec assumes there is none today and proposes adding them.\n\n**Users:** pytest users who produce JUnit XML for CI systems or report tooling.\n\n**Current output (from the issue):**\n```xml\n<testsuite errors=\"0\" failures=\"2\" name=\"check\" skipped=\"0\" tests=\"4\" time=\"0.049\">\n```\n\n**Desired output (shape taken from the issue's JUnit example):**\n```xml\n<testsuite name=\"...\" tests=\"...\" skipped=\"...\" failures=\"...\" errors=\"...\" time=\"...\"\n           timestamp=\"2019-04-22T10:32:27\" hostname=\"Anass-MacBook-Pro.local\">\n```\n\n### User stories / acceptance criteria\n1. When I generate a JUnit XML report, the `<testsuite>` element has a `hostname` attribute containing the name of the machine that ran the tests.\n2. When I generate a JUnit XML report, the `<testsuite>` element has a `timestamp` attribute containing the start time of the test session in ISO 8601 format (`YYYY-MM-DDTHH:MM:SS`, as in the JUnit example).\n3. Existing attributes (`errors`, `failures`, `name`, `skipped`, `tests`, `time`) and all `<testcase>` content stay unchanged.\n4. The report still conforms to the JUnit XML schema(s) pytest targets or validates against.\n\n## Assumptions\n1. No option to emit these attributes exists in pytest today. The issue shows them absent from default output, and this spec treats the request as a feature, not a support question.\n2. Both attributes will be emitted **unconditionally**, with no new CLI flag or ini option. They are standard JUnit attributes and adding XML attributes is backward compatible for well-behaved consumers.\n3. `timestamp` means the **start** of the test session, not the moment the report is written. This matches JUnit, where `timestamp` marks when the suite began.\n4. `timestamp` uses ISO 8601 without a timezone suffix, matching the issue's example. Whether to use local time or UTC is an open question; this spec defaults to **local time**, as in the example.\n5. `timestamp` may include fractional seconds only if the schema permits them. The default is seconds precision to match the example.\n6. `hostname` comes from the standard OS hostname lookup available to Python.\n7. If the hostname lookup fails, the code falls back to a safe value (e.g. omit the attribute or use an empty string) rather than crashing the run.\n8. Attribute ordering in the XML does not matter.\n9. Behaviour is the same for every supported JUnit \"family\"/schema variant pytest offers, unless one of them forbids these attributes.\n\n## Tech Stack\n- Language: Python (pytest itself).\n- Supported Python and pytest versions: **unknown**, not visible in the issue.\n- XML generation mechanism inside pytest: **unknown**, not visible in the issue.\n- New dependencies: none expected. Hostname and time can come from the Python standard library.\n\n## Commands\nNot visible in the issue; all **unknown**.\n- Build: unknown\n- Test: unknown (likely the project's standard pytest/tox invocation, unconfirmed)\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\nNot visible in the issue; all **unknown**.\n- Location of the JUnit XML reporting code: unknown\n- Location of the JUnit XML tests: unknown\n- Location of changelog/news fragments and documentation for JUnit XML output: unknown\n\n## Code Style\nUnknown. Follow the conventions of the existing JUnit XML reporting module and its tests. No snippet is available from the issue.\n\n## Testing Strategy\n- **Framework:** pytest's own test suite. The exact layout and helpers are unknown.\n- **Unit / integration tests** (generate a report from a sample test file, then parse the XML):\n  - The `<testsuite>` element has a `hostname` attribute equal to the hostname the test environment reports. Mock or compare against the same lookup function.\n  - The `<testsuite>` element has a `timestamp` attribute that:\n    - parses as ISO 8601 (`%Y-%m-%dT%H:%M:%S` or the agreed format);\n    - falls between a time captured just before the session started and one captured just after it ended;\n    - reflects session **start**, not report write time. Check this, for example, with a test that sleeps and asserting `timestamp` is at least the sleep duration earlier than the end time.\n  - Existing attributes and their values are unchanged (regression).\n  - If pytest validates generated XML against a schema in its tests, the output with the new attributes still validates for each supported family.\n  - Hostname lookup failure is handled gracefully (simulated via mocking).\n- **Coverage:** new code paths fully covered. Overall coverage target is unknown.\n\n## Boundaries\n- **Always:**\n  - Keep existing `<testsuite>`/`<testcase>` attributes and structure unchanged.\n  - Keep output valid against the JUnit schema(s) pytest supports.\n  - Add tests for the new attributes.\n  - Add a changelog entry and update docs per project convention (mechanism unknown).\n- **Ask first:**\n  - Adding a CLI flag or ini option to toggle these attributes.\n  - Choosing UTC vs local time, or adding a timezone offset to `timestamp`.\n  - Any change to the XML that is not purely additive.\n  - Adding any third-party dependency.\n- **Never:**\n  - Remove or rename existing XML attributes or elements.\n  - Make report generation fail because the hostname cannot be determined.\n  - Change test outcome semantics or timing (`time`) computation.\n\n## Success Criteria\n1. A report generated with pytest's JUnit XML option contains `hostname=\"<machine hostname>\"` on `<testsuite>`.\n2. The same report contains `timestamp=\"<ISO 8601 datetime>\"` on `<testsuite>`, equal to the session start time within one second.\n3. All pre-existing JUnit XML tests pass unchanged, except tests that assert the exact full attribute set, which are updated deliberately.\n4. Generated XML validates against the schema(s) used in pytest's test suite, if any.\n5. New tests covering criteria 1\u20132 and hostname-failure handling pass.\n6. The changelog and documentation mention the new attributes.\n\n## Open Questions\n1. Should the attributes always be emitted, or sit behind an opt-in or opt-out option (CLI flag or ini setting)? The reporter asked about \"an option\".\n2. Should `timestamp` be local time (as in the JUnit example) or UTC? Should it carry a timezone offset? The common JUnit XSD types `timestamp` as an ISO 8601 datetime without timezone; is that the schema we must satisfy?\n3. Should `timestamp` mark session start (assumed) or the first test's start?\n4. Which hostname source is preferred: the short hostname or a fully qualified domain name? The example shows `Anass-MacBook-Pro.local`.\n5. Which JUnit XML families/schemas does pytest currently support, and do any of them forbid `hostname`/`timestamp`?\n6. How should distributed or parallel runs (e.g. plugins that run tests on several workers or hosts) populate `hostname`? Should it be the controller's host or something else?\n7. Are there privacy concerns about embedding the hostname in reports that might be published, and would that justify an opt-out?\n8. Should other JUnit attributes or elements absent from the pytest example be added at the same time, such as `<properties/>`, suite-level `<system-out>`, or `<system-err>`? Or is that out of scope? (Assumed out of scope.)\n9. What is the project's changelog/news-fragment convention, and where are the JUnit XML docs?",
+ "ttft_ms": 3582,
+ "type": "result",
+ "duration_ms": 30723,
+ "uuid": "0b9fd691-6f45-4745-aed9-7092eade9609",
+ "ttft_stream_ms": 1534,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 180,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1534,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

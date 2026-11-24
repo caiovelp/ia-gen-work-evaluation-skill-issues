@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 19131,
+ "stop_reason": "end_turn",
+ "session_id": "4a1d878f-2e18-4012-bb21-90a2f1e93d11",
+ "total_cost_usd": 0.06610719999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2477,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2300,
+  "output_tokens_details": {
+   "thinking_tokens": 188
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2477,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2300,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2477,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2477
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2682,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002832,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2300,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2477,
+   "webSearchRequests": 0,
+   "costUSD": 0.065824,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 188,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nOn an M1 (arm64) Mac using the MacOSX backend, a Matplotlib figure's `dpi` doubles every time the figure is unpickled. If a figure is repeatedly pickled and unpickled, the DPI grows exponentially until unpickling fails with `OverflowError: signed integer is greater than maximum`. The reporter says this happens every time, seems to happen only on M1 MacBooks, and occurs regardless of the Python version.\n\n## Steps to reproduce\n\n1. On an M1 Mac, use Matplotlib 3.5.2 with the `MacOSX` backend.\n2. Create a figure with `plt.figure()`.\n3. Pickle the figure to a file (`sinus.pickle`) with `pickle.dump`.\n4. Load it back with `pickle.load` and read `dpi` on the loaded figure.\n5. Repeat steps 3\u20134 on the loaded figure in a loop (the report uses 32 iterations), printing `fig.dpi` each time.\n6. Observe that the DPI doubles on every round trip. After about 22 iterations, unpickling raises `OverflowError`.\n\n## Observed behavior\n\nThe figure's DPI doubles after each unpickle: 200.0, 400.0, 800.0, \u2026 up to 419430400.0 at iteration 21. On the next unpickle, re-creating the MacOSX canvas in `Figure.__setstate__` fails with `OverflowError: signed integer is greater than maximum`.\n\nFull output:\n\n```\nMacOSX\nMatplotlib ver: 3.5.2\nPlatform: macOS-12.4-arm64-arm-64bit\nSystem: Darwin\nRelease: 21.5.0\nPython ver: 3.9.12\n0: 200.0\n1: 400.0\n2: 800.0\n3: 1600.0\n4: 3200.0\n5: 6400.0\n6: 12800.0\n7: 25600.0\n8: 51200.0\n9: 102400.0\n10: 204800.0\n11: 409600.0\n12: 819200.0\n13: 1638400.0\n14: 3276800.0\n15: 6553600.0\n16: 13107200.0\n17: 26214400.0\n18: 52428800.0\n19: 104857600.0\n20: 209715200.0\n21: 419430400.0\n```\n\n## Expected behavior\n\nUnpickling should not change the figure's DPI. The DPI should stay at its original value (200.0 in the reporter's run) on every round trip, and no error should occur:\n\n```\nMacOSX\nMatplotlib ver: 3.5.2\nPlatform: macOS-12.4-arm64-arm-64bit\nSystem: Darwin\nRelease: 21.5.0\nPython ver: 3.9.12\n0: 200.0\n1: 200.0\n2: 200.0\n...\n21: 200.0\n22: 200.0\n```\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"/Users/wsykala/projects/matplotlib/example.py\", line 34, in <module>\n    run()\n  File \"/Users/wsykala/projects/matplotlib/example.py\", line 30, in run\n    fig, dpi = dump_load_get_dpi(fig)\n  File \"/Users/wsykala/projects/matplotlib/example.py\", line 20, in dump_load_get_dpi\n    fig2 = pickle.load(blob)\n  File \"/Users/wsykala/miniconda3/envs/playground/lib/python3.9/site-packages/matplotlib/figure.py\", line 2911, in __setstate__\n    mgr = plt._backend_mod.new_figure_manager_given_figure(num, self)\n  File \"/Users/wsykala/miniconda3/envs/playground/lib/python3.9/site-packages/matplotlib/backend_bases.py\", line 3499, in new_figure_manager_given_figure\n    canvas = cls.FigureCanvas(figure)\n  File \"/Users/wsykala/miniconda3/envs/playground/lib/python3.9/site-packages/matplotlib/backends/backend_macosx.py\", line 32, in __init__\n    _macosx.FigureCanvas.__init__(self, width, height)\nOverflowError: signed integer is greater than maximum\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction script. Run it with the MacOSX backend on an M1 Mac.\n\n```python\nimport pickle\nimport matplotlib.pyplot as plt\n\n\ndef test_dpi_unchanged_after_unpickle():\n    fig = plt.figure()\n    original_dpi = fig.dpi\n    for _ in range(32):\n        fig = pickle.loads(pickle.dumps(fig))\n        assert fig.dpi == original_dpi\n```\n\n## Code example\n\nThe original reproduction script from the report:\n\n```python\nimport numpy as np\nimport matplotlib\nimport matplotlib.pyplot as plt\nimport pickle\nimport platform\n\nprint(matplotlib.get_backend())\nprint('Matplotlib ver:', matplotlib.__version__)\nprint('Platform:', platform.platform())\nprint('System:', platform.system())\nprint('Release:', platform.release())\nprint('Python ver:', platform.python_version())\n\n\ndef dump_load_get_dpi(fig):\n    with open('sinus.pickle','wb') as file:\n        pickle.dump(fig, file)\n\n    with open('sinus.pickle', 'rb') as blob:\n        fig2 = pickle.load(blob)\n    return fig2, fig2.dpi\n\n\ndef run():\n    fig = plt.figure()\n    x = np.linspace(0,2*np.pi)\n    y = np.sin(x)\n\n    for i in range(32):\n        print(f'{i}: {fig.dpi}')\n        fig, dpi = dump_load_get_dpi(fig)\n\n\nif __name__ == '__main__':\n    run()\n```\n\n## Version and environment\n\n- Matplotlib: 3.5.2 (installed via pip; traceback paths show a miniconda environment)\n- Backend: MacOSX\n- Python: 3.9.12 (the reporter says the Python version doesn't matter)\n- OS: macOS 12.4 (Darwin 21.5.0), platform `macOS-12.4-arm64-arm-64bit`\n- Hardware: M1 MacBook (the reporter says the issue seems to occur only on M1 MacBooks)\n- Jupyter: Not provided in the original report.",
+ "ttft_ms": 3243,
+ "type": "result",
+ "duration_ms": 18533,
+ "uuid": "4ba95104-3ef0-44e1-8255-8f96a6fe093f",
+ "ttft_stream_ms": 1244,
+ "time_to_request_ms": 283,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 20,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 23,
+ "time_to_request_cpu_ms": 272,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1244,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

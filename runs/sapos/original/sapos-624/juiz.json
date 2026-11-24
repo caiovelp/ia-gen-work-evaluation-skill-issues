@@ -1,0 +1,1 @@
+{"justificativa": "The candidate applies the guard `(link.prop(\"search\") || \"\")` in all three partials, which removes the reported TypeError on `.replace`. It omits the official fix's extra `|| {}` fallback on `queryStringToHash`, but that is defensive and not needed for the error described in the issue.", "veredito": "resolve"}

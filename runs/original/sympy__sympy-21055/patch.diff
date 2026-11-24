@@ -1,0 +1,42 @@
+diff --git a/sympy/assumptions/refine.py b/sympy/assumptions/refine.py
+index e1f97190c0..240398c6a2 100755
+--- a/sympy/assumptions/refine.py
++++ b/sympy/assumptions/refine.py
+@@ -275,6 +275,29 @@ def refine_re(expr, assumptions):
+     return _refine_reim(expr, assumptions)
+ 
+ 
++def refine_arg(expr, assumptions):
++    """
++    Handler for complex argument.
++
++    Examples
++    ========
++
++    >>> from sympy.assumptions.refine import refine_arg
++    >>> from sympy import Q, arg
++    >>> from sympy.abc import x
++    >>> refine_arg(arg(x), Q.positive(x))
++    0
++    >>> refine_arg(arg(x), Q.negative(x))
++    pi
++    """
++    rg = expr.args[0]
++    if ask(Q.positive(rg), assumptions):
++        return S.Zero
++    if ask(Q.negative(rg), assumptions):
++        return S.Pi
++    return None
++
++
+ def refine_im(expr, assumptions):
+     """
+     Handler for imaginary part.
+@@ -377,6 +400,7 @@ def refine_matrixelement(expr, assumptions):
+     'Abs': refine_abs,
+     'Pow': refine_Pow,
+     'atan2': refine_atan2,
++    'arg': refine_arg,
+     're': refine_re,
+     'im': refine_im,
+     'sign': refine_sign,

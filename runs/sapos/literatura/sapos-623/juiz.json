@@ -1,0 +1,1 @@
+{"justificativa": "Converting `field` to a string removes the TypeError and the 500, but `name.include?(\"\")` is true for every name. A request without `term` therefore returns the shadow fields as if they were matches, instead of the empty response the issue expects. The official fix avoids this by returning [] for a blank term.", "veredito": "parcial"}

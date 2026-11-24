@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34066,
+ "stop_reason": "end_turn",
+ "session_id": "88e2035d-2f0a-4f13-84b4-d2f46c590f61",
+ "total_cost_usd": 0.06896690000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 781,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3085,
+  "output_tokens_details": {
+   "thinking_tokens": 414
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 781,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3085,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 781,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 781
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1366,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014810000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3085,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 781,
+   "webSearchRequests": 0,
+   "costUSD": 0.06881880000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 414,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Serialize combined Enum flag values in migrations\n\n## Objective\n\nWhen a model field's default (or any other value written into a migration) is a **combination of `enum.Flag` / `enum.IntFlag` members**, the migration serializer produces invalid code.\n\n**Example from the issue:**\n\n```python\nregex_flags = models.IntegerField(default=re.UNICODE | re.IGNORECASE)\n```\n\nThis currently produces the following in the generated migration:\n\n```python\ndefault=re.RegexFlag[None]\n```\n\nThat expression is wrong. It raises `KeyError` when the migration is loaded.\n\n**Root cause, as stated in the issue:** `EnumSerializer` serializes an enum value through its `.name`. A combined flag value has no single member, so its `.name` is `None`.\n\n**Proposed direction, from the issue:** decompose the value into its member names. Then emit an expression that ORs the members back together. The issue suggests `enum._decompose` for the decomposition.\n\n**Users:** Django developers whose model fields have defaults (or other deconstructed arguments) built from combined enum flags. Examples are `re` flags and custom `IntFlag` / `Flag` classes.\n\n**User story:** As a developer, when I run `makemigrations` on a field whose default is `re.UNICODE | re.IGNORECASE`, I get a migration that imports cleanly. Its default must evaluate to a value equal to `re.UNICODE | re.IGNORECASE`.\n\n**Out of scope:**\n- Changes to how single-member enums are serialized. The existing output stays as it is.\n- Changes to non-enum serializers.\n\n## Assumptions\n\n1. The project is Django. The affected component is the migrations serializer's `EnumSerializer`. The class name comes from the issue. Its file location is **unknown** (unverified guess: `django/db/migrations/serializer.py`).\n2. The current single-member output format is roughly `module.EnumClass[\u2018NAME\u2019]`. I infer this from `re.RegexFlag[None]` in the issue. For combined values, the output should be the same per-member form joined with ` | `, for example:\n   ```python\n   re.RegexFlag['IGNORECASE'] | re.RegexFlag['UNICODE']\n   ```\n   The exact format is an Open Question.\n3. The required imports for a combined value are the same as for a single member. That is one import of the enum's module.\n4. Output must be **deterministic**, so repeated `makemigrations` runs produce no spurious diffs. Member order must therefore be stable.\n5. Behavior for single-member values and for plain `Enum` (non-flag) values must stay byte-for-byte unchanged.\n6. Supported Python versions are **unknown**. `enum._decompose` is a private CPython helper. Its availability and behavior differ across Python versions; for example, enum internals changed in 3.11.\n\n## Tech Stack\n\n- Python, using the stdlib `enum` module (`Flag`, `IntFlag`) and `re.RegexFlag`. Supported versions are unknown.\n- Django migrations framework. The version and branch are unknown.\n\n## Commands\n\nAll commands are **unknown**, because the issue does not provide them.\n- Test: unknown. The project's own test runner should be used, scoped to the migrations writer/serializer tests.\n- Lint/format: unknown.\n- Build: not applicable / unknown.\n\n## Project Structure\n\n**Unknown.** The issue does not reference any paths. The relevant areas are:\n- **Migrations serializer module.** This contains `EnumSerializer`. The path is unknown.\n- **Migrations writer/serializer tests.** The path is unknown.\n\n## Code Style\n\n**Unknown.** Follow the existing style of the serializer module. In particular:\n- Match the existing serializer return contract, which appears to be a `(string, imports)` pair. This is unverified.\n- Match how existing enum output is formatted.\n\n## Testing Strategy\n\nThe test framework and test locations are unknown. The serializer tests should cover these cases:\n\n| Case | Example input | Expected |\n|---|---|---|\n| Combined stdlib IntFlag | `re.UNICODE \\| re.IGNORECASE` | Valid expression. It evaluates equal to the input and imports `re`. |\n| Combined custom `IntFlag` | a user-defined `IntFlag` with \u22652 members ORed | Valid expression, equal on round-trip. |\n| Combined custom `Flag` (non-int) | a user-defined `Flag` with \u22652 members ORed | Valid expression, equal on round-trip. |\n| Single flag member | `re.IGNORECASE` | Output unchanged from current behavior. |\n| Plain `Enum` member | any non-flag enum | Output unchanged. |\n| Determinism | same combined value serialized twice | Identical strings. |\n\nEdge cases are listed under Open Questions:\n- the zero value\n- values with bits not covered by any member\n- aliases and composite named members\n\nThe primary verification is a **round-trip check**: `eval(serialized_string)` with the reported imports must equal the original value.\n\n## Boundaries\n\n**Always:**\n- Keep the existing single-member enum serialization output unchanged.\n- Produce deterministic output.\n- Add regression tests for the `re.UNICODE | re.IGNORECASE` case from the issue.\n\n**Ask first:**\n- Relying on private `enum` APIs such as `enum._decompose`, rather than a version-portable approach.\n- Changing the textual format of existing enum serialization.\n- Changing supported-Python-version guards.\n\n**Never:**\n- Emit a raw integer in place of the enum expression without approval. That would silently lose the enum type.\n- Emit output that cannot be evaluated, such as `[None]`.\n- Modify unrelated serializers.\n\n## Success Criteria\n\n1. Serializing `re.UNICODE | re.IGNORECASE` no longer yields `re.RegexFlag[None]`. It yields an expression that ORs named members of `re.RegexFlag`.\n2. Evaluating that expression with the reported imports gives a value equal to `re.UNICODE | re.IGNORECASE`.\n3. A migration generated for `models.IntegerField(default=re.UNICODE | re.IGNORECASE)` imports and loads without error.\n4. Custom `Flag` and `IntFlag` combinations round-trip the same way.\n5. Single-member and non-flag enum serialization output is identical to the current output.\n6. Serializing the same value repeatedly gives identical output.\n7. Existing serializer and migration tests still pass.\n\n## Open Questions\n\n1. **Decomposition mechanism.** Is using the private `enum._decompose` acceptable? Or should the implementation use a version-portable approach? One option is iterating the flag's members and testing bit inclusion. Another is relying on flag iteration where Python supports it. Which Python versions must be supported?\n2. **Output format.** Should the expression be `re.RegexFlag['IGNORECASE'] | re.RegexFlag['UNICODE']`, which matches the bracket-by-name style? Or should it use another form, such as attribute access?\n3. **Member ordering.** Should members appear in definition order, ascending value order, or alphabetical order?\n4. **Zero value.** What should a flag value of `0` serialize to? It has no members, and its `.name` may be `None` depending on the Python version. Options include `EnumClass(0)` or an error.\n5. **Uncovered bits.** What if the value contains bits not covered by any named member? Should it emit something like `EnumClass(value)`, combine the named members with the leftover integer, or raise an error?\n6. **Aliases and composite named members.** If a flag class defines a named member equal to a combination, should that name be used directly? It would already have a `.name`. And how should aliases be handled?\n7. **Backporting.** Should the fix target only the main branch, or be backported? The version or branch is unknown.\n8. **Commands and paths.** What are the test commands and file paths for the serializer and its tests? Both are unknown from the issue.",
+ "ttft_ms": 6031,
+ "type": "result",
+ "duration_ms": 33131,
+ "uuid": "41f22a04-d1b8-4f6b-9d33-edae2b1810c6",
+ "ttft_stream_ms": 1589,
+ "time_to_request_ms": 305,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 21,
+  "input_hooks": 4,
+  "tool_pool_refresh": 3,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 228,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 274,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 15,
+  "cpu_ms": 32,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1590,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

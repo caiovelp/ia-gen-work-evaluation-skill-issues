@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30068,
+ "stop_reason": "end_turn",
+ "session_id": "a579d135-9dfb-4373-9547-e1ef84e6c0c9",
+ "total_cost_usd": 0.06539030000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 742,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2922,
+  "output_tokens_details": {
+   "thinking_tokens": 146
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 742,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2922,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 742,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 742
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1325,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001435,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2922,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 742,
+   "webSearchRequests": 0,
+   "costUSD": 0.06524680000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 146,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: System Check for Fields Referenced by `UniqueConstraint`\n\n## Assumptions\n\n1. The project is **Django**, and the issue concerns the model system checks framework (`models.E012` is a Django system check ID).\n2. \"makemigrations doesn't check\" means the **system checks** that run before management commands such as `makemigrations` and `check` do not validate `UniqueConstraint.fields`. The fix belongs in model checks, not in the migration autodetector.\n3. The desired behavior is **parity with `unique_together`**: the same validations and the same error IDs (`models.E012`, plus related IDs that `unique_together` already emits).\n4. `unique_together` already emits these checks, as I recall from Django:\n   - `models.E012`: field does not exist.\n   - `models.E013`: ManyToMany field referenced.\n   - `models.E016`: field not local to the model, for example an inherited field from multi-table inheritance.\n\n   Reusing the existing field-validation helper is assumed to be the intended approach. **This is unverified because I have no repository access.**\n5. Only `UniqueConstraint.fields` is in scope. `CheckConstraint` has no `fields` attribute, and expression-based constraints are out of scope.\n6. Constraints are read from `Meta.constraints`.\n7. The error message should name the option as `'constraints'`, in the same style as the `'unique_together'` message, e.g. `\"'constraints' refers to the nonexistent field 'foo'.\"`.\n8. No new check ID is needed. E012, E013 and E016 are reused.\n9. The checks run once per model class. Abstract models follow the same rules `unique_together` already follows.\n\n\u2192 These are recorded here instead of being confirmed with a human. See Open Questions.\n\n## Objective\n\nWhen a model declares `Meta.constraints = [UniqueConstraint(fields=[...], name=...)]` and one of the named fields does not exist on the model, Django's system checks currently pass silently. The error only surfaces later, for example when the migration is applied or at DB level, or not at all.\n\nThe older `unique_together` option reports this case immediately as `models.E012`. This feature brings `UniqueConstraint.fields` to parity, so developers get an early, actionable error when running `makemigrations`, `check`, or any command that runs system checks.\n\n**Users:** Django developers who define models with `UniqueConstraint`.\n\n**Acceptance criteria (user-story form):**\n- As a developer, if I typo a field name in a `UniqueConstraint`, `manage.py makemigrations` and `manage.py check` report `models.E012` pointing at my model.\n- As a developer, if my `UniqueConstraint` references valid local concrete fields, no new errors appear.\n\n## Tech Stack\n\n- Python / Django: exact supported versions **unknown**.\n- Django system checks framework (`django.core.checks`): `Error` objects with `obj` and `id`.\n- Relevant classes: `django.db.models.UniqueConstraint` and model `Meta.constraints`.\n\n## Commands\n\n- **Build:** unknown (none needed for a Python library change).\n- **Test:** unknown. Django typically uses `tests/runtests.py <test_label>`, but the exact invocation and test labels are not visible from the issue.\n- **Lint:** unknown (likely flake8/isort per Django contributor docs; not verified).\n- **Reproduce:**\n  - `python manage.py makemigrations` against the attached demo project. Its contents are not available.\n  - Per the reporter, uncomment `\"with_unique_together\"` in the demo's `settings.py` to see E012 raised for `unique_together`.\n\n## Project Structure\n\nUnknown; no repository access. Expected locations, **to be confirmed**:\n- Model check logic: the model base class's `check()` / `_check_*` classmethods (believed to be in `django/db/models/base.py`).\n- Check tests: Django's invalid-models / model-checks test suite (believed to be `tests/invalid_models_tests/`).\n- Docs: the system checks reference listing `models.E012` (believed to be `docs/ref/checks.txt`), plus release notes.\n\n## Code Style\n\n- Follow existing Django conventions in the check code.\n- Errors are `checks.Error(msg, obj=cls, id='models.E0xx')`.\n- Messages use the existing quote style, e.g. `\"'%s' refers to the nonexistent field '%s'.\"`.\n- Reuse the existing helper that validates `unique_together` / `index_together` / `indexes` field lists rather than duplicating logic.\n- The exact helper name and signature are unknown; do not invent them.\n\n## Testing Strategy\n\n- **Level:** unit tests of model system checks. Define a model in the test, then assert `Model.check()` returns the exact expected list of `Error` objects, including message, `obj` and `id`.\n- **Location:** alongside existing `unique_together` / `Meta.constraints` check tests (exact file unknown).\n- **Cases required:**\n  1. `UniqueConstraint(fields=['missing_field'])` \u2192 exactly one `models.E012` whose message references `'constraints'` and `missing_field`.\n  2. `UniqueConstraint` referencing a ManyToMany field \u2192 `models.E013` (if parity with `unique_together` is confirmed).\n  3. `UniqueConstraint` referencing a field inherited from a multi-table parent \u2192 `models.E016` (if parity is confirmed).\n  4. `UniqueConstraint` referencing valid local fields \u2192 no errors.\n  5. `CheckConstraint` on the same model \u2192 unaffected; no field check performed.\n  6. Existing `unique_together` E012 tests continue to pass unchanged.\n- **Coverage:** every new branch is exercised; no regression in the existing check suite.\n\n## Boundaries\n\n- **Always:**\n  - Reuse existing field-validation logic and error IDs.\n  - Add tests for each error path and the happy path.\n  - Document the new behavior under the existing check IDs and in release notes.\n- **Ask first:**\n  - Introducing a new check ID instead of reusing E012/E013/E016.\n  - Changing message wording for existing `unique_together` errors.\n  - Validating `UniqueConstraint.condition` or expression-based constraints.\n  - Making changes in the migration autodetector.\n- **Never:**\n  - Change the semantics of `unique_together` checks.\n  - Raise exceptions instead of returning `checks.Error`.\n  - Silence or remove existing failing tests.\n  - Alter DB schema generation behavior.\n\n## Success Criteria\n\n- [ ] A model whose `UniqueConstraint.fields` contains a nonexistent field causes `Model.check()` (and therefore `makemigrations` / `check`) to return `models.E012` with `obj` set to the model class.\n- [ ] The E012 message identifies the option (`'constraints'`) and the offending field name.\n- [ ] ManyToMany and non-local field references produce the same error IDs as `unique_together` does (pending confirmation of the parity scope).\n- [ ] Valid `UniqueConstraint` definitions and all `CheckConstraint` definitions produce no new errors.\n- [ ] The reporter's demo project now reports E012 for the `UniqueConstraint` case without needing the `with_unique_together` toggle.\n- [ ] All existing model-check tests pass.\n- [ ] `models.E012` (and E013/E016 if extended) documentation mentions `constraints` alongside `unique_together`/`index_together`.\n\n## Open Questions\n\n1. Should the check cover only nonexistent fields (E012, as the issue literally asks), or full parity with `unique_together` (E013 ManyToMany, E016 non-local fields)?\n2. Is reusing E012 acceptable, or is a distinct check ID preferred for constraints?\n3. What exact message wording is wanted? Is `\"'constraints' refers to the nonexistent field '\u2026'\"` acceptable?\n4. Should field names in `UniqueConstraint.condition` (Q objects) also be validated? This is assumed out of scope.\n5. Which Django version(s) should receive this (main only vs. backport)?\n6. What are the exact test command, test module, and file locations? Repository access is needed to confirm.\n7. What does the attached demonstration contain? It is not available; it is needed only to confirm the reproduction.",
+ "ttft_ms": 2562,
+ "type": "result",
+ "duration_ms": 29170,
+ "uuid": "4c865763-d8a3-43fa-9c23-af8e443da9a1",
+ "ttft_stream_ms": 980,
+ "time_to_request_ms": 239,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 140,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 980,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

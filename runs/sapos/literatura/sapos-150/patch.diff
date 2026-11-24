@@ -1,0 +1,84 @@
+diff --git a/app/controllers/scholarship_durations_controller.rb b/app/controllers/scholarship_durations_controller.rb
+index 46ba19af..cb4e0d14 100644
+--- a/app/controllers/scholarship_durations_controller.rb
++++ b/app/controllers/scholarship_durations_controller.rb
+@@ -17,11 +17,12 @@ class ScholarshipDurationsController < ApplicationController
+     config.actions.swap :search, :field_search
+ 
+     # virtual columns for advanced search
+-    config.columns.add :adviser, :sponsors, :scholarship_types, :active, :level
++    config.columns.add :adviser, :sponsors, :scholarship_types, :active, :level,
++      :suspended
+ 
+     config.field_search.columns = [
+       :scholarship, :start_date, :end_date, :cancel_date, :enrollment,
+-      :adviser, :sponsors, :scholarship_types, :level, :active
++      :adviser, :sponsors, :scholarship_types, :level, :active, :suspended
+     ]
+     config.columns[:start_date].search_sql = "scholarship_durations.start_date"
+     config.columns[:end_date].search_sql = "scholarship_durations.end_date"
+@@ -33,6 +34,7 @@ class ScholarshipDurationsController < ApplicationController
+     config.columns[:scholarship_types].search_sql = ""
+     config.columns[:active].search_sql = ""
+     config.columns[:level].search_sql = ""
++    config.columns[:suspended].search_sql = ""
+     config.columns[:scholarship].search_ui = :text
+     config.columns[:enrollment].search_ui = :text
+     config.columns[:adviser].search_ui = :record_select
+@@ -141,6 +143,22 @@ class ScholarshipDurationsController < ApplicationController
+     end
+   end
+ 
++  def self.condition_for_suspended_column(column, value, like_pattern)
++    return if value.blank?
++
++    sql = "scholarship_durations.id IN (
++      SELECT scholarship_suspensions.scholarship_duration_id
++      FROM scholarship_suspensions
++      WHERE scholarship_suspensions.active = ?
++        AND DATE(scholarship_suspensions.start_date) <= DATE(?)
++        AND DATE(scholarship_suspensions.end_date) >= DATE(?)
++    )"
++    case value
++    when "suspended" then ["#{sql}", true, Time.now, Time.now]
++    when "not_suspended" then [sql.sub("IN (", "NOT IN ("), true, Time.now, Time.now]
++    end
++  end
++
+   def self.condition_for_level_column(column, value, like_pattern)
+     unless value.blank?
+       ["scholarship_durations.scholarship_id IN (
+diff --git a/app/helpers/scholarship_durations_helper.rb b/app/helpers/scholarship_durations_helper.rb
+index 35dcc194..271f51e7 100644
+--- a/app/helpers/scholarship_durations_helper.rb
++++ b/app/helpers/scholarship_durations_helper.rb
+@@ -97,6 +97,17 @@ module ScholarshipDurationsHelper
+     )
+   end
+ 
++  def suspended_search_column(record, options)
++    select_tag(
++      record[:suspended],
++      options_for_select(
++        [["Todas", "all"], ["Suspensas", "suspended"],
++         ["Não suspensas", "not_suspended"]]
++      ),
++      options
++    )
++  end
++
+   def level_search_column(record, options)
+     local_options = {
+         include_blank: true
+diff --git a/config/locales/scholarship_duration.pt-BR.yml b/config/locales/scholarship_duration.pt-BR.yml
+index 2ca500a8..20f672fb 100644
+--- a/config/locales/scholarship_duration.pt-BR.yml
++++ b/config/locales/scholarship_duration.pt-BR.yml
+@@ -13,6 +13,7 @@ pt-BR:
+         enrollment_id: "Matrícula"
+         last_scholarship_duration_end_date: "Bolsa"
+         level: "Nível"
++        suspended: "Suspensa?"
+         scholarship: "Número da Bolsa"
+         scholarship_end_date: "Data de Fim de Bolsa"
+         scholarship_start_date: "Data de Início de Bolsa"

@@ -1,0 +1,54 @@
+diff --git a/sympy/printing/pretty/pretty.py b/sympy/printing/pretty/pretty.py
+index 7a3de3352..ddc1934d4 100755
+--- a/sympy/printing/pretty/pretty.py
++++ b/sympy/printing/pretty/pretty.py
+@@ -496,6 +496,7 @@ def _print_Product(self, expr):
+         first = True
+         max_upper = 0
+         sign_height = 0
++        adjustment = 0
+ 
+         for lim in expr.limits:
+             width = (func_height + 2) * 5 // 3 - 2
+@@ -590,6 +591,7 @@ def adjust(s, wid=None, how='<^>'):
+         first = True
+         max_upper = 0
+         sign_height = 0
++        adjustment = 0
+ 
+         for lim in expr.limits:
+             if len(lim) == 3:
+@@ -605,13 +607,14 @@ def adjust(s, wid=None, how='<^>'):
+             max_upper = max(max_upper, prettyUpper.height())
+ 
+             # Create sum sign based on the height of the argument
+-            d, h, slines, adjustment = asum(
++            d, h, slines, adj = asum(
+                 H, prettyLower.width(), prettyUpper.width(), ascii_mode)
+             prettySign = stringPict('')
+             prettySign = prettyForm(*prettySign.stack(*slines))
+ 
+             if first:
+                 sign_height = prettySign.height()
++                adjustment = adj
+ 
+             prettySign = prettyForm(*prettySign.above(prettyUpper))
+             prettySign = prettyForm(*prettySign.below(prettyLower))
+@@ -619,7 +622,7 @@ def adjust(s, wid=None, how='<^>'):
+             if first:
+                 # change F baseline so it centers on the sign
+                 prettyF.baseline -= d - (prettyF.height()//2 -
+-                                         prettyF.baseline) - adjustment
++                                         prettyF.baseline) - adj
+                 first = False
+ 
+             # put padding to the right
+@@ -629,7 +632,7 @@ def adjust(s, wid=None, how='<^>'):
+             # put the present prettyF to the right
+             prettyF = prettyForm(*prettySign.right(prettyF))
+ 
+-        prettyF.baseline = max_upper + sign_height//2
++        prettyF.baseline = max_upper + sign_height//2 - adjustment
+         prettyF.binding = prettyForm.MUL
+         return prettyF
+ 

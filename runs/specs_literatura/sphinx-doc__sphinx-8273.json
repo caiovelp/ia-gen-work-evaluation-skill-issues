@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8042,
+ "stop_reason": "end_turn",
+ "session_id": "4f5cbbc7-2357-458b-a021-a66babd44e2a",
+ "total_cost_usd": 0.022318599999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1249,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 608,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1249,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 608,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1249,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1249
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1481,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001586,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 608,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1249,
+   "webSearchRequests": 0,
+   "costUSD": 0.02216,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nGenerate man page section directories (e.g., `man/man1/`, `man/man3/`) in Sphinx's man page output.\n\n## Description\nSphinx currently puts all generated man pages into a single directory: `<build-dir>/man`.\n\nThe Unix `man` program looks for man pages in section subdirectories such as `man/man1`, `man/man3`, and so on. Because of this, the flat output directory cannot be used with the `MANPATH` environment variable.\n\nThe request is for Sphinx to create the section directories automatically and to place each generated man page in the directory for its section.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\n- The current flat layout does not work with the `MANPATH` search mechanism. The `man` program only finds man pages that are in section directories.\n- The problem can be worked around in a project's own build system, by installing the built man pages in the correct location. However, it would be better if the build directory already had the proper layout, so that the output can be used directly.\n\n## Use case or scenario\nA project generates man pages with Sphinx and wants to use the build output directly. The user adds `<build-dir>/man` to the `MANPATH` environment variable so that `man` can find the pages. This fails today because the pages are not in section subdirectories such as `man1` or `man3`.\n\n## Possible solution\n- **Suggested solution:** Sphinx automatically creates section directories (e.g., `man/man1/`, `man/man3/`) and places each generated man page in the directory for its section.\n- **Alternative considered:** Handle the problem in each project's build system by installing the built man pages in the correct location. The reporter finds this less desirable than having the correct layout in the build directory.\n- **Compatibility concern:** Changing this behavior may break setups that expect all man pages to be directly inside the `man/` directory.\n- The reporter is willing to try implementing a fix.",
+ "ttft_ms": 6064,
+ "type": "result",
+ "duration_ms": 6094,
+ "uuid": "2eb35018-a86c-4a8b-9ab2-00c4519bc6b0",
+ "ttft_stream_ms": 893,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 8,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 269,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 894,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

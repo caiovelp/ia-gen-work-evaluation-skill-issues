@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28791,
+ "stop_reason": "end_turn",
+ "session_id": "c051f82a-1d6b-4372-bc4a-a80d43a82980",
+ "total_cost_usd": 0.0707785,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1434,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2911,
+  "output_tokens_details": {
+   "thinking_tokens": 229
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1434,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2911,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1434,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1434
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2022,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002157,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2911,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1434,
+   "webSearchRequests": 0,
+   "costUSD": 0.0705628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 229,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: OneHotEncoder `handle_unknown='ignore'` with fixed-width string arrays\n\n## Objective\n\nFix a bug in `sklearn.preprocessing.OneHotEncoder`. With `handle_unknown='ignore'`, `transform` can raise a spurious `ValueError` when the input is a NumPy fixed-width string array (for example `dtype '<U5'`).\n\n**Root cause, as described in the issue:**\n1. During `transform`, unknown entries are overwritten in place with a placeholder, `categories_[i][0]`. That is the first fitted category in sorted order.\n2. The input array has a fixed-width string dtype. If the placeholder is longer than that width, NumPy silently truncates it.\n3. The truncated value is not a known category, so the later label lookup raises `ValueError: y contains previously unseen labels: [...]`.\n\n**Users:** anyone who one-hot encodes NumPy string arrays and relies on `handle_unknown='ignore'` to drop categories that were not seen during fit.\n\n**User story:** As a user, I fit `OneHotEncoder(handle_unknown='ignore')` on string data. When I transform data that contains unseen strings, I expect all-zero indicator columns for those entries, no matter how long the strings in the fit and transform data are.\n\n**Reproduction (from the issue):**\n```python\nimport numpy as np\nfrom sklearn.preprocessing import OneHotEncoder\n\ntrain = np.array(['22', '333', '4444', '11111111']).reshape((-1, 1))\ntest  = np.array(['55555', '22']).reshape((-1, 1))\n\nohe = OneHotEncoder(dtype=bool, handle_unknown='ignore')\nohe.fit(train)\nenc_test = ohe.transform(test)   # currently raises ValueError\n```\n\n**Expected result:** a 2\u00d74 sparse matrix that is `False` everywhere except at (1, 1). Fitted categories sort as `['11111111', '22', '333', '4444']`, so `'22'` is column 1.\n\n## Assumptions\n\n1. The bug is in the shared transform path used by `OneHotEncoder` with `handle_unknown='ignore'`. The issue does not say which internal function, so the exact location is unknown.\n2. The issue was reported against `sklearn 0.21.dev0` and Python 2.7. The fix must work on the Python and NumPy versions the codebase supports at the time it lands. The issue does not state those versions.\n3. Lists of lists are not affected, because they become object arrays. The fix only needs to change behaviour for fixed-width string arrays: NumPy `U` dtype, and probably `S` (bytes) as well.\n4. The caller's input array must not be modified as a side effect of `transform`. This is implied by \"memory of the arrays is not handled safely\".\n5. The fitted `categories_` and the output for known categories must not change.\n6. The reporter's suggested approach is to check element sizes and cast to `object` when needed. That is one acceptable direction, not a required design. A copy that is wide enough, or not writing placeholders into the input at all, would also be acceptable.\n7. `OrdinalEncoder` may share the same code path. It is in scope only to the extent that it shares the fixed code. This needs confirmation (see Open Questions).\n\n## Tech Stack\n\n- Python, NumPy, SciPy (sparse output), scikit-learn. Exact supported versions are **unknown** from the issue.\n- Reporter's environment: Python 2.7.12, NumPy 1.15.2, SciPy 0.18.1, sklearn 0.21.dev0.\n\n## Commands\n\n**Unknown.** The issue gives no build, test, or lint commands. They must be taken from the repository's contributor docs. Placeholders:\n```\nBuild: <unknown>\nTest:  <unknown \u2014 e.g. the project's test runner targeted at the preprocessing encoder tests>\nLint:  <unknown>\n```\n\n## Project Structure\n\n**Unknown.** The issue only names the public module `sklearn.preprocessing`. The source file for `OneHotEncoder` and the location of its tests are not given and must be confirmed in the repository.\n\n## Code Style\n\n**Unknown** from the issue. Follow the existing conventions of the `sklearn.preprocessing` encoder code and its tests. No snippet is available to quote.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework. Name and location are unknown.\n- **Level:** unit tests on `OneHotEncoder.transform`.\n- **Required regression cases:**\n  1. The exact reproduction above. It must not raise, and it must return the expected 2\u00d74 matrix with the single `True` at (1, 1).\n  2. Fixed-width unicode input (`U` dtype) where the first sorted category is longer than the transform array's itemsize.\n  3. The same scenario with bytes (`S` dtype), if bytes input is supported.\n  4. The input array passed to `transform` is unchanged afterwards (values and dtype).\n  5. Object-dtype and list-of-lists inputs give the same result as before (no regression).\n  6. `handle_unknown='error'` still raises for unknown categories.\n- **Coverage expectation:** every new branch, such as a dtype or itemsize check, is exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after it.\n  - Keep `transform` side-effect free on the user's input.\n  - Keep output shape, dtype, and sparsity unchanged for valid inputs.\n- **Ask first:**\n  - Changing public API or parameters.\n  - Changing behaviour of `OrdinalEncoder` or other encoders beyond the shared fix.\n  - Adding dependencies.\n  - Introducing unconditional object casting that could noticeably affect performance on large numeric inputs.\n- **Never:**\n  - Change the order or contents of fitted `categories_`.\n  - Silence the `ValueError` for `handle_unknown='error'`.\n  - Remove or weaken existing encoder tests.\n\n## Success Criteria\n\n- [ ] The reproduction script runs without error. `ohe.transform(test).toarray()` equals `[[False, False, False, False], [False, True, False, False]]`.\n- [ ] For any fixed-width string input, unknown entries with `handle_unknown='ignore'` produce all-zero rows in the corresponding feature block. This holds whatever the relative lengths of the fitted categories and the input strings.\n- [ ] The array passed to `transform` is unmodified after the call.\n- [ ] Results for object-dtype, list, and numeric inputs are unchanged.\n- [ ] `handle_unknown='error'` behaviour is unchanged.\n- [ ] All existing preprocessing tests pass.\n\n## Open Questions\n\n1. **Error message mismatch.** The reported error is `['111111']` (six characters). But the test array's dtype is `<U5`, so truncation should give `'11111'`. Was the message transcribed inaccurately, or is a different width involved? This affects how the regression test asserts the current failure.\n2. **`OrdinalEncoder`.** Does it share the affected code path, and if so, should it be covered by tests in this change?\n3. **Bytes input.** Should `S`-dtype bytes arrays be explicitly supported and tested?\n4. **Preferred fix strategy.** The options are:\n   - Cast to `object` only when the placeholder does not fit (the reporter's approach).\n   - Always copy into a sufficiently wide dtype.\n   - Avoid writing placeholders into the array altogether.\n\n   Are there performance constraints that favour one of these?\n5. **Reporter's patch.** The reporter says a fix already exists. Is there a linked PR to review against this spec?\n6. **Versions.** Which Python and NumPy versions must the fix support? Python 2.7 compatibility in particular matters for the target release.\n7. **Commands and paths.** What are the project's actual test, lint, and build commands, and where do the encoder source and tests live?",
+ "ttft_ms": 3869,
+ "type": "result",
+ "duration_ms": 28221,
+ "uuid": "c8ed24ec-afdf-4d3f-b021-a989dee84b12",
+ "ttft_stream_ms": 1565,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 11,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 21,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 204,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1566,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

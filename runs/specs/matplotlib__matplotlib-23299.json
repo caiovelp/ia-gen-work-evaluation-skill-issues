@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25435,
+ "stop_reason": "end_turn",
+ "session_id": "81ec960b-8283-4860-92a2-76d2d85537e2",
+ "total_cost_usd": 0.0644469,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1351,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2628,
+  "output_tokens_details": {
+   "thinking_tokens": 118
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1351,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2628,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1351,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1351
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1941,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002081,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2628,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1351,
+   "webSearchRequests": 0,
+   "costUSD": 0.0642388,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 118,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `get_backend()` must not remove figures created under `rc_context`\n\n## Objective\n\nCalling `matplotlib.get_backend()` should only read state. Today it can change global figure state. If the first figure in `Gcf.figs` was created inside `matplotlib.rc_context()`, a later call to `get_backend()` empties `plt._pylab_helpers.Gcf.figs`. After that, the figure is no longer tracked, so operations such as `plt.close(fig2)` silently fail because `Gcf.destroy_fig()` cannot find it.\n\n**Users affected:** anyone who calls `get_backend()` after creating figures inside `rc_context`. This includes user scripts and any library or tool that queries the backend. The report uses Matplotlib 3.5.2 with the QtAgg backend on Xubuntu and Python 3.10.4.\n\n**Observed conditions from the issue:**\n- The bug **reproduces** when the first figure is created inside `with rc_context():` and nothing else has resolved the backend first.\n- The bug **does not reproduce** if a figure is created outside `rc_context` beforehand (`fig1 = plt.figure()`).\n- The bug **does not reproduce** if `plt.ion()` is called beforehand.\n- The identity of the `Gcf` object stays the same. Only its contents (`Gcf.figs`) are cleared.\n\n**Success looks like:** the reproduction script from the issue runs without an `AssertionError`. The figure stays registered in `Gcf.figs` and can be closed with `plt.close(fig2)`.\n\n### Hypothesis (to confirm, not established by the issue)\nBoth workarounds (`plt.figure()` or `plt.ion()` outside the context) force the backend to be resolved before `rc_context` is entered. This suggests the following sequence:\n1. Inside the context, backend resolution happens and the result is stored in the context's temporary rcParams.\n2. When the context exits, the \"not yet resolved / auto\" backend value is restored.\n3. `get_backend()` sees the unresolved value and resolves the backend again, which closes all existing figures.\n\nThis must be confirmed by reading the code before any fix is designed.\n\n## Assumptions\n1. The fix belongs in Matplotlib itself, not in user code.\n2. `get_backend()` is intended to have no side effects on existing figures or on `Gcf`.\n3. The bug is not specific to QtAgg. It is expected to reproduce with any backend that is resolved lazily (for example, the automatic backend selection default), including non-interactive backends such as Agg in CI.\n4. `rc_context` should keep restoring all other rcParams exactly as it does now. Only the backend interaction is in scope.\n5. An explicitly set backend (for example via `matplotlib.use()` or an explicit `rcParams['backend']` inside the context) should still behave as currently documented. Changing that behavior is not part of this fix.\n6. The bug still exists on the current main branch, not only in 3.5.2. This is unverified.\n\n## Tech Stack\n- Python, Matplotlib (reported on 3.5.2; target branch unknown)\n- Relevant public/internal APIs named in the issue: `matplotlib.get_backend`, `matplotlib.rc_context`, `matplotlib.pyplot.figure`, `matplotlib.pyplot.ion`, `matplotlib.pyplot.close`, `matplotlib._pylab_helpers.Gcf` (`Gcf.figs`, `Gcf.destroy_fig`)\n- Test framework: unknown (presumably pytest; not stated in the issue)\n\n## Commands\n- Build: unknown\n- Test: unknown\n- Lint: unknown\n- Reproduce: run the script from the issue with a Python interpreter that has Matplotlib installed. The exact invocation and backend environment are unknown.\n\n## Project Structure\nUnknown. No repository paths are visible in the issue. The relevant code is expected to be in:\n- the `matplotlib` package top-level module, where `get_backend` and `rc_context` live\n- `matplotlib.pyplot`, for backend switching and figure creation\n- `matplotlib._pylab_helpers`, for `Gcf`\n\nExact file paths are unknown.\n\n## Code Style\nFollow existing Matplotlib conventions. No style snippet is available from the issue.\n\n## Testing Strategy\n- Add a regression test that reproduces the issue scenario:\n  1. Start with a fresh, unresolved backend state.\n  2. Create a figure inside `rc_context()`.\n  3. Call `get_backend()`.\n  4. Assert that `Gcf.figs` is unchanged, both in its keys and in the manager objects.\n- Add a test that `plt.close(fig)` successfully removes the figure from `Gcf` after `get_backend()` was called.\n- Keep the two workaround paths (a figure created first, or `plt.ion()` called first) passing as non-regression checks.\n- The test must reset backend and rcParams state so it does not leak into other tests. How the test suite isolates this is unknown.\n- Test levels: unit or integration within the existing test suite. Test file location is unknown.\n\n## Boundaries\n- **Always:**\n  - Keep `get_backend()`'s return value semantically correct.\n  - Keep `rc_context` restoring all other rcParams.\n  - Add a regression test.\n- **Ask first:**\n  - Changing the documented semantics of `rc_context` with respect to the `backend` rcParam.\n  - Changing when or how automatic backend resolution happens.\n  - Altering `Gcf` behavior or public APIs.\n- **Never:**\n  - Make `get_backend()` close, recreate, or drop existing figures.\n  - \"Fix\" the issue by changing the test to call `plt.ion()` or create a figure first.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n1. The issue's reproduction script completes without `AssertionError`. `before == after` holds for both the `Gcf` id and the `Gcf.figs` contents.\n2. After `get_backend()`, `plt.close(fig2)` removes `fig2` from `Gcf.figs`.\n3. `get_backend()` returns the same backend name that was actually resolved for the figure created inside the context.\n4. Repeated calls to `get_backend()` are idempotent and have no side effects on `Gcf`.\n5. The existing behavior of `rc_context` for non-backend rcParams is unchanged, as verified by the existing test suite passing.\n6. Explicitly setting a backend inside or outside `rc_context` behaves as before.\n\n## Open Questions\n1. Should the backend that is resolved lazily inside an `rc_context` persist after the context exits? Or should `rc_context` restore the unresolved/auto state while `get_backend()` avoids triggering a figure-closing switch? This decides where the fix belongs.\n2. If a user *explicitly* sets `rcParams['backend']` inside `rc_context`, what should happen to that backend and its figures when the context exits?\n3. Is the bug still present on the current main branch, and which branch or version should the fix target? Should it be backported to 3.5.x?\n4. Does the bug reproduce with non-interactive backends (for example Agg) so it can be tested in CI without a display?\n5. Are there other read-only accessors that have the same side effect and should be covered too? For example, reading `rcParams['backend']` directly, or `pyplot` functions that query the backend.\n6. Which test file and which fixtures for resetting backend state should the regression test use?",
+ "ttft_ms": 2175,
+ "type": "result",
+ "duration_ms": 24805,
+ "uuid": "d44532fe-4caf-4092-b4ce-55690ecd698c",
+ "ttft_stream_ms": 920,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 4,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 222,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 125,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 921,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

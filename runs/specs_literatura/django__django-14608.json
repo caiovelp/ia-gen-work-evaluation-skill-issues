@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6825,
+ "stop_reason": "end_turn",
+ "session_id": "9edb31d7-ae4f-49d0-932b-08385326ca77",
+ "total_cost_usd": 0.020176999999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1135,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 547,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1135,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 547,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1135,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1135
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1370,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000149,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 547,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1135,
+   "webSearchRequests": 0,
+   "costUSD": 0.020027999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAdd a `nonform` CSS class for non-form errors in FormSets.\n\n## Description\nForms add the `nonfield` CSS class to `ErrorList` instances that hold non-field errors. This is documented in the section on rendering form error messages.\n\nFormSets have no equivalent class for their non-form errors. The request is to add a `nonform` CSS class to the `ErrorList` for non-form errors in FormSets, matching how Forms use `nonfield`. The new class should also be documented for developers.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nA custom `ErrorList` currently cannot tell FormSet non-form errors apart from other errors when rendering error messages. With a `nonform` class, a custom `ErrorList` could separate three kinds of errors:\n- form field errors\n- non-field errors (Forms, via `nonfield`)\n- non-form errors (FormSets, via `nonform`)\n\nThis would make FormSets behave consistently with the existing `nonfield` behavior in Forms.\n\n## Use case or scenario\nA developer uses a custom `ErrorList` to render error messages. They want to show FormSet non-form errors differently from form field errors and from Form non-field errors. A `nonform` CSS class on FormSet non-form errors would let them do this, the same way they can already target non-field errors through the `nonfield` class.\n\n## Possible solution\n- Add the `nonform` CSS class to the `ErrorList` used for non-form errors in FormSets, analogous to how Forms add `nonfield` for non-field errors.\n- Document the `nonform` CSS class for developers, alongside the existing documentation on rendering form error messages.",
+ "ttft_ms": 6280,
+ "type": "result",
+ "duration_ms": 6310,
+ "uuid": "d550e353-4793-48c5-961a-b0542bab5da4",
+ "ttft_stream_ms": 1693,
+ "time_to_request_ms": 390,
+ "time_to_request_phases_ms": {
+  "other": 34,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 15,
+  "input_hooks": 5,
+  "tool_pool_refresh": 3,
+  "init_message": 33,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 270,
+  "autocompact": 5,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 80,
+ "time_to_request_cpu_ms": 411,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 20,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1694,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

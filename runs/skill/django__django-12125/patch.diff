@@ -1,0 +1,31 @@
+diff --git a/django/db/migrations/serializer.py b/django/db/migrations/serializer.py
+index 7d226955d5..67aa310249 100755
+--- a/django/db/migrations/serializer.py
++++ b/django/db/migrations/serializer.py
+@@ -6,6 +6,7 @@ import enum
+ import functools
+ import math
+ import re
++import sys
+ import types
+ import uuid
+ 
+@@ -95,6 +96,9 @@ class DeconstructableSerializer(BaseSerializer):
+             imports = {"from django.db import models"}
+             name = "models.%s" % name
+         else:
++            # Strip enclosing class names so only the module is imported.
++            while module and module not in sys.modules and '.' in module:
++                module = module.rsplit('.', 1)[0]
+             imports = {"import %s" % module}
+             name = path
+         return name, imports
+@@ -269,7 +273,7 @@ class TypeSerializer(BaseSerializer):
+             if module == builtins.__name__:
+                 return self.value.__name__, set()
+             else:
+-                return "%s.%s" % (module, self.value.__name__), {"import %s" % module}
++                return "%s.%s" % (module, self.value.__qualname__), {"import %s" % module}
+ 
+ 
+ class UUIDSerializer(BaseSerializer):

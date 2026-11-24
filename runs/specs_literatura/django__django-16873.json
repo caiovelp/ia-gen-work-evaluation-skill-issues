@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12314,
+ "stop_reason": "end_turn",
+ "session_id": "b14422f4-b3ad-45c8-a8ae-4e50dd7dbe8c",
+ "total_cost_usd": 0.0452102,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1900,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1489,
+  "output_tokens_details": {
+   "thinking_tokens": 46
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1900,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1489,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1900,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1900
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2107,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002222,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1489,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1900,
+   "webSearchRequests": 0,
+   "costUSD": 0.044988,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 46,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe `join` template filter escapes the joining string (the filter argument) even inside an `{% autoescape off %}` block. The list items are correctly left unescaped, but the separator is always escaped. The reporter found nothing in the documentation for `autoescape` or `join` that suggests this is intended.\n\n## Steps to reproduce\n\n1. Create a template that applies `join` to a list inside an `{% autoescape off %}` block, with the separator passed as a variable:\n   ```django\n   {% autoescape off %}{{ some_list|join:some_var }}{% endautoescape %}\n   ```\n2. Render it with this context:\n   - `some_list = [\"<p>Hello World!</p>\", \"beta & me\", \"<script>Hi!</script>\"]`\n   - `some_var = \"<br/>\"`\n3. Inspect the rendered output.\n\n## Observed behavior\n\nThe list items are output unescaped, but the joining string `<br/>` is escaped to `&lt;br/&gt;`:\n\n```\n<p>Hello World!</p>&lt;br/&gt;beta & me&lt;br/&gt;<script>Hi!</script>\n```\n\n## Expected behavior\n\nWith `autoescape` off, neither the list items nor the joining string should be escaped. The output should equal `some_var.join(some_list)`:\n\n```\n<p>Hello World!</p><br/>beta & me<br/><script>Hi!</script>\n```\n\nWith autoescape on (the default), the existing behavior of escaping both the items and the separator should remain. The test `test_join01` below checks this case and passes.\n\n## Stack trace / error output\n\n```\n.F\n======================================================================\nFAIL: test_join02 (template_tests.filter_tests.test_regression.RegressionTests.test_join02)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n File \"/home/nessita/fellowship/django/django/test/utils.py\", line 443, in inner\n\treturn func(*args, **kwargs)\n\t\t ^^^^^^^^^^^^^^^^^^^^^\n File \"/home/nessita/fellowship/django/tests/template_tests/utils.py\", line 58, in inner\n\tfunc(self)\n File \"/home/nessita/fellowship/django/tests/template_tests/filter_tests/test_regression.py\", line 21, in test_join02\n\tself.assertEqual(output, some_var.join(some_list))\nAssertionError: '<p>Hello World!</p>&lt;br/&gt;beta & me&lt;br/&gt;<script>Hi!</script>' != '<p>Hello World!</p><br/>beta & me<br/><script>Hi!</script>'\n----------------------------------------------------------------------\nRan 2 tests in 0.007s\n```\n\n## Test case\n\nRun this from inside the `template_tests/filter_tests` folder (for example, as `test_regression.py`). `test_join01` (autoescape on) passes. `test_join02` (autoescape off) fails.\n\n```python\nfrom django.template.defaultfilters import escape\nfrom django.test import SimpleTestCase\nfrom ..utils import setup\n\n\nclass RegressionTests(SimpleTestCase):\n    @setup({\"join01\": '{{ some_list|join:some_var }}'})\n    def test_join01(self):\n        some_list = [\"<p>Hello World!</p>\", \"beta & me\", \"<script>Hi!</script>\"]\n        some_var = \"<br/>\"\n        output = self.engine.render_to_string(\"join01\", {\"some_list\": some_list, \"some_var\": some_var})\n        self.assertEqual(output, escape(some_var.join(some_list)))\n\n    @setup({\"join02\": '{% autoescape off %}{{ some_list|join:some_var }}{% endautoescape %}'})\n    def test_join02(self):\n        some_list = [\"<p>Hello World!</p>\", \"beta & me\", \"<script>Hi!</script>\"]\n        some_var = \"<br/>\"\n        output = self.engine.render_to_string(\"join02\", {\"some_list\": some_list, \"some_var\": some_var})\n        self.assertEqual(output, some_var.join(some_list))\n```\n\n## Code example\n\n```django\n{% autoescape off %}\n{{ some_list|join:some_var }}\n{% endautoescape %}\n```\n\n## Version and environment\n\n- Django: current `main` branch (exact commit not given)\n- Python version and OS: Not provided in the original report.",
+ "ttft_ms": 1825,
+ "type": "result",
+ "duration_ms": 11726,
+ "uuid": "1b53841c-0b69-4410-bcb9-59dc94cc12c6",
+ "ttft_stream_ms": 1449,
+ "time_to_request_ms": 284,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 31,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 279,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 15,
+  "cpu_ms": 43,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1450,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

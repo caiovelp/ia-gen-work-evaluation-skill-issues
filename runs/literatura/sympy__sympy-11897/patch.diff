@@ -1,0 +1,37 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 1edc71235..00f133790 100755
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -6,7 +6,7 @@
+ 
+ import itertools
+ 
+-from sympy.core import S, Add, Symbol, Mod
++from sympy.core import S, Add, Symbol, Mod, Mul, Pow, Rational
+ from sympy.core.function import _coeff_isneg
+ from sympy.core.sympify import SympifyError
+ from sympy.core.alphabets import greeks
+@@ -356,8 +356,21 @@ def _print_Mul(self, expr):
+         else:
+             tex = ""
+ 
+-        from sympy.simplify import fraction
+-        numer, denom = fraction(expr, exact=True)
++        n, d = [], []
++        for item in Mul.make_args(expr):
++            if item.is_commutative and item.is_Pow and item.base != S.Exp1 \
++                    and (item.exp.is_Rational and item.exp.is_negative or
++                         (item.exp.is_number and _coeff_isneg(item.exp))):
++                d.append(item.base if item.exp == -1 else
++                         Pow(item.base, -item.exp, evaluate=False))
++            elif item.is_Rational and item.q != 1:
++                if item.p != 1:
++                    n.append(Rational(item.p))
++                d.append(Rational(item.q))
++            else:
++                n.append(item)
++        numer = Mul._from_args(n) if len(n) > 1 else (n[0] if n else S.One)
++        denom = Mul._from_args(d) if len(d) > 1 else (d[0] if d else S.One)
+         separator = self._settings['mul_symbol_latex']
+         numbersep = self._settings['mul_symbol_latex_numbers']
+ 

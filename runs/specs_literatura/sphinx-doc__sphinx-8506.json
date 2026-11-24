@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15699,
+ "stop_reason": "end_turn",
+ "session_id": "e7288322-600b-471d-9e7b-401f7aa5384b",
+ "total_cost_usd": 0.03930470000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1350,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1409,
+  "output_tokens_details": {
+   "thinking_tokens": 357
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1350,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1409,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1350,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1350
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1562,
+   "outputTokens": 321,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003167,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 301,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1409,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1350,
+   "webSearchRequests": 0,
+   "costUSD": 0.03898800000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 357,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nSphinx 3.2 rejects an `option::` directive whose argument is `[enable=]PATTERN`, reporting it as a \"Malformed option description\". Earlier Sphinx versions accepted the same markup without complaint. This breaks documentation builds that previously worked, such as the QEMU documentation. Projects that must build with whatever `sphinx-build` the Linux distribution ships are particularly affected.\n\n## Steps to reproduce\n\n1. In a Sphinx project, add a reStructuredText file containing the following `option::` directive. In QEMU it is in `docs/qemu-option-trace.rst.inc`:\n   ```rst\n   .. option:: [enable=]PATTERN\n\n      Immediately enable events matching *PATTERN*\n   ```\n2. Build the documentation with Sphinx 3.2, with warnings treated as errors, as in the reporter's build.\n3. Observe the warning or error for the `option::` directive.\n4. For comparison, build the same documentation with an earlier Sphinx version. It builds without complaint.\n\n## Observed behavior\n\nSphinx 3.2 emits a \"Malformed option description\" warning for `[enable=]PATTERN`. Because warnings are treated as errors, the documentation build fails. Earlier Sphinx versions built the same source without any warning.\n\n## Expected behavior\n\nThe `option::` directive with the description `[enable=]PATTERN` should be accepted as it was in earlier Sphinx versions, without a warning or error. The documentation should keep building after upgrading to Sphinx 3.2.\n\nThe reporter's view is that the directive should accept any string as an option description. The forms listed in the error message (`opt`, `-opt args`, `--opt args`, `/opt args`, `+opt args`) don't cover the option syntax of all programs and operating systems.\n\n## Stack trace / error output\n\n```\nWarning, treated as error:\n../../docs/qemu-option-trace.rst.inc:4:Malformed option description '[enable=]PATTERN', should look like \"opt\", \"-opt args\", \"--opt args\", \"/opt args\" or \"+opt args\"\n```\n\nNo stack trace was provided.\n\n## Test case\n\nMinimal reStructuredText input derived from the report:\n\n```rst\n.. option:: [enable=]PATTERN\n\n   Immediately enable events matching *PATTERN*\n```\n\n- **Pass:** building with Sphinx 3.2 and warnings treated as errors succeeds, with no \"Malformed option description\" warning.\n- **Fail (current behavior):** the build fails with the warning shown above.\n\n## Code example\n\nFrom the QEMU documentation, where it documents the command-line options of one of QEMU's programs:\n\n```rst\n.. option:: [enable=]PATTERN\n\n   Immediately enable events matching *PATTERN*\n```\n\n## Version and environment\n\n- **Failing version:** Sphinx 3.2\n- **Working versions:** earlier Sphinx versions. The exact versions were not specified.\n- **Context:** the QEMU documentation build, with warnings treated as errors. The reporter mentions building with the Linux distribution's `sphinx-build`.\n- **Python version, OS and distribution:** Not provided in the original report.",
+ "ttft_ms": 5348,
+ "type": "result",
+ "duration_ms": 13716,
+ "uuid": "bda0333c-ad1d-4d8e-9dfe-f8e69dc27ad3",
+ "ttft_stream_ms": 1498,
+ "time_to_request_ms": 253,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 201,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 241,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1498,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

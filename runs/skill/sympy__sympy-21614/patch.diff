@@ -1,0 +1,15 @@
+diff --git a/sympy/core/function.py b/sympy/core/function.py
+index 69df976b8b..025ae12e38 100755
+--- a/sympy/core/function.py
++++ b/sympy/core/function.py
+@@ -1666,6 +1666,10 @@ def eval(x):
+                                              z0._to_mpmath(mpmath.mp.prec)),
+                                  mpmath.mp.prec)
+ 
++    @property
++    def kind(self):
++        return self.args[0].kind
++
+     @property
+     def expr(self):
+         return self._args[0]

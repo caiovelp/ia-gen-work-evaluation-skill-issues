@@ -1,0 +1,1 @@
+{"resolved": false, "f2p_falhou": ["./spec/requests/admissions/apply_spec.rb[1:1:1]", "./spec/requests/admissions/apply_spec.rb[1:2:1]", "./spec/requests/notifications_spec.rb[1:1:1]", "./spec/requests/session_expiration_spec.rb[1:1]", "./spec/requests/session_expiration_spec.rb[1:4]", "./spec/requests/student_enrollment_spec.rb[1:1:1]"], "p2p_falhou": []}

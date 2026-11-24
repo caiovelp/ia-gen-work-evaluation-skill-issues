@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10324,
+ "stop_reason": "end_turn",
+ "session_id": "6bf93fa8-9d51-4dc2-b0ef-d4a50428a78b",
+ "total_cost_usd": 0.033508600000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1282,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1154,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1282,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1154,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1282,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1282
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1486,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016460000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1154,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1282,
+   "webSearchRequests": 0,
+   "costUSD": 0.033344000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`lambdify` fails with a `SyntaxError` when it is given a `MatrixSymbol` whose name contains curly braces (e.g. `\"{v}\"`). This happens even with `dummify=True`. Curly braces in an ordinary scalar symbol name work, and a `MatrixSymbol` with a plain name works. Only the combination fails.\n\n## Steps to reproduce\n1. Import SymPy: `import sympy as sy`.\n2. Create a scalar symbol with curly braces in its name: `curlyx = sy.symbols(\"{x}\")`.\n3. Create a `MatrixSymbol` with a plain name: `v = sy.MatrixSymbol(\"v\", 2, 1)`.\n4. Create a `MatrixSymbol` with curly braces in its name: `curlyv = sy.MatrixSymbol(\"{v}\", 2, 1)`.\n5. Call `sy.lambdify(curlyx, curlyx)`. This works.\n6. Call `sy.lambdify(v, v)`. This works.\n7. Call `sy.lambdify(curlyv, curlyv)`. This raises a `SyntaxError`.\n8. Call `sy.lambdify(curlyv, curlyv, dummify=True)`. This also raises a `SyntaxError`.\n\n## Observed behavior\n- `sy.lambdify(curlyx, curlyx)` works (scalar symbol with curly braces).\n- `sy.lambdify(v, v)` works (`MatrixSymbol` with a plain name).\n- `sy.lambdify(curlyv, curlyv)` raises a `SyntaxError`.\n- `sy.lambdify(curlyv, curlyv, dummify=True)` also raises a `SyntaxError`.\n\n## Expected behavior\n`lambdify` should handle a `MatrixSymbol` with curly braces in its name, as it already does for scalar symbols with such names. At minimum, `dummify=True` should let these names be lambdified without a `SyntaxError`.\n\n## Stack trace / error output\nThe report only says that a `SyntaxError` is raised. The full traceback and error message are not provided in the original report.\n\n## Test case\n```python\nimport sympy as sy\n\ndef test_lambdify_curly_matrixsymbol():\n    curlyx = sy.symbols(\"{x}\")\n    v = sy.MatrixSymbol(\"v\", 2, 1)\n    curlyv = sy.MatrixSymbol(\"{v}\", 2, 1)\n\n    # These currently work\n    sy.lambdify(curlyx, curlyx)\n    sy.lambdify(v, v)\n\n    # These currently raise SyntaxError\n    sy.lambdify(curlyv, curlyv)\n    sy.lambdify(curlyv, curlyv, dummify=True)\n```\n\n## Code example\n```python\nimport sympy as sy\n\ncurlyx = sy.symbols(\"{x}\")\nv = sy.MatrixSymbol(\"v\", 2, 1)\ncurlyv = sy.MatrixSymbol(\"{v}\", 2, 1)\n\n# Work:\ncurlyScalarId = sy.lambdify(curlyx, curlyx)\nvectorId = sy.lambdify(v, v)\n\n# Raise SyntaxError:\ncurlyVectorId = sy.lambdify(curlyv, curlyv)\ncurlyVectorIdDummified = sy.lambdify(curlyv, curlyv, dummify=True)\n```\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 9730,
+ "type": "result",
+ "duration_ms": 9760,
+ "uuid": "d9597009-6263-4401-8cb0-5aa9123196ac",
+ "ttft_stream_ms": 1491,
+ "time_to_request_ms": 241,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 199,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 256,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1492,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

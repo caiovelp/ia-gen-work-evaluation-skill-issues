@@ -1,0 +1,35 @@
+diff --git a/sympy/printing/ccode.py b/sympy/printing/ccode.py
+index 30a07a7b5..9b89bf7a7 100755
+--- a/sympy/printing/ccode.py
++++ b/sympy/printing/ccode.py
+@@ -213,6 +213,30 @@ def _print_Piecewise(self, expr):
+             last_line = ": (\n%s\n)" % self._print(expr.args[-1].expr)
+             return ": ".join(ecpairs) + last_line + " ".join([")"*len(ecpairs)])
+ 
++    def _print_sinc(self, expr):
++        from sympy.functions.elementary.piecewise import Piecewise
++        from sympy.functions.elementary.trigonometric import sin
++        from sympy.core.relational import Ne
++        arg = expr.args[0]
++        return self._print(Piecewise((sin(arg)/arg, Ne(arg, 0)), (1, True)))
++
++    def _print_Relational(self, expr):
++        lhs_code = self._print(expr.lhs)
++        rhs_code = self._print(expr.rhs)
++        op = expr.rel_op
++        return "{0} {1} {2}".format(lhs_code, op, rhs_code)
++
++    def _print_Assignment(self, expr):
++        from sympy.functions.elementary.trigonometric import sinc
++        if isinstance(expr.rhs, sinc):
++            from sympy.functions.elementary.piecewise import Piecewise
++            from sympy.functions.elementary.trigonometric import sin
++            from sympy.core.relational import Ne
++            arg = expr.rhs.args[0]
++            expr = Assignment(expr.lhs, Piecewise(
++                (sin(arg)/arg, Ne(arg, 0)), (1, True)))
++        return super(CCodePrinter, self)._print_Assignment(expr)
++
+     def _print_ITE(self, expr):
+         from sympy.functions import Piecewise
+         _piecewise = Piecewise((expr.args[1], expr.args[0]), (expr.args[2], True))

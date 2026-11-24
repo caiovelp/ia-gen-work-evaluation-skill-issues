@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23402,
+ "stop_reason": "end_turn",
+ "session_id": "9d5ff647-fa00-4256-8800-0c9f1d5167cd",
+ "total_cost_usd": 0.058206100000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1250,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2357,
+  "output_tokens_details": {
+   "thinking_tokens": 272
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1250,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2357,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1250,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1250
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1833,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001953,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2357,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1250,
+   "webSearchRequests": 0,
+   "costUSD": 0.0580108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 272,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix `Matrix.col_insert()` Misplacing Columns After the Insertion Point\n\n## Objective\n\n`Matrix.col_insert(pos, other)` returns a wrong result in SymPy 1.1.1. The inserted columns land in the right place. The original columns that should follow them come from the wrong source indices, so their contents look shifted.\n\n**Reported reproduction (SymPy 1.1.1):**\n\n```python\nimport sympy as sm\nM = sm.eye(6)\nV = 2 * sm.ones(6, 2)\nM.col_insert(3, V)\n```\n\n**Actual output:**\n\n```\n\u23a11  0  0  2  2  1  0  0\u23a4\n\u23a20  1  0  2  2  0  1  0\u23a5\n\u23a20  0  1  2  2  0  0  1\u23a5\n\u23a20  0  0  2  2  0  0  0\u23a5\n\u23a20  0  0  2  2  0  0  0\u23a5\n\u23a30  0  0  2  2  0  0  0\u23a6\n```\n\n**Expected output:** the original columns 3\u20135 of `eye(6)` appear unchanged after the inserted block.\n\n```\n\u23a11  0  0  2  2  0  0  0\u23a4\n\u23a20  1  0  2  2  0  0  0\u23a5\n\u23a20  0  1  2  2  0  0  0\u23a5\n\u23a20  0  0  2  2  1  0  0\u23a5\n\u23a20  0  0  2  2  0  1  0\u23a5\n\u23a30  0  0  2  2  0  0  1\u23a6\n```\n\n**Required behavior:** for `R = M.col_insert(pos, V)`, where `M` is `m\u00d7n` and `V` is `m\u00d7k`:\n\n- `R` has shape `m\u00d7(n+k)`.\n- `R[:, :pos] == M[:, :pos]`\n- `R[:, pos:pos+k] == V`\n- `R[:, pos+k:] == M[:, pos:]`\n\n**Users:** anyone building block matrices with `col_insert`. Silent wrong results are a correctness issue.\n\n**Suspected origin:** the reporter suspects a regression from a recent matrix refactor (cc @siefkenj). The faulty logic is likely in the column-index mapping for columns after the insertion point. This is unconfirmed.\n\n## Assumptions\n\n1. This is a regression: `col_insert` gave correct results before the refactor mentioned in the issue.\n2. The documented semantics (insert `other` before column `pos`, keep the remaining columns in order) are unchanged. Only the implementation is wrong.\n3. The bug can show up whenever `pos > 0` and columns follow the insertion point. It may not be visible when `pos == 0` or `pos == cols`.\n4. Other matrix classes (mutable, immutable, sparse) may share the same code path or have their own. All of them must give correct results.\n5. `row_insert` may have a symmetric bug if it was refactored the same way. It should be checked but is not confirmed broken.\n6. Negative `pos` and `pos` beyond the column count keep their existing normalization or clamping behavior.\n\n## Tech Stack\n\n- Python, SymPy (bug reported in version 1.1.1).\n- Other versions and dependencies: unknown.\n\n## Commands\n\nAll unknown; the issue does not include them.\n\n- Test: unknown. The project's pytest/`bin/test` invocation is not visible.\n- Build/Lint: unknown.\n\n## Project Structure\n\nUnknown. The issue does not show where `col_insert` and its internal helper are implemented, or where matrix tests live.\n\n## Code Style\n\nUnknown. Follow the conventions of the surrounding SymPy matrix code. No snippet is available from the issue.\n\n## Testing Strategy\n\n- Add a regression test using the exact reproduction above (`eye(6).col_insert(3, 2*ones(6, 2))`) and assert the full expected matrix.\n- Cover these edge positions:\n  - `pos = 0`\n  - `pos = cols`\n  - `pos` in the middle\n  - negative `pos`\n  - inserting into an empty matrix\n- Use non-symmetric, non-identity matrices with distinct entries (e.g. `Matrix(3, 4, range(12))`). This catches row and column index mix-ups that identity or constant matrices can hide.\n- Run the test across each matrix class that exposes `col_insert`, including sparse and immutable variants if they exist.\n- Check `row_insert` with analogous tests.\n- Framework and test file location: unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix.\n  - Keep the public `col_insert` signature and semantics.\n  - Run the existing matrix test suite.\n- **Ask first:**\n  - Changing `pos` normalization or error behavior.\n  - Refactoring shared matrix base-class code beyond the faulty index mapping.\n  - Touching `row_insert` if it turns out to be correct.\n- **Never:**\n  - Change expected values in existing tests to match the buggy output.\n  - Remove or skip failing tests.\n  - Change the public API.\n\n## Success Criteria\n\n- [ ] `sm.eye(6).col_insert(3, 2*sm.ones(6, 2))` equals the expected 6\u00d78 matrix above.\n- [ ] For random `M` (m\u00d7n), `V` (m\u00d7k) and every `pos` in `[0, n]`, `col_insert` satisfies the four slice equalities in the Objective.\n- [ ] The behavior holds for every matrix class that implements `col_insert`.\n- [ ] `row_insert` is verified correct by analogous tests, or is fixed under the same criteria.\n- [ ] The existing matrix test suite passes.\n\n## Open Questions\n\n1. Which commit or refactor introduced the regression, and what was the last correct release? (@siefkenj to confirm.)\n2. Do sparse or immutable matrix classes use a separate `col_insert`/`_eval_col_insert` implementation that also needs checking?\n3. Is `row_insert` affected by the same refactor?\n4. What is the intended behavior for negative or out-of-range `pos`? Should it be pinned down in tests?\n5. Should the fix be backported to a 1.1.x patch release?\n6. What are the project's exact test commands and test file locations?",
+ "ttft_ms": 3984,
+ "type": "result",
+ "duration_ms": 22601,
+ "uuid": "9c21ff5b-7252-4eac-a187-e7a1ddaa5e01",
+ "ttft_stream_ms": 1642,
+ "time_to_request_ms": 276,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 14,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 219,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 22,
+ "time_to_request_cpu_ms": 221,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 23,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1642,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

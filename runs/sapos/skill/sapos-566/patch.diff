@@ -1,0 +1,91 @@
+diff --git a/app/controllers/concerns/shared_pdf_concern.rb b/app/controllers/concerns/shared_pdf_concern.rb
+index cfd6bb7b..6d50c5a8 100644
+--- a/app/controllers/concerns/shared_pdf_concern.rb
++++ b/app/controllers/concerns/shared_pdf_concern.rb
+@@ -41,7 +41,7 @@ module SharedPdfConcern
+       .order("course_classes.year", "course_classes.semester")
+ 
+     accomplished_phases = enrollment.accomplishments.order(:conclusion_date)
+-    program_level = ProgramLevel.on_date(enrollment.thesis_defense_date)&.last&.level || ""
++    program_level = ProgramLevel.on_date(enrollment.thesis_defense_date)&.last&.to_pdf_text || ""
+     render_to_string(
+       template: "enrollments/academic_transcript_pdf",
+       type: "application/pdf",
+diff --git a/app/controllers/program_levels_controller.rb b/app/controllers/program_levels_controller.rb
+index 73015d2b..e15caaeb 100644
+--- a/app/controllers/program_levels_controller.rb
++++ b/app/controllers/program_levels_controller.rb
+@@ -4,10 +4,10 @@ class ProgramLevelsController < ApplicationController
+   authorize_resource
+ 
+   active_scaffold :program_level do |config|
+-    config.create.columns = [:level, :start_date, :end_date]
+-    config.update.columns = [:level, :start_date, :end_date]
+-    config.show.columns = [:level, :start_date, :end_date]
+-    config.list.columns = [:level, :start_date, :end_date]
++    config.create.columns = [:level, :ordinance, :start_date, :end_date]
++    config.update.columns = [:level, :ordinance, :start_date, :end_date]
++    config.show.columns = [:level, :ordinance, :start_date, :end_date]
++    config.list.columns = [:level, :ordinance, :start_date, :end_date]
+ 
+     config.actions.swap :search, :field_search
+     config.columns.add :active
+diff --git a/app/models/program_level.rb b/app/models/program_level.rb
+index 0701593b..ee678469 100644
+--- a/app/models/program_level.rb
++++ b/app/models/program_level.rb
+@@ -10,4 +10,8 @@ class ProgramLevel < ApplicationRecord
+   scope :active, -> { where(end_date: nil) }
+   scope :on_date, -> (date) { where("program_levels.start_date <= ? AND (program_levels.end_date > ? OR program_levels.end_date is null)", date, date)}
+ 
++  def to_pdf_text
++    return level.to_s if ordinance.blank?
++    "#{level} (#{ordinance})"
++  end
+ end
+diff --git a/config/locales/program_level.pt-BR.yml b/config/locales/program_level.pt-BR.yml
+index de822339..e5428c5d 100644
+--- a/config/locales/program_level.pt-BR.yml
++++ b/config/locales/program_level.pt-BR.yml
+@@ -4,6 +4,7 @@ pt-BR:
+       program_level:
+         active: Ativo?
+         level: Nível
++        ordinance: Portaria
+         start_date: Data de início
+         end_date: Data de fim
+ 
+diff --git a/db/migrate/20250520000000_add_ordinance_to_program_levels.rb b/db/migrate/20250520000000_add_ordinance_to_program_levels.rb
+new file mode 100644
+index 00000000..54a63124
+--- /dev/null
++++ b/db/migrate/20250520000000_add_ordinance_to_program_levels.rb
+@@ -0,0 +1,7 @@
++# frozen_string_literal: true
++
++class AddOrdinanceToProgramLevels < ActiveRecord::Migration[7.0]
++  def change
++    add_column :program_levels, :ordinance, :string
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index cee1f55d..b4832137 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2025_05_15_173026) do
++ActiveRecord::Schema[7.0].define(version: 2025_05_20_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -810,6 +810,7 @@ ActiveRecord::Schema[7.0].define(version: 2025_05_15_173026) do
+     t.date "end_date"
+     t.datetime "created_at", null: false
+     t.datetime "updated_at", null: false
++    t.string "ordinance"
+   end
+ 
+   create_table "queries", force: :cascade do |t|

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26503,
+ "stop_reason": "end_turn",
+ "session_id": "ccaf243d-9676-4841-aca5-20be68542d9a",
+ "total_cost_usd": 0.0620477,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1281,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2525,
+  "output_tokens_details": {
+   "thinking_tokens": 89
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1281,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2525,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1281,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1281
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1869,
+   "outputTokens": 484,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0004289,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 455,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2525,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1281,
+   "webSearchRequests": 0,
+   "costUSD": 0.061618799999999994,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 89,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix `QuerySet.only()` combined with `select_related()` on a reverse OneToOneField relation\n\n## Objective\n\nSince Django 4.2, combining `select_related()` with `only()` on a reverse `OneToOneField` relation ignores the field restriction for the related model. Every column of the related model is selected, which is a regression from Django 4.1.9.\n\n**Users:** Django developers who use `only()` to limit selected columns across a reverse one-to-one relation, usually for performance.\n\n**Reproduction (from the issue):**\n\n```python\nclass Main(models.Model):\n    main_field_1 = models.CharField(blank=True, max_length=45)\n    main_field_2 = models.CharField(blank=True, max_length=45)\n    main_field_3 = models.CharField(blank=True, max_length=45)\n\nclass Secondary(models.Model):\n    main = models.OneToOneField(Main, primary_key=True, related_name='secondary', on_delete=models.CASCADE)\n    secondary_field_1 = models.CharField(blank=True, max_length=45)\n    secondary_field_2 = models.CharField(blank=True, max_length=45)\n    secondary_field_3 = models.CharField(blank=True, max_length=45)\n\nMain.objects.select_related('secondary').only('main_field_1', 'secondary__secondary_field_1')\n```\n\n**Observed on 4.2.1:** The SELECT clause includes `bugtest_secondary.secondary_field_2` and `bugtest_secondary.secondary_field_3`.\n\n**Expected (4.1.9 behavior):**\n\n```sql\nSELECT \"bugtest_main\".\"id\", \"bugtest_main\".\"main_field_1\",\n       \"bugtest_secondary\".\"main_id\", \"bugtest_secondary\".\"secondary_field_1\"\nFROM \"bugtest_main\"\nLEFT OUTER JOIN \"bugtest_secondary\" ON (\"bugtest_main\".\"id\" = \"bugtest_secondary\".\"main_id\")\n```\n\n**User stories:**\n- As a developer, when I call `only()` with a path through a reverse one-to-one relation used in `select_related()`, only the listed related fields plus the related model's primary key are selected.\n- As a developer, the deferred fields on the related instance still load lazily when I access them, as with any deferred field.\n\n## Tech Stack\n\n- Django ORM (the regression appears in 4.2.x and is absent in 4.1.9)\n- Python version: unknown (whatever the target Django branch supports)\n- Database backends: the issue shows SQLite/PostgreSQL-style quoting. The fix must not depend on the backend.\n\n## Commands\n\nThe issue does not show any commands, so all of these are **unknown**:\n\n- Test: unknown (Django's own test runner invocation is not shown)\n- Lint/format: unknown\n- Build: not applicable / unknown\n\n## Project Structure\n\n**Unknown.** No repository access is available.\n\n- Location of the ORM compiler or query code that handles `only()` and `select_related()`: unknown.\n- Location of tests for `defer`/`only` and `select_related` on one-to-one relations: unknown.\n\n## Code Style\n\nFollow the existing Django codebase conventions (not visible here). The only code available is the reproduction above.\n\n## Testing Strategy\n\n- **Regression test:** Using models equivalent to `Main`/`Secondary`, assert that `select_related('secondary').only('main_field_1', 'secondary__secondary_field_1')` does all of the following:\n  - The generated SQL selects only the `Main` pk, `main_field_1`, the `Secondary` pk (`main_id`), and `secondary_field_1`.\n  - `secondary_field_2` and `secondary_field_3` are deferred on the fetched `Secondary` instance, e.g. via `get_deferred_fields()`.\n  - Accessing `main.secondary.secondary_field_1` triggers no extra query.\n  - Accessing a deferred field such as `secondary_field_2` triggers a single extra query and returns the correct value.\n- **Neighboring cases** that must keep working:\n  - Forward `OneToOneField` with `select_related` + `only`\n  - Forward `ForeignKey` with `select_related` + `only`\n  - Reverse one-to-one with `defer()` instead of `only()`\n  - Reverse one-to-one where `only()` names no related fields. Expected behavior is unknown; see Open Questions.\n  - Multi-level paths, e.g. reverse O2O followed by a forward FK\n  - `only()` chained with `select_related()` in either order\n- **Test level:** ORM/query tests that inspect the emitted SQL or count queries, run against the standard test database.\n- **Coverage expectations:** unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after it.\n  - Keep behavior backend-agnostic.\n  - Preserve the related model's primary key in the SELECT clause.\n- **Ask first:**\n  - Changing public `QuerySet` API semantics.\n  - Changing behavior for cases that are not reverse one-to-one relations.\n  - Backporting decisions.\n  - Adding release notes.\n- **Never:**\n  - Remove or weaken existing `defer`/`only`/`select_related` tests.\n  - Fix this by disabling `select_related` for reverse relations.\n  - Alter the generated SQL for unrelated query shapes.\n\n## Success Criteria\n\n1. The reproduction query produces exactly the column set shown in the 4.1.9 SQL above, ignoring column order and alias naming, which may follow existing conventions.\n2. The fetched `Secondary` instances treat the unlisted fields as deferred and lazy-load them correctly when accessed.\n3. All existing tests for `defer`, `only`, and `select_related` pass.\n4. The new regression test covers reverse `OneToOneField` + `select_related` + `only`.\n\n## Assumptions\n\n1. The bug lives in Django core ORM code, not in a third-party package.\n2. This is a regression introduced between 4.1.9 and 4.2, likely from a refactor of how deferred/only field masks are computed for related models. This is an assumption, not verified.\n3. The `Secondary` primary key (`main_id`) must always be selected when the relation is selected, matching the 4.1.9 output.\n4. The fix targets the main development branch, and may be backported to 4.2.x as a regression fix.\n5. Forward relations are not affected. The issue only reports the reverse direction.\n\n## Open Questions\n\n1. Is the bug limited to `OneToOneField` declared with `primary_key=True`, or does it also occur with a non-pk reverse `OneToOneField`?\n2. Does the same issue affect `defer()` on reverse one-to-one relations, or only `only()`?\n3. When `only()` names fields on `Main` but none on `secondary`, while `select_related('secondary')` is used, what should be selected for `Secondary`: all fields, or only its pk? What did 4.1 do?\n4. Are multi-table inheritance parent-to-child links, which are implicit reverse one-to-one relations, affected and in scope?\n5. Should the fix be backported to the 4.2 stable branch, and does it need a release note?\n6. What are the exact test commands and the test module locations in the repository? These are currently unknown.",
+ "ttft_ms": 2532,
+ "type": "result",
+ "duration_ms": 24009,
+ "uuid": "2800632f-c6ec-41d3-ba47-14567df09621",
+ "ttft_stream_ms": 1569,
+ "time_to_request_ms": 261,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 230,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 180,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1569,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

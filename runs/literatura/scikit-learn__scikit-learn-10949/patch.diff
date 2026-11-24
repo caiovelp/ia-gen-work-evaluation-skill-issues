@@ -1,0 +1,17 @@
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index fe1f7236e..ed5e3dbc2 100755
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -465,6 +465,12 @@ def check_array(array, accept_sparse=False, accept_large_sparse=True,
+     if not hasattr(dtype_orig, 'kind'):
+         # not a data type (e.g. a column named dtype in a pandas DataFrame)
+         dtype_orig = None
++        # pandas DataFrame: use the dtypes if they are all identical
++        dtypes = getattr(array, "dtypes", None)
++        if (dtypes is not None and hasattr(dtypes, "__len__") and
++                len(dtypes) > 0 and hasattr(dtypes[0], 'kind') and
++                all(dt == dtypes[0] for dt in dtypes)):
++            dtype_orig = dtypes[0]
+ 
+     if dtype_numeric:
+         if dtype_orig is not None and dtype_orig.kind == "O":

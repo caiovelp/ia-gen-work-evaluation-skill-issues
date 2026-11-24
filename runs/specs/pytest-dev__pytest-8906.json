@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 35743,
+ "stop_reason": "end_turn",
+ "session_id": "d976a3da-1505-40b6-8649-124c24845f71",
+ "total_cost_usd": 0.0791672,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1275,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3395,
+  "output_tokens_details": {
+   "thinking_tokens": 117
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1275,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3395,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1275,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1275
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1869,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001964,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3395,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1275,
+   "webSearchRequests": 0,
+   "costUSD": 0.0789708,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 117,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Clearer Module-Level Skip Handling in pytest\n\n## Assumptions\n\n1. The project is **pytest**. The relevant public API is `pytest.skip(msg=..., allow_module_level=...)` together with the `pytest.mark.skip` and `pytest.mark.skipif` markers. These are taken from the issue text.\n2. The quoted error message is the current wording raised when `pytest.skip` is called outside a test without `allow_module_level=True`. Its exact source location is **unknown**.\n3. `pytestmark = pytest.mark.skipif(...)` cannot help when the module fails at **import or collection time**. Examples include syntax that is invalid on older Python versions, or names used inside `@pytest.mark.parametrize` arguments. The marker is only applied after the module has been imported successfully.\n4. `skip(..., allow_module_level=True)` is the supported and intended way to skip a whole module before the rest of it is imported.\n5. Existing behavior of `pytest.skip` and its `allow_module_level` parameter must stay backward compatible. No deprecation is planned in this change.\n6. The scope may include any combination of three items:\n   - (a) a revised error message\n   - (b) a documentation update\n   - (c) a new convenience API such as `skip_module(\"reason\")`\n\n   The issue does not decide between them, so this spec covers all three. The choice is listed under Open Questions.\n7. The issue's example of a module that is invalid on Python < 3.8 is illustrative only. The improvement must not depend on any particular Python version.\n\n## Objective\n\nUsers who need to skip an entire test module, especially before importing code that cannot be imported or parsed on the current interpreter, should be guided to the working solution rather than away from it.\n\n**Problem today:**\n- A naive `pytest.skip(\"...\")` at module level raises an error.\n- That error recommends only `pytestmark = pytest.mark.{skip,skipif}`.\n- `pytestmark` does not prevent pytest from importing the rest of the module. So in the import-failure case it fails.\n- The working approach, `skip(msg=..., allow_module_level=True)`, is never mentioned. The wording of the error actively discourages calling `skip` as a function.\n\n**Users:** test authors maintaining code across several Python versions or optional dependencies. They need to skip a module whose top-level code, imports, or parametrize arguments are unavailable or invalid in some environments.\n\n**User stories:**\n- As a test author who calls `pytest.skip()` at module level by mistake, I want the error message to tell me about `allow_module_level=True`. Then I can fix the problem without searching issues.\n- As a test author whose module contains version-specific imports or parametrize values, I want to know which module-skip mechanism works for my case. That means knowing when `pytestmark` is enough and when it is not.\n- *(If option (c) is accepted)* As a test author, I want a self-describing API to skip the current module, so I don't have to remember a keyword flag.\n\n## Tech Stack\n\n- Python, pytest codebase. Supported Python versions are **unknown**.\n- Specific files implementing `skip`, `Skipped`, and the module-level skip error are **unknown**.\n- Documentation format and location are **unknown**, likely Sphinx/reST, but unverified.\n\n## Commands\n\n**Unknown.** The issue gives no build, test, lint, or docs commands. They must be taken from the repository's contributor documentation or CI config.\n\n- Build: unknown\n- Test: unknown\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\n**Unknown.** The relevant areas to locate are:\n- the implementation of `pytest.skip` and the `allow_module_level` handling\n- the code that raises the \"Using pytest.skip outside of a test is not allowed\" error during collection\n- the public API export surface (`pytest` namespace), if a new function is added\n- the test suite covering skip and collection behavior\n- the user docs page(s) on skipping and the API reference\n- the changelog mechanism\n\n## Code Style\n\n**Unknown.** Follow existing conventions in the surrounding skip/outcomes code. Any new public function must match the signature and docstring conventions of `pytest.skip`.\n\nIllustrative user-facing usage, from the issue (not project code):\n\n```python\nimport sys\nimport pytest\n\nif sys.version_info < (3, 8):\n    pytest.skip(msg=\"Requires Python >= 3.8\", allow_module_level=True)\n\nfrom pos_only import *  # must come after the module-level skip\n```\n\n## Testing Strategy\n\nThe framework is pytest itself. Its in-repo testing helpers for running pytest on generated test files are assumed to exist but are **unverified**. The test location is **unknown**.\n\nBehaviors to cover:\n\n1. **Error message content.** Calling `pytest.skip(\"...\")` at module level without `allow_module_level=True` still produces a collection error. That error now mentions `allow_module_level=True`, and still mentions `pytestmark` for the decorator case.\n2. **Module-level skip with `allow_module_level=True`.** The module is reported as skipped. Code after the skip is not executed or imported. This works even when that code would raise an `ImportError`, a `SyntaxError` in an imported module, or fail during parametrize evaluation.\n3. **New API, if adopted.** `skip_module(\"reason\")`, or whatever name is chosen, behaves identically to `skip(msg=reason, allow_module_level=True)` at module level. That includes the skip reason shown in the reporting output. Behavior when called inside a test function is decided per Open Question 4, and tested accordingly.\n4. **Regression.** Existing `pytest.skip` uses inside tests and fixtures, and `pytestmark = pytest.mark.skip/skipif`, behave unchanged.\n5. **Docs.** If the docs build has checks (doctests, link checks), they pass. Commands are unknown.\n\n## Boundaries\n\n**Always:**\n- Keep `pytest.skip(..., allow_module_level=True)` working exactly as today.\n- Add tests for every behavior change, including the error message.\n- Add a changelog entry per project convention (mechanism unknown).\n- Keep the error message actionable. It should name the concrete call to use for each scenario.\n\n**Ask first:**\n- Adding any new public API, such as `skip_module` or an alternative name. This becomes a permanent public surface.\n- Deprecating or changing the semantics of `allow_module_level`.\n- Changing the type or class of the exception raised for a module-level skip without the flag.\n- Restructuring the skipping docs page beyond adding or clarifying a section.\n\n**Never:**\n- Silently allow `pytest.skip()` at module level without the flag. That would remove the guard against accidentally skipping whole modules.\n- Remove the existing `pytestmark` recommendation. It is still correct for the common case.\n- Make the change depend on a specific Python version.\n\n## Success Criteria\n\n1. When `pytest.skip(\"reason\")` is called at module level without `allow_module_level=True`, the resulting error message:\n   - still states that this usage is not allowed as written\n   - mentions `pytestmark = pytest.mark.{skip,skipif}` for decorating or skipping a module whose code imports fine\n   - explicitly mentions `pytest.skip(msg=..., allow_module_level=True)` for skipping a module before the rest of it is imported or evaluated\n   - and/or mentions the new API, if one is added\n2. The skipping documentation states:\n   - that `pytestmark` markers apply only after the module has been imported or collected, so they cannot prevent import or syntax errors in that module\n   - that `pytest.skip(..., allow_module_level=True)` must be placed **before** the problematic imports or definitions\n   - a short example equivalent to the issue's scenario\n3. *(If option (c) is adopted)* A public function, name TBD, exists in the `pytest` namespace that skips the current module with the given reason. It has a docstring, appears in the API reference, and is referenced by the error message and the docs.\n4. A module skipped via the recommended mechanism is reported as skipped with the given reason, not as an error. This holds even when code later in the module would fail to import.\n5. All existing skip-related tests pass unchanged, except tests that assert the exact old error text, which are updated deliberately.\n\n## Open Questions\n\n1. **Scope choice:** should this change cover (a) the error message only, (b) the docs only, (c) a new API, or a combination? The issue proposes (a) and (c). The maintainers' preference is unknown.\n2. **New API name and shape:** if a new API is added, what should it be called? Candidates include `skip_module(\"reason\")` and `pytest.skip.module(...)`. Should it accept only a reason string, or mirror `skip`'s parameters?\n3. **Relationship to `importorskip`:** should the docs and error message also point to `pytest.importorskip` for the case where the blocker is a missing or unimportable module rather than a version check?\n4. **Misuse of a new API:** if `skip_module` is called inside a test function, should it raise an error, behave like `skip`, or skip the remaining tests in the module?\n5. **Error message length:** is a multi-sentence error message acceptable, or should it stay short and link to the docs instead? Is there a stable docs URL convention for that?\n6. **Version-check helpers:** should anything beyond messaging be considered, such as documenting `sys.version_info` checks with `collect_ignore` in `conftest.py` as another option? Or is that out of scope?\n7. **Backport and release target:** which release line should this ship in? Does an error-message-only change count as user-visible enough to need a changelog entry of a specific type?\n8. **Exact current locations:** where are the error text, the `skip` implementation, the skipping docs, and the changelog fragments located? What are the repository's test, lint, and docs commands? All of these are unknown from the issue.",
+ "ttft_ms": 2763,
+ "type": "result",
+ "duration_ms": 35138,
+ "uuid": "f9c2ce40-b338-4f1d-bce2-c42c52c3a440",
+ "ttft_stream_ms": 1508,
+ "time_to_request_ms": 239,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 0,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 14,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 148,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 23,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1509,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12917,
+ "stop_reason": "end_turn",
+ "session_id": "dc6defe9-d420-4889-b090-1b85813f28c9",
+ "total_cost_usd": 0.041063800000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1630,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1391,
+  "output_tokens_details": {
+   "thinking_tokens": 170
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1630,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1391,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1630,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1630
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1838,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019580000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1391,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1630,
+   "webSearchRequests": 0,
+   "costUSD": 0.040868,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 170,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen `autowrap` is used with the Cython backend, the generated code is wrong if an array argument (for example a `MatrixSymbol`) is listed in `args` but does not appear in the wrapped expression. The C function is generated with a scalar parameter (`double x`) instead of a pointer (`double *x`). Calling the wrapped function with a NumPy array then raises a `TypeError`.\n\nThe problem does not occur when the expression depends on every argument. Supporting unused arguments matters when interfacing with external libraries, such as numerical integration routines, which require functions with a fixed signature whether or not each argument contributes to the output. The reporter believes the problem is in `codegen`.\n\n## Steps to reproduce\n\n1. Import `autowrap`, `MatrixSymbol` and NumPy.\n2. Create a matrix symbol: `x = MatrixSymbol('x', 2, 1)`.\n3. Define an expression that does not depend on `x`: `expr = 1.0`.\n4. Wrap it with the Cython backend, passing `x` as an argument: `f = autowrap(expr, args=(x,), backend='cython')`.\n5. Call the wrapped function with a NumPy array: `f(np.array([[1.0, 2.0]]))`.\n\n## Observed behavior\n\nThe call fails with `TypeError: only size-1 arrays can be converted to Python scalars`.\n\nThe generated C function has the wrong signature. `x` is declared as `double` rather than `double *`:\n\n```C\ndouble autofunc(double x) {\n\n   double autofunc_result;\n   autofunc_result = 1.0;\n   return autofunc_result;\n\n}\n```\n\nIf the expression depends on the argument (for example `expr = x[0,0]`), the wrapped function works correctly.\n\n## Expected behavior\n\nThe call `f(np.array([[1.0, 2.0]]))` should return `1.0`. The array argument `x` should be generated as `double *` in the C function signature, even though it does not appear in the expression.\n\n## Stack trace / error output\n\n```\nTypeError: only size-1 arrays can be converted to Python scalars\n```\n\nThe original report does not include a full stack trace.\n\n## Test case\n\nMinimal test derived from the reproduction snippet:\n\n```python\nfrom sympy.utilities.autowrap import autowrap\nfrom sympy import MatrixSymbol\nimport numpy as np\n\ndef test_cython_autowrap_unused_array_argument():\n    x = MatrixSymbol('x', 2, 1)\n    expr = 1.0\n    f = autowrap(expr, args=(x,), backend='cython')\n    assert f(np.array([[1.0, 2.0]])) == 1.0\n```\n\n## Code example\n\nFailing example:\n\n```python\nfrom sympy.utilities.autowrap import autowrap\nfrom sympy import MatrixSymbol\nimport numpy as np\n\nx = MatrixSymbol('x', 2, 1)\nexpr = 1.0\nf = autowrap(expr, args=(x,), backend='cython')\n\nf(np.array([[1.0, 2.0]]))\n```\n\nWorking variant, where the expression depends on `x`:\n\n```python\nfrom sympy.utilities.autowrap import autowrap\nfrom sympy import MatrixSymbol\nimport numpy as np\n\nx = MatrixSymbol('x', 2, 1)\n# now output depends on x\nexpr = x[0,0]\nf = autowrap(expr, args=(x,), backend='cython')\n\n# returns 1.0 as expected, without failure\nf(np.array([[1.0, 2.0]]))\n```\n\n## Version and environment\n\nNot provided in the original report. The only details given are that the problem involves SymPy's `sympy.utilities.autowrap` with `backend='cython'` and NumPy.",
+ "ttft_ms": 3045,
+ "type": "result",
+ "duration_ms": 11982,
+ "uuid": "7efda421-c31c-49e7-aa98-a994ec2b8199",
+ "ttft_stream_ms": 1614,
+ "time_to_request_ms": 229,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 194,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 146,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1615,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,47 @@
+diff --git a/xarray/core/concat.py b/xarray/core/concat.py
+index ecae2566..c8974a90 100755
+--- a/xarray/core/concat.py
++++ b/xarray/core/concat.py
+@@ -1,3 +1,4 @@
++import numpy as np
+ import pandas as pd
+ 
+ from . import dtypes, utils
+@@ -354,14 +355,32 @@ def _dataset_concat(
+                 var = var.set_dims(common_dims, common_shape)
+             yield var
+ 
++    # union of variable names, preserving order
++    vars_order = list(dict.fromkeys(k for ds in datasets for k in ds.variables))
++
++    def fill_missing(k, ds):
++        # build a variable filled with fill_value, shaped like a present one
++        template = next(d.variables[k] for d in datasets if k in d.variables)
++        dtype, fv = dtypes.maybe_promote(template.dtype)
++        if fill_value is not dtypes.NA:
++            fv = fill_value
++            dtype = np.result_type(template.dtype, np.asarray(fv).dtype)
++        shape = tuple(
++            ds.dims.get(d, 1) if d == dim else template.sizes[d]
++            for d in template.dims
++        )
++        return Variable(template.dims, np.full(shape, fv, dtype=dtype))
++
+     # stack up each variable to fill-out the dataset (in order)
+     # n.b. this loop preserves variable order, needed for groupby.
+-    for k in datasets[0].variables:
++    for k in vars_order:
+         if k in concat_over:
+-            try:
+-                vars = ensure_common_dims([ds.variables[k] for ds in datasets])
+-            except KeyError:
+-                raise ValueError("%r is not present in all datasets." % k)
++            vars = ensure_common_dims(
++                [
++                    ds.variables[k] if k in ds.variables else fill_missing(k, ds)
++                    for ds in datasets
++                ]
++            )
+             combined = concat_vars(vars, dim, positions)
+             assert isinstance(combined, Variable)
+             result_vars[k] = combined

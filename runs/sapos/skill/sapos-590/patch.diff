@@ -1,0 +1,56 @@
+diff --git a/app/models/admissions/admission_process.rb b/app/models/admissions/admission_process.rb
+index 45e53aad..72f916dc 100644
+--- a/app/models/admissions/admission_process.rb
++++ b/app/models/admissions/admission_process.rb
+@@ -41,6 +41,7 @@ class Admissions::AdmissionProcess < ActiveRecord::Base
+ 
+   validate :end_greater_than_start_date
+   validate :max_greater_than_min_letters
++  validate :letter_template_present_when_letters_required
+   validate :simple_url_is_unique_while_open
+ 
+   def initialize_dup(other)
+@@ -77,6 +78,12 @@ class Admissions::AdmissionProcess < ActiveRecord::Base
+     end
+   end
+ 
++  def letter_template_present_when_letters_required
++    return if self.min_letters.to_i <= 0
++    return if self.letter_template.present?
++    self.errors.add(:letter_template, :letter_template_required)
++  end
++
+   def simple_url_is_unique_while_open
+     return if self.end_date.nil?
+     return if self.end_date < Date.today
+diff --git a/app/models/admissions/admission_process_ranking.rb b/app/models/admissions/admission_process_ranking.rb
+index b8e46319..db1a8571 100644
+--- a/app/models/admissions/admission_process_ranking.rb
++++ b/app/models/admissions/admission_process_ranking.rb
+@@ -88,10 +88,12 @@ class Admissions::AdmissionProcessRanking < ActiveRecord::Base
+                 position += 1
+                 ngroups = groups
+                 nprocess_vacancies = process_vacancies
+-                if process_vacancies[process.id] == 0 || (process.group.present? && groups[process.group] == 0)
+-                  ngroups = readjust_groups
++                if process_vacancies[process.id] <= 0
+                   nprocess_vacancies = readjust_process_vacancies
+                 end
++                if process.group.present? && !groups[process.group].nil? && groups[process.group] <= 0
++                  ngroups = readjust_groups
++                end
+                 process.decrease_vacancies_and_check_remaining!(ngroups, nprocess_vacancies)
+               end
+             end
+diff --git a/config/locales/admissions/admission_process.pt-BR.yml b/config/locales/admissions/admission_process.pt-BR.yml
+index aa620e80..89fd8d4e 100644
+--- a/config/locales/admissions/admission_process.pt-BR.yml
++++ b/config/locales/admissions/admission_process.pt-BR.yml
+@@ -43,6 +43,7 @@ pt-BR:
+       models:
+         admissions/admission_process:
+           end_greater_than_start_date: "Data de encerramento deve ser após data de início"
++          letter_template_required: "é obrigatório quando o mínimo de cartas for maior que zero"
+           max_greater_than_min_letters: "Máximo de cartas não pode ser menor que mínimo"
+           simple_url_integer: "não pode ser um número"
+           simple_url_collides_in_date_range: "já está sendo usada no mesmo intervalo por outro processo aberto"

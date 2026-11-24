@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11116,
+ "stop_reason": "end_turn",
+ "session_id": "e8f2c645-9743-4cac-a82d-a6801a21b58d",
+ "total_cost_usd": 0.03935999999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1605,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1316,
+  "output_tokens_details": {
+   "thinking_tokens": 171
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1605,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1316,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1605,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1605
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1815,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019200000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1316,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1605,
+   "webSearchRequests": 0,
+   "costUSD": 0.039167999999999994,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 171,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn SymPy 1.4, constructing an empty `Array` with `sympy.Array([])` raises a `ValueError`. Constructing an empty `Matrix` with `sympy.Matrix([])` works. The reporter asks whether this is intended.\n\n## Steps to reproduce\n\n1. Start a Python interpreter with SymPy 1.4 installed.\n2. Run `from sympy import Array`.\n3. Run `a = Array([])`.\n\n## Observed behavior\n\n`Array([])` raises `ValueError: not enough values to unpack (expected 2, got 0)` inside `_scan_iterable_shape` in `sympy/tensor/array/ndim_array.py`. The full traceback is below.\n\nBy contrast, `sympy.Matrix([])` works, according to the report title.\n\n## Expected behavior\n\n`Array([])` should create an empty array without raising an error, as `Matrix([])` does. The reporter frames this as a question (\"Is this the intended behavior?\"). The report does not say what shape or contents the empty `Array` should have.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/Users/hcui7/miniconda3/envs/a/lib/python3.7/site-packages/sympy/tensor/array/dense_ndim_array.py\", line 130, in __new__\n    return cls._new(iterable, shape, **kwargs)\n  File \"/Users/hcui7/miniconda3/envs/a/lib/python3.7/site-packages/sympy/tensor/array/dense_ndim_array.py\", line 136, in _new\n    shape, flat_list = cls._handle_ndarray_creation_inputs(iterable, shape, **kwargs)\n  File \"/Users/hcui7/miniconda3/envs/a/lib/python3.7/site-packages/sympy/tensor/array/ndim_array.py\", line 142, in _handle_ndarray_creation_inputs\n    iterable, shape = cls._scan_iterable_shape(iterable)\n  File \"/Users/hcui7/miniconda3/envs/a/lib/python3.7/site-packages/sympy/tensor/array/ndim_array.py\", line 127, in _scan_iterable_shape\n    return f(iterable)\n  File \"/Users/hcui7/miniconda3/envs/a/lib/python3.7/site-packages/sympy/tensor/array/ndim_array.py\", line 120, in f\n    elems, shapes = zip(*[f(i) for i in pointer])\nValueError: not enough values to unpack (expected 2, got 0)\n```\n\n## Test case\n\nA minimal test derived from the report. It fails on SymPy 1.4 with the `ValueError` shown above.\n\n```python\nfrom sympy import Array, Matrix\n\ndef test_empty_array_construction():\n    Matrix([])  # works according to the report\n    Array([])   # raises ValueError in SymPy 1.4\n```\n\n## Code example\n\nFrom the original report:\n\n```python\n>>> import sympy\n>>> from sympy import Array\n>>> sympy.__version__\n'1.4'\n>>> a = Array([])\n```\n\n## Version and environment\n\n- SymPy: 1.4\n- Python: 3.7, according to the paths in the traceback (`.../lib/python3.7/site-packages/...`)\n- SymPy installed in a miniconda environment, according to the traceback paths\n- Operating system: Not provided in the original report.",
+ "ttft_ms": 2853,
+ "type": "result",
+ "duration_ms": 10724,
+ "uuid": "7aa73615-0560-4aeb-874f-b867da2b17d4",
+ "ttft_stream_ms": 1146,
+ "time_to_request_ms": 316,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 23,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 240,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 310,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 33,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1147,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

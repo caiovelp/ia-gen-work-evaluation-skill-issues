@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23640,
+ "stop_reason": "end_turn",
+ "session_id": "6557d255-da97-4acc-8a97-609c50a08b63",
+ "total_cost_usd": 0.0832491,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2996,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2947,
+  "output_tokens_details": {
+   "thinking_tokens": 358
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2996,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2947,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2996,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2996
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3211,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003331,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2947,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2996,
+   "webSearchRequests": 0,
+   "costUSD": 0.082916,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 358,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nWhen Django's development server auto-reloads with `StatReloader`, it very intermittently crashes with `ValueError: embedded null byte`. The error comes from `pathlib.Path.resolve()`, which `django/utils/autoreload.py` calls in `iter_modules_and_files` while collecting watched module files. The reporter notes that `pathlib` was not used here before Django 2.2. The root cause and a reliable way to reproduce the crash are unknown.\n\n## Steps to reproduce\nThe reporter does not know how to reproduce this reliably. The conditions under which it occurred:\n\n1. Run the development server with auto-reloading enabled (`manage.py runserver`, which uses `StatReloader` via `autoreload.run_with_reloader`).\n2. Let the reloader run its file-watching loop (`run_loop` \u2192 `tick` \u2192 `snapshot_files` \u2192 `watched_files` \u2192 `iter_all_python_module_files`).\n3. Very intermittently, the reloader crashes with `ValueError: embedded null byte`.\n\n## Observed behavior\n- The auto-reloader crashes with `ValueError: embedded null byte`, raised from `os.readlink(path)` inside `pathlib` while resolving a module file path (`path.resolve().absolute()` in `django/utils/autoreload.py`, line 132).\n- The reporter added `print(path)` before `os.readlink(path)` in `pathlib` and got this output before the failure:\n  ```\n  /Users/kez\n  /Users/kez/.pyenv\n  /Users/kez/.pyenv/versions\n  /Users/kez/.pyenv/versions/3.6.2\n  /Users/kez/.pyenv/versions/3.6.2/lib\n  /Users/kez/.pyenv/versions/3.6.2/lib/python3.6\n  /Users/kez/.pyenv/versions/3.6.2/lib/python3.6/asyncio\n  /Users/kez/.pyenv/versions/3.6.2/lib/python3.6/asyncio/selector_events.py\n  /Users\n  ```\n- The last path printed before the error always seems to be `/Users`.\n- `/Users` may already have been printed several times by other `.resolve()` calls. The order is not deterministic, and resolution may have gone past `/Users` successfully many times during startup.\n- The reporter's unconfirmed guess is that a mountpoint in `/Users` to a Samba share, possibly not yet connected, may be involved.\n- It is unknown whether the problem is specific to the reporter's system (pyenv, OS X 10.11) or whether later Python versions fix it.\n\n## Expected behavior\nNot explicitly stated in the original report. By implication, the auto-reloader should keep watching files without crashing with `ValueError: embedded null byte`.\n\n## Stack trace / error output\n```\nTraceback (most recent call last):\n File \"manage.py\" ...\n\texecute_from_command_line(sys.argv)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/__init__.py\", line 381, in execute_from_command_line\n\tutility.execute()\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/__init__.py\", line 375, in execute\n\tself.fetch_command(subcommand).run_from_argv(self.argv)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/base.py\", line 323, in run_from_argv\n\tself.execute(*args, **cmd_options)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/commands/runserver.py\", line 60, in execute\n\tsuper().execute(*args, **options)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/base.py\", line 364, in execute\n\toutput = self.handle(*args, **options)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/commands/runserver.py\", line 95, in handle\n\tself.run(**options)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/core/management/commands/runserver.py\", line 102, in run\n\tautoreload.run_with_reloader(self.inner_run, **options)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 577, in run_with_reloader\n\tstart_django(reloader, main_func, *args, **kwargs)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 562, in start_django\n\treloader.run(django_main_thread)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 280, in run\n\tself.run_loop()\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 286, in run_loop\n\tnext(ticker)\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 326, in tick\n\tfor filepath, mtime in self.snapshot_files():\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 342, in snapshot_files\n\tfor file in self.watched_files():\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 241, in watched_files\n\tyield from iter_all_python_module_files()\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 103, in iter_all_python_module_files\n\treturn iter_modules_and_files(modules, frozenset(_error_files))\n File \"/Userz/kez/path/to/venv/lib/python3.6/site-packages/django/utils/autoreload.py\", line 132, in iter_modules_and_files\n\tresults.add(path.resolve().absolute())\n File \"/Users/kez/.pyenv/versions/3.6.2/lib/python3.6/pathlib.py\", line 1120, in resolve\n\ts = self._flavour.resolve(self, strict=strict)\n File \"/Users/kez/.pyenv/versions/3.6.2/lib/python3.6/pathlib.py\", line 346, in resolve\n\treturn _resolve(base, str(path)) or sep\n File \"/Users/kez/.pyenv/versions/3.6.2/lib/python3.6/pathlib.py\", line 330, in _resolve\n\ttarget = accessor.readlink(newpath)\n File \"/Users/kez/.pyenv/versions/3.6.2/lib/python3.6/pathlib.py\", line 441, in readlink\n\treturn os.readlink(path)\nValueError: embedded null byte\n```\n\n## Test case\nNot provided in the original report.\n\n## Code example\nNot provided in the original report.\n\n## Version and environment\n- Django: a version that uses `pathlib` in the auto-reloader (the reporter says `pathlib` was not used before 2.2). The exact version is not stated.\n- Python: 3.6.2, installed via pyenv (`/Users/kez/.pyenv/versions/3.6.2`), running in a virtualenv.\n- OS: OS X 10.11.\n- Reloader: `StatReloader`.\n- Possibly relevant: a mountpoint under `/Users` to a Samba share (unconfirmed guess by the reporter).",
+ "ttft_ms": 5001,
+ "type": "result",
+ "duration_ms": 23038,
+ "uuid": "a95fc502-9ed0-4ca2-ab9f-327d82356ff5",
+ "ttft_stream_ms": 1337,
+ "time_to_request_ms": 238,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 104,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1337,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

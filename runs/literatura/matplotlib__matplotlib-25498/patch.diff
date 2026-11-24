@@ -1,0 +1,15 @@
+diff --git a/lib/matplotlib/cm.py b/lib/matplotlib/cm.py
+index 38158db956..c44b264f7a 100755
+--- a/lib/matplotlib/cm.py
++++ b/lib/matplotlib/cm.py
+@@ -616,6 +616,10 @@ class ScalarMappable:
+         self._id_norm = self.norm.callbacks.connect('changed',
+                                                     self.changed)
+         if not in_init:
++            if self._A is not None:
++                # Autoscale quietly so that listeners only see the final state.
++                with self.norm.callbacks.blocked():
++                    self.autoscale_None()
+             self.changed()
+ 
+     def set_norm(self, norm):

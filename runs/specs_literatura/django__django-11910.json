@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11784,
+ "stop_reason": "end_turn",
+ "session_id": "6ea1b7a5-18eb-4ef3-a281-86245024872b",
+ "total_cost_usd": 0.034791600000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1448,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1151,
+  "output_tokens_details": {
+   "thinking_tokens": 189
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1448,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1151,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1448,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1448
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1656,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001796,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1151,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1448,
+   "webSearchRequests": 0,
+   "costUSD": 0.034612000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 189,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen the primary key field of a model is renamed, the auto-generated migration for a `ForeignKey` pointing to that model sets the `to_field` parameter to the **old** field name instead of the new one.\n\n## Steps to reproduce\n\n1. Define these two models in an app (`app1`), where `ModelA` has a `CharField` primary key and `ModelB` has a `ForeignKey` to `ModelA`:\n   ```python\n   class ModelA(models.Model):\n       field_wrong = models.CharField('field1', max_length=50, primary_key=True)  # I'm a Primary key.\n\n   class ModelB(models.Model):\n       field_fk = models.ForeignKey(ModelA, blank=True, null=True, on_delete=models.CASCADE)\n   ```\n2. Create and apply the migrations (resulting in `0001_initial`).\n3. Rename the primary key field `ModelA.field_wrong` to `field_fixed`:\n   ```python\n   class ModelA(models.Model):\n       field_fixed = models.CharField('field1', max_length=50, primary_key=True)  # I'm a Primary key.\n   ```\n4. Generate a new migration. Django detects the rename.\n5. Inspect the generated migration.\n\n## Observed behavior\n\nThe generated migration contains a `RenameField` operation for `modela` (`field_wrong` \u2192 `field_fixed`). It also contains an `AlterField` operation for the foreign key on `modelb`. In that operation, `to_field` is set to the old name `'field_wrong'` and not to the new name `'field_fixed'`. The generated migration is reproduced under \"Code example\" below.\n\nNote: the original report has some inconsistencies. The text says the `to_field` points to \"field_typo\", but the migration shows `'field_wrong'`. The migration also shows `name='modela'` and `to='app1.ModelB'`, but the model definitions use `field_fk` and `ModelA`.\n\n## Expected behavior\n\nThe `to_field` parameter of the `ForeignKey` should reference the new primary key name, `'field_fixed'`.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nMigration generated after the rename, as given in the original report:\n\n```python\nclass Migration(migrations.Migration):\n    dependencies = [\n        ('app1', '0001_initial'),\n    ]\n    operations = [\n        migrations.RenameField(\n            model_name='modela',\n            old_name='field_wrong',\n            new_name='field_fixed',\n        ),\n        migrations.AlterField(\n            model_name='modelb',\n            name='modela',\n            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='app1.ModelB', to_field='field_wrong'),\n        ),\n    ]\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 3518,
+ "type": "result",
+ "duration_ms": 10998,
+ "uuid": "546b8a97-6519-4812-89b5-f41ee772bc3f",
+ "ttft_stream_ms": 1601,
+ "time_to_request_ms": 301,
+ "time_to_request_phases_ms": {
+  "other": 24,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 14,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 19,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 4,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 50,
+ "time_to_request_cpu_ms": 316,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1601,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

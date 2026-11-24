@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14553,
+ "stop_reason": "end_turn",
+ "session_id": "9fed7a81-01c8-42e1-ad66-ab4fc62382c3",
+ "total_cost_usd": 0.044983800000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1677,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1568,
+  "output_tokens_details": {
+   "thinking_tokens": 130
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1677,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1568,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1677,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1677
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1883,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1568,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1677,
+   "webSearchRequests": 0,
+   "costUSD": 0.044784000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 130,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe `tmpdir`, `tmpdir_factory` and `tmp_path_factory` fixtures use `getpass.getuser()` to determine the `basetemp` directory. `getpass.getuser()` can return a user name containing characters that are not allowed in directory names, such as a backslash in a domain user name like `contoso\\john_doe`. When this happens, creating the temporary directory fails with a `FileNotFoundError`.\n\n## Steps to reproduce\n\n**Option A: simple reproduction from `cmd` (reported with pytest 6.2.2)**\n\n1. Open a Windows `cmd` prompt.\n2. Create a test file that uses the `tmpdir` fixture:\n   ```bat\n   echo def test_tmpdir(tmpdir):>test_tmp.py\n   echo   pass>>test_tmp.py\n   ```\n3. Set a user name that contains a backslash:\n   ```bat\n   set LOGNAME=contoso\\john_doe\n   ```\n4. Run pytest:\n   ```bat\n   py.test test_tmp.py\n   ```\n\n**Option B: original scenario (SSH session on Windows)**\n\n1. Log in to a Windows 10 x64 Enterprise (1909) machine over SSH, using an OpenSSH_for_Windows_7.7p1 server.\n2. Run `python -c \"import getpass; print(getpass.getuser())\"`. It returns the domain user name, for example `contoso\\john_doe`. In a regular local session it returns `john_doe`.\n3. In a pytest test, create a temp directory, for example with `tmpdir_factory.mktemp('foobar')`.\n\n## Observed behavior\n\npytest builds the base temp path from the user name. The backslash in the name is treated as a path separator, which produces the nested path `...\\Temp\\pytest-of-contoso\\john_doe`. Creating this directory fails with `FileNotFoundError: [WinError 3] The system cannot find the path specified`.\n\nThe reporter states that the `cmd` reproduction (Option A) also reproduces the issue. The output below comes from the SSH scenario (Option B).\n\n## Expected behavior\n\nThe original report does not state this explicitly. It implies that pytest should create the temporary directory even when the user name returned by `getpass.getuser()` contains characters that are not allowed in directory names.\n\n## Stack trace / error output\n\n```\nself = WindowsPath('C:/Users/john_doe/AppData/Local/Temp/pytest-of-contoso/john_doe')\nmode = 511, parents = False, exist_ok = True\n\n    def mkdir(self, mode=0o777, parents=False, exist_ok=False):\n        \"\"\"\n        Create a new directory at this given path.\n        \"\"\"\n        if self._closed:\n            self._raise_closed()\n        try:\n>           self._accessor.mkdir(self, mode)\nE           FileNotFoundError: [WinError 3] The system cannot find the path specified: 'C:\\\\Users\\\\john_doe\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-contoso\\\\john_doe'\n\nC:\\Python38\\lib\\pathlib.py:1266: FileNotFoundError\n```\n\n## Test case\n\n`test_tmp.py`:\n\n```python\ndef test_tmpdir(tmpdir):\n  pass\n```\n\nRun it with the user name environment variable set to a value containing a backslash (Windows `cmd`):\n\n```bat\nset LOGNAME=contoso\\john_doe\npy.test test_tmp.py\n```\n\n## Code example\n\nCommand showing the user name returned in the SSH session:\n\n```\npython -c \"import getpass; print(getpass.getuser())\"\n```\n\nThe output is `contoso\\john_doe` over SSH and `john_doe` in a local session.\n\nCall that triggers the failure in the SSH scenario:\n\n```python\ntmpdir_factory.mktemp('foobar')\n```\n\n## Version and environment\n\n- pytest: 6.2.2 (stated for the `cmd`/`LOGNAME` reproduction)\n- Python: installed at `C:\\Python38` according to the traceback (Python 3.8; exact patch version not provided)\n- OS: Windows 10 x64 Enterprise, version 1909\n- SSH server (original scenario): OpenSSH_for_Windows_7.7p1\n- User name format that triggers the issue: domain user name, for example `contoso\\john_doe`",
+ "ttft_ms": 2820,
+ "type": "result",
+ "duration_ms": 13438,
+ "uuid": "5b1a448e-c953-4887-9957-fc1c591f5673",
+ "ttft_stream_ms": 1523,
+ "time_to_request_ms": 237,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 0,
+  "resume_other": 1,
+  "process_user_input": 10,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 193,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 193,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 48,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1523,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

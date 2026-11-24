@@ -1,0 +1,96 @@
+diff --git a/lib/matplotlib/style/core.py b/lib/matplotlib/style/core.py
+index fb0a5426e6..29ba16ef53 100755
+--- a/lib/matplotlib/style/core.py
++++ b/lib/matplotlib/style/core.py
+@@ -62,6 +62,49 @@ def _apply_style(d, warn=True):
+     mpl.rcParams.update(_remove_blacklisted_style_params(d, warn=warn))
+ 
+ 
++_DEPRECATED_SEABORN_STYLES = [
++    "seaborn",
++    "seaborn-bright",
++    "seaborn-colorblind",
++    "seaborn-dark",
++    "seaborn-darkgrid",
++    "seaborn-dark-palette",
++    "seaborn-deep",
++    "seaborn-muted",
++    "seaborn-notebook",
++    "seaborn-paper",
++    "seaborn-pastel",
++    "seaborn-poster",
++    "seaborn-talk",
++    "seaborn-ticks",
++    "seaborn-white",
++    "seaborn-whitegrid",
++]
++
++
++def _fix_seaborn_name(s):
++    """Map deprecated seaborn style names to 'seaborn-v0_8-*', with a warning."""
++    if s in _DEPRECATED_SEABORN_STYLES:
++        _api.warn_deprecated(
++            "3.6", message="The seaborn styles shipped by Matplotlib "
++            "are deprecated since %(since)s, as they no longer "
++            "correspond to the styles shipped by seaborn. However, "
++            "they will remain available as 'seaborn-v0_8-<style>'. "
++            "Alternatively, directly use the seaborn API instead.")
++        s = s.replace("seaborn", "seaborn-v0_8")
++    return s
++
++
++class _StyleLibrary(dict):
++    """dict that resolves deprecated seaborn style names on item access."""
++
++    def __getitem__(self, key):
++        if isinstance(key, str) and key in _DEPRECATED_SEABORN_STYLES \
++                and key not in self:
++            key = _fix_seaborn_name(key)
++        return super().__getitem__(key)
++
++
+ @_docstring.Substitution(
+     "\n".join(map("- {}".format, sorted(STYLE_BLACKLIST, key=str.lower)))
+ )
+@@ -113,31 +156,7 @@ def use(style):
+     def fix_style(s):
+         if isinstance(s, str):
+             s = style_alias.get(s, s)
+-            if s in [
+-                "seaborn",
+-                "seaborn-bright",
+-                "seaborn-colorblind",
+-                "seaborn-dark",
+-                "seaborn-darkgrid",
+-                "seaborn-dark-palette",
+-                "seaborn-deep",
+-                "seaborn-muted",
+-                "seaborn-notebook",
+-                "seaborn-paper",
+-                "seaborn-pastel",
+-                "seaborn-poster",
+-                "seaborn-talk",
+-                "seaborn-ticks",
+-                "seaborn-white",
+-                "seaborn-whitegrid",
+-            ]:
+-                _api.warn_deprecated(
+-                    "3.6", message="The seaborn styles shipped by Matplotlib "
+-                    "are deprecated since %(since)s, as they no longer "
+-                    "correspond to the styles shipped by seaborn. However, "
+-                    "they will remain available as 'seaborn-v0_8-<style>'. "
+-                    "Alternatively, directly use the seaborn API instead.")
+-                s = s.replace("seaborn", "seaborn-v0_8")
++            s = _fix_seaborn_name(s)
+         return s
+ 
+     for style in map(fix_style, styles):
+@@ -246,7 +265,7 @@ def update_nested_dict(main_dict, new_dict):
+ 
+ # Load style library
+ # ==================
+-_base_library = read_style_directory(BASE_LIBRARY_PATH)
++_base_library = _StyleLibrary(read_style_directory(BASE_LIBRARY_PATH))
+ library = None
+ available = []
+ 

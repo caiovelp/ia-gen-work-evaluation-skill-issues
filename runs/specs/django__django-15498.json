@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28642,
+ "stop_reason": "end_turn",
+ "session_id": "bac3017f-089e-47aa-b1af-2acf4d4badcd",
+ "total_cost_usd": 0.058728,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 701,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2602,
+  "output_tokens_details": {
+   "thinking_tokens": 272
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 701,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2602,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 701,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 701
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1287,
+   "outputTokens": 161,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020920000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 138,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2602,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 701,
+   "webSearchRequests": 0,
+   "costUSD": 0.0585188,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 272,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore Tolerant Handling of an Empty `If-Modified-Since` Header\n\n## Assumptions\n\n1. **Project identity.** The issue wording and the commit-hash style suggest this is the Django web framework. The issue does not say so; this needs confirmation.\n2. **Prior behavior.** Before commit `d6aff369ad3`, an empty-string `If-Modified-Since` value was treated as if the header were absent. In practice that meant the \"resource has been modified\" path ran and a full response was served. The phrase \"used to be ignored\" implies this, but I have not checked it against code.\n3. **Regression source.** Commit `d6aff369ad3` changed how `If-Modified-Since` is parsed or validated. Its exact contents, and the function or module it touched, are unknown because I have no repository access.\n4. **Exception type.** The exception is an unhandled error raised while parsing the header, probably a `TypeError`, `AttributeError` or `ValueError` from a failed regex match or date parse. The exact type and traceback are not in the issue.\n5. **Intended semantics.** An empty `If-Modified-Since` header should be treated as absent or invalid. That matches RFC 9110 \u00a713.1.3, which says a recipient must ignore the header if the field value is not a valid HTTP-date.\n6. **Scope.** The fix should restore the previous behavior only. It should not redesign conditional-request handling or touch `If-None-Match`, `If-Unmodified-Since` and similar headers, unless they share the same broken code path.\n7. **Single capability.** This is one independently testable capability, so no capability map (Phase 0) is needed.\n\n## Objective\n\n**What:** Restore the behavior where an empty-string `If-Modified-Since` request header is silently ignored. Since commit `d6aff369ad3`, it raises an exception instead.\n\n**Why:** Clients, proxies or test clients can send `If-Modified-Since: ` with an empty value. A server-side exception there turns a harmless malformed header into a server error (probably HTTP 500). That is a regression from earlier behavior and violates the HTTP rule that an invalid conditional date is ignored.\n\n**Users affected:**\n- End users whose browsers or intermediaries send an empty header.\n- Application developers serving static files or conditional responses through the affected code path.\n- Test suites that pass `HTTP_IF_MODIFIED_SINCE=\"\"` or an equivalent value.\n\n**Acceptance criteria (user-story form):**\n- As a client sending `If-Modified-Since` with an empty value, I get the same response as if I had omitted the header, with no server error.\n- As a maintainer, I have a regression test that fails on the code at `d6aff369ad3` and passes after the fix.\n\n## Tech Stack\n\n- **Language:** Python (assumed from the likely Django context; version unknown)\n- **Framework:** Django is assumed; this is unconfirmed and the version or branch is unknown.\n- **Key dependencies:** Unknown\n\n## Commands\n\nThe issue does not show any project commands. All are unknown:\n\n```\nBuild: UNKNOWN\nTest:  UNKNOWN (likely the project's own test runner; exact invocation not visible)\nLint:  UNKNOWN\nDev:   UNKNOWN\n```\n\n## Project Structure\n\nUnknown. The module or function that parses `If-Modified-Since` and was changed by `d6aff369ad3` is not identified in the issue. It must be located by inspecting that commit.\n\n```\n<source module touched by d6aff369ad3>  \u2192 UNKNOWN: where the header is parsed/compared\n<corresponding test module>             \u2192 UNKNOWN: where regression tests should live\n```\n\n## Code Style\n\nUnknown, since no code is visible. Follow the conventions of the module modified by `d6aff369ad3` and its existing tests.\n\n## Testing Strategy\n\n- **Framework:** Unknown. Use the project's existing test framework and runner.\n- **Location:** Put the tests next to the existing tests for the affected function or view. The exact path is unknown.\n- **Test levels:**\n  - **Unit test** on the header-checking function with an empty-string header value. It should return the \"modified / serve full response\" result and must not raise.\n  - **Integration or view-level test**, if such tests already exist for this path. A request with `If-Modified-Since: \"\"` should return a normal successful response (e.g. 200), not a 304 and not an error.\n- **Regression property:** The new test must fail against the code at or after `d6aff369ad3` without the fix, and pass with it.\n- **Non-regression:** Existing tests for valid, missing and malformed `If-Modified-Since` values must keep passing.\n- **Coverage expectation:** Unknown project-wide. At minimum, the empty-string branch must be covered.\n\n## Boundaries\n\n- **Always:**\n  - Keep the fix minimal and limited to the code path changed by `d6aff369ad3`.\n  - Add a regression test for the empty-string case.\n  - Run the existing related test suite before finalizing.\n  - Preserve the behavior for valid dates, a missing header, and other already-handled malformed values.\n- **Ask first:**\n  - Changing the public signature or return contract of the affected function.\n  - Widening the fix to other conditional headers.\n  - Changing how other malformed (non-empty) header values are handled.\n  - Reverting `d6aff369ad3` wholesale rather than patching it.\n- **Never:**\n  - Swallow broad exceptions in a way that hides unrelated bugs.\n  - Remove or weaken existing tests.\n  - Change response semantics for valid `If-Modified-Since` values.\n\n## Success Criteria\n\n1. A request with an empty-string `If-Modified-Since` header no longer raises an exception in the affected code path.\n2. That request gets the same response as a request without the header, i.e. a full response rather than 304 Not Modified.\n3. A regression test covering the empty-string case exists and passes. It fails without the fix.\n4. All pre-existing tests for the affected function or view still pass.\n5. Behavior for valid HTTP-date values, a missing header, and previously handled invalid values is unchanged.\n\n## Open Questions\n\n1. Is this the Django project? If so, which branch or version should get the fix, and does it need backporting?\n2. Which function or module did `d6aff369ad3` change, and what exactly did it change about parsing `If-Modified-Since`?\n3. What exception type and traceback does the empty string trigger?\n4. Should other malformed values be handled the same way in this fix, or does only the empty string need restoring? Examples: whitespace-only values, garbage strings, or a header with a size/length suffix but an empty date.\n5. Does `d6aff369ad3` affect other conditional headers (`If-Unmodified-Since`, `If-None-Match`, `If-Match`) in the same way, and should they be in scope?\n6. What are the project's exact test, lint and build commands, and where do the tests for this code path live?\n7. Is a release note or changelog entry required for this regression fix?",
+ "ttft_ms": 3904,
+ "type": "result",
+ "duration_ms": 26272,
+ "uuid": "fc54d3c1-a633-423f-aa4b-e4a31dd60a2a",
+ "ttft_stream_ms": 1099,
+ "time_to_request_ms": 307,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 17,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 246,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 331,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1100,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

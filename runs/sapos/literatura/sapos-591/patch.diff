@@ -1,0 +1,16 @@
+diff --git a/lib/notifier.rb b/lib/notifier.rb
+index 1e33560c..2894f0d6 100644
+--- a/lib/notifier.rb
++++ b/lib/notifier.rb
+@@ -62,7 +62,10 @@ module Notifier
+           attachments_file_name_list = attachments_file_name_list[0..-3]
+         end
+ 
+-        actionmailer_base.mail(m).deliver!
++        mail_options = m.except(
++          :notification_id, :skip_message, :skip_footer, :skip_redirect
++        )
++        actionmailer_base.mail(mail_options).deliver!
+ 
+         NotificationLog.new(
+           notification_id: m[:notification_id],

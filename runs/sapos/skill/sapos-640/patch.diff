@@ -1,0 +1,22 @@
+diff --git a/app/assets/stylesheets/custom/tables.scss b/app/assets/stylesheets/custom/tables.scss
+index de671515..994cf1fa 100644
+--- a/app/assets/stylesheets/custom/tables.scss
++++ b/app/assets/stylesheets/custom/tables.scss
+@@ -94,3 +94,17 @@ div.scrollable-table {
+     border-collapse: separate !important;
+     border-spacing: 0 !important;
+ }
++
++// Simulação de notificação: tokens longos (ex.: URLs) quebram dentro da célula
++table.notification-results {
++  table-layout: fixed;
++  width: 100%;
++
++  th, td {
++    overflow-wrap: anywhere;
++  }
++
++  th:nth-child(1), th:nth-child(2) {
++    width: 25%;
++  }
++}

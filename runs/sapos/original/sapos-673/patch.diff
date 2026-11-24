@@ -1,0 +1,38 @@
+diff --git a/app/helpers/pdf_helper.rb b/app/helpers/pdf_helper.rb
+index aaddace5..3b308d0d 100644
+--- a/app/helpers/pdf_helper.rb
++++ b/app/helpers/pdf_helper.rb
+@@ -378,19 +378,25 @@ module PdfHelper
+         end
+       end
+       if options[:watermark] && pdf_config.signature_type != "qr_code"
++        # A marca e centralizada no papel: a posicao vem da pagina (e nao da
++        # margem) e o texto e medido, centralizado em torno da origem do carimbo.
++        watermark_text = I18n.t("pdf_content.watermark")
+         pdf.create_stamp("watermark") do
+-          pdf.rotate(60, origin: [0, 0]) do
+-            pdf.fill_color "993333"
+-            pdf.font("FreeMono", size: 25) do
+-              pdf.draw_text(
+-                I18n.t("pdf_content.watermark"), at: [0, 0]
+-              )
++          pdf.fill_color "993333"
++          pdf.font("FreeMono", size: 25) do
++            text_width = pdf.width_of(watermark_text)
++            text_y = -(pdf.font.ascender + pdf.font.descender) / 2.0
++            pdf.rotate(60, origin: [0, 0]) do
++              pdf.draw_text(watermark_text, at: [-text_width / 2.0, text_y])
+             end
+-            pdf.fill_color "000000"
+           end
++          pdf.fill_color "000000"
+         end
+         pdf.repeat(:all) do
+-          pdf.stamp_at "watermark", [80, 0]
++          page_left, page_bottom, page_right, page_top = pdf.page.dimensions
++          center_x = (page_left + page_right) / 2.0 - pdf.bounds.absolute_left
++          center_y = (page_bottom + page_top) / 2.0 - pdf.bounds.absolute_bottom
++          pdf.stamp_at "watermark", [center_x, center_y]
+         end
+       end
+     end

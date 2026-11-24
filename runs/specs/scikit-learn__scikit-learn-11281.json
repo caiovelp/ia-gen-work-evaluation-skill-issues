@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32830,
+ "stop_reason": "end_turn",
+ "session_id": "2ccb713f-2466-450d-8071-4a85fd0a9bd4",
+ "total_cost_usd": 0.0728363,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 750,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3291,
+  "output_tokens_details": {
+   "thinking_tokens": 177
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 750,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3291,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 750,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 750
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1335,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001455,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3291,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 750,
+   "webSearchRequests": 0,
+   "costUSD": 0.0726908,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 177,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Clusterer-Compatible Interface for Mixture Models\n\n## Objective\n\nMixture models are effectively probabilistic clusterers and are often used inductively, meaning they predict on unseen data after fitting. Their public API and documentation differ from the library's clusterers in three ways:\n\n1. They take an `n_components` parameter. It serves the same purpose as `n_clusters` on clusterers.\n2. They do not store the training-data assignments as a `labels_` attribute.\n3. They do not provide a `fit_predict` method.\n\nThey are also documented almost entirely separately from clustering.\n\n**Goal:** Decide whether mixture models should expose a clusterer-compatible interface, and if so, define what that interface is. The aim is that users and generic code that work with clusterers can use mixture models the same way, without breaking existing users of the mixture-model API.\n\n**Users:**\n- Library users who swap between clustering estimators, for example comparing a clusterer against a mixture model in the same script.\n- Generic or meta code that relies on the clusterer contract: `fit_predict`, `labels_`, and clustering metrics applied to `labels_`.\n- Readers of the documentation looking for clustering methods.\n\n**Candidate user stories (subject to the decision in Open Questions):**\n- As a user, I can call `fit_predict(X)` on a mixture model and receive one hard cluster assignment per training sample. The result matches calling `fit(X)` followed by `predict(X)`, subject to the semantics decided in OQ2.\n- As a user, after `fit(X)` I can read `labels_` on a mixture model to get the training-sample assignments, as I would with a clusterer.\n- As a user, I can find mixture models in the clustering documentation, or cross-referenced from it, and understand how they relate to other clusterers.\n- As an existing user, my current code that uses `n_components` and the current mixture-model methods keeps working unchanged. If anything is deprecated, I get a deprecation warning first.\n\n## Assumptions\n\n1. \"Mixture models\" refers to every estimator in the library's mixture-model family. The issue does not list them, so the exact set of classes is unknown.\n2. \"Clusterers\" refers to the library's clustering estimators, which share a common clusterer interface or mixin providing `fit_predict` and `labels_`. The exact name and location of that mixin or base class is unknown.\n3. Mixture models already provide `fit` and `predict` (hard assignment on new data). This is implied by \"applied to inductive problems\" but not stated outright.\n4. Probabilistic outputs that mixture models already have, such as soft assignments and densities, stay as they are. This change only adds to the API or aligns it.\n5. Backward compatibility is required. No existing public parameter, attribute, or method is removed without a deprecation cycle.\n6. `labels_` for a mixture model would be the hard assignment (most probable component) of each training sample under the final fitted model.\n7. The work covers both the code API and the documentation (user guide placement and cross-references).\n8. A renamed or aliased parameter would follow the library's usual deprecation policy. The policy's details (number of releases, warning class) are unknown.\n\n## Tech Stack\n\n- Language: Python (inferred from attribute and method naming conventions).\n- Framework, dependencies, and versions: **Unknown**, not stated in the issue.\n\n## Commands\n\n- Build: **Unknown**\n- Test: **Unknown**\n- Lint: **Unknown**\n- Docs build: **Unknown**\n\n## Project Structure\n\n- Location of mixture-model source: **Unknown**\n- Location of clustering source and the shared clusterer interface: **Unknown**\n- Location of tests: **Unknown**\n- Location of user-guide documentation for mixture models and clustering: **Unknown**\n\n## Code Style\n\n**Unknown.** No code was provided in the issue. Follow existing library conventions:\n- Fitted attributes use a trailing underscore (e.g. `labels_`).\n- Constructor parameters are stored unchanged.\n- Public API changes go through deprecation.\n\n## Testing Strategy\n\nFramework and test locations are **unknown**. The levels of testing needed:\n\n- **Unit tests per mixture-model class:**\n  - `fit_predict(X)` returns an array with one integer label per sample, in the valid component range.\n  - `fit_predict(X)` is consistent with `fit(X).predict(X)` under a fixed random state. The precise equality guarantee depends on OQ2.\n  - After `fit(X)`, `labels_` exists, has length `n_samples`, and equals the training predictions under the agreed semantics.\n  - Any new or aliased parameter (e.g. `n_clusters`, if adopted) behaves the same as `n_components`. Conflicting values are handled as decided, and deprecation warnings are raised where specified.\n- **Common/API conformance tests:** If the library has generic checks for clusterers, mixture models pass them, or documented exceptions are recorded.\n- **Regression tests:** Existing mixture-model tests pass unmodified, except for intentional deprecation warnings.\n- **Documentation:** Docs build without errors, and any new cross-references resolve. The docs build command is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Preserve existing mixture-model behaviour and outputs.\n  - Keep all existing public names working, or deprecate them with a warning.\n  - Add tests for every new public method or attribute.\n  - Document new API surface.\n- **Ask first:**\n  - Renaming or aliasing `n_components` / `n_clusters`.\n  - Changing the inheritance of mixture models, such as adding a clusterer mixin.\n  - Moving or restructuring user-guide sections.\n  - Changing what `predict` returns.\n  - Any change to shared clusterer base classes that affects other estimators.\n- **Never:**\n  - Remove or rename public parameters, attributes, or methods without a deprecation cycle.\n  - Change the numerical results of fitting.\n  - Drop the probabilistic API of mixture models.\n\n## Success Criteria\n\nThese are conditional on the decision in OQ1 being \"yes, align the API\". Each item is subject to the corresponding open question.\n\n1. Every mixture-model class provides `fit_predict(X)`, which returns one hard label per training sample.\n2. Every mixture-model class sets `labels_` after `fit`, with length equal to the number of training samples.\n3. The relationship between `fit_predict(X)`, `fit(X).predict(X)`, and `labels_` is documented and covered by tests.\n4. The `n_components` / `n_clusters` question is resolved as decided in OQ3. Whether that means keeping `n_components` as is, adding an alias, or deprecating it, the resolution is implemented and tested, including any deprecation warnings.\n5. Mixture models pass the library's generic clusterer conformance checks, if such checks exist, or the deviations are explicitly listed.\n6. The clustering documentation mentions mixture models, links to their documentation, and explains the probabilistic/inductive distinction. The mixture-model docs link back to clustering.\n7. All pre-existing mixture-model tests pass without modification, other than expected deprecation warnings.\n\nIf the decision in OQ1 is \"no\", the success criterion is instead a documented rationale and, optionally, documentation cross-links between clustering and mixture models.\n\n## Open Questions\n\n1. **Go/no-go:** Should mixture models adopt the clusterer interface at all? Is there any concern that doing so blurs the distinction between density estimators and clusterers?\n2. **Semantics of `fit_predict` and `labels_`:** Must `fit_predict(X)` be exactly equal to `fit(X).predict(X)`? With multiple initializations or random restarts, the labels from the final E-step and from a separate `predict` call could differ. Should `labels_` come from the final model, from the last iteration's responsibilities, or something else?\n3. **Parameter naming:** Should `n_components` stay as is, gain an `n_clusters` alias, or be deprecated in favour of `n_clusters`? For Bayesian or variational mixtures, `n_components` is an upper bound rather than the effective number of clusters. Does that make `n_clusters` misleading for those classes?\n4. **Memory cost:** Is storing `labels_` (one integer per training sample) acceptable for large datasets? Should it be optional?\n5. **Soft labels:** Should a probabilistic counterpart of `labels_` also be stored (e.g. training responsibilities)? Or is the existing method for soft assignments sufficient?\n6. **Scope of classes:** Which exact mixture-model classes are in scope? Are any deprecated or legacy variants excluded?\n7. **Inheritance:** Should mixture models inherit the shared clusterer mixin or base class, or implement the methods directly? Would inheriting the mixin change estimator-type detection, tags, or the behaviour of generic tools such as scoring or model selection?\n8. **Documentation placement:** Should mixture models move into the clustering section of the user guide, stay separate with cross-references, or both?\n9. **Deprecation policy:** What deprecation period and warning mechanism apply if any parameter is renamed?\n10. **Repository specifics:** Build, test, lint, and docs commands, and the source, test, and doc file locations, are all unknown and need to be supplied.",
+ "ttft_ms": 2740,
+ "type": "result",
+ "duration_ms": 32269,
+ "uuid": "9924411a-9a2d-44d8-b671-34a3592020e4",
+ "ttft_stream_ms": 935,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 27,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 212,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 216,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 936,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

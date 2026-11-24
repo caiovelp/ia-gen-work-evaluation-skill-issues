@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29853,
+ "stop_reason": "end_turn",
+ "session_id": "28cde464-ddc0-411f-ab26-0d434d8dd0d9",
+ "total_cost_usd": 0.0677369,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 903,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2974,
+  "output_tokens_details": {
+   "thinking_tokens": 207
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 903,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2974,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 903,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 903
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1486,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001621,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2974,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 903,
+   "webSearchRequests": 0,
+   "costUSD": 0.0675748,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 207,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `lambdify` support for `MatrixSymbol` arguments with non-identifier names\n\n## Assumptions\n1. The project is SymPy, and the affected public API is `sympy.lambdify` (called as `sy.lambdify` in the issue).\n2. `lambdify` generates Python source text from its arguments and expression, then compiles it. The `SyntaxError` comes from a `MatrixSymbol` name such as `{v}` being written into the generated source as a raw identifier.\n3. **Hypothesis to verify, not a fact.** The step that replaces invalid names with dummies handles scalar `Symbol` arguments, which is why `{x}` works. It may not handle `MatrixSymbol` arguments, which is why `{v}` fails both with and without `dummify=True`.\n4. Expected behavior for `{v}` matches the behavior for `{x}`. When an argument name is not a valid Python identifier, `lambdify` substitutes a safe name. The resulting function behaves exactly as if the user had chosen a valid name.\n5. `dummify=True` should always yield valid generated code, whatever the argument names are.\n6. Behavior for currently working cases must not change. This covers valid-name `MatrixSymbol`s, curly-brace scalar `Symbol`s and ordinary symbols.\n7. The fix targets the default printer/module path. Other `modules=` backends (numpy, etc.) should behave the same where they already support `MatrixSymbol`.\n8. The SymPy version and Python version from the report are unknown. The bug is assumed to still reproduce on the current development branch.\n\n## Objective\n`lambdify` must produce a working callable when an argument or expression involves a `MatrixSymbol` whose name is not a valid Python identifier (for example `\"{v}\"`). This must work both with and without `dummify=True`.\n\n**User:** a SymPy user who builds symbols with LaTeX-style names (e.g. `{v}`, which is common for pretty printing) and wants numeric functions from expressions over matrices.\n\n**Acceptance (user stories):**\n- As a user, `sy.lambdify(curlyv, curlyv)` returns a callable without raising `SyntaxError`, where `curlyv = sy.MatrixSymbol(\"{v}\", 2, 1)`.\n- As a user, `sy.lambdify(curlyv, curlyv, dummify=True)` returns a callable without raising `SyntaxError`.\n- As a user, calling either callable with a 2\u00d71 matrix/array returns that same value, just as `sy.lambdify(v, v)` does for `v = sy.MatrixSymbol(\"v\", 2, 1)`.\n\n## Tech Stack\n- Python, SymPy (version under test: unknown; assumed current development branch).\n- Exact supported Python versions and optional numeric backends (e.g. NumPy): **unknown**, so use the project's existing CI matrix.\n\n## Commands\nNot visible in the issue; all **unknown**. To be filled in from the repository:\n- Test: unknown (project's standard test runner, run against the lambdify test module)\n- Lint / code quality: unknown\n- Build: unknown / likely not applicable (pure Python)\n\nReproduction snippet (from the issue):\n```python\nimport sympy as sy\ncurlyx = sy.symbols(\"{x}\")\nv = sy.MatrixSymbol(\"v\", 2, 1)\ncurlyv = sy.MatrixSymbol(\"{v}\", 2, 1)\n\nsy.lambdify(curlyx, curlyx)                      # works\nsy.lambdify(v, v)                                # works\nsy.lambdify(curlyv, curlyv)                      # SyntaxError\nsy.lambdify(curlyv, curlyv, dummify=True)        # SyntaxError\n```\n\n## Project Structure\nNot visible in the issue; **unknown**.\n- Location of the `lambdify` implementation: unknown (to be located in the repository).\n- Location of existing `lambdify` tests: unknown (new regression tests go alongside them).\n\n## Code Style\n- Follow the existing conventions of the `lambdify` module and its tests. No snippet can be given because the source is not visible.\n- Regression tests should mirror the issue's reproduction (same symbol names and shapes) so they trace back to it.\n\n## Testing Strategy\n- **Framework:** the project's existing test framework (name unknown from the issue).\n- **Location:** next to the existing `lambdify` tests (path unknown).\n- **Required regression tests:**\n  1. `lambdify(MatrixSymbol(\"{v}\", 2, 1), same)` succeeds, and the callable returns its input for a 2\u00d71 value.\n  2. The same call with `dummify=True` succeeds and behaves identically.\n  3. A `MatrixSymbol` with a non-identifier name used inside a larger expression (e.g. matrix product or sum) evaluates correctly. This covers the expression body as well as the argument list.\n  4. Mixed arguments: a curly-brace scalar `Symbol` together with a curly-brace `MatrixSymbol` in one call.\n  5. Arguments given in a nested structure (e.g. list/tuple containing the `MatrixSymbol`), if `lambdify` supports nested args for scalars.\n- **Non-regression tests:** existing tests for valid-name `MatrixSymbol`, curly-brace `Symbol` and the `dummify` behavior must keep passing unchanged.\n- **Coverage:** no numeric target is known. Every new branch in the name-sanitization logic must be exercised by at least one test.\n\n## Boundaries\n- **Always:**\n  - Reproduce the failure with a test before changing behavior.\n  - Keep the public `lambdify` signature and documented `dummify` semantics unchanged.\n  - Run the full `lambdify` test suite before committing.\n- **Ask first:**\n  - Changing which arguments get dummified when `dummify=False`, for example dummifying valid-name `MatrixSymbol`s, which may alter generated source or `inspect` output.\n  - Changing printer behavior that affects code generation outside `lambdify`.\n  - Adding dependencies.\n- **Never:**\n  - Silently rename the user's symbols in the returned expression or alter the user's objects.\n  - Disable or weaken existing tests to make new ones pass.\n  - Rely on `eval`/`exec` workarounds that bypass code validation.\n\n## Success Criteria\n- [ ] `sy.lambdify(curlyv, curlyv)` returns a callable, with no `SyntaxError`.\n- [ ] `sy.lambdify(curlyv, curlyv, dummify=True)` returns a callable, with no `SyntaxError`.\n- [ ] Both callables return a value equal to their 2\u00d71 input, matching `sy.lambdify(v, v)` on the same input.\n- [ ] A non-identifier `MatrixSymbol` name works when it appears in the expression body as well as in the argument list.\n- [ ] `sy.lambdify(curlyx, curlyx)` and `sy.lambdify(v, v)` behave exactly as before.\n- [ ] New regression tests fail before the change and pass after it.\n- [ ] The full existing `lambdify` test suite passes.\n\n## Open Questions\n1. Which SymPy and Python versions did the reporter use, and does the bug still reproduce on the current development branch?\n2. Which `modules=` backends must be covered: the default only, or also `numpy`, `math`, `mpmath`, etc.? For `MatrixSymbol`, which backends are officially supported today?\n3. When `dummify=False`, should a non-identifier `MatrixSymbol` name be auto-replaced (matching the current scalar `Symbol` behavior), or should it raise a clear, non-`SyntaxError` error?\n4. Should other non-`Symbol` argument types with invalid names be handled in the same change? Examples: other matrix expressions, `Indexed`/`IndexedBase`, and applied functions with odd names. Or is this scoped strictly to `MatrixSymbol`?\n5. Is it acceptable for the generated source (visible via `inspect.getsource`) to change for affected cases?\n6. What are the repository's test command, lint command and the paths of the `lambdify` implementation and its tests? None of these are visible in the issue.",
+ "ttft_ms": 3730,
+ "type": "result",
+ "duration_ms": 29478,
+ "uuid": "d9fbd1a6-9714-402c-8701-32d9da3697d4",
+ "ttft_stream_ms": 1691,
+ "time_to_request_ms": 456,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 15,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 4,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 415,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 218,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 12,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1692,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

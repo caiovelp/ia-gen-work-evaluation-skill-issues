@@ -1,0 +1,15 @@
+diff --git a/src/_pytest/python.py b/src/_pytest/python.py
+index 37735784..3c2f2fed 100755
+--- a/src/_pytest/python.py
++++ b/src/_pytest/python.py
+@@ -1346,6 +1346,10 @@ def _showfixtures_main(config, session):
+             funcargspec = "%s -- %s" % (argname, bestrel)
+         else:
+             funcargspec = argname
++        if fixturedef.scope != "function":
++            funcargspec = funcargspec.replace(
++                argname, "%s [%s scope]" % (argname, fixturedef.scope), 1
++            )
+         tw.line(funcargspec, green=True)
+         loc = getlocation(fixturedef.func, curdir)
+         doc = fixturedef.func.__doc__ or ""

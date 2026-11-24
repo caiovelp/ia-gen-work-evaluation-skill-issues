@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25856,
+ "stop_reason": "end_turn",
+ "session_id": "483e4579-08d7-477a-bd61-0edd4fc2d2d3",
+ "total_cost_usd": 0.05917529999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1083,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2473,
+  "output_tokens_details": {
+   "thinking_tokens": 209
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1083,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2473,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1083,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1083
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1670,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018050000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2473,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1083,
+   "webSearchRequests": 0,
+   "costUSD": 0.05899479999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 209,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Ignore `empty_permitted` in `form_kwargs` when building a formset's `empty_form`\n\n## Objective\n\nWhen a formset is created with `form_kwargs` containing `empty_permitted`, either `{'empty_permitted': True}` or `{'empty_permitted': False}`, rendering `formset.empty_form` crashes. The issue reports a `KeyError`.\n\n`empty_form` is a template form. It is never bound to data and never validated, so `empty_permitted` has no meaning for it. A user-supplied `empty_permitted` in `form_kwargs` should be ignored when building `empty_form`. It should not cause an error.\n\n**Users affected:** Django developers who pass `empty_permitted` through `form_kwargs` to formsets (including model formsets) and render `formset.empty_form`. A common reason to render it is to add forms dynamically on the client side.\n\n**User story:** As a developer, I can pass `form_kwargs={'empty_permitted': <bool>}` to a formset and still render `{{ formset.empty_form }}` without an exception.\n\n**Reproduction (from the issue):**\n```python\nff = modelformset_factory(MyModel, fields=['a_field'])\nformset = ff(\n    queryset=MyModel.objects.none(),\n    form_kwargs={'empty_permitted': True},  # or False\n)\n# Template: {{ formset }} renders; {{ formset.empty_form }} crashes\n```\n\n## Assumptions\n\n1. The crash happens because `empty_form` sets its own `empty_permitted` value and also passes the user's `form_kwargs`, so the same keyword arrives twice. This is not confirmed: the source is not visible, and the reported exception type (`KeyError`) needs verifying against the actual traceback.\n2. The defect is in the base formset logic (`BaseFormSet.empty_form` or equivalent), not in model formsets specifically. Any formset that passes `empty_permitted` via `form_kwargs` is affected.\n3. `empty_form` should keep its current internal `empty_permitted` value, whatever the existing code sets. The user-supplied value is dropped for `empty_form` only.\n4. Regular forms (`formset.forms`, bound or unbound) should keep receiving the user's `empty_permitted` from `form_kwargs` exactly as they do today. This fix does not change their behavior.\n5. Other keys in `form_kwargs` should still reach `empty_form` unchanged.\n6. The fix targets the Django main branch. Whether to backport is not decided here.\n\n## Tech Stack\n\n- Python and Django (the forms/formsets subsystem). Exact versions are **unknown**; the issue does not state them.\n\n## Commands\n\n- Build: **unknown** (not visible in the issue)\n- Test: **unknown**. This is probably Django's own test runner, but the exact command and flags cannot be confirmed without the repository.\n- Lint: **unknown**\n- Dev: not applicable (library change)\n\n## Project Structure\n\n**Unknown.** The repository is not visible. The relevant code is expected to be the formset implementation in Django's forms package. Matching tests are expected in Django's formset test suite. Exact paths are to be confirmed.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the surrounding Django forms code and the Django contributing guidelines. No snippet is available.\n\n## Testing Strategy\n\n- **Unit/regression tests** in the existing formset test module (location unknown):\n  - A formset with `form_kwargs={'empty_permitted': True}`: accessing `formset.empty_form` does not raise.\n  - The same check with `form_kwargs={'empty_permitted': False}`.\n  - In both cases, `formset.empty_form.empty_permitted` equals the value `empty_form` uses without the user override.\n  - Other `form_kwargs` keys still reach `empty_form`. Existing tests may already cover this; confirm.\n  - Rendering `empty_form` (for example, `str(formset.empty_form)` or via template) succeeds.\n- **Model formset coverage:** at least one test using `modelformset_factory`, mirroring the reported scenario. This is optional if a base-formset test is judged sufficient.\n- The existing formset and model formset test suites must still pass.\n\n## Boundaries\n\n- **Always:** Add regression tests that fail before the fix and pass after it. Keep changes minimal and local to `empty_form` construction. Run the full forms/formsets test suites.\n- **Ask first:** Changing behavior of non-empty forms with respect to `empty_permitted`. Raising a warning or error instead of silently ignoring the key. Changing the public `get_form_kwargs()` contract. Touching inline formsets or admin beyond what the shared base requires.\n- **Never:** Mutate the user's `form_kwargs` dict in place in a way that affects other forms. Remove or weaken existing tests. Change `empty_form`'s prefix, `use_required_attribute`, or other construction arguments as a side effect.\n\n## Success Criteria\n\n1. Accessing and rendering `formset.empty_form` does not raise when `form_kwargs` contains `empty_permitted=True`.\n2. The same holds when `form_kwargs` contains `empty_permitted=False`.\n3. `formset.empty_form.empty_permitted` is unaffected by the user-supplied value.\n4. Forms in `formset.forms` still honor `empty_permitted` from `form_kwargs` exactly as before.\n5. All other `form_kwargs` entries are still applied to `empty_form`.\n6. The caller's `form_kwargs` dictionary is not modified.\n7. New regression tests cover criteria 1\u20133 (and 5 if not already covered), and all existing formset and model formset tests pass.\n8. The reproduction from the issue renders without error.\n\n## Open Questions\n\n1. What is the exact exception and traceback? The issue says `KeyError`, but a duplicate keyword would normally raise `TypeError`. Is the `KeyError` coming from a different code path, such as template rendering or a `get_form_kwargs()` override?\n2. Which Django version(s) reproduce this, and should the fix be backported?\n3. Should silently ignoring `empty_permitted` for `empty_form` be documented, for example in the formsets docs or release notes?\n4. Do other construction arguments that `empty_form` sets itself (e.g. `auto_id`, `prefix`, `use_required_attribute`, `renderer`) have the same conflict if passed via `form_kwargs`? Should they be handled here or tracked separately?\n5. Do subclasses that override `get_form_kwargs()` to inject `empty_permitted` need the same protection? Is ignoring the key at `empty_form` construction the agreed approach?\n6. What are the exact test command and test file locations in the repository?",
+ "ttft_ms": 4445,
+ "type": "result",
+ "duration_ms": 25280,
+ "uuid": "d0600a5b-e5fb-476a-9efb-00161d2a8546",
+ "ttft_stream_ms": 2691,
+ "time_to_request_ms": 234,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 129,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2691,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

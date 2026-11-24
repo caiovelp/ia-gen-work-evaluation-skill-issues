@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 40076,
+ "stop_reason": "end_turn",
+ "session_id": "61dca03f-309e-4820-94a9-9cb4181d79a7",
+ "total_cost_usd": 0.08663759999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 886,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3926,
+  "output_tokens_details": {
+   "thinking_tokens": 532
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 886,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3926,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 886,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 886
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1473,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001588,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3926,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 886,
+   "webSearchRequests": 0,
+   "costUSD": 0.08647879999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 532,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `:inherited-members:` accepts multiple base classes\n\n## Objective\n\nLet users exclude inherited members from **several** base classes at once, while still documenting members inherited from all other bases.\n\n**Problem today:** `:inherited-members:` takes one class name. Members inherited from that class are excluded and all other inherited members are documented. This leaves two cases unsolved:\n\n1. **Multiple inheritance.** A class inherits from several bases. The user wants members from some bases documented and members from other bases ignored.\n2. **Module-wide filtering.** A module has many classes that subclass different built-ins (`list`, `set`, `tuple`). The user wants members from `list`, `set` and `tuple` ignored, and every other inherited member documented, with one `automodule` directive.\n\nThe only workaround is to write one `autoclass` block per class. That is tedious and does not solve case 1.\n\n**Users:** Documentation authors who use the autodoc `automodule` and `autoclass` directives.\n\n**User stories:**\n- As a doc author, I can write `:inherited-members: list, set, tuple` on `automodule`. Then no documented class shows members inherited from `list`, `set` or `tuple`, and other inherited members still appear.\n- As a doc author, for `class C(A, B)` I can write `:inherited-members: B`. Then `C` shows members inherited from `A` and none inherited from `B`.\n- As an existing user, my current single-class usage (`:inherited-members: Foo`) and bare usage (`:inherited-members:`) behave exactly as before.\n\n## Assumptions\n\n1. The project is **Sphinx**, and the option belongs to the `sphinx.ext.autodoc` extension. I inferred this from the option name and directive names. I have not seen the repository.\n2. The option currently accepts one class name. A bare `:inherited-members:` (no value) currently means \"document everything inherited except from `object`\".\n3. Classes are matched by **class `__name__`**, compared as plain strings, as the single-class option does today. They are not matched by import path or identity.\n4. The list is **comma-separated**, and whitespace around entries is ignored. For example, `list, set,tuple` gives `{\"list\", \"set\", \"tuple\"}`.\n5. The option applies to both `automodule` and `autoclass`, and it propagates from `automodule` to the classes it documents, as it does today.\n6. The same multi-value syntax should work when the option is set in `autodoc_default_options` in `conf.py`. That setting is assumed to accept a string value today.\n7. The class being documented is never treated as \"ignored\", even if its own name appears in the list. Its own members are always documented when members are requested.\n8. Only member *filtering* changes. Rendering, ordering, and other options (`:members:`, `:exclude-members:`, `:private-members:`, `:special-members:`, `:undoc-members:`) are unaffected.\n\n## Tech Stack\n\n- Language: Python. The supported version range is **unknown**.\n- Library: Sphinx, autodoc extension. The version and branch are **unknown**.\n- Other dependencies: **unknown**.\n\n## Commands\n\nThe repository was not available, so all commands are **unknown**:\n\n```\nBuild:   unknown\nTest:    unknown (likely a pytest-based suite \u2014 unconfirmed)\nLint:    unknown\nDocs:    unknown\n```\n\n## Project Structure\n\n**Unknown.** The following locations need to be identified, but their paths are not confirmed:\n\n- The autodoc option parser for `inherited-members`\n- The inherited-member filtering logic in the class documenter\n- The autodoc test suite and its test-root fixture modules\n- The user documentation for autodoc directive options\n- The changelog\n\n## Code Style\n\n**Unknown.** Follow the conventions already used in the autodoc extension and its tests. No style snippet is available.\n\n## Functional Requirements\n\n**R1 \u2014 Parsing**\n- The option value is parsed into a set of class names.\n- **Accepted input:** a comma-separated list. Entries are stripped of whitespace, and empty entries are dropped.\n- **Single value:** gives a one-element set. This preserves existing behaviour.\n- **Bare option (no value) or `None`:** keeps the current default, equivalent to `{\"object\"}`.\n- **`autodoc_default_options`:** the same string format is accepted there.\n\n**R2 \u2014 Filtering semantics.** When deciding whether to document an inherited member of class `C`:\n- **Defined on `C` itself:** the member is never filtered by this option.\n- **Inherited:** find the class in `C`'s MRO that actually provides the member, i.e. the first class in the MRO whose `__dict__` contains the name.\n  - If that class's `__name__` is in the ignore set, the member is filtered.\n  - Otherwise, the member is documented, provided the other options allow it.\n- **Precedence:** a member defined in a non-ignored base is documented even if an ignored base also defines it. For example, a base that overrides `list.append` documents its `append`. *(Must be confirmed against current behaviour; see Open Questions Q1.)*\n\n**R3 \u2014 Multiple inheritance (case 1).** For `class C(A, B)` with `:inherited-members: B`:\n- Members provided by `A` are documented.\n- Members provided only by `B` are not documented.\n- Members `B` itself inherits from its own bases are handled per Q2.\n\n**R4 \u2014 Module-wide (case 2).** With `automodule` and `:inherited-members: list, set, tuple`:\n- Every documented class in the module omits members provided by `list`, `set` or `tuple`.\n- Each class still shows members inherited from its other bases.\n\n**R5 \u2014 Backward compatibility.** Existing single-name and bare usages produce identical output to before the change.\n\n**R6 \u2014 Documentation.**\n- The autodoc docs describe the comma-separated form, with at least one example.\n- A changelog entry is added.\n\n## Testing Strategy\n\nThe framework and test locations are **unknown**. Use the existing autodoc test infrastructure. The following tests are expected:\n\n**Parser unit tests:**\n- Bare value\n- Single name\n- Multiple names\n- Names with surrounding whitespace\n- Trailing or duplicate commas\n\n**Directive-level tests using fixture modules:**\n- Single-name behaviour is unchanged (regression).\n- Bare option behaviour is unchanged (regression).\n- `class C(A, B)` with `:inherited-members: B` shows `A`'s members and hides `B`'s.\n- A module with classes subclassing `list`, `set` and `tuple`, documented via `automodule` with `:inherited-members: list, set, tuple`, hides the built-in methods and shows members from user-defined bases.\n- An override case: a user base overrides a method of an ignored base, and the override is documented.\n- The same filtering works via `autodoc_default_options`.\n\n**Coverage target:** **unknown**. At minimum, every branch of the new parsing and filtering logic must be covered.\n\n## Boundaries\n\n- **Always:**\n  - Keep existing single-value and bare-option behaviour byte-for-byte identical.\n  - Add regression tests for the old behaviour alongside the new tests.\n  - Update the user docs and the changelog.\n- **Ask first:**\n  - Changing matching from `__name__` to qualified or dotted names.\n  - Changing which MRO classes count as \"providing\" a member, if that alters current single-class output.\n  - Changing the public option-spec or converter API used by third-party extensions.\n  - Adding dependencies.\n- **Never:**\n  - Break the existing option syntax.\n  - Change unrelated autodoc options.\n  - Remove or loosen existing tests to make the new ones pass.\n\n## Success Criteria\n\n- [ ] `:inherited-members: list, set, tuple` on `automodule` excludes members provided by any of those three classes from every documented class in the module, and keeps other inherited members.\n- [ ] For `class C(A, B)`, `:inherited-members: B` documents `A`'s members and excludes `B`'s.\n- [ ] `:inherited-members: Foo` and bare `:inherited-members:` produce the same output as before the change, confirmed by regression tests.\n- [ ] Whitespace around comma-separated names does not affect results.\n- [ ] Multi-value config works through `autodoc_default_options`.\n- [ ] Docs and changelog are updated.\n- [ ] The full existing test suite passes.\n\n## Open Questions\n\n1. **Current filtering algorithm (critical).** Does the current implementation stop at the *first* ignored class it meets while walking the MRO, filtering everything after it? Or does it check only the class that actually provides the member?\n   - If the former, ignoring `B` in `class C(A, B)` might also hide members from classes later in the MRO.\n   - Should the multi-class version switch to \"the providing class is ignored\" semantics, even if that subtly changes single-class output in diamond or multi-base hierarchies?\n2. **Transitive bases.** If `B` is ignored and `B` inherits from `Base0`, should members `C` gets from `Base0` *via `B`* also be hidden? Or only members defined directly on `B`? What if `Base0` is also reachable through a non-ignored base `A`?\n3. **Name matching.** Should entries match only `__name__`? Or also fully qualified names like `collections.OrderedDict`, to tell apart same-named classes from different modules?\n4. **Is `object` implicit?** If a user writes `:inherited-members: list`, should members from `object` (e.g. `__init_subclass__`, if special members are enabled) still be hidden as with the bare form? Or is `object` excluded only when it is listed?\n5. **Accepted formats in `conf.py`.** Should `autodoc_default_options` also accept a Python list or set, or only a comma-separated string?\n6. **Invalid or unknown names.** Should names that match no class in any MRO be silently ignored, or produce a warning?\n7. **Interaction with `:exclude-members:`.** Confirm that `:exclude-members:` still applies on top of this filtering. The assumption is yes, it is applied independently.\n8. **Target version.** Which Sphinx release should this ship in? Is it treated as a feature addition (minor release)?",
+ "ttft_ms": 6712,
+ "type": "result",
+ "duration_ms": 39320,
+ "uuid": "76419d89-c471-4b8d-a66c-234d921c7cac",
+ "ttft_stream_ms": 1000,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 27,
+ "time_to_request_cpu_ms": 255,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1000,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

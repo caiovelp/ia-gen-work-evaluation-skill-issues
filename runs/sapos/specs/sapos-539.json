@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 37353,
+ "stop_reason": "end_turn",
+ "session_id": "38e579fc-7421-4dea-8ad6-4893e121ced6",
+ "total_cost_usd": 0.09694760000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1180,
+  "cache_read_input_tokens": 4361,
+  "output_tokens": 4322,
+  "output_tokens_details": {
+   "thinking_tokens": 543
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1180,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4322,
+    "cache_read_input_tokens": 4361,
+    "cache_creation_input_tokens": 1180,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1180
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1754,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001874,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 4322,
+   "cacheReadInputTokens": 4361,
+   "cacheCreationInputTokens": 1180,
+   "webSearchRequests": 0,
+   "costUSD": 0.0967602,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 543,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1180,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Especifica\u00e7\u00e3o: Exemplo padr\u00e3o de processo seletivo (modelo do IC)\n\n## Objetivo\n\nCriar um **processo seletivo de exemplo, configurado por padr\u00e3o**, que replique o processo usado atualmente no IC. O exemplo serve de ponto de partida para que outros programas e desenvolvedores entendam a funcionalidade de edital seletivo e a adaptem \u00e0s suas necessidades.\n\n**Usu\u00e1rios-alvo:**\n- Programas que adotarem o sistema e queiram um edital funcional para adaptar.\n- Desenvolvedores que precisam de dados realistas para entender ou testar a funcionalidade.\n\n**Como o exemplo \u00e9 criado:** a issue menciona \"a migra\u00e7\u00e3o\". Portanto, o exemplo deve ser criado por uma migra\u00e7\u00e3o de dados (ver Premissas e Quest\u00f5es em Aberto).\n\n**O que o exemplo deve conter:**\n\n1. **Edital de sele\u00e7\u00e3o**\n   - Formul\u00e1rio de candidatura **sem carta** (de recomenda\u00e7\u00e3o).\n   - Duas fases, nesta ordem: **Homologa\u00e7\u00e3o** e **Avalia\u00e7\u00e3o**.\n\n2. **Ranking padr\u00e3o**\n   - Seletores: \"Ampla concorr\u00eancia\", \"Racial\" e \"PcD\".\n   - Ordena\u00e7\u00e3o: \"Nota final\" e, depois, \"M\u00e9dia da forma\u00e7\u00e3o acad\u00eamica\".\n\n3. **Ranking de bolsas**\n   - Um \u00fanico seletor.\n   - Condi\u00e7\u00e3o: o candidato solicitou bolsa.\n   - Ordena\u00e7\u00e3o: os mesmos crit\u00e9rios do ranking padr\u00e3o.\n\n4. **Fase de Homologa\u00e7\u00e3o**\n   - Formul\u00e1rio com os campos:\n     - \"Optante negro ou ind\u00edgena\"\n     - \"PcD\"\n     - \"Homologa\u00e7\u00e3o\"\n     - \"Raz\u00e3o de indeferimento\"\n   - Consolida\u00e7\u00e3o: envio de e-mail de notifica\u00e7\u00e3o de **deferimento** ou de **indeferimento**.\n   - Condi\u00e7\u00e3o de aprova\u00e7\u00e3o: `\"Homologa\u00e7\u00e3o\" = \"Deferida\"`.\n   - Comit\u00ea: um \u00fanico usu\u00e1rio com papel de **secretaria**. Se n\u00e3o existir nenhum, usar o usu\u00e1rio **admin**.\n\n5. **Fase de Avalia\u00e7\u00e3o**\n   - Formul\u00e1rio com os campos:\n     - \"Nota da forma\u00e7\u00e3o acad\u00eamica\"\n     - \"Nota da experi\u00eancia acad\u00eamica e profissional\"\n     - \"Observa\u00e7\u00e3o\"\n   - Consolida\u00e7\u00e3o: c\u00e1lculo de:\n     - \"M\u00e9dia da forma\u00e7\u00e3o acad\u00eamica\"\n     - \"M\u00e9dia da experi\u00eancia acad\u00eamica e profissional\"\n     - \"Nota final\"\n   - Condi\u00e7\u00e3o de aprova\u00e7\u00e3o: `\"Nota final\" >= 6`.\n   - Comit\u00ea: usu\u00e1rio **admin**. O ideal seriam professores, mas o admin foi escolhido por ser mais \"seguro\" numa configura\u00e7\u00e3o padr\u00e3o.\n\n## Premissas\n\n1. O sistema j\u00e1 tem os conceitos de edital, fases, formul\u00e1rios de fase, consolida\u00e7\u00e3o, condi\u00e7\u00e3o de aprova\u00e7\u00e3o, comit\u00ea, ranking, seletores, ordena\u00e7\u00e3o e notifica\u00e7\u00e3o por e-mail. A issue s\u00f3 pede **dados de configura\u00e7\u00e3o**, sem novas funcionalidades.\n2. \"Migra\u00e7\u00e3o\" significa uma migra\u00e7\u00e3o de dados do framework usado no projeto. O framework n\u00e3o \u00e9 informado.\n3. \"Sem carta\" significa que o formul\u00e1rio de candidatura n\u00e3o exige carta de recomenda\u00e7\u00e3o.\n4. O campo \"Homologa\u00e7\u00e3o\" \u00e9 de escolha, com pelo menos as op\u00e7\u00f5es \"Deferida\" e \"Indeferida\".\n5. \"Raz\u00e3o de indeferimento\" \u00e9 texto livre, relevante apenas quando a homologa\u00e7\u00e3o \u00e9 \"Indeferida\".\n6. \"Optante negro ou ind\u00edgena\" e \"PcD\" s\u00e3o campos booleanos (sim/n\u00e3o) preenchidos pela secretaria na homologa\u00e7\u00e3o.\n7. Esses dois campos alimentam os seletores \"Racial\" e \"PcD\" do ranking padr\u00e3o.\n8. \"Nota final\" e \"M\u00e9dia da forma\u00e7\u00e3o acad\u00eamica\" s\u00e3o crit\u00e9rios em ordem: o primeiro \u00e9 o principal e o segundo \u00e9 o desempate. Ambos s\u00e3o decrescentes.\n9. As m\u00e9dias s\u00e3o calculadas a partir das notas dadas pelos membros do comit\u00ea de avalia\u00e7\u00e3o.\n10. O formul\u00e1rio de candidatura j\u00e1 tem, ou ter\u00e1, um campo que indica se o candidato solicitou bolsa.\n11. Existe um usu\u00e1rio admin identific\u00e1vel de forma determin\u00edstica.\n12. A migra\u00e7\u00e3o deve ser segura para reexecu\u00e7\u00e3o e para bancos j\u00e1 populados: n\u00e3o deve duplicar o exemplo nem falhar.\n\n## Stack Tecnol\u00f3gica\n\nN\u00e3o informado na issue original.\n\n## Comandos\n\nN\u00e3o informado na issue original. Os comandos de build, teste, lint e execu\u00e7\u00e3o de migra\u00e7\u00f5es s\u00e3o desconhecidos.\n\n## Estrutura do Projeto\n\nN\u00e3o informado na issue original. A localiza\u00e7\u00e3o das migra\u00e7\u00f5es, dos modelos de edital e ranking e dos templates de e-mail \u00e9 desconhecida.\n\n## Estilo de C\u00f3digo\n\nN\u00e3o informado na issue original.\n\n## Estrat\u00e9gia de Testes\n\nO framework de testes n\u00e3o \u00e9 informado na issue original. Os n\u00edveis de teste desejados s\u00e3o:\n\n- **Teste de migra\u00e7\u00e3o:** em banco vazio e em banco com dados, a migra\u00e7\u00e3o cria exatamente um edital de exemplo com todas as configura\u00e7\u00f5es listadas no Objetivo.\n- **Teste de comit\u00ea \u2013 Homologa\u00e7\u00e3o:**\n  - Com usu\u00e1rio(s) de papel secretaria, o comit\u00ea cont\u00e9m exatamente 1 deles.\n  - Sem secretaria, o comit\u00ea cont\u00e9m o admin.\n- **Teste de comit\u00ea \u2013 Avalia\u00e7\u00e3o:** o comit\u00ea cont\u00e9m o admin.\n- **Teste de condi\u00e7\u00e3o \u2013 Homologa\u00e7\u00e3o:** \"Deferida\" aprova e \"Indeferida\" reprova.\n- **Teste de condi\u00e7\u00e3o \u2013 Avalia\u00e7\u00e3o:**\n  - \"Nota final\" = 6 aprova.\n  - \"Nota final\" < 6 reprova.\n- **Teste de consolida\u00e7\u00e3o:** m\u00e9dias e \"Nota final\" calculadas corretamente (depende da f\u00f3rmula; ver Quest\u00f5es em Aberto).\n- **Teste de rankings:**\n  - Os seletores filtram corretamente.\n  - A ordena\u00e7\u00e3o usa \"Nota final\" e, depois, \"M\u00e9dia da forma\u00e7\u00e3o acad\u00eamica\".\n  - O ranking de bolsas inclui apenas quem solicitou bolsa.\n- **Teste de notifica\u00e7\u00e3o:** a consolida\u00e7\u00e3o da homologa\u00e7\u00e3o dispara o e-mail correto (deferimento ou indeferimento).\n- **Teste de reexecu\u00e7\u00e3o:** rodar a migra\u00e7\u00e3o novamente n\u00e3o duplica dados.\n\n## Limites\n\n- **Sempre:**\n  - Usar as funcionalidades existentes de edital e ranking, sem criar mecanismos paralelos.\n  - Manter os nomes de campos e seletores exatamente como na issue.\n  - Garantir que a migra\u00e7\u00e3o seja revers\u00edvel e idempotente, se o framework permitir.\n  - Rodar os testes antes de commitar.\n- **Perguntar antes:**\n  - Alterar o esquema do banco ou os modelos existentes para viabilizar o exemplo.\n  - Adicionar depend\u00eancias.\n  - Definir pesos ou f\u00f3rmula da \"Nota final\" n\u00e3o descritos na issue.\n  - Publicar ou ativar o edital de exemplo por padr\u00e3o.\n- **Nunca:**\n  - Criar usu\u00e1rios novos com credenciais fixas.\n  - Expor dados pessoais reais nos textos de exemplo ou nos e-mails.\n  - Alterar ou remover editais existentes durante a migra\u00e7\u00e3o.\n\n## Crit\u00e9rios de Sucesso\n\n1. Ap\u00f3s rodar as migra\u00e7\u00f5es em um banco novo, existe um edital de exemplo com:\n   - formul\u00e1rio de candidatura sem carta;\n   - as fases \"Homologa\u00e7\u00e3o\" e \"Avalia\u00e7\u00e3o\", nesta ordem.\n2. A fase de Homologa\u00e7\u00e3o tem:\n   - os 4 campos especificados;\n   - consolida\u00e7\u00e3o com e-mail de deferimento e de indeferimento;\n   - condi\u00e7\u00e3o `\"Homologa\u00e7\u00e3o\" = \"Deferida\"`;\n   - comit\u00ea com exatamente 1 usu\u00e1rio secretaria ou, na falta dele, o admin.\n3. A fase de Avalia\u00e7\u00e3o tem:\n   - os 3 campos especificados;\n   - consolida\u00e7\u00e3o que calcula as 3 m\u00e9tricas;\n   - condi\u00e7\u00e3o `\"Nota final\" >= 6`;\n   - comit\u00ea com o admin.\n4. O ranking padr\u00e3o tem os seletores \"Ampla concorr\u00eancia\", \"Racial\" e \"PcD\", ordenados por \"Nota final\" e depois por \"M\u00e9dia da forma\u00e7\u00e3o acad\u00eamica\".\n5. O ranking de bolsas tem um \u00fanico seletor, inclui apenas candidatos que solicitaram bolsa e usa a mesma ordena\u00e7\u00e3o.\n6. Rodar a migra\u00e7\u00e3o em um banco que j\u00e1 tem dados, incluindo outros editais, n\u00e3o quebra nem altera registros existentes.\n7. Um desenvolvedor consegue duplicar ou editar o exemplo pela interface ou pelo fluxo existente para customiz\u00e1-lo.\n8. Todos os testes listados na Estrat\u00e9gia de Testes passam.\n\n## Quest\u00f5es em Aberto\n\n1. **Mecanismo de cria\u00e7\u00e3o:** deve ser uma migra\u00e7\u00e3o de dados, uma *fixture* ou *seed*, ou um comando de gerenciamento? A issue diz \"migra\u00e7\u00e3o\". Ela deve rodar automaticamente em todos os ambientes, inclusive em produ\u00e7\u00e3o?\n2. **F\u00f3rmula da \"Nota final\":** \u00e9 a m\u00e9dia simples das duas m\u00e9dias, ou h\u00e1 pesos? Como lidar com notas ausentes?\n3. **C\u00e1lculo das m\u00e9dias:** s\u00e3o a m\u00e9dia aritm\u00e9tica entre os avaliadores do comit\u00ea?\n4. **Escala das notas:** a escala \u00e9 de 0 a 10? H\u00e1 casas decimais? H\u00e1 valida\u00e7\u00e3o de faixa no formul\u00e1rio?\n5. **Campo \"Homologa\u00e7\u00e3o\":** as op\u00e7\u00f5es s\u00e3o s\u00f3 \"Deferida\" e \"Indeferida\"?\n6. **\"Raz\u00e3o de indeferimento\":** \u00e9 obrigat\u00f3ria quando a homologa\u00e7\u00e3o \u00e9 \"Indeferida\"?\n7. **Seletores do ranking padr\u00e3o:**\n   - \"Ampla concorr\u00eancia\" inclui todos os candidatos ou s\u00f3 os n\u00e3o optantes?\n   - Um candidato pode aparecer em mais de um seletor?\n   - H\u00e1 n\u00famero de vagas por seletor?\n8. **\"Solicitou bolsa\":** esse campo j\u00e1 existe no formul\u00e1rio de candidatura? Se n\u00e3o, deve ser criado no exemplo?\n9. **Seletor do ranking de bolsas:** qual o nome dele?\n10. **Conte\u00fado dos e-mails:** qual o texto, o assunto e o remetente dos e-mails de deferimento e indeferimento? Existem templates prontos? A raz\u00e3o de indeferimento deve ser inclu\u00edda no e-mail?\n11. **Escolha do usu\u00e1rio secretaria:** qual crit\u00e9rio usar para escolher \"1 s\u00f3\" quando h\u00e1 v\u00e1rios (ex.: o mais antigo, o menor ID)?\n12. **Identifica\u00e7\u00e3o do admin:** como identificar \"o admin\" (username fixo, superusu\u00e1rio, papel)? O que fazer se nem admin nem secretaria existirem?\n13. **Estado do edital:** o edital de exemplo deve ser criado como rascunho, inativo ou publicado? Que datas de abertura e fechamento usar?\n14. **Programa associado:** o exemplo deve ficar vinculado a algum programa ou curso espec\u00edfico (ex.: IC)?\n15. **Outros campos da candidatura:** quais outros campos, al\u00e9m da aus\u00eancia de carta, o formul\u00e1rio de candidatura do IC possui hoje?\n16. **Revers\u00e3o:** ao reverter a migra\u00e7\u00e3o, o exemplo deve ser removido, mesmo que j\u00e1 tenha sido customizado ou tenha candidaturas?",
+ "ttft_ms": 6248,
+ "type": "result",
+ "duration_ms": 36982,
+ "uuid": "40dad88d-c4c0-4e8b-a5a1-f602694c7e29",
+ "ttft_stream_ms": 1015,
+ "time_to_request_ms": 277,
+ "time_to_request_phases_ms": {
+  "other": 3,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 2,
+  "conversation_append": 0,
+  "tool_pool_refresh": 1,
+  "init_message": 14,
+  "init_frame_send": 4,
+  "engine_pickup": 2,
+  "loop_entry": 3,
+  "message_prep": 1,
+  "model_config_wait": 222,
+  "autocompact": 1,
+  "request_announcements": 4,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 257,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 14,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 3,
+  "ambient_wait_ms": 3,
+  "render_ms": 2,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 0,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 0,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1015,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

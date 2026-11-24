@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31481,
+ "stop_reason": "end_turn",
+ "session_id": "c1810007-9ad6-4c52-8f4e-322c326910b8",
+ "total_cost_usd": 0.1541656,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 11383,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3051,
+  "output_tokens_details": {
+   "thinking_tokens": 141
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 11383,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3051,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 11383,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 11383
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 11968,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0012108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3051,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 11383,
+   "webSearchRequests": 0,
+   "costUSD": 0.1529548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 141,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `--recursive=y` must honor `ignore-paths`\n\n## Objective\n\nWith `--recursive=y`, pylint lints files that match the `ignore-paths` patterns in the user's configuration. In the reported case, generated files under `src/gen/` are linted even though `ignore-paths` contains `^src/gen/.*$`.\n\n**User:** A pylint user who runs `pylint --recursive=y <dir>` and configures `ignore-paths` in `pyproject.toml` (`[tool.pylint.MASTER]`) to exclude generated or vendored code.\n\n**Why it matters:** Generated code floods the output with unactionable messages. In the report this pushed the score to -158.32/10. It also makes `ignore-paths` unusable together with recursive discovery.\n\n**Observed (pylint 2.14.1, astroid 2.11.5, Python 3.9.6, Windows 10.0.19044):**\n- `pylint --recursive=y src/` reports messages for `src\\gen\\about.py`, `src\\gen\\design.py`, `src\\gen\\resources_rc.py`, `src\\gen\\settings.py` and `src\\gen\\update_checker.py`.\n- The reported paths use Windows separators (`src\\gen\\...`). The configured pattern uses forward slashes (`^src/gen/.*$`).\n- `R0401 cyclic-import` messages are attached to `src\\gen\\update_checker.py:1:0`. The cycles listed involve non-generated modules such as `AutoSplit`, `error_messages` and `region_selection`. This placement may be a side effect: the ignored file is the last module linted.\n\n**Expected:** No file whose path matches an `ignore-paths` pattern is linted or reported when discovery is recursive.\n\n**User stories:**\n- As a user, when I run `pylint --recursive=y src/` with `ignore-paths = [\"^src/gen/.*$\"]`, files under `src/gen/` produce no messages.\n- As a Windows user, a forward-slash `ignore-paths` pattern excludes the same files it would exclude on POSIX. This assumes the project confirms that is the intended contract (see Open Questions).\n\n## Tech Stack\n\n- Python. The reporter uses 3.9.6. The supported range for the fix is unknown.\n- pylint 2.14.1 as reported. The target branch or version for the fix is unknown.\n- astroid 2.11.5 as reported.\n- Configuration source: `pyproject.toml`, `[tool.pylint.MASTER]` section.\n\n## Commands\n\nThe project's own commands are unknown because the repository is not visible.\n\n```\nReproduce (from issue): pylint --recursive=y src/\nBuild:  unknown\nTest:   unknown\nLint:   unknown\n```\n\n## Project Structure\n\nUnknown. The repository is not visible.\n\n- Location of recursive file discovery: unknown\n- Location of `ignore-paths` matching: unknown\n- Location of tests for file discovery or ignore options: unknown\n- Location of functional or regression test fixtures: unknown\n\nReporter's layout, from the issue output:\n```\nsrc/\n  region_selection.py      \u2192 linted, expected\n  ... other app modules    \u2192 linted, expected\n  gen/                     \u2192 auto-generated, should be ignored\n    about.py\n    design.py\n    resources_rc.py\n    settings.py\n    update_checker.py\n```\n\n## Code Style\n\nUnknown. Follow the existing conventions in the pylint codebase. No snippet is available from the issue.\n\n## Testing Strategy\n\nThe test framework and test locations are unknown. Required coverage:\n\n- **Regression test, recursive mode:** create a directory tree with an ignored subdirectory. Configure `ignore-paths` with a pattern for it. Run with `--recursive=y` on the parent directory. Assert that no module from the ignored subdirectory is linted or reported.\n- **Separator handling:** the test must pass when discovered paths use OS-native separators. If CI does not run on Windows, the test should exercise the separator case in some other way, for example by simulating backslash paths. The mechanism is unknown.\n- **Non-recursive parity:** the same `ignore-paths` configuration gives the same set of linted files whether the directory is passed with or without `--recursive=y`. This holds only if the non-recursive behavior is confirmed correct today.\n- **No over-ignoring:** files outside the ignored pattern are still linted. In the report, `src/region_selection.py` must still produce `R0914`.\n- **Config source:** at least one test loads `ignore-paths` from a `pyproject.toml` `[tool.pylint.MASTER]` section, as in the report.\n- **Existing tests:** the existing `ignore`, `ignore-patterns` and `ignore-paths` tests must keep passing.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the bug with a failing test before changing behavior.\n  - Keep `ignore-paths` semantics identical between recursive and non-recursive modes.\n  - Run the full existing test suite before committing.\n- **Ask first:**\n  - Changing the documented contract of `ignore-paths`, such as normalizing separators before matching, or which path form (relative or absolute) patterns match against.\n  - Changing how `ignore` and `ignore-patterns` behave in recursive mode.\n  - Changing which file `cyclic-import` messages are attached to.\n  - Adding dependencies.\n- **Never:**\n  - Silently change the matching semantics of existing user patterns without a changelog or documentation entry.\n  - Remove or weaken existing ignore-related tests.\n  - Fix this only for Windows or only for POSIX if the root cause is shared.\n\n## Success Criteria\n\n1. With `ignore-paths = [\"^src/gen/.*$\"]` and `pylint --recursive=y src/`, no message is reported for any file under `src/gen/` on POSIX or on Windows.\n2. Files under `src/gen/` are not parsed or linted at all. Suppressing their output is not enough.\n3. Files outside `src/gen/` are still linted and reported as before.\n4. Recursive and non-recursive runs over equivalent inputs apply `ignore-paths` identically.\n5. A regression test covering criteria 1\u20133 fails before the fix and passes after it.\n6. No existing tests regress.\n7. If the fix changes how patterns are matched (separator normalization, relative vs. absolute paths), the documentation for `ignore-paths` states the behavior explicitly.\n\n## Assumptions\n\n1. The bug is in pylint's handling of `ignore-paths` during recursive discovery. The user's configuration is valid and being read. Other options from the same section are not shown, so this is not confirmed.\n2. A likely contributor is that recursive discovery yields OS-native paths (`src\\gen\\about.py` on Windows) that are matched against forward-slash regexes. This is inferred only from the separators in the output. It is not verified, and recursive mode may skip `ignore-paths` entirely regardless of OS.\n3. The expected behavior is that ignored files are never linted. Filtering their output afterwards would not meet this.\n4. `ignore-paths` already behaves correctly without `--recursive=y`. The issue does not state this.\n5. The `cyclic-import` messages attached to `src\\gen\\update_checker.py` will move or disappear once the generated files are no longer linted. They are a symptom, not a separate bug in scope here.\n6. The `MASTER` section name in `pyproject.toml` is a supported way to set this option in 2.14.1.\n\n## Open Questions\n\n1. Does the bug reproduce on POSIX, or only on Windows? This tells us whether the root cause is separator handling or recursive mode skipping `ignore-paths` altogether.\n2. Does `pylint src/gen/about.py` or `pylint src/` without `--recursive=y` honor the same `ignore-paths` on the reporter's machine?\n3. What is the intended contract for `ignore-paths` patterns on Windows?\n   - Should users write forward slashes, backslashes, or should pylint normalize?\n   - Should patterns match relative paths (relative to what: the CWD, or the argument?) or absolute paths?\n4. Are `ignore` and `ignore-patterns` also ignored in recursive mode? Should they be fixed in the same change or tracked separately?\n5. Should ignored directories be pruned during traversal, so their contents are never visited? Or should files be filtered after discovery? This affects performance on large generated trees.\n6. Is attaching project-wide `cyclic-import` messages to the last linted module intended? Does it need its own issue?\n7. Which pylint branch or version should receive the fix? Is a backport to 2.14.x expected?\n8. Does CI run on Windows, so the separator case can be tested natively?",
+ "ttft_ms": 3094,
+ "type": "result",
+ "duration_ms": 30772,
+ "uuid": "744dbf30-a220-4513-9595-05658a65dc5b",
+ "ttft_stream_ms": 1699,
+ "time_to_request_ms": 243,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 163,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1700,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

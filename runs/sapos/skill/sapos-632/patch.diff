@@ -1,0 +1,454 @@
+diff --git a/app/controllers/notifications_controller.rb b/app/controllers/notifications_controller.rb
+index b31be960..c1ac57a5 100644
+--- a/app/controllers/notifications_controller.rb
++++ b/app/controllers/notifications_controller.rb
+@@ -28,14 +28,14 @@ class NotificationsController < ApplicationController
+ 
+     form_columns = [
+       :title, :frequency, :notification_offset, :query_offset, :query,
+-      :individual, :has_grades_report_pdf_attachment, :template_type,
++      :individual, :template_type,
+       :to_template, :subject_template, :body_template
+     ]
+     config.columns = form_columns
+     config.update.columns = form_columns
+     config.create.columns = [
+       :title, :frequency, :notification_offset, :query_offset, :query,
+-      :individual, :has_grades_report_pdf_attachment,
++      :individual,
+       :to_template, :subject_template, :body_template
+     ]
+     config.show.columns = form_columns + [:next_execution]
+@@ -52,9 +52,6 @@ class NotificationsController < ApplicationController
+     config.columns[:individual].description = I18n.t(
+       "active_scaffold.notification.individual_description"
+     )
+-    config.columns[:has_grades_report_pdf_attachment].description = I18n.t(
+-      "active_scaffold.notification.has_grades_report_pdf_attachment_description"
+-    )
+     config.columns[:notification_offset].description = I18n.t(
+       "active_scaffold.notification.notification_offset_description"
+     )
+@@ -82,7 +79,7 @@ class NotificationsController < ApplicationController
+   def execute_now
+     process_action_link_action do |notification|
+       result = notification.execute(override_params: get_query_params)
+-      Notifier.send_emails(prepare_attachments(result))
++      Notifier.send_emails(result)
+       self.successful = true
+ 
+       flash[:info] = I18n.t("active_scaffold.notification.execute_now_success")
+@@ -147,19 +144,4 @@ class NotificationsController < ApplicationController
+       )
+       params[:query_params] || {}
+     end
+-
+-    def prepare_attachments(notification_result)
+-      notification_result[:notifications].each do |message|
+-        attachments = notification_result[:notifications_attachments][message]
+-        next if attachments.blank?
+-        if attachments[:grades_report_pdf]
+-          enrollment = Enrollment.find(message[:enrollments_id])
+-          filename = "grades_report.pdf"
+-          signature_type = 0
+-          attachments[:grades_report_pdf][:file_contents] =
+-            render_enrollments_grades_report_pdf(enrollment, filename, signature_type, watermark: true)
+-        end
+-      end
+-      notification_result
+-    end
+ end
+diff --git a/app/models/notification.rb b/app/models/notification.rb
+index 37c75302..b05b8e00 100644
+--- a/app/models/notification.rb
++++ b/app/models/notification.rb
+@@ -65,8 +65,6 @@ class Notification < ApplicationRecord
+   validate :has_notification_offset_within_range,
+     if: Proc.new { |o| o.errors.empty? }
+ 
+-  validate :has_grades_report_pdf_attachment_requirements
+-
+   validate :frequency_manual_has_notification_offset_equals_zero
+ 
+   validate do
+@@ -95,24 +93,6 @@ class Notification < ApplicationRecord
+     end
+   end
+ 
+-  def has_grades_report_pdf_attachment_requirements
+-    if self.has_grades_report_pdf_attachment
+-      if !self.individual
+-        errors.add(:has_grades_report_pdf_attachment, :individual_required)
+-      end
+-
+-      does_not_have_enrollments_id_alias = !self.query.execute(
+-        prepare_params_and_derivations({ data_consulta: Time.zone.now })
+-      )[:columns].include?("enrollments_id")
+-      if does_not_have_enrollments_id_alias
+-        errors.add(
+-          :has_grades_report_pdf_attachment,
+-          :query_with_enrollments_id_alias_column_required
+-        )
+-      end
+-    end
+-  end
+-
+   def has_notification_offset_within_range
+     time_delta = StringTimeDelta.parse(self.notification_offset)
+     time_delta = -time_delta if time_delta < 0
+@@ -213,18 +193,6 @@ class Notification < ApplicationRecord
+ 
+           attachments = {}
+ 
+-          # add grades_report_pdf attachment if required
+-          if self.has_grades_report_pdf_attachment
+-            notification[:enrollments_id] = bindings["enrollments_id"]
+-
+-            pdf_title = I18n.t("pdf_content.enrollment.grades_report.title")
+-            student = Enrollment.find(bindings["enrollments_id"]).student.name
+-            attachment_file_name = "#{pdf_title} - #{student}.pdf"
+-            attachments[:grades_report_pdf] = {
+-              file_name: attachment_file_name
+-            }
+-          end
+-
+           notifications << notification
+           notifications_attachments[notification] = attachments
+         end
+diff --git a/config/locales/notification.pt-BR.yml b/config/locales/notification.pt-BR.yml
+index e59de63a..032fd3d1 100644
+--- a/config/locales/notification.pt-BR.yml
++++ b/config/locales/notification.pt-BR.yml
+@@ -22,7 +22,6 @@ pt-BR:
+         title: "Título"
+         to_template: "Template do Destinatário"
+         individual: "Individual"
+-        has_grades_report_pdf_attachment: "Boletim anexado"
+         no_name: "Sem nome"
+         query: "Consulta"
+         template_type: "Formato do Template"
+@@ -35,8 +34,6 @@ pt-BR:
+         notification:
+           offset_bigger_than_frequency: "não pode ser um valor que ultrapasse a frequência"
+           offset_invalid_value: "está com o valor inválido. Tente um número, seguido por y, M, W, d, h, m ou s"
+-          individual_required: "requer que o email seja individual"
+-          query_with_enrollments_id_alias_column_required: "requer que a Consulta possua com campo com alias enrollments_id"
+           manual_frequency_requires_notification_offset_to_be_zero: ": Quando a Frequência for Manual, deixar Offset da Notificação com valor 0"
+           cannot_create_new_erb_template: "Não é possível fazer alterações em template ERB. Converta para Liquid e altere o formato"
+           invalid_query_date: "Não foi possível ler a data de consulta \"%{date}\". A simulação abaixo usou a data padrão da notificação."
+@@ -55,7 +52,6 @@ pt-BR:
+       execute_now: "Enviar agora"
+       simulate: "Simular"
+       individual_description: "Um e-mail para cada resultado"
+-      has_grades_report_pdf_attachment_description: "Requer email individual e um campo na query, com alias enrollments_id"
+       notification_offset_description: "Data de execução. Frequência Mensal com offset 3d executará todo dia 04 do mês"
+       query_offset_description: "Data de consulta. Frequência Semestral com offset -1M terá variavel para dias 01/02 ou 01/07"
+       execute_now_success: 'Notificação disparada com sucesso'
+diff --git a/db/migrate/20260621000000_remove_has_grades_report_pdf_attachment_from_notifications.rb b/db/migrate/20260621000000_remove_has_grades_report_pdf_attachment_from_notifications.rb
+new file mode 100644
+index 00000000..3c968c3f
+--- /dev/null
++++ b/db/migrate/20260621000000_remove_has_grades_report_pdf_attachment_from_notifications.rb
+@@ -0,0 +1,10 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class RemoveHasGradesReportPdfAttachmentFromNotifications < ActiveRecord::Migration[7.0]
++  def change
++    remove_column :notifications, :has_grades_report_pdf_attachment, :boolean, default: false, null: false
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 4a943b95..282516da 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
++ActiveRecord::Schema[7.1].define(version: 2026_06_21_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -688,7 +688,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
+     t.datetime "updated_at", precision: nil, null: false
+     t.boolean "individual", default: true, null: false
+     t.integer "query_id", null: false
+-    t.boolean "has_grades_report_pdf_attachment", default: false, null: false
+     t.string "template_type", default: "Liquid"
+     t.index ["query_id"], name: "index_notifications_on_query_id"
+   end
+diff --git a/db/seeds/02.reports_notifications.rb b/db/seeds/02.reports_notifications.rb
+index f7739e60..f937902f 100644
+--- a/db/seeds/02.reports_notifications.rb
++++ b/db/seeds/02.reports_notifications.rb
+@@ -81,7 +81,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "4d",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Secretaria %}",
+         subject_template: "Alunos com etapa vencida",
+@@ -104,7 +103,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "1M",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Prazo para realização de {{ phase_name }}",
+@@ -166,7 +164,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "1M",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ prof_email }}",
+         subject_template: "Prazo para realização de {{ phase_name }} de seu orientando {{ name }}",
+@@ -242,7 +239,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "-2M",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Coordenação %}",
+         subject_template: "Alunos ainda não desligados",
+@@ -293,7 +289,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "3M",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Coordenação %}",
+         subject_template: "Total de alunos ativos",
+@@ -341,7 +336,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "2",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Fim da validade do seu trancamento",
+@@ -358,7 +352,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "2",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Coordenação %}",
+         subject_template: "Alunos cujo trancamento expira no final do mês",
+@@ -394,7 +387,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Inscrição obrigatória em Seminários",
+@@ -445,7 +437,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Inscrição obrigatória em disciplinas",
+@@ -464,7 +455,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Lembrete: inscrição em disciplinas no mestrado/doutorado",
+@@ -487,7 +477,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Coordenação %}",
+         subject_template: "Alunos que não se inscreveram",
+@@ -644,7 +633,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Inscrição Obrigatória em Estágio de Docência",
+@@ -717,7 +705,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Coordenação %}",
+         subject_template: "Bolsas disponíveis",
+@@ -794,7 +781,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "19",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Secretaria %}",
+         subject_template: "Alunos que devem entregar a proposta de dissertação",
+@@ -815,7 +801,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "19",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Prazo para a entrega da proposta de dissertação",
+@@ -903,7 +888,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Coordenação %}",
+         subject_template: "[SAPOS] Disciplinas sem alunos matriculados",
+@@ -1076,7 +1060,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Inscrição incompleta em disciplinas",
+@@ -1154,7 +1137,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Inscrição incompleta em disciplinas",
+@@ -1924,7 +1906,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "0",
+         individual: true,
+-        has_grades_report_pdf_attachment: true,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Boletim Escolar da Pós-Graduação",
+@@ -2084,7 +2065,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "19",
+         individual: false,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{% emails Secretaria %}",
+         subject_template: "Alunos que devem entregar o plano de estudo orientado",
+@@ -2105,7 +2085,6 @@ queries = [
+         notification_offset: "0",
+         query_offset: "19",
+         individual: true,
+-        has_grades_report_pdf_attachment: false,
+         template_type: "Liquid",
+         to_template: "{{ email }}",
+         subject_template: "Prazo para a entrega do plano de estudo orientado",
+@@ -2369,7 +2348,6 @@ unless is_sqlite
+           notification_offset: "0",
+           query_offset: "0",
+           individual: true,
+-          has_grades_report_pdf_attachment: false,
+           template_type: "Liquid",
+           to_template: "{{ email }}",
+           subject_template: "Inscrição inapropriada em pesquisa de tese/dissertação",
+@@ -2885,7 +2863,6 @@ unless is_sqlite
+           notification_offset: "0",
+           query_offset: "0",
+           individual: true,
+-          has_grades_report_pdf_attachment: false,
+           template_type: "Liquid",
+           to_template: "{{ email }}",
+           subject_template: "Documentação pendente",
+@@ -2904,7 +2881,6 @@ unless is_sqlite
+           notification_offset: "0",
+           query_offset: "0",
+           individual: false,
+-          has_grades_report_pdf_attachment: false,
+           template_type: "Liquid",
+           to_template: "{% emails Secretaria %}",
+           subject_template: "Alunos com documentação pendente",
+@@ -2948,7 +2924,6 @@ unless is_sqlite
+           notification_offset: "0",
+           query_offset: "0",
+           individual: false,
+-          has_grades_report_pdf_attachment: false,
+           template_type: "Liquid",
+           to_template: "{% emails Secretaria %}",
+           subject_template: "[SAPOS] Alunos que não entregaram a versão final",
+@@ -2969,7 +2944,6 @@ unless is_sqlite
+           notification_offset: "0",
+           query_offset: "0",
+           individual: true,
+-          has_grades_report_pdf_attachment: false,
+           template_type: "Liquid",
+           to_template: "{{ student_email }}",
+           subject_template: "Prazo de entrega de versão final vencido",
+@@ -3016,7 +2990,6 @@ unless is_sqlite
+           notification_offset: "0",
+           query_offset: "0",
+           individual: true,
+-          has_grades_report_pdf_attachment: false,
+           template_type: "Liquid",
+           to_template: "{{ advisor_email }}",
+           subject_template: "Prazo de entrega de versão final vencido",
+diff --git a/lib/tasks/maintenance.rake b/lib/tasks/maintenance.rake
+index a21d186d..a4742740 100644
+--- a/lib/tasks/maintenance.rake
++++ b/lib/tasks/maintenance.rake
+@@ -49,7 +49,7 @@ namespace :maintenance do
+     # Find notifications that should run
+     Notification.where.not(frequency: Notification::MANUAL)
+                 .where(next_execution.lt(Time.now)).each do |notification|
+-      result = prepare_attachments(notification.execute)
++      result = notification.execute
+       notifications.concat(result[:notifications])
+       notifications_attachments.merge!(result[:notifications_attachments])
+     end
+@@ -61,37 +61,4 @@ namespace :maintenance do
+ 
+     Notifier.logger.info "[Notifications] #{Time.now.to_fs} - Finished sending notifications"
+   end
+-
+-  private
+-    # The rendering modules live in a class of their own on purpose. Calling
+-    # `include` from inside a method body of this file would include them into
+-    # Object, which leaks into every object in the process -- harmless for a
+-    # cron run that exits right after, but it breaks any other code sharing the
+-    # process, the test suite included.
+-    #
+-    # The class is built on first use, not at the top level of this file: rake
+-    # loads every rakefile before running any task, so a top-level body would
+-    # resolve SharedPdfConcern before the environment is loaded, and Zeitwerk
+-    # cannot autoload it yet. That raises NameError on *every* rake invocation,
+-    # not just on this task.
+-    def attachment_renderer
+-      @attachment_renderer ||= Class.new do
+-        include SharedPdfConcern
+-        include AbstractController::Rendering
+-      end.new
+-    end
+-
+-    def prepare_attachments(notification_result)
+-      renderer = attachment_renderer
+-      notification_result[:notifications].each do |message|
+-        attachments = notification_result[:notifications_attachments][message]
+-        next if attachments.blank?
+-        if attachments[:grades_report_pdf]
+-          enrollment = Enrollment.find(message[:enrollments_id])
+-          attachments[:grades_report_pdf][:file_contents] =
+-            renderer.render_enrollments_grades_report_pdf(enrollment)
+-        end
+-      end
+-      notification_result
+-    end
+ end

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10395,
+ "stop_reason": "end_turn",
+ "session_id": "eb0878b9-69bd-4f8c-bd1a-68c37aecaebd",
+ "total_cost_usd": 0.030143800000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1250,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 999,
+  "output_tokens_details": {
+   "thinking_tokens": 113
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1250,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 999,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1250,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1250
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1453,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015580000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 999,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1250,
+   "webSearchRequests": 0,
+   "costUSD": 0.029988,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 113,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`convert_to` returns an incorrect result with a fractional exponent when the target unit is not dimensionally compatible with the expression being converted. Converting `joule*second` to `joule` returns `joule**(7/9)` instead of a meaningful result.\n\n## Steps to reproduce\n\n1. Use sympy 1.4.\n2. Call `convert_to(joule*second, joule)`.\n3. Observe the returned expression.\n\nBackground: `J = kg*m**2/s**2`, so `J*s = kg*m**2/s`. This is not dimensionally equivalent to `J`, so no exact conversion to `joule` exists.\n\n## Observed behavior\n\n```\n>>> convert_to(joule*second, joule)\n    joule**(7/9)\n```\n\nThe result has a fractional exponent and is dimensionally wrong. The reporter suspects that `convert_to` only handles conversions correctly when the whole unit expression can be validly expressed in the target unit.\n\nFor comparison, these related conversions give sensible results:\n\n```\n>>> convert_to(joule*second, joule*second)\n    joule*second\n```\n```\n>>> convert_to(J*s, kg*m**2/s)\n    kg*m**2/s\n```\n```\n>>> convert_to(J*s, mins)\n    J*mins/60\n```\n\n## Expected behavior\n\nWhen the target unit is not compatible with the expression, `convert_to(joule*second, joule)` should do one of the following:\n- return the original expression unchanged (`joule*second`),\n- return the expression in base units (e.g. `kg*m**2/s`), or\n- raise an error.\n\nIt should not return `joule**(7/9)`.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the call returns the incorrect value shown above.\n\n## Test case\n\nMinimal check based on the report. Imports and the definitions of `J`, `s`, `kg`, `m` and `mins` are not given in the original report.\n\n```python\nresult = convert_to(joule*second, joule)\n# Observed: joule**(7/9)\n# Expected: joule*second (unchanged), an expression in base units, or an error\nassert result != joule**(Rational(7, 9))\n```\n\n## Code example\n\nFrom the report:\n\n```\n>>> convert_to(joule*second, joule)\n    joule**(7/9)\n>>> convert_to(joule*second, joule*second)\n    joule*second\n>>> convert_to(J*s, kg*m**2/s)\n    kg*m**2/s\n>>> convert_to(J*s, mins)\n    J*mins/60\n```\n\n## Version and environment\n\n- sympy 1.4 (the reporter could not test 1.5 or later)\n- OS / Python version: Not provided in the original report.",
+ "ttft_ms": 2874,
+ "type": "result",
+ "duration_ms": 9716,
+ "uuid": "9fecc9d5-724f-4ba9-912b-4346ac0849ce",
+ "ttft_stream_ms": 1380,
+ "time_to_request_ms": 247,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 217,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 143,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1380,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

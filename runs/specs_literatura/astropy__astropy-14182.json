@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14499,
+ "stop_reason": "end_turn",
+ "session_id": "0524b5d4-939a-4065-83a0-4812f36372be",
+ "total_cost_usd": 0.044425700000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1734,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1517,
+  "output_tokens_details": {
+   "thinking_tokens": 167
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1734,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1517,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1734,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1734
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1967,
+   "outputTokens": 18,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002057,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1517,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1734,
+   "webSearchRequests": 0,
+   "costUSD": 0.04422,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 167,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nSupport the `header_rows` argument when writing astropy tables in reStructuredText (`ascii.rst`) format.\n\n## Description\nThe `ascii.fixed_width` writer accepts a `header_rows` keyword argument. This lets users write extra header rows, such as column units, below the column names. The `ascii.rst` writer does not accept this argument. Passing it raises a `TypeError`.\n\n**Current behavior**\n\nWriting a `QTable` with `format=\"ascii.rst\"` and no extra arguments works. The output contains only the column names:\n\n```Python\n>>> from astropy.table import QTable\n>>> import astropy.units as u\n>>> import sys\n>>> tbl = QTable({'wave': [350,950]*u.nm, 'response': [0.7, 1.2]*u.count})\n>>> tbl.write(sys.stdout,  format=\"ascii.rst\")\n===== ========\n wave response\n===== ========\n350.0      0.7\n950.0      1.2\n===== ========\n```\n\nWith `ascii.fixed_width`, `header_rows` adds a row with the units:\n\n```Python\n>>> tbl.write(sys.stdout,  format=\"ascii.fixed_width\", header_rows=[\"name\", \"unit\"])\n|  wave | response |\n|    nm |       ct |\n| 350.0 |      0.7 |\n| 950.0 |      1.2 |\n```\n\nWith `ascii.rst`, the same argument fails:\n\n```Python\n>>> tbl.write(sys.stdout,  format=\"ascii.rst\", header_rows=[\"name\", \"unit\"])\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/usr/lib/python3/dist-packages/astropy/table/connect.py\", line 129, in __call__\n    self.registry.write(instance, *args, **kwargs)\n  File \"/usr/lib/python3/dist-packages/astropy/io/registry/core.py\", line 369, in write\n    return writer(data, *args, **kwargs)\n  File \"/usr/lib/python3/dist-packages/astropy/io/ascii/connect.py\", line 26, in io_write\n    return write(table, filename, **kwargs)\n  File \"/usr/lib/python3/dist-packages/astropy/io/ascii/ui.py\", line 856, in write\n    writer = get_writer(Writer=Writer, fast_writer=fast_writer, **kwargs)\n  File \"/usr/lib/python3/dist-packages/astropy/io/ascii/ui.py\", line 800, in get_writer\n    writer = core._get_writer(Writer, fast_writer, **kwargs)\n  File \"/usr/lib/python3/dist-packages/astropy/io/ascii/core.py\", line 1719, in _get_writer\n    writer = Writer(**writer_kwargs)\nTypeError: RST.__init__() got an unexpected keyword argument 'header_rows'\n```\n\n**Expected behavior**\n\n`tbl.write(sys.stdout, format=\"ascii.rst\", header_rows=[\"name\", \"unit\"])` should work. It should write the requested header rows (e.g. names and units) in the RST table, as `ascii.fixed_width` already does.\n\n## Product version\nNot provided in the original request. The traceback shows only that astropy was installed from a system package under `/usr/lib/python3/dist-packages/`. No version number is given.\n\n## Rationale\nreStructuredText output is a convenient way to fill autogenerated documentation with content. Making the RST writer as flexible as the fixed-width writer, for example by including units as a header row, would make this easier.\n\n## Use case or scenario\nA user generates documentation automatically from astropy tables that contain physical quantities, such as wavelength in `nm` and response in `count`. They want to write these tables in reStructuredText format and show each column's unit in an extra header row below the column name.\n\n## Possible solution\nThe request suggests that the `ascii.rst` writer accept the `header_rows` keyword argument (e.g. `header_rows=[\"name\", \"unit\"]`), the same way the `ascii.fixed_width` writer already does.",
+ "ttft_ms": 3757,
+ "type": "result",
+ "duration_ms": 13752,
+ "uuid": "b05f64eb-b35b-4a76-84d2-77708f571737",
+ "ttft_stream_ms": 1896,
+ "time_to_request_ms": 344,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 17,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 269,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 42,
+ "time_to_request_cpu_ms": 222,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 21,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1896,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10281,
+ "stop_reason": "end_turn",
+ "session_id": "b36e2715-5a2d-4a5a-adf9-b8c233fb5c8c",
+ "total_cost_usd": 0.0311428,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1289,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1033,
+  "output_tokens_details": {
+   "thinking_tokens": 244
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1289,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1033,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1289,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1289
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1493,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1033,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1289,
+   "webSearchRequests": 0,
+   "costUSD": 0.03098,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 244,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe `autodoc_typehints` setting has no effect on overloaded callables (functions decorated with `typing.overload`). With `autodoc_typehints = 'none'`, the setting is not applied to the overloaded function's signatures.\n\n## Steps to reproduce\n\n1. In `conf.py`, enable `sphinx.ext.autodoc` and set:\n   ```python\n   autodoc_typehints = 'none'\n   ```\n2. Create `example.py` with an overloaded function:\n   ```python\n   from typing import overload\n\n\n   @overload\n   def foo(x: int) -> int:\n       ...\n\n\n   @overload\n   def foo(x: float) -> float:\n       ...\n\n\n   def foo(x):\n       return x\n   ```\n3. In `index.rst`, document the module:\n   ```rst\n   .. automodule:: example\n      :members:\n      :undoc-members:\n   ```\n4. Build the documentation.\n5. Inspect the rendered signatures of `foo`.\n\n## Observed behavior\n\nThe `autodoc_typehints` setting is not applied to the overloaded callable `foo`. The report does not include the actual rendered output.\n\n## Expected behavior\n\nAll type hints of overloaded callables follow the `autodoc_typehints` setting. With `autodoc_typehints = 'none'`, the overload signatures of `foo` (`(x: int) -> int` and `(x: float) -> float`) should be rendered without type hints.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report. A minimal test case can be built from the reproduction files above: build `example.py` with `autodoc_typehints = 'none'` and check that no type hints appear in the documented signatures of the overloaded function `foo`.\n\n## Code example\n\n`conf.py`:\n```python\nautodoc_typehints = 'none'\n```\n\n`index.rst`:\n```rst\n.. automodule:: example\n   :members:\n   :undoc-members:\n```\n\n`example.py`:\n```python\nfrom typing import overload\n\n\n@overload\ndef foo(x: int) -> int:\n    ...\n\n\n@overload\ndef foo(x: float) -> float:\n    ...\n\n\ndef foo(x):\n    return x\n```\n\n## Version and environment\n\n- OS: Mac\n- Python version: 3.8.2\n- Sphinx version: 3.1.0dev\n- Sphinx extensions: `sphinx.ext.autodoc`\n- Extra tools: None",
+ "ttft_ms": 4249,
+ "type": "result",
+ "duration_ms": 9764,
+ "uuid": "5b378a77-c616-4c43-9151-e4e3fd79a2c3",
+ "ttft_stream_ms": 1444,
+ "time_to_request_ms": 299,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 27,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 224,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 332,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 18,
+  "cpu_ms": 36,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1445,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,39 @@
+diff --git a/django/db/models/fields/__init__.py b/django/db/models/fields/__init__.py
+index 28374272f4..a3c03023af 100755
+--- a/django/db/models/fields/__init__.py
++++ b/django/db/models/fields/__init__.py
+@@ -516,17 +516,31 @@ class Field(RegisterLookupMixin):
+     def __eq__(self, other):
+         # Needed for @total_ordering
+         if isinstance(other, Field):
+-            return self.creation_counter == other.creation_counter
++            return (
++                self.creation_counter == other.creation_counter and
++                getattr(self, 'model', None) == getattr(other, 'model', None)
++            )
+         return NotImplemented
+ 
++    def _model_sort_key(self):
++        model = getattr(self, 'model', None)
++        if model is None:
++            return ('', '')
++        return (model._meta.app_label, model._meta.model_name)
++
+     def __lt__(self, other):
+         # This is needed because bisect does not take a comparison function.
++        # Order by creation_counter first so existing orderings are kept.
+         if isinstance(other, Field):
+-            return self.creation_counter < other.creation_counter
++            if self.creation_counter != other.creation_counter:
++                return self.creation_counter < other.creation_counter
++            if getattr(self, 'model', None) != getattr(other, 'model', None):
++                return self._model_sort_key() < other._model_sort_key()
++            return False
+         return NotImplemented
+ 
+     def __hash__(self):
+-        return hash(self.creation_counter)
++        return hash((self.creation_counter, *self._model_sort_key()))
+ 
+     def __deepcopy__(self, memodict):
+         # We don't have to deepcopy very much here, since most things are not

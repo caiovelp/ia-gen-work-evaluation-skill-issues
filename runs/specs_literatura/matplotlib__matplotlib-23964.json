@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 18753,
+ "stop_reason": "end_turn",
+ "session_id": "be492f70-7ee5-4f7e-ba21-d3bb3ce5f558",
+ "total_cost_usd": 0.0728866,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2897,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2469,
+  "output_tokens_details": {
+   "thinking_tokens": 57
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2897,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2469,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2897,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2897
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3106,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00032260000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2469,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2897,
+   "webSearchRequests": 0,
+   "costUSD": 0.07256399999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 57,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nSaving a figure with the PostScript backend (`.eps`) raises `TypeError: cannot unpack non-iterable NoneType object` when the figure contains a multi-line text label that has an empty line, such as text starting with `\\n`. This affects annotations and titles. The same figure saves without error with other backends (PNG, PDF, SVG, Qt). According to the reporter, this is a regression: it works with matplotlib <= 3.5.3 and fails with 3.6.0.\n\n## Steps to reproduce\n\n1. Create a `Figure` and add a subplot.\n2. Add a text element whose string contains an empty line, for example:\n   - `ax.annotate(text='\\nLower label', xy=(0, 0))`, or\n   - `ax.set_title('\\nLower title')` (the reporter says this also triggers the error).\n3. Save the figure with the PostScript backend: `figure.savefig('figure.eps')`.\n4. Observe the `TypeError`.\n\n## Observed behavior\n\n`savefig` raises `TypeError: cannot unpack non-iterable NoneType object` from `backend_ps.py` in `draw_text`, and the `.eps` file is not saved successfully.\n\n## Expected behavior\n\nThe figure is saved as `figure.eps` without error, as it is with the PNG, PDF, SVG and Qt backends and with matplotlib <= 3.5.3.\n\n## Stack trace / error output\n\n```\n$ ./venv/Scripts/python save_ps.py\nTraceback (most recent call last):\n  File \"C:\\temp\\matplotlib_save_ps\\save_ps.py\", line 7, in <module>\n    figure.savefig('figure.eps')\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\figure.py\", line 3272, in savefig\n    self.canvas.print_figure(fname, **kwargs)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\backend_bases.py\", line 2338, in print_figure\n    result = print_method(\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\backend_bases.py\", line 2204, in <lambda>\n    print_method = functools.wraps(meth)(lambda *args, **kwargs: meth(\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\_api\\deprecation.py\", line 410, in wrapper\n    return func(*inner_args, **inner_kwargs)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\backends\\backend_ps.py\", line 869, in _print_ps\n    printer(fmt, outfile, dpi=dpi, dsc_comments=dsc_comments,\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\backends\\backend_ps.py\", line 927, in _print_figure\n    self.figure.draw(renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\artist.py\", line 74, in draw_wrapper\n    result = draw(artist, renderer, *args, **kwargs)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\figure.py\", line 3069, in draw\n    mimage._draw_list_compositing_images(\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\image.py\", line 131, in _draw_list_compositing_images\n    a.draw(renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\axes\\_base.py\", line 3106, in draw\n    mimage._draw_list_compositing_images(\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\image.py\", line 131, in _draw_list_compositing_images\n    a.draw(renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\text.py\", line 1995, in draw\n    Text.draw(self, renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\artist.py\", line 51, in draw_wrapper\n    return draw(artist, renderer)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\text.py\", line 736, in draw\n    textrenderer.draw_text(gc, x, y, clean_line,\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\backends\\backend_ps.py\", line 248, in wrapper\n    return meth(self, *args, **kwargs)\n  File \"C:\\temp\\matplotlib_save_ps\\venv\\lib\\site-packages\\matplotlib\\backends\\backend_ps.py\", line 673, in draw_text\n    for ps_name, xs_names in stream:\nTypeError: cannot unpack non-iterable NoneType object\n```\n\n## Test case\n\nThis is a minimal test derived from the reproduction snippet in the report. It should pass, meaning no exception is raised:\n\n```python\nfrom matplotlib.figure import Figure\n\ndef test_eps_text_with_empty_line():\n    figure = Figure()\n    ax = figure.add_subplot(111)\n    ax.annotate(text='\\nLower label', xy=(0, 0))\n    figure.savefig('figure.eps')\n\ndef test_eps_title_with_empty_line():\n    figure = Figure()\n    ax = figure.add_subplot(111)\n    ax.set_title('\\nLower title')\n    figure.savefig('figure.eps')\n```\n\n## Code example\n\n```python\nfrom matplotlib.figure import Figure\n\nfigure = Figure()\nax = figure.add_subplot(111)\n# ax.set_title('\\nLower title')  # this would cause an error as well\nax.annotate(text='\\nLower label', xy=(0, 0))\nfigure.savefig('figure.eps')\n```\n\n## Version and environment\n\n- Matplotlib version: 3.6.0 (works with matplotlib <= 3.5.3)\n- Python version: 3.9.13\n- Operating system: Windows\n- Installation: pip (virtual environment)\n- Backend: PostScript, via saving to `.eps`. PNG, PDF, SVG and Qt backends are reported to work.",
+ "ttft_ms": 1843,
+ "type": "result",
+ "duration_ms": 18211,
+ "uuid": "f7fa3e86-2a50-485e-9a74-66092a3db3c8",
+ "ttft_stream_ms": 1412,
+ "time_to_request_ms": 310,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 13,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 26,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 230,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 59,
+ "time_to_request_cpu_ms": 214,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1412,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

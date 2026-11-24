@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14707,
+ "stop_reason": "end_turn",
+ "session_id": "a0d965bb-74a3-48ab-b10a-eeaa04e1fb21",
+ "total_cost_usd": 0.0468037,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1815,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1603,
+  "output_tokens_details": {
+   "thinking_tokens": 221
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1815,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1603,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1815,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1815
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2022,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002157,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1603,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1815,
+   "webSearchRequests": 0,
+   "costUSD": 0.046588,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 221,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`OneHotEncoder` with `handle_unknown='ignore'` raises a `ValueError` in `transform` when the categories are strings held in a NumPy array (not object dtype). The reporter explains that during `transform`, unknown entries are replaced with `OneHotEncoder.categories_[i][0]`, the first category in alphabetical order from `fit`. If that category is longer than the fixed-width strings in the array being transformed, it gets truncated (`'11111111'` becomes `'111111'`). The truncated value is then treated as a previously unseen label, which raises the error.\n\nThe reporter notes that the issue does not occur when the input is a list of lists, because it is then treated as an array of objects.\n\n## Steps to reproduce\n\n1. Create a training array of strings as a NumPy array (not a list of lists), where the alphabetically first category is a long string:\n   `np.array(['22', '333', '4444', '11111111']).reshape((-1, 1))`\n2. Create a test array of strings with shorter maximum length than that first category, containing one unknown value and one known value:\n   `np.array(['55555', '22']).reshape((-1, 1))`\n3. Create `OneHotEncoder(dtype=bool, handle_unknown='ignore')`.\n4. Call `fit` with the training array.\n5. Call `transform` with the test array.\n\n## Observed behavior\n\n`transform` raises a `ValueError` stating that the input contains a previously unseen label, `'111111'`. This is a truncated version of the category `'11111111'`.\n\n## Expected behavior\n\n`transform` should return a 2x4 sparse matrix that is `False` everywhere except at position (1, 1), which corresponds to the known value `'22'`. The unknown value `'55555'` should be ignored.\n\n## Stack trace / error output\n\n```\nValueError: y contains previously unseen labels: ['111111']\n```\n\nThe full stack trace was not provided in the original report.\n\n## Test case\n\nMinimal test derived from the reproduction snippet and the stated expected result:\n\n```python\nimport numpy as np\nfrom sklearn.preprocessing import OneHotEncoder\n\n\ndef test_one_hot_encoder_handle_unknown_strings():\n    train = np.array(['22', '333', '4444', '11111111']).reshape((-1, 1))\n    test = np.array(['55555', '22']).reshape((-1, 1))\n\n    ohe = OneHotEncoder(dtype=bool, handle_unknown='ignore')\n    ohe.fit(train)\n    enc_test = ohe.transform(test)  # currently raises ValueError\n\n    expected = np.zeros((2, 4), dtype=bool)\n    expected[1, 1] = True\n    assert enc_test.shape == (2, 4)\n    assert np.array_equal(enc_test.toarray(), expected)\n```\n\n## Code example\n\n```python\nimport numpy as np\nfrom sklearn.preprocessing import OneHotEncoder\n\n# It needs to be numpy arrays, the error does not appear\n# if you have lists of lists because it gets treated like an array of objects.\ntrain = np.array(['22', '333', '4444', '11111111']).reshape((-1, 1))\ntest = np.array(['55555', '22']).reshape((-1, 1))\n\nohe = OneHotEncoder(dtype=bool, handle_unknown='ignore')\n\nohe.fit(train)\nenc_test = ohe.transform(test)\n```\n\n## Version and environment\n\n```\nSystem:\n    python: 2.7.12 (default, Dec  4 2017, 14:50:18)  [GCC 5.4.0 20160609]\n   machine: Linux-4.4.0-138-generic-x86_64-with-Ubuntu-16.04-xenial\nexecutable: /usr/bin/python\n\nBLAS:\n    macros: HAVE_CBLAS=None\ncblas_libs: openblas, openblas\n  lib_dirs: /usr/lib\n\nPython deps:\n    Cython: 0.25.2\n     scipy: 0.18.1\nsetuptools: 36.7.0\n       pip: 9.0.1\n     numpy: 1.15.2\n    pandas: 0.19.1\n   sklearn: 0.21.dev0\n```",
+ "ttft_ms": 4163,
+ "type": "result",
+ "duration_ms": 14251,
+ "uuid": "7ede7380-4e71-4d7c-b0c4-e96c668b9ea0",
+ "ttft_stream_ms": 1771,
+ "time_to_request_ms": 361,
+ "time_to_request_phases_ms": {
+  "other": 26,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 16,
+  "input_hooks": 5,
+  "tool_pool_refresh": 3,
+  "init_message": 19,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 263,
+  "autocompact": 4,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 98,
+ "time_to_request_cpu_ms": 414,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 10,
+  "cpu_ms": 25,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1771,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

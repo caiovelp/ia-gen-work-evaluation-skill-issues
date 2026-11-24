@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 39251,
+ "stop_reason": "end_turn",
+ "session_id": "3c1be913-bb4f-4494-940b-8f0a9fa6189d",
+ "total_cost_usd": 0.11417359999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 4594,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3801,
+  "output_tokens_details": {
+   "thinking_tokens": 159
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 4594,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3801,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 4594,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 4594
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 5183,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0005308000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3801,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 4594,
+   "webSearchRequests": 0,
+   "costUSD": 0.11364279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 159,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: saferepr must not raise INTERNALERROR when an object's `__repr__` and attribute access both raise\n\n## Objective\n\npytest crashes with `INTERNALERROR` instead of reporting a normal test failure when a failing test has a traceback-frame local whose `__repr__` raises **and** whose attribute access (`__getattribute__`) also raises. The session ends with \"no tests ran\" and the real failure is never shown.\n\n**Who is affected:** Users whose tests involve objects with unusual dunder behaviour, such as proxies, mocks, lazy objects or deliberately broken objects. When such a test fails, pytest itself breaks.\n\n**Observed behaviour (from the issue, pytest 5.4.1, Python 3.8.1):**\n\n1. `test()` raises inside `SomeClass().attr`. A bare `raise` in `__getattribute__` gives `RuntimeError: No active exception to reraise`.\n2. While building the failure report, `repr_args` calls `saferepr(argvalue)` on frame locals (`_pytest/_code/code.py`, line 693).\n3. `SafeRepr.repr_instance` catches the exception from `repr(x)`. It then calls `_format_repr_exception(exc, x)` (`_pytest/_io/saferepr.py`, line 60).\n4. `_format_repr_exception` evaluates `obj.__class__.__name__` (saferepr.py, line 23). That goes through the object's raising `__getattribute__` and raises again.\n5. The new exception escapes `repr_instance`. `SafeRepr.repr` catches it (line 47/51) and calls `_format_repr_exception` again, which raises the same way.\n6. The exception escapes `saferepr` and propagates to `wrap_session`, which produces `INTERNALERROR`.\n\n**Root-cause hypothesis (based on the traceback, not verified against source):** The fallback path that formats a failed repr still touches the object's attributes (`obj.__class__`). That runs user-defined `__getattribute__`, so `saferepr` is not actually safe for these objects.\n\n**Desired behaviour:** `saferepr` never raises for any object, whatever that object's `__repr__`, `__getattribute__`, or the exception it raises does. The test is reported as a normal failure, and pytest exits with the normal \"tests failed\" status, not the internal-error status.\n\n### Acceptance criteria / user stories\n\n- As a user, when my test fails and a frame local has a broken `__repr__` and a broken `__getattribute__`, I see a normal FAILED report with a placeholder repr for that object, and no INTERNALERROR.\n- As a pytest maintainer, `saferepr(obj)` returns a string for every input object, even when every user-overridable hook on it raises.\n\n## Assumptions\n\n1. The bug is in pytest's `_pytest/_io/saferepr.py`, specifically the formatting of the \"repr raised\" placeholder. Paths come from the installed-package traceback. The paths in the source tree are assumed to match under some source root (unknown, possibly `src/_pytest/...`).\n2. The class name in the placeholder should be obtained without invoking the instance's `__getattribute__`, for example from the object's actual type rather than via attribute lookup on the instance. This is a behavioural requirement, not a prescribed implementation.\n3. The exact format of the placeholder string (something like `<[ExcType(...) raised in repr()] ClassName object at 0x...>`) should stay as it is for the ordinary case where only `__repr__` raises. Existing users and tests may depend on it.\n4. Formatting the *exception itself* (its repr/str) inside the placeholder could also raise, if a user-defined exception class has a broken `__repr__`. Assumed in scope: \"saferepr never raises\" should cover it too.\n5. A bare `raise` with no active exception gives `RuntimeError`, as in the reproducer. The fix must not depend on the specific exception type raised.\n6. `BaseException` subclasses meant to stop the run (`KeyboardInterrupt`, `SystemExit`) raised from `__repr__` are assumed to keep their current handling, whatever that is. Behaviour for them is not changed by this work unless the maintainers decide otherwise (see Open Questions).\n7. The fix targets the current development branch. Back-porting to 5.4.x is not assumed.\n8. Similar \"safe\" formatting helpers may also access instance attributes, for example a `safeformat` / pretty-print variant in the same module. They are assumed to fall under the same requirement if they exist. This is unverified.\n\n## Tech Stack\n\n- Language: Python. The issue was reported on 3.8.1. The full supported version range of the project is **unknown**.\n- Project: pytest. The reported version is 5.4.1, with dependencies py 1.8.1 and pluggy 0.13.1.\n- Relevant stdlib: `reprlib.Repr`, which `SafeRepr` subclasses according to the traceback.\n\n## Commands\n\nNot visible in the issue. All are **unknown** and must be taken from the repository (e.g. `tox.ini`, `setup.cfg`, CI config):\n\n```\nBuild:   unknown\nTest:    unknown (presumably pytest run against the repo's own test suite; exact invocation/tox env unknown)\nLint:    unknown\nDev:     unknown\n```\n\n## Project Structure\n\nOnly these locations are known, from the traceback of the installed package:\n\n```\n_pytest/_io/saferepr.py   \u2192 SafeRepr, saferepr(), _format_repr_exception()  (primary area of change)\n_pytest/_code/code.py     \u2192 FormattedExcinfo.repr_args() calls saferepr on frame locals (caller)\n_pytest/reports.py        \u2192 TestReport.from_item_and_call (where the crash surfaces)\n_pytest/main.py           \u2192 wrap_session (where INTERNALERROR is emitted)\n```\n\n- Source root in the repository: **unknown**.\n- Test directory and file for saferepr tests: **unknown**. Presumably a dedicated saferepr test module exists. To be confirmed.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions in `_pytest/_io/saferepr.py` and the repo's lint/format configuration, which is not visible. No snippet is provided, because inventing one would misrepresent the project's style.\n\n## Testing Strategy\n\n- **Framework:** pytest testing itself. The exact harness and fixtures (e.g. an in-process \"run pytest\" fixture) are **unknown** and must be checked in the repo.\n- **Unit level (saferepr):**\n  - Object whose `__repr__` raises and whose `__getattribute__` raises: `saferepr` returns a string and does not raise.\n  - Object whose `__repr__` raises with a bare `raise` (`RuntimeError`): returns a placeholder string.\n  - Object whose `__repr__` raises an exception whose own `__repr__`/`__str__` raises (per Assumption 4): returns a string.\n  - Regression: an object whose `__repr__` raises but whose attribute access works still produces the existing placeholder format, including the correct class name.\n- **Integration level (end-to-end run):**\n  - Running the reproducer from the issue as a test file gives a normal failed test outcome: 1 failed, no `INTERNALERROR` in the output, and the \"tests failed\" exit code rather than the internal-error one.\n- **Coverage expectations:** **Unknown** project threshold. At minimum, the new fallback branches in saferepr are exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep `saferepr` total: it must return a string for every input.\n  - Keep the existing placeholder format for the ordinary \"repr raised\" case.\n  - Add regression tests reproducing the issue's scenario.\n  - Run the existing test suite before committing.\n- **Ask first:**\n  - Changing the placeholder string format.\n  - Changing how `KeyboardInterrupt`/`SystemExit`/other `BaseException`s raised from `__repr__` are handled.\n  - Back-porting to a maintenance branch.\n  - Touching callers in `_pytest/_code/code.py` rather than fixing inside saferepr.\n  - Adding a changelog entry, if the project's changelog mechanism is unknown.\n- **Never:**\n  - Swallow the *test's* original failure.\n  - Remove or weaken existing saferepr tests.\n  - Make reporting call user-overridable instance attribute hooks in the fallback path.\n  - Add new dependencies.\n\n## Success Criteria\n\n1. Running the issue's reproducer under pytest reports `test` as FAILED with a readable traceback. The output contains no `INTERNALERROR`, and the exit status is the normal \"tests failed\" status.\n2. In that failure report, the frame-local `SomeClass` instance appears as a placeholder string. The class name should be resolved without calling the instance's `__getattribute__`. If the name cannot be determined at all, a generic placeholder is acceptable.\n3. `saferepr(x)` returns a `str` and raises nothing (within the scope agreed in Open Questions) for:\n   - (a) a raising `__repr__`;\n   - (b) a raising `__repr__` combined with a raising `__getattribute__`;\n   - (c) a raising `__repr__` whose exception has a raising `__repr__`.\n4. Existing saferepr output for well-behaved objects and for the plain \"repr raised\" case is unchanged. Existing tests pass unmodified.\n5. New unit and integration regression tests covering criteria 1\u20133 are added and pass.\n\n## Open Questions\n\n1. Should the placeholder use the object's real type name, obtained without touching instance attributes, or is a fully generic placeholder acceptable when attribute access raises? Should it instead report that the class name lookup *also* failed?\n2. How should `BaseException` subclasses raised from `__repr__` or `__getattribute__` be treated, especially `KeyboardInterrupt` and `SystemExit`? Propagate them, or format them as placeholders?\n3. Is the nested case in scope for this issue, where the exception's own `__repr__`/`__str__` raises, or should it be a follow-up?\n4. Are there other \"safe\" formatting entry points that can hit the same path and should get the same guarantee? Examples: a pretty-format variant, assertion rewriting's repr helpers, or `repr_locals` with `showlocals`.\n5. Which branch should the fix target, and is a back-port to 5.4.x wanted?\n6. What are the repo's exact test, lint and build commands, its source/test directory layout, and its changelog convention? None of these are visible in the issue.\n7. Should `repr_args` in `_pytest/_code/code.py` also get a defensive guard, so that a future regression in saferepr cannot escalate to INTERNALERROR? Or is fixing saferepr considered sufficient?",
+ "ttft_ms": 3187,
+ "type": "result",
+ "duration_ms": 38646,
+ "uuid": "3eafd2aa-cd25-490d-9bec-797c397d4bb8",
+ "ttft_stream_ms": 1552,
+ "time_to_request_ms": 267,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 233,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 135,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1552,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

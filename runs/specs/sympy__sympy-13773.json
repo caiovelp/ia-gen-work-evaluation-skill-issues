@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30269,
+ "stop_reason": "end_turn",
+ "session_id": "327880e8-9dbe-4191-9429-9d69609c2622",
+ "total_cost_usd": 0.0654317,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 897,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2855,
+  "output_tokens_details": {
+   "thinking_tokens": 209
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 897,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2855,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 897,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 897
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1484,
+   "outputTokens": 273,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00028490000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 249,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2855,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 897,
+   "webSearchRequests": 0,
+   "costUSD": 0.06514679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 209,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restrict `@` (`__matmul__` / `__rmatmul__`) on `Matrix` to matrix\u2013matrix operands\n\n## Objective\n\nThe `@` operator on `Matrix` objects currently copies the behavior of `*` (`__mul__`). It therefore accepts scalar operands and performs scalar multiplication:\n\n```\n>>> A = Matrix([[1, 2], [3, 4]])\n>>> B = Matrix([[2, 3], [1, 2]])\n>>> A@B\nMatrix([\n[ 4,  7],\n[10, 17]])\n>>> 2@B\nMatrix([\n[4, 6],\n[2, 4]])\n```\n\n`2@B` should not succeed. `@` should mean matrix multiplication only. If either operand is not a matrix, the operation must fail. This matches NumPy:\n\n```\n>>> 2@a\nValueError: Scalar operands are not allowed, use '*' instead\n```\n\n**Users:** Library users who write linear algebra code with `Matrix`. They expect `@` to reject scalars, and so to catch mistakes where a scalar was passed by accident, the same way NumPy does.\n\n**Acceptance (user stories):**\n- As a user, `A @ B` with two compatible matrices still returns the matrix product. This is the same result as today and the same as `A * B`.\n- As a user, `2 @ B` raises an error telling me to use `*` instead.\n- As a user, `B @ 2` raises an error telling me to use `*` instead.\n- As a user, `A * 2` and `2 * A` keep working unchanged.\n\n## Assumptions\n\n1. The library is SymPy. This is inferred from the `Matrix([...])` repr style, and it is not stated in the issue.\n2. \"Copies `__mul__`\" means that `__matmul__`, and probably `__rmatmul__`, delegate to `__mul__` / `__rmul__` or are aliased to them. Both directions (`M @ x` and `x @ M`) are in scope.\n3. \"Scalar\" covers Python numbers (`int`, `float`, `complex`) and symbolic scalar expressions such as `Symbol('x')` and `Integer(2)`. All of them must be rejected by `@`.\n4. Matrix\u2013matrix `@` should give exactly the same results as matrix\u2013matrix `*` today, including the error raised for incompatible shapes.\n5. All matrix classes that share the operator implementation are in scope. This includes the mutable, immutable, and possibly sparse variants. Other matrix-like types, such as matrix expressions, are not in scope unless they inherit the same method.\n6. `*` (`__mul__` / `__rmul__`) behavior is out of scope and must not change.\n7. This is a deliberate backward-incompatible behavior change. Any existing code that relies on `scalar @ Matrix` will break.\n\n## Tech Stack\n\n- Language: Python. The supported versions are unknown, but `@` requires Python \u2265 3.5.\n- Library: assumed SymPy, version unknown.\n- Reference behavior: NumPy `ndarray.__matmul__`.\n\n## Commands\n\nUnknown. Nothing in the issue shows them.\n\n```\nBuild: unknown\nTest:  unknown (likely the project's test runner targeting the matrices test module, exact command unknown)\nLint:  unknown\nDev:   unknown\n```\n\n## Project Structure\n\nUnknown. The issue does not show which files define `Matrix.__matmul__` / `__rmatmul__` or where their tests live.\n\n```\n<unknown>  \u2192 module defining Matrix arithmetic operators (__mul__, __matmul__, __rmatmul__)\n<unknown>  \u2192 matrix arithmetic tests\n```\n\n## Code Style\n\nUnknown. Follow the conventions of the surrounding operator-method code in the existing matrix module. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Framework:** unknown. Use the project's existing test framework and test module for matrix arithmetic.\n- **Level:** unit tests on operator behavior.\n- **Cases to cover:**\n  - `Matrix @ Matrix` with compatible shapes returns the product (e.g. `A@B == Matrix([[4, 7], [10, 17]])`).\n  - `Matrix @ Matrix` with incompatible shapes raises the same error as `*` does today.\n  - `int @ Matrix`, `Matrix @ int` raise.\n  - `float`, `complex`, and symbolic scalar (`Symbol`, `Integer`, `Rational`) operands in both positions raise.\n  - Each in-scope matrix class (mutable, immutable, and others per Open Question 4) behaves the same way.\n  - `2 * B` and `B * 2` are unchanged.\n- **Coverage:** every new branch in `__matmul__` / `__rmatmul__` is exercised in both operand orders.\n\n## Boundaries\n\n- **Always:**\n  - Keep matrix\u2013matrix `@` results identical to `*`.\n  - Test both `__matmul__` and `__rmatmul__`.\n  - Run the existing matrix test suite before committing.\n- **Ask first:**\n  - Choice of exception type and message (see Open Questions).\n  - Whether to emit a deprecation warning instead of a hard error.\n  - Whether non-SymPy array-likes (lists, NumPy arrays) should be accepted by `@`.\n  - Changing behavior of matrix-expression classes.\n- **Never:**\n  - Change `*` semantics.\n  - Remove or weaken existing tests without approval.\n  - Silently coerce scalars into matrices for `@`.\n\n## Success Criteria\n\n1. `Matrix([[1, 2], [3, 4]]) @ Matrix([[2, 3], [1, 2]]) == Matrix([[4, 7], [10, 17]])`.\n2. `2 @ Matrix([[2, 3], [1, 2]])` raises an exception and does not return `Matrix([[4, 6], [2, 4]])`.\n3. `Matrix([[2, 3], [1, 2]]) @ 2` raises an exception.\n4. The same holds for symbolic scalars (e.g. `Symbol('x') @ B`, `B @ Symbol('x')`).\n5. The error message tells the user to use `*` for scalar multiplication, as in NumPy's \"Scalar operands are not allowed, use '*' instead\".\n6. `2 * B`, `B * 2`, and `A * B` produce the same results as before.\n7. All existing matrix tests pass, except tests that explicitly asserted scalar `@` behavior. Any such test is updated with approval.\n\n## Open Questions\n\n1. **Exception type:** should it be `ValueError`, which matches NumPy, or `TypeError`? The other option is to return `NotImplemented`, which makes Python raise `TypeError: unsupported operand type(s) for @` and lets other types' `__rmatmul__` / `__matmul__` handle the operation.\n2. **Deprecation path:** should scalar `@` raise immediately, or first emit a deprecation warning for a release cycle, given it's a breaking change?\n3. **Non-SymPy operands:** should `Matrix @ list_of_lists` or `Matrix @ numpy_array` work, if `*` accepts them today, or be rejected?\n4. **Scope of classes:** which matrix classes share this operator? Examples are mutable, immutable, sparse, and matrix expressions. Should matrix-expression `@` (e.g. `MatrixSymbol`) follow the same rule?\n5. **Definition of \"matrix\":** what about 1\u00d71 matrices, or objects that have a `shape` attribute but are not matrix instances? Should they count as matrix operands?\n6. **Location of code and tests:** unknown. Where are `__matmul__` / `__rmatmul__` defined, and which test module should cover them?\n7. **Project commands:** the test, lint, and build commands are unknown.",
+ "ttft_ms": 3415,
+ "type": "result",
+ "duration_ms": 26755,
+ "uuid": "ebc93c42-734a-4ad1-8b5b-74098a47e612",
+ "ttft_stream_ms": 1491,
+ "time_to_request_ms": 246,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 3,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 116,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1492,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

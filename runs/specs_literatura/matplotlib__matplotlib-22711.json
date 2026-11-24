@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 18613,
+ "stop_reason": "end_turn",
+ "session_id": "dad2316a-d7b9-4302-84cd-df4cc1d3bcc4",
+ "total_cost_usd": 0.0623188,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2407,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2139,
+  "output_tokens_details": {
+   "thinking_tokens": 340
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2407,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2139,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2407,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2407
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2618,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002748,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2139,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2407,
+   "webSearchRequests": 0,
+   "costUSD": 0.062044,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 340,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nPassing an initial value (`valinit`) to the `matplotlib.widgets.RangeSlider` constructor raises an `IndexError`, so the slider cannot be created with user-defined initial values. The error is raised in `RangeSlider.set_val` (`matplotlib/widgets.py`, line 915), which `__init__` calls with `valinit` (line 778). The failing statement is `xy[4] = val[0], .25`. It writes to index 4 of the slider polygon's vertex array, but that array has only 4 rows.\n\n## Steps to reproduce\n\n1. Install Matplotlib 3.5.1 (via pip) on Python 3.8 (macOS).\n2. Create a figure and add an axes for the slider, e.g. `slider_ax = fig.add_axes([0.20, 0.1, 0.60, 0.03])`.\n3. Create a horizontal `RangeSlider` with an explicit initial value:\n   `RangeSlider(slider_ax, \"Threshold\", img.min(), img.max(), valinit=[0.0, 0.0])`\n   Here `img` is a 128\u00d7128 array from `np.random.randn` with seed `19680801`.\n4. Observe that the constructor raises an `IndexError` before the slider is shown.\n\n## Observed behavior\n\nConstructing the `RangeSlider` with `valinit=[0.0, 0.0]` fails. `RangeSlider.__init__` calls `self.set_val(valinit)`, and in the horizontal-orientation branch the statement `xy[4] = val[0], .25` raises:\n\n```\nIndexError: index 4 is out of bounds for axis 0 with size 4\n```\n\n## Expected behavior\n\nThe `RangeSlider` is created and displayed with the user-supplied initial values (`valinit`).\n\n## Stack trace / error output\n\n```\n  File \"<ipython-input-52-b704c53e18d4>\", line 19, in <module>\n    slider = RangeSlider(slider_ax, \"Threshold\", img.min(), img.max(),valinit=[0.0,0.0])\n\n  File \"/Users/Vincent/opt/anaconda3/envs/py38/lib/python3.8/site-packages/matplotlib/widgets.py\", line 778, in __init__\n    self.set_val(valinit)\n\n  File \"/Users/Vincent/opt/anaconda3/envs/py38/lib/python3.8/site-packages/matplotlib/widgets.py\", line 915, in set_val\n    xy[4] = val[0], .25\n\nIndexError: index 4 is out of bounds for axis 0 with size 4\n```\n\n## Test case\n\nMinimal reproduction derived from the original report's script:\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom matplotlib.widgets import RangeSlider\n\nnp.random.seed(19680801)\nimg = np.random.randn(128, 128)\n\nfig = plt.figure()\nslider_ax = fig.add_axes([0.20, 0.1, 0.60, 0.03])\n\n# Raises: IndexError: index 4 is out of bounds for axis 0 with size 4\nslider = RangeSlider(slider_ax, \"Threshold\", img.min(), img.max(), valinit=[0.0, 0.0])\n```\n\n## Code example\n\nFull script from the original report:\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nfrom matplotlib.widgets import RangeSlider\n\n# generate a fake image\nnp.random.seed(19680801)\nN = 128\nimg = np.random.randn(N, N)\n\nfig, axs = plt.subplots(1, 2, figsize=(10, 5))\nfig.subplots_adjust(bottom=0.25)\n\nim = axs[0].imshow(img)\naxs[1].hist(img.flatten(), bins='auto')\naxs[1].set_title('Histogram of pixel intensities')\n\n# Create the RangeSlider\nslider_ax = fig.add_axes([0.20, 0.1, 0.60, 0.03])\nslider = RangeSlider(slider_ax, \"Threshold\", img.min(), img.max(),valinit=[0.0,0.0])\n\n# Create the Vertical lines on the histogram\nlower_limit_line = axs[1].axvline(slider.val[0], color='k')\nupper_limit_line = axs[1].axvline(slider.val[1], color='k')\n\n\ndef update(val):\n    # The val passed to a callback by the RangeSlider will\n    # be a tuple of (min, max)\n\n    # Update the image's colormap\n    im.norm.vmin = val[0]\n    im.norm.vmax = val[1]\n\n    # Update the position of the vertical lines\n    lower_limit_line.set_xdata([val[0], val[0]])\n    upper_limit_line.set_xdata([val[1], val[1]])\n\n    # Redraw the figure to ensure it updates\n    fig.canvas.draw_idle()\n\n\nslider.on_changed(update)\nplt.show()\n```\n\n## Version and environment\n\n- Matplotlib version: 3.5.1\n- Python version: 3.8\n- Operating system: macOS (OSX)\n- Installation: pip (the traceback path points to an Anaconda environment, `anaconda3/envs/py38`)\n- Run from: an IPython/Jupyter-style session (per the `<ipython-input-\u2026>` frame); the Jupyter version was not provided in the original report.\n- Matplotlib backend: Not provided in the original report.",
+ "ttft_ms": 5136,
+ "type": "result",
+ "duration_ms": 17938,
+ "uuid": "b8d806ba-c0d8-49a9-a070-ffe54405f76a",
+ "ttft_stream_ms": 1381,
+ "time_to_request_ms": 223,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 169,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1381,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

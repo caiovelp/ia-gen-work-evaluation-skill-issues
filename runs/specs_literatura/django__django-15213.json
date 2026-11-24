@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12254,
+ "stop_reason": "end_turn",
+ "session_id": "8533f650-6637-47ac-b413-0f3e2fd97793",
+ "total_cost_usd": 0.0364935,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1310,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1292,
+  "output_tokens_details": {
+   "thinking_tokens": 243
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1310,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1292,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1310,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1310
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1520,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001655,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1292,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1310,
+   "webSearchRequests": 0,
+   "costUSD": 0.036328,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 243,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nAnnotating a queryset with `ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())` produces an invalid SQL query: the annotation's expression is missing from the `SELECT` clause. The non-negated form, `ExpressionWrapper(Q(pk__in=[]), ...)`, works correctly. The reporter hit this while reducing `Q` objects, similar to what is described in ticket #32554.\n\n## Steps to reproduce\n\n1. Take any queryset (`queryset`) on a model whose table is named `\"table\"` in the output below.\n2. Annotate it with a wrapped, non-negated empty `pk__in` lookup and print the query:\n   ```python\n   print(queryset.annotate(foo=ExpressionWrapper(Q(pk__in=[]), output_field=BooleanField())).values(\"foo\").query)\n   ```\n   The resulting SQL is valid.\n3. Annotate it with the negated version of the same lookup and print the query:\n   ```python\n   print(queryset.annotate(foo=ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())).values(\"foo\").query)\n   ```\n4. Compare the SQL from step 3 with the SQL from step 2.\n\n## Observed behavior\n\n- **Non-negated (works):**\n  ```sql\n  SELECT 0 AS \"foo\" FROM \"table\"\n  ```\n- **Negated (broken):** No expression is generated before `AS \"foo\"`, so the SQL is invalid:\n  ```sql\n  SELECT AS \"foo\" FROM \"table\"\n  ```\n\n## Expected behavior\n\n`ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())` should compile to a valid SQL expression for the `foo` annotation, as the non-negated `ExpressionWrapper(Q(pk__in=[]), ...)` does. The query should not break.\n\n## Stack trace / error output\n\nNot provided in the original report. The report only shows the generated SQL, which is listed under \"Observed behavior\".\n\n## Test case\n\nMinimal check derived from the reproduction snippet. `queryset` is any queryset:\n\n```python\nfrom django.db.models import BooleanField, ExpressionWrapper, Q\n\n# Works: produces SELECT 0 AS \"foo\" FROM \"table\"\nprint(queryset.annotate(\n    foo=ExpressionWrapper(Q(pk__in=[]), output_field=BooleanField())\n).values(\"foo\").query)\n\n# Fails: produces SELECT AS \"foo\" FROM \"table\" (empty expression)\nprint(queryset.annotate(\n    foo=ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())\n).values(\"foo\").query)\n```\n\n## Code example\n\n```python\nqueryset.annotate(foo=ExpressionWrapper(Q(pk__in=[]), output_field=BooleanField())).values(\"foo\").query\nqueryset.annotate(foo=ExpressionWrapper(~Q(pk__in=[]), output_field=BooleanField())).values(\"foo\").query\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 3926,
+ "type": "result",
+ "duration_ms": 11801,
+ "uuid": "0151d7b0-9406-48b3-835e-e71c45154477",
+ "ttft_stream_ms": 1410,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 16,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 265,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 20,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1410,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,13 @@
+diff --git a/django/contrib/auth/management/__init__.py b/django/contrib/auth/management/__init__.py
+index 0b5a982617..c1955e0467 100755
+--- a/django/contrib/auth/management/__init__.py
++++ b/django/contrib/auth/management/__init__.py
+@@ -96,7 +96,7 @@ def create_permissions(
+     )
+ 
+     perms = [
+-        Permission(codename=codename, name=name, content_type=ct)
++        Permission(codename=codename, name=name, content_type_id=ct.pk)
+         for ct, (codename, name) in searched_perms
+         if (ct.pk, codename) not in all_perms
+     ]

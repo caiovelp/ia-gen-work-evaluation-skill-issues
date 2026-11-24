@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 38577,
+ "stop_reason": "end_turn",
+ "session_id": "12fd996e-958a-43d1-aeb9-f317faa6a916",
+ "total_cost_usd": 0.0819236,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1081,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3611,
+  "output_tokens_details": {
+   "thinking_tokens": 254
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1081,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3611,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1081,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1081
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1668,
+   "outputTokens": 36,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018480000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3611,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1081,
+   "webSearchRequests": 0,
+   "costUSD": 0.0817388,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 254,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore backward-compatible access to deprecated `seaborn-*` style names via `plt.style.library`\n\n## Assumptions\n\n1. **Cause (unverified).** Matplotlib 3.6 renamed the bundled seaborn styles from `seaborn-<name>` to `seaborn-v0_8-<name>`, because they no longer match what current seaborn ships. The old names were deprecated rather than removed outright.\n2. **Inconsistent behavior (unverified).** In 3.6.x, `plt.style.use(\"seaborn-colorblind\")` still resolves the old name and emits a deprecation warning. Direct dictionary access `plt.style.library[\"seaborn-colorblind\"]` raises `KeyError` because `library` only contains the new names. The deprecation period therefore covers one public access path but not the other. That inconsistency is the bug.\n3. The intended fix keeps the old names working for the rest of the deprecation period through **every** public lookup path, including `style.library[...]`, with the same deprecation warning `style.use` gives. Removing the alias completely is out of scope; that happens later, on the normal deprecation schedule.\n4. `plt.style.library` is the same object as `matplotlib.style.library`, so fixing one fixes both.\n5. The reporter's \"Expected outcome\" (\"seaborn-colorblind should be set as the library style\") really means: the lookup returns the rcParams dict for that style without raising. `library[...]` reads a style. It does not apply one.\n6. The bug is not specific to an OS or backend. The reporter saw the same behavior on macOS and Ubuntu.\n7. All other deprecated `seaborn-*` names are affected the same way (e.g. `seaborn-dark`, `seaborn-whitegrid`, `seaborn-deep`, and the bare `seaborn`). The fix should cover the whole set, not only `seaborn-colorblind`.\n\n## Objective\n\nUsers upgrading from Matplotlib \u22643.5 to 3.6.x have code like:\n\n```python\nimport matplotlib.pyplot as plt\nthe_rc = plt.style.library[\"seaborn-colorblind\"]\n```\n\nIt now fails with `KeyError: 'seaborn-colorblind'` at import time. It should keep working during the deprecation period and warn the user to migrate to `seaborn-v0_8-colorblind`, as `plt.style.use(\"seaborn-colorblind\")` already does.\n\n**User:** downstream library and application authors who read style definitions directly from `plt.style.library`, for example to merge them into their own rcParams or use them in `rc_context`.\n\n**Acceptance criteria (user stories):**\n- As a user on 3.6.x, when I access `plt.style.library[\"seaborn-colorblind\"]`, I get the same rcParams mapping as `plt.style.library[\"seaborn-v0_8-colorblind\"]`, plus a deprecation warning naming the replacement.\n- As a user, `plt.style.use(...)`, `plt.style.context(...)`, and `plt.style.library[...]` behave the same way for deprecated seaborn names.\n- As a user listing styles (`plt.style.available`, iterating `library`), I don't see the deprecated names advertised as current styles. This needs confirmation; see Open Questions.\n\n## Tech Stack\n\n- Python (reporter: 3.9.7). The project's supported Python range is **unknown**.\n- Matplotlib 3.6.1 (regression vs 3.4.3). The fix targets the 3.6.x maintenance line. The exact target branch is **unknown**.\n- Module involved: the `matplotlib.style` package (`library`, `use`, `context`, `available`). The internal file layout is **unknown / to be confirmed** from the repo.\n\n## Commands\n\nThe issue gives no commands. All of these are **unknown** and must come from the repository's contributor docs:\n\n```\nBuild/install (dev): UNKNOWN\nTest:                UNKNOWN (likely pytest-based; confirm)\nLint:                UNKNOWN\nDocs build:          UNKNOWN\n```\n\nReproduction command (from the issue):\n```\npython -c \"import matplotlib.pyplot as plt; plt.style.library['seaborn-colorblind']\"\n```\n\n## Project Structure\n\n**Unknown.** The repository isn't visible. To be identified:\n- Source location of the `matplotlib.style` implementation (where `library` is built and where `use()` handles the seaborn rename)\n- Location of existing style tests\n- Location of API-change / deprecation notes and what-new docs\n\n## Code Style\n\n**Unknown.** Follow the repository's existing conventions. In particular, use the project's own deprecation-warning helper and warning category, matching what `style.use` already emits for these names. Don't introduce a new warning mechanism.\n\n## Testing Strategy\n\n- **Framework:** unknown (assumed pytest; confirm).\n- **Location:** alongside existing `matplotlib.style` tests (path unknown).\n- **Required test cases:**\n  1. `style.library[\"seaborn-colorblind\"]` does not raise. It returns a mapping equal to `style.library[\"seaborn-v0_8-colorblind\"]` and emits the project's deprecation warning (asserted with the warning-capture utility the project uses).\n  2. Parameterized over **every** deprecated `seaborn-*` alias (including bare `seaborn`): each resolves to its `seaborn-v0_8-*` counterpart with a warning.\n  3. Accessing the new names (`seaborn-v0_8-colorblind`) emits **no** warning.\n  4. A truly unknown key (e.g. `\"not-a-style\"`) still raises `KeyError`.\n  5. `style.use(\"seaborn-colorblind\")` and `style.context(\"seaborn-colorblind\")` keep their current behavior (regression guard).\n  6. Whatever is decided for `\"seaborn-colorblind\" in style.library`, `.get(...)`, iteration, and `style.available`, with an explicit test for each (see Open Questions).\n  7. `style.reload_library()` keeps the alias behavior. It must not replace `library` with a plain dict that loses the aliasing, and existing references to `library` must stay valid if the project relies on that.\n- **Coverage expectation:** unknown. At minimum, every new branch in the lookup path is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Resolve deprecated names to the exact same style data as the `seaborn-v0_8-*` names, not a copy that can drift.\n  - Emit the same deprecation message and category as `style.use` for the same name.\n  - Keep `KeyError` for genuinely unknown style names.\n  - Add a regression test reproducing the issue's exact snippet.\n  - Run the full style test suite before committing.\n- **Ask first:**\n  - Changing the type of the public `style.library` object, e.g. from plain `dict` to a subclass. Possible `isinstance`/pickling/identity implications.\n  - Whether deprecated names appear in `in`, `.get()`, `keys()`, iteration, or `style.available`.\n  - Backporting to 3.6.x vs fixing only on main.\n  - Changing the deprecation removal version or message text.\n- **Never:**\n  - Re-add the old `seaborn-*` style files or entries as first-class styles. That undoes the deprecation.\n  - Silently alias without a warning.\n  - Remove or weaken existing deprecation tests for `style.use`.\n  - Change the contents of any style sheet.\n\n## Success Criteria\n\n1. Running the issue's reproduction snippet on the fixed build **does not raise**. It emits one deprecation warning naming `seaborn-v0_8-colorblind` as the replacement.\n2. `plt.style.library[\"seaborn-colorblind\"] == plt.style.library[\"seaborn-v0_8-colorblind\"]` is `True`.\n3. Criteria 1 and 2 hold for every deprecated `seaborn-*` alias accepted by `style.use`.\n4. New-style names produce no warnings. Unknown names still raise `KeyError`.\n5. `style.use` / `style.context` behavior for old and new names is unchanged. All existing style tests pass.\n6. Behavior persists after `style.reload_library()`.\n7. A changelog / API note entry exists if the project requires one for behavior changes (format unknown).\n\n## Open Questions\n\n1. **Root cause confirmation:** Does `style.use` already special-case the deprecated seaborn names in 3.6.x, so that only `library[...]` misses it? Assumption 2 needs verification against the repo.\n2. **Membership and listing semantics:** Should `\"seaborn-colorblind\" in plt.style.library` return `True`? Should `.get(\"seaborn-colorblind\")` return the style, with or without a warning? Should deprecated names appear in iteration or `plt.style.available`? Keeping them hidden avoids advertising them. Supporting `in`/`.get` maximizes backward compatibility.\n3. **Type of `library`:** Is changing `library` from a plain `dict` to a dict subclass (or another mapping) acceptable for the public API? Do any tests or downstream users depend on `type(library) is dict`?\n4. **Target release:** Should this be backported to a 3.6.x bugfix release, or only fixed on main?\n5. **Reporter expectation:** The reporter wrote that the style \"should be set\". Is the expectation only that the lookup succeeds, as assumed, or does their code rely on anything else that changed between 3.4.3 and 3.6.1?\n6. **Documentation:** Should the 3.6 API-change note for the seaborn rename be updated to mention `style.library` access explicitly, and tell users to migrate to `seaborn-v0_8-*` (or to use the seaborn package's own styling)?\n7. **Removal timeline:** When the alias is eventually removed, the `KeyError` will return. Is the existing deprecation removal version the right one for this access path too?\n8. Repository commands, project structure, test framework, and coverage requirements are all **unknown** and must be filled in from the repo.",
+ "ttft_ms": 5358,
+ "type": "result",
+ "duration_ms": 36610,
+ "uuid": "6f868e07-f19e-43ce-b0ed-516de0486074",
+ "ttft_stream_ms": 2844,
+ "time_to_request_ms": 346,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 14,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 288,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 245,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 21,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2845,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

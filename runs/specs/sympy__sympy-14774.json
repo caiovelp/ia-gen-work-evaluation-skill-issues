@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26496,
+ "stop_reason": "end_turn",
+ "session_id": "b5034433-54a1-4578-913b-70fc6ea13175",
+ "total_cost_usd": 0.059409199999999995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 827,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2578,
+  "output_tokens_details": {
+   "thinking_tokens": 159
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 827,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2578,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 827,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 827
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1414,
+   "outputTokens": 442,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003624,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 417,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2578,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 827,
+   "webSearchRequests": 0,
+   "costUSD": 0.059046799999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 159,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Full inverse-trig names for `acsc` and `asec` in the LaTeX printer\n\n## Objective\n\nThe SymPy LaTeX printer's `inv_trig_style` option is ignored for `acsc` and `asec`. Every style leaves them unchanged, so they print as `\\operatorname{acsc}` and `\\operatorname{asec}`. The other inverse trig functions (`asin`, `acos`, `atan`, `acot`) do respect the option.\n\n**Who is affected:** Users who call `latex(expr, inv_trig_style=...)` and expect all six inverse trig functions to follow the same style.\n\n**Current behavior (from the issue):**\n\n| Call | Actual | Expected |\n|---|---|---|\n| `latex(asin(x), inv_trig_style=\"full\")` | `\\arcsin{\\left (x \\right )}` | (correct) |\n| `latex(acsc(x), inv_trig_style=\"full\")` | `\\operatorname{acsc}{\\left (x \\right )}` | `\\operatorname{arccsc}{\\left (x \\right )}` |\n\n**Root cause the reporter suggests:** In `sympy/printing/latex.py` (around line 743), `inv_trig_table` lists only `[\"asin\", \"acos\", \"atan\", \"acot\"]`. The proposed change adds `\"acsc\"` and `\"asec\"` to it.\n\n**Success looks like:** `acsc` and `asec` follow `inv_trig_style` exactly as `asin`, `acos`, `atan` and `acot` do, for every supported style.\n\n## Assumptions\n\n1. Supported `inv_trig_style` values are `\"abbreviated\"`, `\"full\"` and `\"power\"`. I inferred this from SymPy convention; the issue does not show it, so it needs confirming against the source.\n2. The style transformation is generic: `\"full\"` replaces the leading `a` with `arc`, and `\"power\"` produces `\\func^{-1}`. If so, adding the names to `inv_trig_table` is enough.\n3. `\\arccsc` and `\\arcsec` are not standard LaTeX commands, so the output must be `\\operatorname{arccsc}` and `\\operatorname{arcsec}`. The issue's expected output agrees. I assume the existing printing path already wraps names that are not known LaTeX commands in `\\operatorname{...}`.\n4. With `\"power\"` style, the expected output is `\\csc^{-1}{...}` and `\\sec^{-1}{...}`. `\\csc` and `\\sec` are standard LaTeX commands.\n5. `\"abbreviated\"` (the default) output for `acsc` and `asec` stays exactly as it is today.\n6. The `\\left (x \\right )` spacing in the issue reflects the reporter's SymPy version. Tests should assert against whatever the current printer emits for parentheses, not copy the issue's literal spacing.\n7. Exponentiated forms such as `acsc(x)**2` use the same existing code path as `asin(x)**2` and should behave the same way.\n\n## Tech Stack\n\n- Python, SymPy (exact version: **unknown**)\n- Affected module: `sympy/printing/latex.py` (named in the issue)\n\n## Commands\n\n- Build: **unknown** (pure Python; possibly none needed)\n- Test: **unknown**. The SymPy test runner invocation is not given in the issue.\n- Lint: **unknown**\n\n## Project Structure\n\n- `sympy/printing/latex.py`: LaTeX printer; `inv_trig_table` is defined here (from the issue)\n- LaTeX printer tests: location **unknown**, presumably under the printing package's tests directory. Confirm before editing.\n\n## Code Style\n\nThe issue shows only this snippet from the existing code:\n\n```python\ninv_trig_table = [\"asin\", \"acos\", \"atan\", \"acot\"]\n```\n\nFollow the surrounding conventions in `latex.py`. Keep the table's ordering consistent and readable, for example grouped by function family as in the reporter's suggestion: `asin, acos, atan, acsc, asec, acot`.\n\n## Testing Strategy\n\n- Add regression tests to the existing LaTeX printer test module (path unknown).\n- Cover `acsc(x)` and `asec(x)` under each `inv_trig_style` value: `\"abbreviated\"`, `\"full\"` and `\"power\"`.\n- Cover at least one exponentiated case, e.g. `acsc(x)**2` with `\"full\"` and `\"power\"`, to confirm power handling matches `asin(x)**2`.\n- Run the full existing LaTeX printer test suite to confirm `asin`, `acos`, `atan` and `acot` output is unchanged.\n\n## Boundaries\n\n- **Always:** Add regression tests for both `acsc` and `asec`. Keep default (`\"abbreviated\"`) output unchanged. Run the existing printing tests.\n- **Ask first:** Changing output for any function other than `acsc` and `asec`. Changing how unknown function names are wrapped (`\\operatorname` vs. a bare command). Touching other printers (e.g. MathML or pretty printing).\n- **Never:** Emit non-standard LaTeX commands like a bare `\\arccsc` without `\\operatorname`. Modify or delete existing passing tests to make new ones pass.\n\n## Success Criteria\n\n1. `latex(acsc(x), inv_trig_style=\"full\")` returns `\\operatorname{arccsc}` applied to `x`, using the printer's current parenthesis formatting.\n2. `latex(asec(x), inv_trig_style=\"full\")` returns `\\operatorname{arcsec}` applied to `x`.\n3. `latex(acsc(x), inv_trig_style=\"power\")` and `latex(asec(x), inv_trig_style=\"power\")` return `\\csc^{-1}` and `\\sec^{-1}` forms, consistent with how `asin` renders as `\\sin^{-1}`.\n4. Default and `\"abbreviated\"` output for `acsc` and `asec` is unchanged.\n5. Output for `asin`, `acos`, `atan` and `acot` is unchanged under all styles.\n6. Exponentiated `acsc` and `asec` (e.g. `**2`) render consistently with exponentiated `asin` under each style.\n7. New regression tests exist and pass, and the existing LaTeX printer test suite passes.\n\n## Open Questions\n\n1. What exact `inv_trig_style` values are supported, and how does each one transform the name? This decides whether the table change alone is enough (Assumptions 1\u20132).\n2. Under `\"power\"` style, should `acsc` and `asec` really become `\\csc^{-1}` and `\\sec^{-1}`? This is consistent, but it changes existing output for anyone currently using `\"power\"` with these functions.\n3. Does the printer already wrap `arccsc` and `arcsec` in `\\operatorname{}`? Or is there a list of LaTeX-known function names that has to be checked or kept unchanged?\n4. Should the inverse hyperbolic functions (e.g. `acsch`, `asech`) be audited for the same gap, or are they out of scope?\n5. Are any other printers affected by the same omission (e.g. MathML), and should they be fixed in this change or tracked separately?\n6. What is the target SymPy version or branch, and what is the test command and test file location?",
+ "ttft_ms": 2544,
+ "type": "result",
+ "duration_ms": 24035,
+ "uuid": "0a07e2ee-85ad-462d-ac52-4d0e7acad1b5",
+ "ttft_stream_ms": 877,
+ "time_to_request_ms": 242,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 199,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 133,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 877,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 19554,
+ "stop_reason": "end_turn",
+ "session_id": "67b489f5-4aff-40b2-a923-7490738258f9",
+ "total_cost_usd": 0.06904149999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2511,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2433,
+  "output_tokens_details": {
+   "thinking_tokens": 118
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2511,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2433,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2511,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2511
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2720,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00028550000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2433,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2511,
+   "webSearchRequests": 0,
+   "costUSD": 0.068756,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 118,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWith pytest's `--import-mode=importlib`, a module is imported twice. Two different module objects for `pmxbot.logging` exist at the same time. One is in `sys.modules['pmxbot.logging']`. The other is the `logging` name referenced inside the test module `tests.unit.test_commands`. Both point to the same file, `/Users/jaraco/code/pmxbot/pmxbot/pmxbot/logging.py`.\n\nAs a result, `core.initialize()` appears to have no effect. The initializer does run and sets the class variable `pmxbot.logging.Logger.store`, but the test module sees a different copy of `pmxbot.logging` that never received that attribute.\n\nThis happened while switching pmxbot from `pkg_resources`-style namespace packaging to PEP 420 namespace packages. That switch required `import-mode=importlib` and a reorganization of the tests to avoid import errors.\n\n## Steps to reproduce\n\n1. Check out pmxbot/pmxbot at commit `7f189ad`. At this commit the project uses PEP 420 namespace packages and the tests have been reorganized.\n2. Configure pytest to use `import-mode=importlib`.\n3. Run the test suite, for example the tests in `tests/unit/test_commands.py`.\n4. Observe the error in `TestCommands.setup_class`.\n\nNote: the reporter has not yet produced a minimal reproducer.\n\n## Observed behavior\n\n- `TestCommands.setup_class` fails with `AttributeError: type object 'Logger' has no attribute 'store'` immediately after `core.initialize(config)` returns.\n- Inspection in PDB shows that `logging` in the test module and `sys.modules['pmxbot.logging']` are both `<module 'pmxbot.logging' from '/Users/jaraco/code/pmxbot/pmxbot/pmxbot/logging.py'>`.\n- However, they are not the same object: `sys.modules['pmxbot.logging'] is logging` evaluates to `False`.\n- The initializer sets `Logger.store` on the class in one copy of the module. The test accesses the class in the other copy.\n\n## Expected behavior\n\n`pmxbot.logging` should be imported only once. The `logging` module referenced in `tests.unit.test_commands` should be the same object as `sys.modules['pmxbot.logging']`. Then `logging.Logger.store` set by `core.initialize()` would be visible to the test.\n\n## Stack trace / error output\n\n```\n=========================================================================== test session starts ===========================================================================\nplatform darwin -- Python 3.11.1, pytest-7.2.0, pluggy-1.0.0\ncachedir: .tox/python/.pytest_cache\nrootdir: /Users/jaraco/code/pmxbot/pmxbot, configfile: pytest.ini\nplugins: black-0.3.12, mypy-0.10.3, jaraco.test-5.3.0, checkdocs-2.9.0, flake8-1.1.1, enabler-2.0.0, jaraco.mongodb-11.2.1, pmxbot-1122.14.3.dev13+g7f189ad\ncollected 421 items / 180 deselected / 241 selected\nrun-last-failure: rerun previous 240 failures (skipped 14 files)\n\ntests/unit/test_commands.py E\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> traceback >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n\ncls = <class 'tests.unit.test_commands.TestCommands'>\n\n    @classmethod\n    def setup_class(cls):\n        path = os.path.dirname(os.path.abspath(__file__))\n        configfile = os.path.join(path, 'testconf.yaml')\n        config = pmxbot.dictlib.ConfigDict.from_yaml(configfile)\n        cls.bot = core.initialize(config)\n>       logging.Logger.store.message(\"logged\", \"testrunner\", \"some text\")\nE       AttributeError: type object 'Logger' has no attribute 'store'\n\ntests/unit/test_commands.py:37: AttributeError\n```\n\nPDB session at the point of failure:\n\n```\n> /Users/jaraco/code/pmxbot/pmxbot/tests/unit/test_commands.py(37)setup_class()\n-> logging.Logger.store.message(\"logged\", \"testrunner\", \"some text\")\n(Pdb) logging.Logger\n<class 'pmxbot.logging.Logger'>\n(Pdb) logging\n<module 'pmxbot.logging' from '/Users/jaraco/code/pmxbot/pmxbot/pmxbot/logging.py'>\n(Pdb) import sys\n(Pdb) sys.modules['pmxbot.logging']\n<module 'pmxbot.logging' from '/Users/jaraco/code/pmxbot/pmxbot/pmxbot/logging.py'>\n(Pdb) sys.modules['pmxbot.logging'] is logging\nFalse\n```\n\n## Test case\n\nNo standalone minimal test case was provided. The reporter states they have not yet made a minimal reproducer. The failing test is `tests/unit/test_commands.py::TestCommands` in pmxbot at commit `7f189ad`. It fails in `setup_class`, and the code is shown below.\n\n## Code example\n\n`setup_class` from `tests/unit/test_commands.py`, as shown in the traceback:\n\n```python\n@classmethod\ndef setup_class(cls):\n    path = os.path.dirname(os.path.abspath(__file__))\n    configfile = os.path.join(path, 'testconf.yaml')\n    config = pmxbot.dictlib.ConfigDict.from_yaml(configfile)\n    cls.bot = core.initialize(config)\n    logging.Logger.store.message(\"logged\", \"testrunner\", \"some text\")\n```\n\n## Version and environment\n\n- Platform: darwin (macOS)\n- Python: 3.11.1\n- pytest: 7.2.0\n- pluggy: 1.0.0\n- Import mode: `importlib`\n- Config file: `pytest.ini`\n- Project: pmxbot/pmxbot at commit `7f189ad` (installed as `pmxbot-1122.14.3.dev13+g7f189ad`), using PEP 420 namespace packages\n- Run via tox (cachedir `.tox/python/.pytest_cache`)\n- Plugins: black-0.3.12, mypy-0.10.3, jaraco.test-5.3.0, checkdocs-2.9.0, flake8-1.1.1, enabler-2.0.0, jaraco.mongodb-11.2.1, pmxbot-1122.14.3.dev13+g7f189ad",
+ "ttft_ms": 2784,
+ "type": "result",
+ "duration_ms": 19053,
+ "uuid": "4ee4a02b-63a1-429a-a6df-4ac21736e6c8",
+ "ttft_stream_ms": 1854,
+ "time_to_request_ms": 535,
+ "time_to_request_phases_ms": {
+  "other": 24,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 42,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 15,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 423,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 46,
+ "time_to_request_cpu_ms": 398,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 21,
+  "cpu_ms": 54,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1855,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

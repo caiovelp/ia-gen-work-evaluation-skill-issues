@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29323,
+ "stop_reason": "end_turn",
+ "session_id": "201e1da4-0a85-4a49-8ae7-391da2a42224",
+ "total_cost_usd": 0.060912100000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 733,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2693,
+  "output_tokens_details": {
+   "thinking_tokens": 236
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 733,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2693,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 733,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 733
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1318,
+   "outputTokens": 371,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003173,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 350,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2693,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 733,
+   "webSearchRequests": 0,
+   "costUSD": 0.060594800000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 236,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Single \"Symbols\" Section in Generated HTML Index\n\n## Assumptions\n\n1. The project is a documentation generator with index directives that produce an HTML index page (e.g. `genindex`). The issue does not name the tool. The wording, which mentions index entries, a \"Symbols\" section and letter links at the top of the index page, matches Sphinx, but this is **unconfirmed**.\n2. The index generator groups entries into sections by their leading character. Every entry whose leading character is not a letter goes into one group labelled \"Symbols\".\n3. The duplicate section likely arises for this reason:\n   - Entries are sorted by a key in which `@` (U+0040) sorts before ASCII letters, while `\u00a3` (U+00A3) and `\u2190` (U+2190) sort after them.\n   - Grouping is then applied to the sorted list as consecutive runs, not as a true partition.\n   - So non-letter entries split into two runs, and each run gets its own \"Symbols\" heading.\n\n   This is a hypothesis drawn from the symptoms and has **not been verified** against code.\n4. The section anchor is derived from the section label. Two sections called \"Symbols\" therefore get the same HTML `id`, and both jump-links resolve to the first one.\n5. The intended behaviour is **one** \"Symbols\" section that contains every non-letter entry.\n6. Other output formats (e.g. LaTeX, PDF) that build their own index are out of scope unless they share the same grouping code. This is **unknown**.\n\n## Objective\n\nFix the HTML index so that it never renders more than one \"Symbols\" section. The current output has these faults:\n\n- Entries beginning with `@` appear in a \"Symbols\" section before the letter sections.\n- Entries beginning with `\u00a3` or `\u2190` appear in a second \"Symbols\" section after the letter sections.\n- Both sections share one anchor, so the quick-jump bar shows two \"Symbols\" links and both go to the first section.\n\n**User:** a documentation author who uses index entries starting with symbols or non-ASCII, non-letter characters.\n\n**Success looks like:** one \"Symbols\" section, one \"Symbols\" link in the jump bar, and every symbol-led entry inside that section.\n\n### Acceptance criteria (user-facing)\n\n- Given index entries starting with `@`, `\u00a3`, `\u2190` and ordinary letters, the generated HTML index contains exactly one section headed \"Symbols\".\n- That section contains all entries starting with `@`, `\u00a3` and `\u2190`.\n- The jump-link bar contains exactly one \"Symbols\" link, and it targets the single Symbols section.\n- No two index sections share the same HTML anchor/`id`.\n- Letter sections (A\u2013Z) are unchanged in content and order.\n\n## Tech Stack\n\n- Language / framework: **unknown** (presumed Python/Sphinx, not confirmed).\n- Templating for the index page: **unknown**.\n- Versions affected: **unknown** (not stated in the issue).\n\n## Commands\n\n- Build: **unknown**\n- Test: **unknown**\n- Lint: **unknown**\n- Reproduce (docs build to HTML): **unknown**\n\n## Project Structure\n\n**Unknown.** The repository is not available. Locations to be identified:\n\n- The module that collects index entries, sorts them and groups them into letter/\"Symbols\" sections.\n- The HTML template that renders the index page and its jump-link bar.\n- The existing tests for index generation.\n\n## Code Style\n\n**Unknown.** Follow the conventions of the existing index-generation module and its tests. No sample code is visible in the issue.\n\n## Testing Strategy\n\n- **Framework:** unknown. Use the project's existing test framework and fixtures for index building.\n- **Unit-level:** feed index entries with leading characters `@`, `\u00a3`, `\u2190`, plus letter-led entries, into the grouping logic. Assert:\n  - exactly one group labelled \"Symbols\";\n  - it contains all symbol-led entries;\n  - letter groups are unaffected.\n- **Integration-level:** build a minimal HTML document containing those index entries. Assert:\n  - exactly one \"Symbols\" heading;\n  - exactly one \"Symbols\" jump link;\n  - unique anchor ids across all sections.\n- **Edge cases to cover:**\n  - only symbol entries, with no letter entries;\n  - symbols that sort before letters only;\n  - symbols that sort after letters only;\n  - digits as leading characters (see Open Questions);\n  - non-ASCII letters (e.g. `\u00c9`, `\u0416`) and their grouping (see Open Questions);\n  - entries with a leading underscore or other ASCII punctuation (`_`, `!`, `[`).\n- **Regression:** existing index tests must continue to pass.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the `@` / `\u00a3` / `\u2190` case before changing behaviour.\n  - Keep the \"Symbols\" label and anchor naming consistent with current output.\n  - Run the full existing test suite.\n- **Ask first:**\n  - Changing where the Symbols section is placed (before letters vs. after).\n  - Changing the sort order of letter sections.\n  - Changing how non-ASCII letters are classified.\n  - Changing anchor naming schemes, since this could break existing external links.\n  - Modifying templates beyond what is needed.\n- **Never:**\n  - Fix only the anchor collision, e.g. by making the ids unique (`Symbols-1`), while leaving two Symbols sections.\n  - Silently drop or reorder entries.\n  - Remove or weaken existing index tests.\n\n## Success Criteria\n\n1. For any set of index entries, the HTML index has at most one section labelled \"Symbols\".\n2. Every entry whose leading character is classified as a symbol appears in that single section.\n3. The jump bar has at most one \"Symbols\" link, and it navigates to the Symbols section.\n4. All section anchors on the index page are unique.\n5. Section placement is deterministic and consistent: the Symbols section always appears in the same position relative to the letter sections. The exact position is to be confirmed.\n6. Within the Symbols section, entry ordering is deterministic. The ordering rule is to be confirmed.\n7. New regression tests cover the reported case and the edge cases above, and all existing tests pass.\n\n## Open Questions\n\n1. Which project and version is this? Is it Sphinx, and which builder/theme was used?\n2. Should the single \"Symbols\" section appear **before** or **after** the letter sections?\n3. Within the Symbols section, how should entries be ordered: by code point, or by locale-aware or another collation?\n4. Should entries starting with digits go into \"Symbols\" or into their own section(s)?\n5. How should non-ASCII **letters** be grouped? Options include:\n   - their own letter heading (`\u00c9`, `\u0416`);\n   - folding into the base letter (`E`);\n   - \"Symbols\".\n\n   Is current behaviour for these intended?\n6. Is the anchor/`id` for the Symbols section part of a stable public URL that must be preserved?\n7. Do other builders (LaTeX/PDF, single-page HTML, ePub) share the same grouping logic, and should they be fixed or verified in the same change?\n8. Is there any configuration for custom index grouping or sort keys that the fix must respect?\n9. Can the reporter provide the exact index directives or entries used? For example, are `@`, `\u00a3` and `\u2190` the first characters of single entries, pair entries or see-also entries?",
+ "ttft_ms": 3516,
+ "type": "result",
+ "duration_ms": 27326,
+ "uuid": "3f4f8c63-12db-4753-b1e0-e34358c36c7e",
+ "ttft_stream_ms": 1106,
+ "time_to_request_ms": 263,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 226,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 131,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1106,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

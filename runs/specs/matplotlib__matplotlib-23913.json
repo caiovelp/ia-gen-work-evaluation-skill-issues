@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28987,
+ "stop_reason": "end_turn",
+ "session_id": "db615c7e-b693-45e4-9665-2241f95dce92",
+ "total_cost_usd": 0.06313029999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 774,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2796,
+  "output_tokens_details": {
+   "thinking_tokens": 145
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 774,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2796,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 774,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 774
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1365,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014749999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2796,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 774,
+   "webSearchRequests": 0,
+   "costUSD": 0.06298279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 145,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `draggable` Keyword Argument for `Legend` Construction\n\n## Assumptions\n\n1. The project is **Matplotlib**. The issue names a `Legend` class with an `__init__` method, and that matches Matplotlib's `matplotlib.legend.Legend`. The repository was not inspected to confirm this.\n2. `Legend` already has a public post-creation method that turns dragging on and off. It is assumed to be `set_draggable(state, use_blit=False, update='loc')`, possibly alongside an older `draggable()` method. The exact name and signature are unverified.\n3. The user wants a **convenience shortcut** only. Passing `draggable=True` at construction should behave the same as creating the legend and then turning dragging on through the existing method. No new dragging behavior is requested.\n4. `Axes.legend(...)` and `Figure.legend(...)` pass extra keyword arguments through to `Legend.__init__`. If so, the new keyword would work from those entry points with no changes there. This is unverified.\n5. The default is `draggable=False`, so existing code behaves exactly as before.\n6. Any existing rcParams-driven legend defaults are left alone. No new rcParam is added unless maintainers request one (see Open Questions).\n7. The project is Python. The test framework is assumed to be pytest, but this is unverified.\n\n## Objective\n\nLet users make a legend draggable when they create it, for example `ax.legend(draggable=True)`, instead of needing a second call after creation.\n\n**User story:** As a Matplotlib user building interactive figures, I want to pass `draggable=True` when I create a legend, so I can enable mouse dragging in one expression.\n\n**Acceptance criteria:**\n- `Legend(..., draggable=True)` produces a legend whose dragging state is on. This is the same state that calling the existing enable method right after construction would produce.\n- `Legend(..., draggable=False)` and omitting the keyword both produce a non-draggable legend. This is the current behavior.\n- The keyword works through the high-level entry points, `Axes.legend(...)` and `Figure.legend(...)`, and through `pyplot.legend(...)` if that function delegates to them.\n- The existing post-creation method still works unchanged and is not deprecated by this change.\n- The new keyword is documented in the `Legend` constructor docstring and in any shared legend keyword documentation.\n\n**Question raised in the issue:** \"Is there a code reason why this would not work?\" The spec treats this as an open question to verify before implementation, not a settled fact. Possible blockers include:\n- Dragging may need the legend to already be attached to a figure or canvas.\n- Construction order may matter.\n- Pickling or copying behavior may be affected.\n\n## Tech Stack\n\n- Language: Python (version unknown)\n- Library: Matplotlib (version and branch unknown)\n- Relevant components (assumed): `Legend` class, `Axes.legend`, `Figure.legend`, `pyplot.legend`, and the existing draggable-legend helper (assumed to be something like `DraggableLegend`)\n\n## Commands\n\nThe issue does not show these, and they were not verified in the repository.\n\n```\nBuild:   UNKNOWN\nTest:    UNKNOWN (likely pytest-based; exact invocation and test path unknown)\nLint:    UNKNOWN\nDocs:    UNKNOWN\n```\n\n## Project Structure\n\nUnknown. The file holding the `Legend` class, the legend test module, and the docs or changelog location (\"what's new\" or API-change notes) all need to be identified in the repository.\n\n```\n<legend module>        \u2192 Legend class and __init__ (path UNKNOWN)\n<axes/figure modules>  \u2192 legend() entry points (paths UNKNOWN)\n<tests>                \u2192 legend tests (path UNKNOWN)\n<docs>                 \u2192 user docs / release notes (path UNKNOWN)\n```\n\n## Code Style\n\nFollow the project's existing conventions; none were visible in the issue. Intended usage:\n\n```python\n# Current behavior (two steps)\nleg = ax.legend()\nleg.set_draggable(True)   # method name assumed\n\n# Requested behavior (one step)\nleg = ax.legend(draggable=True)\n```\n\nConventions to confirm:\n- Keyword-argument ordering and placement in the `__init__` signature, such as whether it should be keyword-only.\n- Docstring format (the project likely uses numpydoc; unverified).\n- How legend keywords are documented in shared docstrings.\n\n## Testing Strategy\n\n- **Framework:** assumed pytest; unverified.\n- **Unit tests** for the `Legend` constructor:\n  - `draggable=True` results in the legend reporting a draggable state, through whatever getter or attribute exists today, which is unknown.\n  - `draggable=False` and the omitted default both result in a non-draggable state.\n- **Entry-point tests:** `ax.legend(draggable=True)` and `fig.legend(draggable=True)` produce draggable legends.\n- **Equivalence check:** the state after `draggable=True` matches the state after calling the existing enable method post-construction.\n- **Regression:** the existing legend test suite passes unchanged.\n- **Out of scope:** interactive mouse-drag simulation is not required, unless the project already has a pattern for it.\n\n## Boundaries\n\n- **Always:**\n  - Keep `draggable=False` as the default and preserve current behavior when the keyword is omitted.\n  - Reuse the existing dragging mechanism rather than duplicating it.\n  - Document the new keyword.\n  - Add tests.\n- **Ask first:**\n  - Exposing `use_blit` or `update` options at construction.\n  - Adding an rcParam for a global default.\n  - Changing the signature or semantics of the existing post-creation method.\n  - Deprecating any existing API.\n- **Never:**\n  - Change the default legend behavior.\n  - Break the existing post-creation dragging API.\n  - Remove or alter existing tests without approval.\n\n## Success Criteria\n\n- [ ] `Legend.__init__` accepts a `draggable` keyword, defaulting to `False`.\n- [ ] Passing `draggable=True` gives a draggable legend, equivalent to calling the existing enable method after creation.\n- [ ] `ax.legend(draggable=True)` and `fig.legend(draggable=True)` work without additional changes from the user.\n- [ ] Omitting the keyword gives identical behavior to before the change.\n- [ ] New tests cover True, False, and default, at both the constructor level and the entry-point level.\n- [ ] The full existing test suite passes.\n- [ ] The docstring documents `draggable`, and release notes are updated per project convention.\n\n## Open Questions\n\n1. **Feasibility:** Can dragging be enabled during `Legend.__init__`? It might need a canvas, figure, or event connection that does not exist yet at construction time. If so, should enabling be deferred, for example until the legend is added to the figure?\n2. **Extra options:** Should the constructor also expose the `use_blit` and `update` options of the existing method? Possible forms include separate keywords or a dict, or keeping just a boolean.\n3. **Global default:** Should there be an rcParam, for example `legend.draggable`, to set the default globally?\n4. **API surface:** What is the exact name and signature of the existing post-creation method in the target version? Is a deprecated `draggable()` method still present, and could it clash with an attribute or keyword named `draggable`?\n5. **Introspection:** Is there a public getter, such as `get_draggable()`, that tests should use to assert state? If not, should one be added?\n6. **Signature placement:** Should `draggable` be keyword-only?\n7. **Copy and pickle:** Does a legend created with `draggable=True` need to survive pickling or figure copying with its dragging state preserved?\n8. **Commands and paths:** Where do the build, test, and lint commands, the legend source and test files, and the release-note locations live? None of these are known.",
+ "ttft_ms": 2351,
+ "type": "result",
+ "duration_ms": 28153,
+ "uuid": "f47cfa83-81dd-4243-9a91-61cb4947570b",
+ "ttft_stream_ms": 1111,
+ "time_to_request_ms": 292,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 23,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 218,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 38,
+ "time_to_request_cpu_ms": 284,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1112,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

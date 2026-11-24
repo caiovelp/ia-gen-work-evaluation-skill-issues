@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15436,
+ "stop_reason": "end_turn",
+ "session_id": "a60f6ab8-89c5-4fec-b1b2-4de5db8ea89f",
+ "total_cost_usd": 0.0484044,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1437,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1836,
+  "output_tokens_details": {
+   "thinking_tokens": 182
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1437,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1836,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1437,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1437
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1639,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018040000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1836,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1437,
+   "webSearchRequests": 0,
+   "costUSD": 0.048224,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 182,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`Matrix.hstack` returns a different shape in SymPy 1.1 than in SymPy 1.0 when stacking matrices that have zero rows. In SymPy 1.0, horizontally stacking zero-row matrices with 0, 1, 2 and 3 columns gives shape `(0, 6)`. In SymPy 1.1 the same call gives `(0, 3)`. With one row, the same column counts give `(1, 6)` in SymPy 1.1. The title says `vstack` behavior also changed, but the report only shows an example for `hstack`.\n\n## Steps to reproduce\n\n1. Install SymPy 1.1.\n2. Create four zero-row matrices with 0, 1, 2 and 3 columns:\n   ```python\n   import sympy as sy\n   M1 = sy.Matrix.zeros(0, 0)\n   M2 = sy.Matrix.zeros(0, 1)\n   M3 = sy.Matrix.zeros(0, 2)\n   M4 = sy.Matrix.zeros(0, 3)\n   ```\n3. Stack them horizontally and check the shape:\n   ```python\n   sy.Matrix.hstack(M1, M2, M3, M4).shape\n   ```\n4. For comparison, repeat steps 2\u20133 with one-row matrices (`zeros(1, 0)`, `zeros(1, 1)`, `zeros(1, 2)`, `zeros(1, 3)`).\n5. Optionally, run step 3 again on SymPy 1.0.\n\n## Observed behavior\n\n| SymPy version | Input matrices | `hstack(...).shape` |\n|---|---|---|\n| 1.0 | `zeros(0,0)`, `zeros(0,1)`, `zeros(0,2)`, `zeros(0,3)` | `(0, 6)` |\n| 1.1 | `zeros(0,0)`, `zeros(0,1)`, `zeros(0,2)`, `zeros(0,3)` | `(0, 3)` |\n| 1.1 | `zeros(1,0)`, `zeros(1,1)`, `zeros(1,2)`, `zeros(1,3)` | `(1, 6)` |\n\nIn SymPy 1.1, the zero-row case returns only 3 columns instead of the total of 6.\n\n## Expected behavior\n\n`sy.Matrix.hstack(M1, M2, M3, M4).shape` should be `(0, 6)` for the zero-row matrices. That matches SymPy 1.0, and it matches the one-row case in SymPy 1.1, where the column counts (0 + 1 + 2 + 3 = 6) add up.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; only the resulting shape is wrong.\n\n## Test case\n\n```python\nimport sympy as sy\n\ndef test_hstack_zero_rows_shape():\n    M1 = sy.Matrix.zeros(0, 0)\n    M2 = sy.Matrix.zeros(0, 1)\n    M3 = sy.Matrix.zeros(0, 2)\n    M4 = sy.Matrix.zeros(0, 3)\n    assert sy.Matrix.hstack(M1, M2, M3, M4).shape == (0, 6)  # SymPy 1.1 gives (0, 3)\n\ndef test_hstack_one_row_shape():\n    M1 = sy.Matrix.zeros(1, 0)\n    M2 = sy.Matrix.zeros(1, 1)\n    M3 = sy.Matrix.zeros(1, 2)\n    M4 = sy.Matrix.zeros(1, 3)\n    assert sy.Matrix.hstack(M1, M2, M3, M4).shape == (1, 6)  # passes in SymPy 1.1\n```\n\n## Code example\n\n```python\nimport sympy as sy\n\n# Zero rows: (0, 6) in SymPy 1.0, (0, 3) in SymPy 1.1\nM1 = sy.Matrix.zeros(0, 0)\nM2 = sy.Matrix.zeros(0, 1)\nM3 = sy.Matrix.zeros(0, 2)\nM4 = sy.Matrix.zeros(0, 3)\nprint(sy.Matrix.hstack(M1, M2, M3, M4).shape)\n\n# One row: (1, 6) in SymPy 1.1\nM1 = sy.Matrix.zeros(1, 0)\nM2 = sy.Matrix.zeros(1, 1)\nM3 = sy.Matrix.zeros(1, 2)\nM4 = sy.Matrix.zeros(1, 3)\nprint(sy.Matrix.hstack(M1, M2, M3, M4).shape)\n```\n\n## Version and environment\n\n- SymPy 1.0: behaves as expected (`(0, 6)`)\n- SymPy 1.1: affected (`(0, 3)`)\n- Python version, OS and other environment details: Not provided in the original report.",
+ "ttft_ms": 3259,
+ "type": "result",
+ "duration_ms": 14822,
+ "uuid": "499a76ad-214f-42fc-81c3-169de6bb6a5a",
+ "ttft_stream_ms": 1495,
+ "time_to_request_ms": 236,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 190,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1495,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

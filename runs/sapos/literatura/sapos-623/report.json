@@ -1,0 +1,1 @@
+{"resolved": false, "f2p_falhou": ["./spec/models/admissions/form_field_spec.rb[1:6:1:4]", "./spec/models/admissions/form_field_spec.rb[1:6:1:5]", "./spec/requests/admissions/form_autocompletes_spec.rb[1:1:1]", "./spec/requests/admissions/form_autocompletes_spec.rb[1:1:2]"], "p2p_falhou": []}

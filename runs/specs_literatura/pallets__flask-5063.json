@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9976,
+ "stop_reason": "end_turn",
+ "session_id": "65d7f341-f4fc-4d60-a2fa-e294d9118daa",
+ "total_cost_usd": 0.032281699999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1531,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 992,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1531,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 992,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1531,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1531
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1762,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018570000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 992,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1531,
+   "webSearchRequests": 0,
+   "costUSD": 0.032096,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nShow the domain/subdomain of each route in the output of `flask routes`.\n\n## Description\nThe `flask routes` command lists all registered routes, but it does not show which subdomain each route belongs to. When blueprints are registered on different subdomains, routes with the same rule look identical in the output.\n\n**Example setup**\n\n- Default server name: `SERVER_NAME: 'test.local'`\n- Domains (subdomains):\n  - `test.test.local`\n  - `admin.test.local`\n  - `test.local`\n- Blueprint registration:\n  ```python\n  app.register_blueprint(admin_blueprint,url_prefix='',subdomain='admin')\n  app.register_blueprint(test_subdomain_blueprint,url_prefix='',subdomain='test')\n  ```\n\n**Current output**\n\n```\n$ flask routes\n * Tip: There are .env or .flaskenv files present. Do \"pip install python-dotenv\" to use them.\nEndpoint                                                 Methods    Rule\n-------------------------------------------------------  ---------  ------------------------------------------------\nadmin_blueprint.home                                      GET        /home\ntest_subdomain_blueprint.home                             GET        /home\nstatic                                                    GET        /static/<path:filename>\n...\n```\n\nBoth `admin_blueprint.home` and `test_subdomain_blueprint.home` appear with the rule `/home`. Nothing in the output shows that one is served on `admin.test.local` and the other on `test.test.local`.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nTo find out which route belongs to which subdomain, the user currently has to look up the application configuration (the blueprint registrations and `SERVER_NAME`). Showing the domain in the `flask routes` output would make this clear.\n\n## Use case or scenario\nA developer's application uses `SERVER_NAME = 'test.local'` and registers blueprints on the `admin` and `test` subdomains. Some routes in different blueprints share the same rule, such as `/home`. The developer runs `flask routes` to inspect the URL map and wants to see right away which domain serves each route, without cross-checking the configuration.\n\n## Possible solution\nThe original request suggests two options:\n\n1. **Add a `Domain` column to `flask routes`.** The requested output looks like this:\n\n   ```\n   $ flask routes\n    * Tip: There are .env or .flaskenv files present. Do \"pip install python-dotenv\" to use them.\n   Domain                Endpoint                                             Methods    Rule\n   -----------------   ----------------------------------------------------  ----------  ------------------------------------------------\n   admin.test.local     admin_blueprint.home                                  GET        /home\n   test.test.local      test_subdomain_blueprint.home                         GET        /home\n   test.local           static                                                GET        /static/<path:filename>\n   ...\n   ```\n\n2. **If `flask routes` cannot be changed**, add a method or document which existing Flask method(s) can be used to get this domain-per-route information programmatically.",
+ "ttft_ms": 8875,
+ "type": "result",
+ "duration_ms": 8891,
+ "uuid": "f9ad7050-092e-455b-8a73-fc0649b69461",
+ "ttft_stream_ms": 1529,
+ "time_to_request_ms": 297,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 19,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 13,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 305,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 20,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1529,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

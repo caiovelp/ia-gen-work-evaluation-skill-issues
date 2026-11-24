@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32430,
+ "stop_reason": "end_turn",
+ "session_id": "fbed2d41-3116-4171-9cf6-dd9264ee9eef",
+ "total_cost_usd": 0.0744431,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1691,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2980,
+  "output_tokens_details": {
+   "thinking_tokens": 125
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1691,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2980,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1691,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1691
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2278,
+   "outputTokens": 433,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0004443,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 408,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2980,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1691,
+   "webSearchRequests": 0,
+   "costUSD": 0.0739988,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 125,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Preserve lazy (dask) data when a DataArray is wrapped in a `(dims, data)` tuple\n\n## Objective\n\nWhen a dask-backed `xarray.DataArray` is passed as the data element of a `(dims, data)` tuple, xarray currently converts it to an in-memory `numpy.ndarray`. That evaluates the dask graph eagerly. Two public entry points show the problem:\n\n1. **`Dataset.update`**: after `ds.update({\"foo\": ((\"x\", \"y\"), ds.foo[1:, :]), ...})`, `ds.foo` is backed by numpy instead of dask.\n2. **`Dataset` constructor**: `xr.Dataset({\"a\": ((\"x\", \"y\"), ds.a)})` gives `type(ds2.a.data) == numpy.ndarray` when `ds.a` was dask-backed.\n\nBoth paths probably share one root cause: variable creation from a `(dims, DataArray)` tuple. The issue shows the expected behaviour by contrast. Passing a `DataArray` directly (`xr.Dataset({\"a\": xr.DataArray(x, dims=...)})`) keeps it lazy. Passing the raw dask array in the tuple is also expected to stay lazy.\n\n**Users:** anyone building or updating Datasets with dask-backed arrays, for example large or out-of-core data. Eager evaluation can be slow, can exhaust memory, and silently changes the array type.\n\n**Acceptance criteria (user stories):**\n- As a user, when I build a Dataset from `{\"name\": (dims, dask_backed_dataarray)}`, the resulting variable is still dask-backed, keeps its chunks, and nothing is computed.\n- As a user, when I call `Dataset.update` with `{\"name\": (dims, dask_backed_dataarray)}`, the updated variable is still dask-backed, keeps its chunks, and nothing is computed.\n- As a user, the values I get back after computing are identical to today's (eager) results.\n\n## Assumptions\n\n1. The bug is in the shared code path that turns a `(dims, data)` tuple into a `Variable`. The suspected cause is that a `DataArray` passed as `data` is unwrapped via its `.values` (forcing computation) rather than its underlying lazy data. This is a hypothesis and has not been confirmed against the source.\n2. A fix should unwrap a `DataArray` in the tuple to its underlying data (for example `.data` or `.variable._data`), keeping duck arrays (dask) intact rather than coercing them to numpy.\n3. The expected semantics for dims, attrs and coordinates of the DataArray inside a tuple are **unchanged**. The tuple's `dims` take precedence. Whether the inner DataArray's coords and attrs are dropped or kept stays whatever it is today; only laziness changes.\n4. The behaviour should hold for the dask versions xarray currently supports. The issue's environment is xarray 0.16.0 and dask 2.20.0; the target branch's minimum dask version is unknown.\n5. Other lazy or duck-array backends (for example pint, sparse, lazily indexed backend arrays) wrapped in a DataArray inside a tuple should also not be coerced to numpy if that was not already intended. Scope is limited to not regressing them.\n6. The fix is internal. No public API signature changes.\n\n## Tech Stack\n\n- Python library: xarray. The target version is unknown; the issue reports 0.16.0.\n- Key dependencies: numpy, pandas, dask (optional). Versions supported by the target branch are unknown.\n\n## Commands\n\nUnknown. The repository is not visible. Likely candidates need confirmation:\n- Test: unknown (pytest is used per the environment report; the exact invocation and flags are unknown)\n- Lint/format: unknown\n- Build: unknown\n\n## Project Structure\n\nUnknown. The repository is not visible. The relevant areas, by responsibility only:\n- Variable construction from tuples and other array-likes (`(dims, data)` handling, data coercion)\n- Dataset construction and `Dataset.update` (merge logic feeding variable construction)\n- Existing dask-specific test module(s) and dataset/variable test modules\n\nExact file paths are unknown.\n\n## Code Style\n\nUnknown. Follow the existing conventions in the touched modules. No code snippet is available from the issue.\n\n## Testing Strategy\n\n- **Framework:** pytest (per the reported environment). Exact configuration is unknown.\n- **Laziness detection:** use whatever helper the existing dask tests use to assert that no computation happens, such as a raise-on-compute scheduler or compute counter. Its name is unknown.\n- **Regression tests to add** (in the existing dask test location, unknown path):\n  1. Dataset constructor: `xr.Dataset({\"a\": ((\"x\", \"y\"), dask_backed_dataarray)})` gives a variable whose `.data` is a dask array, with zero computes and chunks preserved.\n  2. `Dataset.update` with `{\"foo\": ((\"x\", \"y\"), ds.foo[1:, :]), \"bar\": (\"x\", ds.bar[1:])}` (the issue's MCVE) leaves `ds.foo` dask-backed, with zero computes and chunks matching the sliced input.\n  3. Single-dimension case from the second report: `xr.Dataset({\"a\": (\"d0\", xr.DataArray(da.random.random(10)))})` stays lazy.\n  4. Values after `.compute()` equal the numpy-equivalent result.\n- **Non-regression:** the full existing test suite passes, especially tests for variable construction from tuples, DataArray-in-tuple semantics, and non-dask inputs (numpy, pandas, lists).\n- **Coverage expectations:** unknown. New tests must cover both reported entry points.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests reproducing both reported cases before changing behaviour.\n  - Keep numeric results identical.\n  - Run the full test suite.\n  - Add a changelog/\"what's new\" entry if the project keeps one (location unknown).\n- **Ask first:**\n  - Changing what happens to the inner DataArray's coords, attrs or name when it is wrapped in a tuple.\n  - Changing coercion behaviour for non-dask inputs.\n  - Emitting new warnings.\n  - Touching public API signatures.\n- **Never:**\n  - Compute dask arrays as a side effect of construction or update.\n  - Remove or weaken existing tests.\n  - Add new dependencies.\n\n## Success Criteria\n\n- [ ] `xr.Dataset({\"a\": ((\"x\", \"y\"), ds.a)})` with dask-backed `ds.a` gives `isinstance(ds2.a.data, dask.array.Array)`, with no compute triggered.\n- [ ] The issue's `Dataset.update` MCVE leaves `ds.foo` dask-backed with chunks equal to those of `ds.foo[1:, :]` before the update, with no compute triggered.\n- [ ] `xr.Dataset({\"a\": (\"d0\", xr.DataArray(da.random.random(10)))})` stays dask-backed, with no compute triggered.\n- [ ] Computed values match the eager equivalents.\n- [ ] Existing behaviour for numpy, list and pandas inputs, and existing DataArray-in-tuple metadata semantics, are unchanged (the existing test suite passes).\n- [ ] The new regression tests fail before the fix and pass after it.\n\n## Open Questions\n\n1. Is coercing a DataArray in a `(dims, data)` tuple to numpy ever intentional, for example as a documented way to strip metadata or to materialise data? If so, is a deprecation path needed instead of a silent behaviour change?\n2. What should happen to the inner DataArray's coordinates, attrs and name when it is wrapped in a tuple? Should they stay dropped, as presumably today, and should dims that conflict with the DataArray's own dims raise, warn or silently override?\n3. Should the fix also preserve other duck arrays (pint, sparse, cupy) and lazily indexed backend arrays wrapped in a DataArray, or is dask the only required scope?\n4. Do other entry points share this path and need coverage too, such as `Dataset.assign`, `__setitem__` with tuples, `DataArray` coords given as tuples, or `merge`?\n5. Which xarray branch/version is the target, and what is its minimum supported dask version?\n6. What are the exact test, lint and build commands, and the file locations for variable construction and dask tests?",
+ "ttft_ms": 2365,
+ "type": "result",
+ "duration_ms": 29877,
+ "uuid": "edc3e97f-97ff-4281-a9a4-96523cdda459",
+ "ttft_stream_ms": 1168,
+ "time_to_request_ms": 257,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 214,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 230,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1169,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

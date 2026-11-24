@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28648,
+ "stop_reason": "end_turn",
+ "session_id": "e9cd595c-0ef2-4cf6-9127-2180df7cc856",
+ "total_cost_usd": 0.058832199999999994,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 836,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2556,
+  "output_tokens_details": {
+   "thinking_tokens": 76
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 836,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2556,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 836,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 836
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1419,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015340000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2556,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 836,
+   "webSearchRequests": 0,
+   "costUSD": 0.058678799999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 76,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Preserve Per-Hop Request State Across Redirect Chains in `Session.resolve_redirects`\n\n## Objective\n\n`Session.resolve_redirects` copies the **original** request at the start of every redirect iteration. Changes made at earlier hops are lost, and later hops are built from stale state.\n\nThe issue's example:\n\n1. `POST /do_something` \u2192 `303 See Other`, `Location: /new_thing_1513`. Requests correctly converts the request to `GET`.\n2. `GET /new_thing_1513` \u2192 `307 Temporary Redirect`, `Location: //failover.example.com/new_thing_1513`.\n3. **Expected:** `GET //failover.example.com/new_thing_1513`. A 307 must preserve the method of the request that received it.\n4. **Actual:** `POST`. The third request is rebuilt from the original POST.\n\n**Who is affected:** Users of the Requests library who follow redirects (the default for most methods) and hit chains that mix method-changing redirects (301/302/303) with method-preserving ones (307, possibly 308).\n\n**What we're building:** A behavioral fix. Each redirect hop must be derived from the request that was actually sent at the previous hop, not from the original request. Method selection then follows HTTP semantics across the whole chain.\n\n**Acceptance criteria (user-visible):**\n- After a 303 turns a POST into a GET, any later 307 in the same chain issues a GET.\n- Any request state changed by an earlier hop stays changed at later hops. This includes the method and the body that was dropped when the method became GET.\n- Single-hop redirect behavior is unchanged.\n\n## Assumptions\n\n1. The affected code is `Session.resolve_redirects` in the Requests library. Its module path is assumed to be `requests/sessions.py`, which is not verified because the repository is not visible.\n2. The 303\u2192GET conversion is already correct for a single hop. Only state propagation across multiple hops is broken.\n3. The intended semantics are:\n   - 303: change the method to GET, except for HEAD.\n   - 301/302 with POST: change to GET (current Requests convention, assumed unchanged).\n   - 307 (and 308, if supported in this codebase version): preserve the method and body of the *immediately preceding* request.\n4. When a hop converts to GET, the body and body-related headers (for example `Content-Length`, `Content-Type`, `Transfer-Encoding`) are stripped. That stripping should also persist to later hops. Whether the current code strips them at all is unknown.\n5. Other per-hop state should also come from the previous hop, not the original request. This includes the URL being resolved relative to the previous URL, auth headers removed on host change, and cookies.\n6. The fix must not change the public signature of `resolve_redirects` beyond what is needed. That signature is not visible here.\n7. Redirect history (`response.history`) and `max_redirects` enforcement keep their current behavior.\n8. A scheme-relative `Location` (`//failover.example.com/...`) is already resolved correctly using the previous request's scheme. It appears in the example but is not the bug.\n\n## Tech Stack\n\n- Python, Requests library. The supported Python versions and the library version this targets are **unknown**.\n- HTTP semantics reference: RFC 7231 (303, 307) and RFC 7538 (308). Which RFCs the project follows is assumed, not verified.\n\n## Commands\n\nAll **unknown**. The repository's build, test, and lint tooling is not visible.\n\n```\nBuild: unknown\nTest:  unknown\nLint:  unknown\nDev:   unknown\n```\n\n## Project Structure\n\n**Unknown.** The only path inferred from the issue is the location of `Session.resolve_redirects`, likely in a `sessions` module of the `requests` package. This is not verified. The test directory location is also unknown.\n\n## Code Style\n\n**Unknown.** Follow the existing style of the module that contains `Session.resolve_redirects`. No snippet is available.\n\n## Testing Strategy\n\n- **Framework:** unknown. Use whatever the existing test suite uses.\n- **Primary test level:** unit or integration tests that simulate a multi-hop redirect chain without real network access. Whether the suite has a mock adapter or local HTTP server fixture is unknown.\n- **Required test cases:**\n  1. `POST` \u2192 303 \u2192 `GET` \u2192 307 \u2192 final request is `GET`. This is the issue's exact scenario.\n  2. Same chain, and the final request has no body and no body-related headers left over from the original POST.\n  3. `POST` \u2192 307 \u2192 307 \u2192 final request is still `POST` with the original body. This is a regression guard showing 307 preservation still works when no conversion happened.\n  4. `POST` \u2192 302 \u2192 307 \u2192 final request is `GET`. This covers the same propagation bug via 301/302 conversion.\n  5. `HEAD` \u2192 303 \u2192 307 \u2192 final request is `HEAD`, if 303-preserves-HEAD is current behavior.\n  6. Single-hop 301/302/303/307 behavior is unchanged.\n  7. `response.history` length and order are correct for multi-hop chains.\n- **Coverage expectation:** unknown project threshold. Every new branch in redirect method and body handling should be covered.\n\n## Boundaries\n\n- **Always:**\n  - Derive each hop from the previously sent request.\n  - Add regression tests for the issue's exact chain.\n  - Run the full existing test suite before committing.\n  - Keep `response.history` semantics intact.\n- **Ask first:**\n  - Changing the public signature or return type of `resolve_redirects`.\n  - Changing the 301/302 POST\u2192GET convention.\n  - Adding or changing 308 support.\n  - Adding test dependencies.\n- **Never:**\n  - Make tests depend on real external hosts.\n  - Remove or weaken existing redirect tests without approval.\n  - Change unrelated session behavior, such as connection pooling or retries.\n\n## Success Criteria\n\n- [ ] A chain `POST` \u2192 303 \u2192 307 results in a `GET` for the third request (issue scenario reproduced in a test, failing before and passing after).\n- [ ] The body and body headers dropped at a method-converting hop do not reappear at later hops.\n- [ ] Method-preserving redirects (307) preserve the method of the immediately preceding request, verified across at least 3 hops.\n- [ ] All existing redirect and session tests pass unchanged.\n- [ ] No change to the observable behavior of single-hop redirects.\n\n## Open Questions\n\n1. Should 308 Permanent Redirect be handled by this fix? Is 308 supported in the target version?\n2. Should other per-hop mutations also persist across hops, beyond the method and body? Examples are auth header stripping on cross-host redirects, cookie updates, and the resolved URL. Is there an existing expectation or test that relies on copying the original?\n3. Does `resolve_redirects` copy the original request on purpose for some caller, for example to re-apply original hooks or auth? Would deriving from the previous hop break that caller?\n4. Is `resolve_redirects` considered public API? Is it called directly by third parties with an explicit request argument whose semantics must be preserved?\n5. Which Python and Requests versions must the fix support? Should it be backported?\n6. What are the project's test, lint, and build commands, and the test directory layout?\n7. Is the 301/302 POST\u2192GET conversion intended to remain? It deviates from strict RFC wording but matches browser behavior.",
+ "ttft_ms": 2856,
+ "type": "result",
+ "duration_ms": 27102,
+ "uuid": "d7027450-47f6-45cf-9685-0dab489f85d6",
+ "ttft_stream_ms": 2144,
+ "time_to_request_ms": 243,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 207,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 180,
+ "time_to_request_major_faults": 24,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 6,
+  "major_faults": 1
+ },
+ "first_content_frame_ms": 2144,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

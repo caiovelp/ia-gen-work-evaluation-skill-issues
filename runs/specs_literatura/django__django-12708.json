@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11299,
+ "stop_reason": "end_turn",
+ "session_id": "02195ae0-61df-4d1b-90d1-359f335fefe1",
+ "total_cost_usd": 0.0301598,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1274,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 990,
+  "output_tokens_details": {
+   "thinking_tokens": 234
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1274,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 990,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1274,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1274
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1483,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001598,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 990,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1274,
+   "webSearchRequests": 0,
+   "costUSD": 0.03,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 234,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nOn Django 1.11.10, a migration that removes an `index_together` crashes with a `ValueError` when a `unique_together` exists on the same fields. Removing the index finds two constraints on those fields (the `_uniq` one and the `_idx` one) instead of one, so the migration cannot proceed.\n\nThe reporter found this while moving an index declaration from `index_together` to the `Options.indexes` feature introduced in Django 1.11. They were not trying to remove the index from the database, only to change how it is declared in code.\n\n## Steps to reproduce\n1. Create a model with two fields.\n2. Add the same two fields to both `unique_together` and `index_together` in the model's `Meta`.\n3. Create and apply the migration.\n4. Remove the `index_together` declaration from the model. In the reporter's case, the index was being moved to `Options.indexes`.\n5. Create and apply the migration for this change.\n\n## Observed behavior\nThe migration fails in `_delete_composed_index()` with `ValueError: Found wrong number (2) of constraints for ...`. The lookup finds two constraints on the fields: the unique constraint (`_uniq`) and the index (`_idx`). The reporter found no way around this failure.\n\nAlso, moving an index declaration from `index_together` to `Options.indexes` results in the index being deleted and re-created, rather than being treated as the same index.\n\n## Expected behavior\nThe reporter describes two separate expectations:\n1. Deleting an `index_together` should work when a `unique_together` exists on the same fields. Either the index can be deleted on its own, or the deletion is handled consistently with `unique_together` (possibly on the migrations side).\n2. Moving an index declaration (e.g., from `index_together` to `Options.indexes`) should not cause the index to be re-created.\n\n## Stack trace / error output\nOnly the following is given in the original report (the full traceback is not included, and the message is cut off as shown):\n```\ndjango/db/backends/base/schema.py, line 378, in _delete_composed_index()\nValueError: Found wrong number (2) of constraints for\n```\n\n## Test case\nNot provided in the original report.\n\n## Code example\nNot provided in the original report.\n\n## Version and environment\n- Django 1.11.10\n- Database backend, Python version and OS: Not provided in the original report.",
+ "ttft_ms": 3939,
+ "type": "result",
+ "duration_ms": 10665,
+ "uuid": "9f7ddab8-57c8-4403-861a-af835fa5e97c",
+ "ttft_stream_ms": 1574,
+ "time_to_request_ms": 259,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 221,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 214,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1575,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

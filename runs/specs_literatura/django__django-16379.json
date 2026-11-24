@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13633,
+ "stop_reason": "end_turn",
+ "session_id": "93c02786-784d-4e17-9f6e-e847b2a8e3a6",
+ "total_cost_usd": 0.0372809,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1382,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1299,
+  "output_tokens_details": {
+   "thinking_tokens": 188
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1382,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1299,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1382,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1382
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1589,
+   "outputTokens": 156,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002369,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 134,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1299,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1382,
+   "webSearchRequests": 0,
+   "costUSD": 0.037044,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 188,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`FileBasedCache.has_key()` in Django's file-based cache backend has a race condition. It checks whether the cache file exists and then opens it. If the file is deleted between those two steps, `open()` raises `FileNotFoundError`. `_is_expired()` itself deletes expired cache files, so when many threads read an expired cache entry at once, one thread can delete the file while another is between the `exists()` check and `open()`.\n\n## Steps to reproduce\n\n1. Configure Django to use the file-based cache backend (`FileBasedCache`).\n2. Store a cache entry and let it expire.\n3. Have many threads read that expired key at the same time. In the reported case the read went through `cache.get_or_set(...)`, which calls `add()`, which calls `has_key()`.\n4. Occasionally, one thread's `_is_expired()` deletes the expired file after another thread's `os.path.exists(fname)` check has passed but before its `open(fname, \"rb\")` runs.\n\n## Observed behavior\n\n`has_key()` raises `FileNotFoundError` for a cache file that existed at the time of the `os.path.exists()` check but was deleted before `open()` was called. The exception propagates out of `get_or_set()`.\n\nThe relevant code in `django/core/cache/backends/filebased.py`:\n\n```python\ndef has_key(self, key, version=None):\n    fname = self._key_to_file(key, version)\n    if os.path.exists(fname):\n        with open(fname, \"rb\") as f:\n            return not self._is_expired(f)\n    return False\n```\n\n## Expected behavior\n\n`has_key()`, and therefore `add()` and `get_or_set()`, should not raise `FileNotFoundError` when the cache file is removed concurrently, for example by another thread's `_is_expired()` call. Concurrent access to an expired cache entry should be handled without an exception.\n\n## Stack trace / error output\n\n```\nFileNotFoundError: [Errno 2] No such file or directory: '/app/var/cache/d729e4cf4ba88cba5a0f48e0396ec48a.djcache'\n[...]\n  File \"django/core/cache/backends/base.py\", line 229, in get_or_set\n    self.add(key, default, timeout=timeout, version=version)\n  File \"django/core/cache/backends/filebased.py\", line 26, in add\n    if self.has_key(key, version):\n  File \"django/core/cache/backends/filebased.py\", line 94, in has_key\n    with open(fname, \"rb\") as f:\n```\n\n(The original report truncates the trace at `[...]`.)\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nThe code containing the race window, as quoted in the report:\n\n```python\ndef has_key(self, key, version=None):\n    fname = self._key_to_file(key, version)\n    if os.path.exists(fname):          # file exists at this point...\n        with open(fname, \"rb\") as f:   # ...but may be deleted before this open()\n            return not self._is_expired(f)\n    return False\n```\n\n## Version and environment\n\nNot provided in the original report. The stack trace references `django/core/cache/backends/base.py` line 229 (`get_or_set`) and `django/core/cache/backends/filebased.py` lines 26 (`add`) and 94 (`has_key`). The cache directory in the error is `/app/var/cache/`. The issue occurs in a multi-threaded setting.",
+ "ttft_ms": 4393,
+ "type": "result",
+ "duration_ms": 12853,
+ "uuid": "f30fbcb6-dfbc-4bce-b009-3a70e81832e4",
+ "ttft_stream_ms": 2233,
+ "time_to_request_ms": 333,
+ "time_to_request_phases_ms": {
+  "other": 29,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 17,
+  "input_hooks": 5,
+  "tool_pool_refresh": 3,
+  "init_message": 19,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 229,
+  "autocompact": 5,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 321,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 10,
+  "cpu_ms": 28,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2234,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

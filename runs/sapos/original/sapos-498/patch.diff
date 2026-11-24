@@ -1,0 +1,109 @@
+diff --git a/app/controllers/enrollments_controller.rb b/app/controllers/enrollments_controller.rb
+index b9e3fa90..eeb07848 100644
+--- a/app/controllers/enrollments_controller.rb
++++ b/app/controllers/enrollments_controller.rb
+@@ -126,6 +126,7 @@ class EnrollmentsController < ApplicationController
+       :thesis_title,
+       :thesis_defense_date,
+       :obs,
++      :obs_for_history,
+ 
+       :advisements,
+       :scholarship_durations,
+diff --git a/app/helpers/enrollments_pdf_helper.rb b/app/helpers/enrollments_pdf_helper.rb
+index b737bd8c..3b0f4059 100644
+--- a/app/helpers/enrollments_pdf_helper.rb
++++ b/app/helpers/enrollments_pdf_helper.rb
+@@ -918,6 +918,18 @@ module EnrollmentsPdfHelper
+     end
+   end
+ 
++  def enrollment_obs_for_history_table(curr_pdf, options = {})
++    curr_pdf.group do |pdf|
++      enrollment = options[:enrollment]
++      next if enrollment.nil? || enrollment.obs_for_history.blank?
++
++      title = [["<b>#{I18n.t(
++        "pdf_content.enrollment.academic_transcript.obs_for_history"
++      )}</b>"]]
++      pdf_list_with_title(pdf, title, [[enrollment.obs_for_history]])
++    end
++  end
++
+   def search_table(pdf, options = {})
+     search ||= options[:search]
+ 
+diff --git a/app/views/enrollments/academic_transcript_pdf.pdf.prawn b/app/views/enrollments/academic_transcript_pdf.pdf.prawn
+index c0f7ac6e..1c163315 100644
+--- a/app/views/enrollments/academic_transcript_pdf.pdf.prawn
++++ b/app/views/enrollments/academic_transcript_pdf.pdf.prawn
+@@ -24,4 +24,6 @@ new_document(
+   thesis_table(pdf, enrollment: @enrollment)
+ 
+   enrollment_holds_table(pdf, enrollment: @enrollment)
++
++  enrollment_obs_for_history_table(pdf, enrollment: @enrollment)
+ end
+diff --git a/app/views/enrollments/grades_report_pdf.pdf.prawn b/app/views/enrollments/grades_report_pdf.pdf.prawn
+index 67aec865..e039f33d 100644
+--- a/app/views/enrollments/grades_report_pdf.pdf.prawn
++++ b/app/views/enrollments/grades_report_pdf.pdf.prawn
+@@ -30,4 +30,6 @@ new_document(
+   enrollment_holds_table(pdf, enrollment: @enrollment)
+ 
+   enrollment_scholarships_table(pdf, enrollment: @enrollment)
++
++  enrollment_obs_for_history_table(pdf, enrollment: @enrollment)
+ end
+diff --git a/config/locales/enrollment.pt-BR.yml b/config/locales/enrollment.pt-BR.yml
+index c12d1c37..13aaba39 100644
+--- a/config/locales/enrollment.pt-BR.yml
++++ b/config/locales/enrollment.pt-BR.yml
+@@ -32,6 +32,7 @@ pt-BR:
+         student: "Nome do Aluno"
+         thesis_title: "Título da Tese"
+         thesis_defense_date: "Data de Defesa"
++        obs_for_history: "Observação para o histórico"
+         year_semester_label: "em"
+         listed_advisors: "Orientadores"
+         listed_accomplishments: "Realização de Etapas"
+@@ -97,6 +98,7 @@ pt-BR:
+         accomplished_phases: "ETAPAS OBRIGATÓRIAS CONCLUÍDAS"
+         advisors: "Orientadores"
+         enrollment_holds: "TRANCAMENTOS"
++        obs_for_history: "OBSERVAÇÃO"
+         link: "Histórico"
+         title: "Histórico Escolar"
+         total_credits: "Total"
+diff --git a/db/migrate/20240908130000_add_obs_for_history_to_enrollments.rb b/db/migrate/20240908130000_add_obs_for_history_to_enrollments.rb
+new file mode 100644
+index 00000000..283cfa37
+--- /dev/null
++++ b/db/migrate/20240908130000_add_obs_for_history_to_enrollments.rb
+@@ -0,0 +1,5 @@
++class AddObsForHistoryToEnrollments < ActiveRecord::Migration[7.0]
++  def change
++    add_column :enrollments, :obs_for_history, :text
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 3fe86129..c115be37 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_06_10_001559) do
++ActiveRecord::Schema[7.0].define(version: 2024_09_08_130000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -494,6 +494,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_06_10_001559) do
+     t.string "thesis_title", limit: 255
+     t.date "thesis_defense_date"
+     t.integer "research_area_id"
++    t.text "obs_for_history"
+     t.index ["enrollment_number"], name: "index_enrollments_on_enrollment_number"
+     t.index ["enrollment_status_id"], name: "index_enrollments_on_enrollment_status_id"
+     t.index ["level_id"], name: "index_enrollments_on_level_id"

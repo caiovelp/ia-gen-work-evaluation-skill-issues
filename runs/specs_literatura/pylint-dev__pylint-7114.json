@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 16423,
+ "stop_reason": "end_turn",
+ "session_id": "ee22ccb7-4b94-4536-8e8d-6ef8b1a76fd9",
+ "total_cost_usd": 0.0428011,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1663,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1455,
+  "output_tokens_details": {
+   "thinking_tokens": 75
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1663,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1455,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1663,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1663
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1866,
+   "outputTokens": 405,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00038909999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 383,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1455,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1663,
+   "webSearchRequests": 0,
+   "costUSD": 0.042412,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 75,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`pylint` fails on a package directory without an `__init__.py` when that directory contains a module with the same name as the directory (for example, `a/a.py`). Pylint reports a parse error because it looks for the missing `a/__init__.py`. This also breaks module resolution for other modules linted in the same run. Renaming `a/a.py` to another name (for example, `a/c.py`) makes the problem go away.\n\n## Steps to reproduce\n**Scenario 1: linting the directory alone**\n1. Create this layout, with all files empty:\n   ```\n   .\n   `-- a/\n       |-- a.py\n       `-- b.py\n   ```\n   Note that there is no `a/__init__.py`.\n2. Run `pylint a`.\n3. Observe the `F0010` parse error.\n4. For comparison, run `mv a/a.py a/c.py`, then run `pylint a` again. It succeeds with no output.\n\n**Scenario 2: side effects on module resolution**\n1. Using the layout above (with `a/a.py` present), add a top-level file `r.py`:\n   ```\n   .\n   |-- a\n   |   |-- a.py\n   |   `-- b.py\n   `-- r.py\n   ```\n   `r.py` contains:\n   ```python\n   from a import b\n   ```\n2. Run `pylint -E r`. It runs fine.\n3. Run `pylint -E r a`. It fails for both module `r` and module `a`.\n4. For comparison, rename `a/a.py` to `a/c.py`. After that, `pylint -E r a` works perfectly.\n\n## Observed behavior\n- With `a/a.py` present, `pylint a` fails while searching for an `a/__init__.py` file that does not exist. It reports `F0010` (parse-error).\n- With `a/a.py` present, `pylint -E r a` reports two errors:\n  - A spurious `E0611` (no-name-in-module) for `from a import b` in `r.py`.\n  - The same `F0010` parse error for module `a`.\n- `pylint -E r` on its own works fine.\n- If `a/a.py` is renamed (for example, to `a/c.py`), both commands succeed.\n- Running `touch a/__init__.py` also works around the problem. The reporter says this should no longer be necessary.\n\n## Expected behavior\n- `pylint a` should succeed when `a/a.py` is present, without requiring an `a/__init__.py`.\n- `pylint -E r a` should succeed, as it does when the inner module has a different name.\n\n## Stack trace / error output\nOutput of `pylint a`:\n```\n$ pylint a\n************* Module a\na/__init__.py:1:0: F0010: error while code parsing: Unable to load file a/__init__.py:\n[Errno 2] No such file or directory: 'a/__init__.py' (parse-error)\n$\n```\n\nOutput of `pylint -E r a`:\n```\n************* Module r\nr.py:1:0: E0611: No name 'b' in module 'a' (no-name-in-module)\n************* Module a\na/__init__.py:1:0: F0010: error while code parsing: Unable to load file a/__init__.py:\n[Errno 2] No such file or directory: 'a/__init__.py' (parse-error)\n```\n\n## Test case\nThis minimal shell reproduction is derived from the report:\n```sh\nmkdir a\ntouch a/a.py a/b.py\necho \"from a import b\" > r.py\n\npylint a          # expected: success; observed: F0010 parse-error for a/__init__.py\npylint -E r       # works fine\npylint -E r a     # expected: success; observed: E0611 in r.py and F0010 for a\n\nmv a/a.py a/c.py\npylint a          # succeeds\npylint -E r a     # succeeds\n```\n\n## Code example\nContents of `r.py`:\n```python\nfrom a import b\n```\nAll files under `a/` (`a.py`, `b.py`) are empty.\n\n## Version and environment\n```\npylint 3.0.0a3\nastroid 2.5.6\nPython 3.8.5 (default, Jan 27 2021, 15:41:15)\n[GCC 9.3.0]\n```\nThe operating system is not provided in the original report.",
+ "ttft_ms": 2428,
+ "type": "result",
+ "duration_ms": 12946,
+ "uuid": "ea2f1fdb-c871-4e6b-b0a5-db9ecec51422",
+ "ttft_stream_ms": 1558,
+ "time_to_request_ms": 269,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 199,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 284,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1559,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

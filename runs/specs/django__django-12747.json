@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32730,
+ "stop_reason": "end_turn",
+ "session_id": "77b0fcd0-09db-48f3-a1a4-4a946d2dba2e",
+ "total_cost_usd": 0.0698829,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 911,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3078,
+  "output_tokens_details": {
+   "thinking_tokens": 438
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 911,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3078,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 911,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 911
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1496,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001641,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3078,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 911,
+   "webSearchRequests": 0,
+   "costUSD": 0.0697188,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 438,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Consistent `QuerySet.delete()` Return Value When Zero Objects Are Deleted\n\n## Assumptions\n\n1. The issue refers to Django's ORM `QuerySet.delete()`, written lowercase in code. The issue's \"QuerySet.Delete\" is a capitalization of that method.\n2. The return contract is the documented 2-tuple `(total_deleted, per_model_counts)`. `per_model_counts` maps `Model._meta.label` to an integer count.\n3. The difference comes from two internal deletion code paths:\n   - a \"fast delete\" path for models with no cascades, signals or related objects to collect;\n   - a \"collect then delete\" path for models with foreign key relations or cascades.\n\n   I have not seen this code. It is inferred from the symptoms.\n4. Only the zero-deletion case is inconsistent. When at least one object is deleted, the current output is correct and must not change.\n5. `Model.delete()` (instance-level) probably shares the same machinery, so it may be affected too. Its behaviour must stay correct and consistent after the change.\n6. The fix should not change which rows are deleted, the order of deletion, signal dispatch or the SQL queries run. It should change only the returned counts dictionary.\n7. Which consistent form to adopt (\"empty dict\" or \"zero-valued keys\") is not yet decided. See Open Questions. The success criteria hold for either choice, and the chosen option goes into the spec once decided.\n\n## Objective\n\nMake `QuerySet.delete()` return the same shape of result when nothing is deleted, whatever the model's relationships are.\n\n**Who is affected:** developers who inspect the return value of `QuerySet.delete()`, for example for logging, auditing or assertions in tests. Today they have to handle two different zero-result shapes depending on the model's foreign key structure.\n\n**Current behaviour (from the issue):**\n\n| Scenario | Current result |\n|---|---|\n| Objects deleted (any model) | `(2, {'my_app.FileAccess': 1, 'my_app.File': 1})` |\n| Zero deleted, model with foreign keys / related objects | `(0, {})` |\n| Zero deleted, \"simple\" model without foreign keys | `(0, {'my_app.BlockLibrary': 0})` |\n\n**Desired behaviour:** the two zero-deletion cases return the same form. That form is either:\n\n- **Option A:** `(0, {})` in both cases, meaning only models with at least one deleted row appear as keys; or\n- **Option B:** `(0, {'<app_label>.<Model>': 0, ...})` in both cases, meaning the queried model (and possibly the related models considered) appear with zero counts.\n\nThe non-zero case must keep its current format and values.\n\n## Tech Stack\n\n- Python, Django ORM (versions: **unknown**, not stated in the issue)\n- Database backends affected: **unknown**. Assumed to be backend-independent, because the inconsistency is in result assembly and not in SQL.\n\n## Commands\n\n- Build: **unknown**\n- Test: **unknown** (the project's test runner command and flags are not visible from the issue)\n- Lint: **unknown**\n- Dev: not applicable\n\n## Project Structure\n\n**Unknown.** No repository access. The relevant areas, by responsibility only:\n\n- the `QuerySet.delete()` implementation;\n- the deletion \"collector\" logic that handles cascades and fast deletes;\n- the existing tests for deletion behaviour and return values;\n- the documentation describing `QuerySet.delete()` / `Model.delete()` return values, and release notes.\n\nExact file paths are to be confirmed against the repository.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the surrounding ORM deletion code and its test suite. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Framework / location:** unknown. Use the project's existing test suite for deletion behaviour.\n- **Regression tests (required), each asserting the full return tuple:**\n  1. Zero matches on a model **without** foreign keys or relations (the fast-delete path).\n  2. Zero matches on a model **with** foreign keys / reverse relations (the collector path).\n  3. Zero matches on a model whose relations would normally cascade.\n  4. Delete on an empty table compared with delete on a filter that matches nothing. Both must give the same result.\n  5. Tests 1 and 2 must give results of the same shape: both `{}` under Option A, or both with zero-valued label keys under Option B.\n- **Non-regression tests:**\n  - Existing tests covering non-zero deletions, including cascades, still pass unchanged.\n  - Cases with mixed cascade counts, where some related models have zero deletions, behave as the chosen option specifies.\n  - `Model.delete()` on a single instance still returns the correct counts.\n- **Test levels:** unit/integration tests against the test database. No end-to-end tests are needed.\n\n## Boundaries\n\n- **Always:**\n  - Keep the `(int, dict)` tuple type.\n  - Keep `_meta.label` as the dictionary key format.\n  - Keep the total equal to the sum of the dict values.\n  - Add regression tests for both code paths.\n  - Update the documentation if the documented zero-case behaviour changes.\n- **Ask first:**\n  - Choosing between Option A and Option B.\n  - Any change to the non-zero result format.\n  - Any change to which models appear in the dict when some cascaded models delete zero rows.\n  - Adding a release note or deprecation note.\n- **Never:**\n  - Change which rows are deleted, the deletion order, signal behaviour or the number or shape of SQL queries, beyond what the fix strictly needs.\n  - Remove or loosen existing deletion tests.\n  - Add new dependencies.\n\n## Success Criteria\n\n1. For any model, `Model.objects.filter(<matches nothing>).delete()` returns a result of one consistent shape, regardless of whether the model has foreign keys or relations.\n2. The zero-deletion result matches the chosen option exactly:\n   - Option A: `(0, {})`\n   - Option B: `(0, {'<label>': 0, ...})`, with the key set defined in the spec once decided.\n3. In every result, `result[0] == sum(result[1].values())`.\n4. Results for non-zero deletions are identical to current behaviour, for both simple and cascading models.\n5. `Model.delete()` on an instance gives correct results that follow the same convention.\n6. The new regression tests fail before the change and pass after it. The full existing deletion test suite passes.\n7. Documentation of the return value describes the zero-deletion case, if it was ambiguous or now differs.\n\n## Open Questions\n\n1. **Which consistent form should be canonical?**\n   - **Option A (`(0, {})`)** matches the collector path and the principle \"only models with deleted rows appear\".\n   - **Option B (zero-valued keys)** keeps the queried model's label visible even when nothing was deleted.\n\n   Which option should we adopt? A tentative preference is Option A, because it seems to need the smaller behavioural change and gives one consistent rule. This needs confirmation.\n2. Under Option B, which keys should appear? Only the queried model, or every model the collector considered for cascade, each with 0?\n3. In a **non-zero** cascading delete, some related models may delete zero rows. Should they appear with `0` or be left out? The fix should apply one rule to both cases.\n4. Is this treated as a bug fix (no deprecation) or as a behaviour change needing a release note? Some callers may rely on the current zero-case shape, for example by checking `result[1]['app.Model'] == 0`.\n5. Which Django versions should receive the fix: only the development branch, or backports too?\n6. Does the current documentation state anything about the zero-deletion return value that must be kept or corrected?\n7. Repository specifics are needed for implementation: test command, file locations and code style conventions are all currently unknown.",
+ "ttft_ms": 6102,
+ "type": "result",
+ "duration_ms": 32072,
+ "uuid": "49c8ba39-24a1-4575-bc23-6eee6ee33edc",
+ "ttft_stream_ms": 1486,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 231,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 231,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1487,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

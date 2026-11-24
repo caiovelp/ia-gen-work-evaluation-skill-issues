@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 36082,
+ "stop_reason": "end_turn",
+ "session_id": "22efeb66-4a5f-48d0-ab5d-1a4bed2e74fd",
+ "total_cost_usd": 0.0882534,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2219,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3467,
+  "output_tokens_details": {
+   "thinking_tokens": 556
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2219,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3467,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2219,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2219
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2801,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002906,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3467,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2219,
+   "webSearchRequests": 0,
+   "costUSD": 0.0879628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 556,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Do not raise models.W042 for models whose primary key is inherited from a parent model\n\n## Objective\n\n**Problem.** In Django 3.2 alpha, the system check `models.W042` (\"Auto-created primary key used when not defining a primary key type\u2026\") fires for models that do not declare a primary key themselves but inherit one from an ancestor model. The reporter defines the primary key once on an ancestor (e.g. `Entity`), and descendants such as `accounts.User` inherit it. Django 3.1 did not report this, because W042 is new in 3.2.\n\n**Why it matters.** W042 tells users to set `DEFAULT_AUTO_FIELD` or `AppConfig.default_auto_field`. For a model whose primary key is inherited, the child's key type comes from the parent, so that advice does not apply to the child. False positives:\n\n- add noise to `makemigrations` and `check` output;\n- push users to change settings for no reason;\n- make the genuine warnings harder to spot.\n\n**Users.** Django developers who use model inheritance and upgrade to 3.2.\n\n**Desired behaviour.**\n\n- W042 is raised only where Django actually auto-creates a primary key using the default auto-field type, i.e. a concrete model with no explicitly declared primary key anywhere in its inheritance chain.\n- A model whose primary key comes from a parent must not get W042 on its own account. A parent may have declared its key explicitly, or the child may have a parent-link `OneToOneField` that serves as its pk. If the root ancestor itself relies on an auto-created pk, the root model is the one that should receive W042.\n\n### Acceptance criteria / user stories\n\n1. As a developer with a concrete parent that declares an explicit pk (e.g. `id = models.BigAutoField(primary_key=True)` or a non-auto pk), and a multi-table-inheritance child that declares no pk, `manage.py check` reports no W042 for the child.\n2. As a developer whose child model has an explicit parent link (`OneToOneField(Parent, parent_link=True, primary_key=True)`), I get no W042 for the child.\n3. As a developer with an abstract base that declares an explicit pk, I get no W042 for concrete subclasses. This should already work; it is a regression guard.\n4. As a developer with a concrete root model that declares no pk and no `DEFAULT_AUTO_FIELD` / `default_auto_field` configured:\n   - W042 is still raised for the root model;\n   - the multi-table-inheritance child is not additionally flagged. This is an assumption; see Open Questions.\n5. As a developer with a model that has no parents and no explicit pk, and no default auto field configured, I still get W042. This behaviour is unchanged.\n6. W042 continues to be suppressed when `DEFAULT_AUTO_FIELD` is set or `AppConfig.default_auto_field` is overridden. This behaviour is unchanged.\n\n## Assumptions\n\n1. The reporter's models (e.g. `accounts.User` inheriting from `Entity`) use **multi-table (concrete) inheritance**, where the child's pk is the auto-created parent-link `OneToOneField`. The issue does not say whether `Entity` is abstract or concrete.\n2. The false positive happens because the check treats the auto-created parent-link field as an \"auto-created primary key\". This is a hypothesis, not verified against source.\n3. Some flagged models come from third-party apps, e.g. `friendship.*` and possibly `likes.UserLike`. Those models may genuinely lack an explicit pk, so their warnings may be legitimate. This spec only covers models whose pk is inherited.\n4. The fix belongs in Django core (model system checks and/or model `Options` pk setup), targeted at the 3.2 release branch. It is not a documentation-only change.\n5. Proxy models are not separately affected. They inherit the concrete model's pk and are presumably already excluded or handled; to be confirmed.\n6. No change is intended to the wording, ID, or hint text of W042.\n\n## Tech Stack\n\n- Python, Django (3.2 alpha / main branch at the time of the report).\n- Affected area: Django's model system checks (W042) and model metadata / primary-key setup for inherited models. Exact files and functions are **unknown** (no repository access).\n\n## Commands\n\nUnknown; no repository access. Django's test suite is conventionally run via its own test runner, but the exact invocation and the relevant test labels for this repo/environment are **unknown**.\n\n```\nBuild: unknown (pure Python; likely none)\nTest:  unknown \u2014 to be confirmed (Django's own test runner, targeting check-framework / model-inheritance tests)\nLint:  unknown\nDev:   n/a\n```\n\n## Project Structure\n\nUnknown. Expected (unverified) areas of interest:\n\n- Model base / system-check logic that emits `models.W042`: location unknown.\n- Model `Options` / metadata where an inherited pk or parent link is promoted to pk: location unknown.\n- Existing tests for the default-pk check and for model inheritance: locations unknown.\n\n## Code Style\n\nFollow the existing Django code style in the touched modules. No snippet is available from the issue. Tests should follow the existing pattern for system-check tests: define isolated models and assert the exact list of returned `checks.Warning` objects. File and fixture names are unknown.\n\n## Testing Strategy\n\n- **Level.** Unit tests for the system check, using models defined in isolated test apps. No database interaction is required beyond model definition.\n- **Cases** (one per acceptance criterion 1\u20136):\n  - concrete parent with explicit pk \u2192 child has no W042;\n  - explicit `parent_link=True, primary_key=True` \u2192 no W042;\n  - abstract parent with explicit pk \u2192 no W042;\n  - concrete parent with auto pk \u2192 W042 on parent only (pending Open Question 1);\n  - standalone model without pk \u2192 W042;\n  - `DEFAULT_AUTO_FIELD` overridden or `AppConfig.default_auto_field` set \u2192 no W042.\n- **Regression.** The existing W042 tests must still pass unchanged.\n- **Coverage.** Every branch of the W042 condition is exercised.\n- Framework, test locations and run commands: **unknown**.\n\n## Boundaries\n\n- **Always:**\n  - add regression tests reproducing the false positive before changing behaviour;\n  - keep the W042 ID, message and hint unchanged;\n  - preserve W042 for genuinely auto-created default pks.\n- **Ask first:**\n  - changing how parent-link fields are flagged (e.g. altering `auto_created` semantics), since other code may depend on it;\n  - changing which model (root vs. child) receives the warning;\n  - backporting decisions;\n  - adding release notes.\n- **Never:**\n  - silence W042 globally;\n  - change the default value of `DEFAULT_AUTO_FIELD`;\n  - alter migration autodetector output for inherited models;\n  - remove or weaken existing check tests.\n\n## Success Criteria\n\n- With the reporter's pattern (concrete ancestor with explicit pk plus multi-table-inheritance descendants without their own pk), `check` and `makemigrations` emit no W042 for the descendants.\n- W042 still fires for concrete models whose pk is genuinely auto-created with the implicit default type, and only for those.\n- No changes to generated migrations for inherited models.\n- All new tests (acceptance criteria 1\u20136) pass. The existing check-framework and model-inheritance test suites pass.\n\n## Open Questions\n\n1. **Root without explicit pk.** In multi-table inheritance where the root ancestor has an auto-created pk, should the child also receive W042, or only the root? This spec assumes only the root.\n2. **Inheritance type.** Is the reporter's `Entity` abstract or concrete? If it is abstract with an explicit pk and W042 still fires, there is a second bug path.\n3. **Third-party models.** Are the warnings on third-party models (`friendship.Block`, `friendship.Follow`, etc.) also inherited-pk false positives, or genuine models without a pk? A minimal reproduction from the reporter would help.\n4. **Indirect inheritance.** Should a model that inherits from a parent which itself inherits its pk (multi-level inheritance) be covered explicitly? This spec assumes yes, with the same rule.\n5. **Multiple concrete parents.** Should a model with more than one concrete parent behave the same as single inheritance (no W042 on the child)?\n6. **Release process.** Is a release note required for 3.2, and should the fix be backported to the 3.2 alpha/beta branch?\n7. **Logistics.** The exact code locations, test locations and test commands are unknown and must be confirmed against the repository.",
+ "ttft_ms": 7306,
+ "type": "result",
+ "duration_ms": 35279,
+ "uuid": "b98ca0e7-1b02-43d6-9c05-5505783def2b",
+ "ttft_stream_ms": 1288,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 209,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 137,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1289,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

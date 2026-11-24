@@ -1,0 +1,1 @@
+{"resolved": false, "f2p_falhou": ["./spec/features/class_enrollments_spec.rb[1:1:1]", "./spec/models/class_enrollment_spec.rb[1:4:5:1]", "./spec/models/class_enrollment_spec.rb[1:4:5:2]"], "p2p_falhou": []}

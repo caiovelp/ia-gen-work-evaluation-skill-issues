@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10565,
+ "stop_reason": "end_turn",
+ "session_id": "3e25bb54-73a8-47e1-be3a-d50480405bc3",
+ "total_cost_usd": 0.026465100000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1290,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 791,
+  "output_tokens_details": {
+   "thinking_tokens": 124
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1290,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 791,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1290,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1290
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1496,
+   "outputTokens": 335,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003171,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 307,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 791,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1290,
+   "webSearchRequests": 0,
+   "costUSD": 0.026148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 124,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`QuerySet.delete()` returns its result in an inconsistent format when zero objects are deleted. The per-model counter dictionary is empty for models with foreign keys, but contains the model label with a value of `0` for \"simple\" models without foreign keys.\n\n## Steps to reproduce\n\n1. Have a model that has foreign key relations (e.g. `my_app.File` / `my_app.FileAccess`).\n2. Have a \"simple\" model without foreign keys (e.g. `my_app.BlockLibrary`).\n3. Call `.delete()` on a QuerySet of the model with foreign keys that matches zero objects, and note the return value.\n4. Call `.delete()` on a QuerySet of the simple model that matches zero objects, and note the return value.\n5. Compare the two return values.\n\n## Observed behavior\n\n`QuerySet.delete()` returns a tuple `(X, Y)`:\n- `X`: the total number of deleted objects, including objects deleted through foreign keys.\n- `Y`: a dictionary of deleted-object counters per model. The key is the model's `_meta.label` and the value is the number of deleted objects of that model.\n\nExample with objects deleted: `<class 'tuple'>: (2, {'my_app.FileAccess': 1, 'my_app.File': 1})`\n\nWhen zero objects are deleted in total, the result depends on the model:\n- For models with foreign keys: `<class 'tuple'>: (0, {})`\n- For \"simple\" models without foreign keys: `<class 'tuple'>: (0, {'my_app.BlockLibrary': 0})`\n\n## Expected behavior\n\nThe two cases should return results in the same format. Either both return an empty dictionary, or both return a dictionary with model-label keys and zero values.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nNot provided in the original report. The only output examples given are the return values quoted under \"Observed behavior\".\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 3609,
+ "type": "result",
+ "duration_ms": 8889,
+ "uuid": "9e911f11-1ae6-4b0b-b1ad-f07bb1cb7988",
+ "ttft_stream_ms": 2393,
+ "time_to_request_ms": 224,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 193,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 174,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2393,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

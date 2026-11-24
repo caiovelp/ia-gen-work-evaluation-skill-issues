@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6004,
+ "stop_reason": "end_turn",
+ "session_id": "1b64a2d4-deb7-4f75-893f-0d51319412b3",
+ "total_cost_usd": 0.0181555,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1093,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 463,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1093,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 463,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1093,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1093
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1325,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001435,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 463,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1093,
+   "webSearchRequests": 0,
+   "costUSD": 0.018012,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAdd a check that the fields named in a `UniqueConstraint` actually exist.\n\n## Description\nWhen a model gains a `UniqueConstraint`, `makemigrations` doesn't check that the fields named in the constraint actually exist on the model.\n\nThe older `unique_together` syntax behaves differently. It raises `models.E012` if the fields don't exist.\n\nA demonstration project was attached to the original request. To show that `unique_together` raises E012, uncomment `\"with_unique_together\"` in that project's `settings.py`.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\n`unique_together` validates its field names and raises `models.E012` for fields that don't exist. `UniqueConstraint` does no such validation. This is inconsistent, and a `UniqueConstraint` that refers to fields that don't exist goes unreported when `makemigrations` runs.\n\n## Use case or scenario\nA developer adds a `UniqueConstraint` to a model's constraints and names one or more fields that don't exist on the model. When they run `makemigrations`, no error is reported. If they had used `unique_together` with the same field names, they would have received `models.E012`. The attached demonstration shows both cases.\n\n## Possible solution\nThe request suggests adding a check for the fields of `UniqueConstraint` that works like the existing check for `unique_together`. That check raises `models.E012` when a named field doesn't exist.",
+ "ttft_ms": 5389,
+ "type": "result",
+ "duration_ms": 5407,
+ "uuid": "cca2fddc-bf89-4568-906f-e65eff4b1523",
+ "ttft_stream_ms": 1418,
+ "time_to_request_ms": 300,
+ "time_to_request_phases_ms": {
+  "other": 22,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 21,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 223,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 38,
+ "time_to_request_cpu_ms": 349,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1419,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

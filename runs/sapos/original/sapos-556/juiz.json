@@ -1,0 +1,1 @@
+{"justificativa": "The patch adds a generic warning to the login and password-reset error messages, which matches the issue's fallback suggestion. It does not add any visual identification of which course instance the user is on (the official fix's configurable instance_name), so users still cannot tell where they are.", "veredito": "parcial"}

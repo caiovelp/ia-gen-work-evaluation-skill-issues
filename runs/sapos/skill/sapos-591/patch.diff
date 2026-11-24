@@ -1,0 +1,28 @@
+diff --git a/app/mailers/devise_mailer.rb b/app/mailers/devise_mailer.rb
+index 82b2a167..f69aa2d3 100644
+--- a/app/mailers/devise_mailer.rb
++++ b/app/mailers/devise_mailer.rb
+@@ -32,7 +32,7 @@ class DeviseMailer < Devise::Mailer
+       )
+       headers.update(message)
+     end
+-    headers
++    headers.except(:skip_message, :skip_footer, :skip_redirect)
+   end
+ 
+   def devise_mail(record, action, opts = {}, &block)
+diff --git a/lib/notifier.rb b/lib/notifier.rb
+index 1e33560c..f91c138e 100644
+--- a/lib/notifier.rb
++++ b/lib/notifier.rb
+@@ -62,7 +62,9 @@ module Notifier
+           attachments_file_name_list = attachments_file_name_list[0..-3]
+         end
+ 
+-        actionmailer_base.mail(m).deliver!
++        actionmailer_base.mail(
++          m.except(:skip_message, :skip_footer, :skip_redirect, :notification_id)
++        ).deliver!
+ 
+         NotificationLog.new(
+           notification_id: m[:notification_id],

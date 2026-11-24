@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 35043,
+ "stop_reason": "end_turn",
+ "session_id": "207252af-c4a6-48f8-8a93-ac40e1ea3c5b",
+ "total_cost_usd": 0.07516999999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 969,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3319,
+  "output_tokens_details": {
+   "thinking_tokens": 376
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 969,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3319,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 969,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 969
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1557,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016720000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3319,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 969,
+   "webSearchRequests": 0,
+   "costUSD": 0.07500279999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 376,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Remove incorrect caching of skipif/xfail string-condition evaluation\n\n## Objective\n\npytest evaluates string conditions in `@pytest.mark.skipif(\"...\")` and `@pytest.mark.xfail(\"...\")`, and it caches the result. The cache is implemented by `cached_eval` in `_pytest/mark/evaluate.py`, and its key is **only the condition string**. The result, however, also depends on the globals the string is evaluated against, which are the test item's module globals. When two modules use the same condition string but bind different values, the first result is reused for the second. That second result is wrong.\n\n**Reproduction (from the issue):**\n\n```py\n# test_module_1.py\nimport pytest\n\nskip = True\n\n@pytest.mark.skipif(\"skip\")\ndef test_should_skip():\n    assert False\n```\n\n```py\n# test_module_2.py\nimport pytest\n\nskip = False\n\n@pytest.mark.skipif(\"skip\")\ndef test_should_not_skip():\n    assert False\n```\n\nRunning `pytest test_module_1.py test_module_2.py`:\n- **Expected:** `test_should_skip` is skipped. `test_should_not_skip` runs and fails.\n- **Actual:** both tests are skipped.\n\n**Affected versions:** pytest 5.4.3 and current master at the time of the report.\n\n**Users:**\n- pytest users who write string conditions in `skipif`/`xfail` markers that refer to module-level names.\n- Plugin authors who rely on the same evaluation path.\n\n**Proposed direction (from the reporter):** remove the caching entirely and inline the logic of `cached_eval` into `MarkEvaluator._istrue`. This spec records that direction. It does not prescribe the implementation.\n\n**User stories / acceptance criteria:**\n- As a test author, when two modules use the same `skipif` condition string, each module's condition is evaluated against its own globals.\n- As a test author, the same applies to `xfail` string conditions, because they share `MarkEvaluator`.\n- As a test author, existing skipif/xfail behaviour is unchanged for:\n  - boolean conditions\n  - conditions with a `reason`\n  - strings that reference `sys`, `os`, `platform`, `config`\n  - strings that raise errors during evaluation\n\n## Assumptions\n\n1. Both `skipif` and `xfail` string conditions go through `MarkEvaluator._istrue` \u2192 `cached_eval`. Fixing `cached_eval` or its call site therefore fixes both markers.\n2. The globals used for evaluation include the item's module globals, plus names pytest injects (`os`, `sys`, `platform`, `config`). The bug comes only from the cache key leaving out these globals.\n3. `cached_eval` is internal (`_pytest` is a private package). Removing it is not a public-API break. Third-party plugins may still import it; see Open Questions.\n4. Removing the cache has a negligible performance cost, because each condition is compiled and evaluated once per item instead of once per unique string. The reporter believes this, but it is not measured.\n5. The cache is stored in some config-level storage that `cached_eval` uses. The exact mechanism and any associated key/attribute are **unknown** (not visible in the issue). If the cache is removed, that storage should be removed too.\n6. The fix targets current master. Whether it is backported to the 5.4.x line is a maintainer decision.\n7. Like other behaviour changes in the project, the fix needs a regression test and a changelog entry.\n\n## Tech Stack\n\n- Language: Python. Supported version range for current master is **unknown**.\n- Project: pytest itself (internal module `_pytest.mark.evaluate`).\n- Key components named in the issue: `cached_eval`, `MarkEvaluator._istrue`.\n- Other dependencies or versions: **unknown**.\n\n## Commands\n\nAll commands are **unknown**, because the repository is not visible. To be confirmed from the repo's contributing docs or tox config:\n\n```\nBuild:   unknown\nTest:    unknown (reproduction only: `pytest test_module_1.py test_module_2.py`)\nLint:    unknown\nDev:     unknown\n```\n\n## Project Structure\n\nOnly the following is known from the issue:\n\n```\n_pytest/mark/evaluate.py   \u2192 defines cached_eval and MarkEvaluator (_istrue); location of the bug\n```\n\nThe full path prefix (e.g. whether `_pytest` sits under a `src/` directory), the location of the test suite, and the location of changelog fragments are all **unknown**.\n\n## Code Style\n\n- Follow the existing conventions of `_pytest/mark/evaluate.py`. These are not visible here, so they are **unknown**.\n- Keep the change minimal. Per the reporter's proposal, this means removing the caching rather than redesigning condition evaluation.\n- No style snippet is provided, because none can be quoted from the issue.\n\n## Testing Strategy\n\n- **Framework:** pytest's own test suite. It most likely uses the in-repo testing fixtures for running pytest on generated files, but the exact fixture names and test file locations are **unknown**.\n- **Regression test (required):** generate two test modules with the same `skipif(\"skip\")` string and different module-level `skip` values. Run them in a single session and assert that the outcome is 1 skipped and 1 failed.\n- **Additional regression test (recommended):** the same scenario using `xfail(\"...\")`, to cover the second marker that shares the evaluator.\n- **Ordering coverage:** also run the modules in reverse order. This catches any residual order-dependent caching.\n- **Existing tests:** all existing skipif/xfail/mark-evaluation tests must still pass. That includes any tests that reference `cached_eval` directly. If such tests exist, they need updating or removal, and that must be called out explicitly.\n- **Coverage requirements:** **unknown** (project policy not visible).\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that reproduces the issue scenario.\n  - Run the full existing test suite before proposing the change.\n  - Add a changelog entry if the project requires one.\n  - Preserve the evaluation globals (`os`, `sys`, `platform`, `config`, module globals) exactly as they are today.\n- **Ask first:**\n  - Keeping a cache with a corrected key (e.g. string plus globals identity) instead of removing it.\n  - Removing `cached_eval` as a symbol versus keeping it as a deprecated shim.\n  - Backporting to a maintenance branch.\n  - Any change to how errors in condition strings are reported.\n- **Never:**\n  - Change the semantics of non-string (boolean) conditions.\n  - Change public marker signatures or behaviour beyond fixing the incorrect reuse.\n  - Delete or weaken existing tests without approval.\n\n## Success Criteria\n\n1. With the two-module reproduction run as `pytest test_module_1.py test_module_2.py`:\n   - `test_should_skip` is reported as skipped.\n   - `test_should_not_skip` runs and fails.\n2. The same result holds when the module order on the command line is reversed.\n3. An equivalent `xfail(\"<string>\")` scenario across two modules with differing globals evaluates each condition against its own module's globals.\n4. Within a single module, repeated use of the same condition string still evaluates correctly. There is no functional regression from removing the cache.\n5. String conditions that reference `sys`, `os`, `platform`, and `config` behave as before.\n6. Condition strings that fail to evaluate produce the same kind of error report as before.\n7. No caching keyed only by the condition string remains in the skipif/xfail evaluation path.\n8. The new regression test(s) fail on the unfixed code and pass on the fixed code.\n9. The full existing test suite passes.\n\n## Open Questions\n\n1. **Remove versus re-key the cache.** Should caching be removed entirely, as the reporter proposes, or kept with a key that includes the evaluation globals? Is there any known performance reason the cache was introduced?\n2. **Symbol removal.** Can `cached_eval` be deleted outright, or do maintainers want a deprecation path because third-party plugins might import it from `_pytest`?\n3. **Cache storage cleanup.** What storage or key does `cached_eval` currently use on the config object? Should it be removed along with the function?\n4. **Release target.** Is this fix for master only, or should it be backported to the 5.4.x maintenance line?\n5. **Changelog.** What changelog fragment type and location should be used (e.g. bugfix)? Is there a linked issue number to reference?\n6. **Other consumers.** Does anything else in pytest (e.g. other marks, or the `config`-level evaluation of strings) call `cached_eval` and need the same treatment?\n7. **Commands and paths.** What are the exact test, lint, and build commands, and the test-file locations to use for the regression test?",
+ "ttft_ms": 5512,
+ "type": "result",
+ "duration_ms": 33942,
+ "uuid": "b139217c-c0a4-44dd-9337-066ec5396cdc",
+ "ttft_stream_ms": 915,
+ "time_to_request_ms": 243,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 0,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 10,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 210,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 130,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 20,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 915,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

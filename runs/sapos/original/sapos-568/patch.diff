@@ -1,0 +1,36 @@
+diff --git a/app/models/course_class.rb b/app/models/course_class.rb
+index 46fdcccc..a53ecc15 100644
+--- a/app/models/course_class.rb
++++ b/app/models/course_class.rb
+@@ -80,13 +80,28 @@ class CourseClass < ApplicationRecord
+     if semester && semester.show_period_end?
+       course_class_arel = CourseClass.arel_table.dup
+       class_enrollment_arel = ClassEnrollment.arel_table.dup
++      course_arel = Course.arel_table.dup
++      course_type_arel = CourseType.arel_table.dup
+ 
+       query = course_class_arel
+       .join(class_enrollment_arel)
+       .on(course_class_arel[:id].eq(class_enrollment_arel[:course_class_id]))
+-      .where(class_enrollment_arel[:grade].eq(nil)
+-      .and(course_class_arel[:year].eq(YearSemester.current.year))
+-      .and(course_class_arel[:semester].eq(YearSemester.current.semester)))
++      .join(course_arel, Arel::Nodes::OuterJoin)
++      .on(course_class_arel[:course_id].eq(course_arel[:id]))
++      .join(course_type_arel, Arel::Nodes::OuterJoin)
++      .on(course_arel[:course_type_id].eq(course_type_arel[:id]))
++      .where(
++        class_enrollment_arel[:grade].eq(nil)
++        .and(course_type_arel[:has_score].eq(nil).or(course_type_arel[:has_score].eq(true)))
++        .or(
++          class_enrollment_arel[:situation].eq(ClassEnrollment::REGISTERED)
++          .and(course_type_arel[:has_score].eq(false))
++        )
++      )
++      .where(
++        course_class_arel[:year].eq(YearSemester.current.year)
++        .and(course_class_arel[:semester].eq(YearSemester.current.semester))
++      )
+ 
+       if user.professor.present?
+         query = query.where(course_class_arel[:professor_id].eq(user.professor.id))

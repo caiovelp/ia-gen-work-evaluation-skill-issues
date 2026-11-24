@@ -1,0 +1,36 @@
+diff --git a/sympy/core/exprtools.py b/sympy/core/exprtools.py
+index 57fad70407..9c28c98e4d 100755
+--- a/sympy/core/exprtools.py
++++ b/sympy/core/exprtools.py
+@@ -448,14 +448,8 @@ def as_expr(self):  # Factors
+         args = []
+         for factor, exp in self.factors.items():
+             if exp != 1:
+-                b, e = factor.as_base_exp()
+-                if isinstance(exp, int):
+-                    e = _keep_coeff(Integer(exp), e)
+-                elif isinstance(exp, Rational):
+-                    e = _keep_coeff(exp, e)
+-                else:
+-                    e *= exp
+-                args.append(b**e)
++                # let Pow decide whether (b**e)**exp may be combined
++                args.append(factor**exp)
+             else:
+                 args.append(factor)
+         return Mul(*args)
+diff --git a/sympy/simplify/tests/test_trigsimp.py b/sympy/simplify/tests/test_trigsimp.py
+index bf15ee07a9..de2f6d30ec 100755
+--- a/sympy/simplify/tests/test_trigsimp.py
++++ b/sympy/simplify/tests/test_trigsimp.py
+@@ -481,3 +481,10 @@ def test_trigsimp_old():
+     assert trigsimp(sin(x)/cos(x), old=True, method='groebner', hints=[tan]) == tan(x)
+ 
+     assert trigsimp(1-sin(sin(x)**2+cos(x)**2)**2, old=True, deep=True) == cos(1)**2
++
++
++def test_issue_18069():
++    from sympy import Symbol, sqrt, Abs
++    xr = Symbol('xr', real=True)
++    assert trigsimp(cos(x) + sqrt(sin(x)**2)) != cos(x) + sin(x)
++    assert trigsimp(cos(xr) + sqrt(sin(xr)**2)) == cos(xr) + Abs(sin(xr))

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 16982,
+ "stop_reason": "end_turn",
+ "session_id": "889b7553-d0eb-4152-adda-64c90e6a3c9d",
+ "total_cost_usd": 0.1018391,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 7706,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1969,
+  "output_tokens_details": {
+   "thinking_tokens": 199
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 7706,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1969,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 7706,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 7706
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 7916,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0008031,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1969,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 7706,
+   "webSearchRequests": 0,
+   "costUSD": 0.101036,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 199,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nCreating an `mpl_toolkits.axes_grid1.AxesGrid` with cartopy's `GeoAxes` as `axes_class` raises `TypeError: 'method' object is not subscriptable`.\n\nThe reporter attributes this to a difference in the `axis` attribute:\n\n- On `mpl_toolkits.axes_grid1.mpl_axes.Axes`, `axis` can be indexed with keys such as `ax.axis[\"bottom\"]`.\n- On other axes classes, such as `GeoAxes`, `axis` is only a callable method.\n\nThe error is raised in `mpl_toolkits.axes_grid1.axes_grid._tick_only`, which indexes `ax.axis` by key. `AxesGrid.__init__` reaches it through `set_label_mode`.\n\n## Steps to reproduce\n\n1. Install Matplotlib 3.1.2 and cartopy 0.17.0.\n2. Create a figure with `plt.figure()`.\n3. Define `axes_class = (GeoAxes, dict(map_projection=PlateCarree()))`.\n4. Create `AxesGrid(fig, 111, nrows_ncols=(1, 1), axes_class=axes_class)`.\n5. Observe the `TypeError` raised during grid construction.\n\n## Observed behavior\n\n`AxesGrid` construction fails with `TypeError: 'method' object is not subscriptable`. The failing call chain is:\n\n1. `AxesGrid.__init__`\n2. `set_label_mode(label_mode)`\n3. `_tick_only(ax, bottom_on=False, left_on=False)`\n4. `ax.axis[\"bottom\"].toggle(...)`\n\n`ax.axis` is a method on `GeoAxes`, so it cannot be indexed.\n\n## Expected behavior\n\nThe original report left the \"Expected outcome\" section empty. The title (\"Error creating AxisGrid with non-default axis class\") implies the expectation that `AxesGrid` can be created with a non-default axes class such as `GeoAxes` without raising an error.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n\n  File \"/home/jonasg/stuff/bugreport_mpl_toolkits_AxesGrid.py\", line 16, in <module>\n    axes_class=axes_class)\n\n  File \"/home/jonasg/miniconda3/envs/pya/lib/python3.7/site-packages/mpl_toolkits/axes_grid1/axes_grid.py\", line 618, in __init__\n    self.set_label_mode(label_mode)\n\n  File \"/home/jonasg/miniconda3/envs/pya/lib/python3.7/site-packages/mpl_toolkits/axes_grid1/axes_grid.py\", line 389, in set_label_mode\n    _tick_only(ax, bottom_on=False, left_on=False)\n\n  File \"/home/jonasg/miniconda3/envs/pya/lib/python3.7/site-packages/mpl_toolkits/axes_grid1/axes_grid.py\", line 27, in _tick_only\n    ax.axis[\"bottom\"].toggle(ticklabels=bottom_off, label=bottom_off)\n\nTypeError: 'method' object is not subscriptable\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction snippet. It passes if `AxesGrid` is constructed without raising:\n\n```python\nimport matplotlib.pyplot as plt\nfrom cartopy.crs import PlateCarree\nfrom cartopy.mpl.geoaxes import GeoAxes\nfrom mpl_toolkits.axes_grid1 import AxesGrid\n\n\ndef test_axesgrid_with_geoaxes_axes_class():\n    fig = plt.figure()\n    axes_class = (GeoAxes, dict(map_projection=PlateCarree()))\n    AxesGrid(fig, 111, nrows_ncols=(1, 1), axes_class=axes_class)\n```\n\n## Code example\n\n```python\nimport matplotlib.pyplot as plt\nfrom cartopy.crs import PlateCarree\nfrom cartopy.mpl.geoaxes import GeoAxes\nfrom mpl_toolkits.axes_grid1 import AxesGrid\n\nfig = plt.figure()\naxes_class = (GeoAxes, dict(map_projection=PlateCarree()))\ngr = AxesGrid(fig, 111, nrows_ncols=(1,1),\n              axes_class=axes_class)\n```\n\n## Version and environment\n\n- Operating system: Ubuntu 18.04.4 LTS\n- Matplotlib version: 3.1.2 (conda-forge; `matplotlib` 3.1.2 py37_1, `matplotlib-base` 3.1.2 py37h250f245_1)\n- Matplotlib backend: Qt5Agg\n- Python version: 3.7.6 (conda-forge)\n- cartopy: 0.17.0 (conda-forge, build py37hd759880_1006)\n- Other relevant packages from the reporter's conda environment:\n  - numpy 1.17.5\n  - pyproj 1.9.6\n  - proj4 5.2.0\n  - shapely 1.6.4\n  - pyqt 5.12.3\n  - qt 5.12.5\n- Installation: conda environment (miniconda3). The original report includes the full `conda list` output.",
+ "ttft_ms": 3780,
+ "type": "result",
+ "duration_ms": 16177,
+ "uuid": "dcc7ec5f-fb60-4132-a771-f379303339f8",
+ "ttft_stream_ms": 1723,
+ "time_to_request_ms": 228,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 190,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 207,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1723,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

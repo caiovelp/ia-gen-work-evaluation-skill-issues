@@ -1,0 +1,85 @@
+diff --git a/spec/support/golden_master_helpers.rb b/spec/support/golden_master_helpers.rb
+new file mode 100644
+index 00000000..0fc85c61
+--- /dev/null
++++ b/spec/support/golden_master_helpers.rb
+@@ -0,0 +1,79 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++require "zip"
++require "digest"
++
++# Characterization (golden-master) helper for PDF/XLSX outputs.
++#
++#   expect_matches_golden(response.body, "reports/boletim.xlsx")
++#
++# The golden file lives in spec/fixtures/golden/. Run with UPDATE_GOLDEN=1 to
++# (re)create it. Volatile data (timestamps, document ID, zip mtimes) is
++# normalized before comparing. Signed PDFs embed a QR code that changes on every
++# generation, so for those pass `mask_qr: true`, which compares only the text
++# operators/structure with image streams ignored.
++module GoldenMasterHelpers
++  GOLDEN_DIR = Rails.root.join("spec", "fixtures", "golden")
++
++  def golden_normalize(data, extension, mask_qr: false)
++    case extension.to_s.delete(".").downcase
++    when "pdf" then golden_normalize_pdf(data, mask_qr: mask_qr)
++    when "xlsx" then golden_normalize_xlsx(data)
++    else data.to_s.b
++    end
++  end
++
++  def expect_matches_golden(actual, name, mask_qr: false)
++    path = GOLDEN_DIR.join(name)
++    ext = File.extname(name)
++    actual = File.binread(actual) if actual.respond_to?(:to_path)
++    normalized = golden_normalize(actual, ext, mask_qr: mask_qr)
++
++    if ENV["UPDATE_GOLDEN"] || !path.exist?
++      FileUtils.mkdir_p(path.dirname)
++      File.binwrite(path, normalized)
++    end
++
++    expected = golden_normalize(File.binread(path), ext, mask_qr: mask_qr)
++    expect(normalized).to eq(expected), "#{name} differs from golden master"
++  end
++
++  private
++
++  def golden_normalize_pdf(data, mask_qr:)
++    out = data.to_s.b
++    out = out.gsub(%r{/(CreationDate|ModDate)\s*\((?:[^)\\]|\\.)*\)}n, '/\1 ()')
++    out = out.gsub(%r{/ID\s*\[[^\]]*\]}n, "/ID []")
++    out = out.gsub(%r{(<xmp:(?:CreateDate|ModifyDate|MetadataDate)>)[^<]*}n, '\1')
++    out = out.gsub(/^\d+ 0 obj/n, "obj").gsub(/^(xref|startxref)\r?\n[\s\S]*?(?=trailer|%%EOF)/n, '\1')
++    if mask_qr
++      out = out.gsub(%r{/Length \d+}n, "/Length 0")
++      out = out.gsub(/stream\r?\n.*?endstream/mn, "stream\nendstream")
++    end
++    out
++  end
++
++  def golden_normalize_xlsx(data)
++    entries = {}
++    Zip::InputStream.open(StringIO.new(data.to_s.b)) do |zip|
++      while (entry = zip.get_next_entry)
++        next if entry.directory?
++
++        content = zip.read.b
++        if entry.name == "docProps/core.xml"
++          content = content.gsub(%r{(<dcterms:(?:created|modified)[^>]*>)[^<]*}n, '\1')
++        end
++        entries[entry.name] = content
++      end
++    end
++    entries.sort.map { |name, content| "#{name}\n#{Digest::SHA256.hexdigest(content)}\n#{content}" }.join("\n---\n").b
++  end
++end
++
++RSpec.configure do |config|
++  config.include GoldenMasterHelpers, type: :request
++  config.include GoldenMasterHelpers, type: :feature
++end

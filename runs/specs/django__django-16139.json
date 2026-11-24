@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29398,
+ "stop_reason": "end_turn",
+ "session_id": "8f4a5f10-f481-4a23-89c4-fd37c8a477ec",
+ "total_cost_usd": 0.0655922,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1115,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2781,
+  "output_tokens_details": {
+   "thinking_tokens": 313
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1115,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2781,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1115,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1115
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1699,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018140000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2781,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1115,
+   "webSearchRequests": 0,
+   "costUSD": 0.0654108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 313,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix broken \"change password\" link in UserChangeForm when UserAdmin is opened via `to_field`\n\n## Objective\n\nWhen the Django admin opens a User change page through a relation that uses `to_field`, the \"change the password using this form\" link in the Password field's help text returns a 404. It should open the password change page for that user.\n\n**How the bug happens (from the issue):**\n\n- Another model's admin references `User` with a `to_field`, for example `to_field=\"uuid\"`.\n- Following that relation opens the UserAdmin change view at a URL like:\n  `.../user/22222222-3333-4444-5555-666677778888/change/?_to_field=uuid`\n- `UserChangeForm.__init__` builds the help-text link with the hard-coded relative path `\"../password/\"`.\n- That path resolves to `.../user/<uuid>/password/`. The password view looks up the user by **primary key**, so the lookup fails and the page returns 404.\n\n**Who is affected:** admin users who reach a User change page through a `to_field` relation (for example, via a related-object popup or link).\n\n**User story:** As an admin user, when I open a User's change page through any route, including a `to_field` route, I can click the password help-text link and reach that user's password change page.\n\n**Acceptance criteria:**\n\n1. The change page is opened via `.../user/<to_field value>/change/?_to_field=<field>`. The password link resolves to the password change URL for the user's **primary key**, and that URL does not return 404.\n2. The change page is opened the normal way (`.../user/<pk>/change/`). The password link still resolves to the same, working password change page. No regression.\n3. The link still renders inside the existing translatable help text. The surrounding wording and the `{}` placeholder are unchanged.\n\n**Terminology note:** The issue calls the target the \"PasswordResetForm\". The link actually points to the admin's `password/` view, which is a password *change* view. See Open Questions.\n\n## Assumptions\n\n1. This is the Django project (`django.contrib.auth`). `UserChangeForm` and `ReadOnlyPasswordHashField` are the classes shown in the issue.\n2. The password change view is mounted at `<pk>/password/` relative to the user changelist URL, and it looks up users by primary key only. This is implied by the 404, not shown directly.\n3. The change-view URL structure is `<changelist>/<object id>/change/`. The reporter's proposed relative path `../../{pk}/password/` depends on this.\n4. `UserChangeForm` is used with a saved instance, so `self.instance.pk` is not `None`. The issue does not cover unsaved instances.\n5. The reporter's proposed fix is a candidate approach, not a mandated one. This spec defines the required behaviour. The implementation is chosen during planning and review.\n6. A linked PR exists, but its contents are not visible here.\n\n## Tech Stack\n\n- Python and Django. Exact supported versions are **unknown** from the issue.\n- Affected component: `django.contrib.auth` (`UserChangeForm`) as used by `django.contrib.auth.admin.UserAdmin`. The latter is inferred from the issue.\n\n## Commands\n\nUnknown. The issue does not specify build, test, or lint commands.\n\n- Build: unknown\n- Test: unknown (for example, the project's test runner for the auth and admin test suites)\n- Lint: unknown\n\n## Project Structure\n\nUnknown. The issue does not give file paths.\n\n- Location of `UserChangeForm` source: unknown (presumably the auth forms module)\n- Location of relevant tests: unknown (presumably the auth and/or admin test suites)\n\n## Code Style\n\nFollow existing project conventions. This snippet is taken from the issue and shows the current code being changed:\n\n```python\ndef __init__(self, *args, **kwargs):\n    super().__init__(*args, **kwargs)\n    password = self.fields.get(\"password\")\n    if password:\n        password.help_text = password.help_text.format(\"../password/\")\n```\n\nConventions to preserve:\n\n- Keep the help text translatable (`_()`).\n- Fill the link via the existing `{}` placeholder. Do not change the translated string, so that existing translations are not invalidated.\n- Keep the `if password:` guard. Subclasses may remove the field.\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework. The exact framework and runner are unknown.\n- **Unit level (form):** for a saved user, the rendered or computed `password` help text contains a link that resolves to that user's primary-key password URL.\n- **Integration level (admin):**\n  - Use a user model or setup with a non-pk unique field reachable via `to_field`.\n  - Load the change view with `?_to_field=<field>`.\n  - Follow the password link from the rendered page and assert it does not return 404 (expect 200 for a permitted user).\n- **Regression:** the standard pk-based change view link still works.\n- **Coverage expectation:** unknown. At minimum, one failing-before / passing-after test that reproduces the issue.\n\n## Boundaries\n\n- **Always:**\n  - Write a test that reproduces the 404 before changing the code.\n  - Keep the help text translatable and keep the existing format-placeholder string unchanged.\n  - Keep the plain pk-based admin access working.\n- **Ask first:**\n  - Changing the translatable help-text string itself.\n  - Changing the password view's URL pattern or its lookup semantics, for example to accept `to_field` values.\n  - Introducing URL reversing that couples the form to a specific admin site or namespace.\n- **Never:**\n  - Remove or weaken existing tests.\n  - Change the security or permission checks of the password change view.\n  - Expose the password hash or alter `ReadOnlyPasswordHashField` behaviour beyond the help-text link.\n\n## Success Criteria\n\n- [ ] A test opens the User change view with `?_to_field=<non-pk field>`, follows the password help-text link, and gets the password change page instead of a 404.\n- [ ] A test opens the User change view by pk and confirms the password link still works.\n- [ ] The help-text string in the translation catalog is unchanged.\n- [ ] All existing auth and admin tests pass. The exact command is unknown.\n\n## Open Questions\n\n1. **Approach.** Is the relative path `../../{self.instance.pk}/password/` acceptable? It assumes the `<id>/change/` URL depth. The alternative is reversing the admin URL, but the form does not know the admin site namespace. Should the fix live in the form, or should `UserAdmin` supply the correct URL?\n2. **Primary key quoting.** Should the pk be escaped with the admin's URL quoting before it is put into the URL? This matters for primary keys containing characters such as `/` or `_`. Should the help-text HTML also escape it?\n3. **Unsaved instance.** What should the link be when `self.instance.pk` is `None`, for example when `UserChangeForm` is used outside the admin change view or on an unsaved instance? Should the link be omitted?\n4. **Usage outside the admin.** `UserChangeForm` may be used outside the admin, where the relative link is already meaningless. Is that in scope?\n5. **Naming.** Should the issue title be corrected from \"PasswordResetForm\" to the admin password change view?\n6. **Versions.** Which Django versions or branches should get the fix?\n7. **Linked PR.** Should the linked PR be taken as the reference implementation? Its contents are not visible here.",
+ "ttft_ms": 5316,
+ "type": "result",
+ "duration_ms": 28822,
+ "uuid": "13af3ec9-76ff-4035-b1fb-8eeaeb9bc302",
+ "ttft_stream_ms": 1571,
+ "time_to_request_ms": 304,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 246,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 283,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1572,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,15 @@
+diff --git a/lib/matplotlib/cm.py b/lib/matplotlib/cm.py
+index 38158db956..3eb69282cd 100755
+--- a/lib/matplotlib/cm.py
++++ b/lib/matplotlib/cm.py
+@@ -613,6 +613,10 @@ class ScalarMappable:
+         if not in_init:
+             self.norm.callbacks.disconnect(self._id_norm)
+         self._norm = norm
++        if not in_init and getattr(self, '_A', None) is not None:
++            # Scale the new norm before listeners (e.g. colorbars) see it;
++            # callbacks aren't connected yet, so this doesn't re-enter.
++            self.autoscale_None()
+         self._id_norm = self.norm.callbacks.connect('changed',
+                                                     self.changed)
+         if not in_init:

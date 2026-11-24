@@ -1,0 +1,73 @@
+diff --git a/app/models/admissions/admission_process.rb b/app/models/admissions/admission_process.rb
+index 45e53aad..4c67afac 100644
+--- a/app/models/admissions/admission_process.rb
++++ b/app/models/admissions/admission_process.rb
+@@ -41,6 +41,7 @@ class Admissions::AdmissionProcess < ActiveRecord::Base
+ 
+   validate :end_greater_than_start_date
+   validate :max_greater_than_min_letters
++  validate :letter_template_required_with_min_letters
+   validate :simple_url_is_unique_while_open
+ 
+   def initialize_dup(other)
+@@ -77,6 +78,13 @@ class Admissions::AdmissionProcess < ActiveRecord::Base
+     end
+   end
+ 
++  def letter_template_required_with_min_letters
++    return if self.min_letters.to_i <= 0
++    if self.letter_template.nil?
++      self.errors.add(:letter_template, :blank)
++    end
++  end
++
+   def simple_url_is_unique_while_open
+     return if self.end_date.nil?
+     return if self.end_date < Date.today
+diff --git a/app/models/admissions/admission_process_ranking.rb b/app/models/admissions/admission_process_ranking.rb
+index b8e46319..e0b0fb02 100644
+--- a/app/models/admissions/admission_process_ranking.rb
++++ b/app/models/admissions/admission_process_ranking.rb
+@@ -86,13 +86,9 @@ class Admissions::AdmissionProcessRanking < ActiveRecord::Base
+                 ) != 0
+                 self.set_candidate_position(next_candidate, process, candidate_position, machine)
+                 position += 1
+-                ngroups = groups
+-                nprocess_vacancies = process_vacancies
+-                if process_vacancies[process.id] == 0 || (process.group.present? && groups[process.group] == 0)
+-                  ngroups = readjust_groups
+-                  nprocess_vacancies = readjust_process_vacancies
+-                end
+-                process.decrease_vacancies_and_check_remaining!(ngroups, nprocess_vacancies)
++                process.decrease_tie_vacancies!(
++                  groups, process_vacancies, readjust_groups, readjust_process_vacancies
++                )
+               end
+             end
+             break
+diff --git a/app/models/admissions/ranking_process.rb b/app/models/admissions/ranking_process.rb
+index 711fd789..52a65759 100644
+--- a/app/models/admissions/ranking_process.rb
++++ b/app/models/admissions/ranking_process.rb
+@@ -36,4 +36,21 @@ class Admissions::RankingProcess < ActiveRecord::Base
+     end
+     remaining
+   end
++
++  # Ties beyond the available vacancies are consumed from the readjust
++  # counters (applied at the end of the step); others consume normally.
++  def decrease_tie_vacancies!(groups, process_vacancies, readjust_groups, readjust_process_vacancies)
++    if process_vacancies[self.id] <= 0
++      readjust_process_vacancies[self.id] -= 1
++    else
++      process_vacancies[self.id] -= 1
++    end
++    if self.group.present? && !groups[self.group].nil?
++      if groups[self.group] <= 0
++        readjust_groups[self.group] -= 1
++      else
++        groups[self.group] -= 1
++      end
++    end
++  end
+ end

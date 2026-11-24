@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25799,
+ "stop_reason": "end_turn",
+ "session_id": "ecce5a4a-7f04-4bb4-b80a-944d258d6900",
+ "total_cost_usd": 0.05452979999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 690,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2400,
+  "output_tokens_details": {
+   "thinking_tokens": 93
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 690,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2400,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 690,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 690
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1275,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00013900000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2400,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 690,
+   "webSearchRequests": 0,
+   "costUSD": 0.05439079999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 93,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix `RecursionError` in `is_zero` for nested `cosh`/`acos`/`acosh` expression\n\n## Objective\n\nQuerying `expr.is_zero` on the expression below raises `RecursionError: maximum recursion depth exceeded while calling a Python object`:\n\n```python\nexpr = sympify(\"cosh(acos(-i + acosh(-g + i)))\")\nexpr.is_zero\n```\n\nAn assumption query must never crash. It should return `True`, `False`, or `None` (unknown).\n\n**User:** Anyone using SymPy who queries assumptions such as `is_zero` on expressions that nest hyperbolic and inverse trigonometric or inverse hyperbolic functions. This includes internal SymPy code that runs these queries implicitly, for example during simplification, comparison or `Mul`/`Add` construction.\n\n**Acceptance criteria:**\n- `sympify(\"cosh(acos(-i + acosh(-g + i)))\").is_zero` returns without raising.\n- The returned value is mathematically correct. `None` is acceptable when the truth cannot be determined. The query must not return a definite `True`/`False` that is wrong.\n- The root cause is fixed: the specific cycle of mutual assumption queries is identified and broken. Raising the recursion limit or catching `RecursionError` does not count as a fix.\n- Existing assumption behavior of `cosh`, `acos` and `acosh` on previously working inputs does not change, unless a change is required to fix a demonstrably wrong result.\n\n## Assumptions\n\n1. The project is SymPy. `sympify` and `.is_zero` are SymPy APIs.\n2. In the string, `i` and `g` are parsed as plain `Symbol`s with no assumptions. `i` is not the imaginary unit `I`, because `sympify(\"i\")` gives `Symbol('i')`.\n3. The recursion comes from the old-style assumptions system (`_eval_is_*` handlers and their inference rules). One handler, such as `cosh._eval_is_zero`, `_eval_is_real`, `_eval_is_positive`, or an `acos`/`acosh` handler, queries a property of its argument, and that query eventually re-enters the original query in a cycle.\n4. The bug reproduces on the current development branch. The SymPy version and Python version were not given in the issue.\n5. The fix belongs in the relevant function classes' assumption handlers. No change to the core assumptions engine is expected, though this is not confirmed.\n6. Other assumption queries on the same expression may also recurse, for example `is_real`, `is_positive` and `is_finite`. They should be checked too.\n\n## Tech Stack\n\n- Python, SymPy. Versions unknown (not stated in the issue).\n- Relevant components (inferred): the `cosh` class, the `acos` class, the `acosh` class, and the old-style assumptions machinery. Exact file locations are unknown.\n\n## Commands\n\nUnknown. The issue does not state them. Placeholders to confirm:\n- Reproduce: `python -c \"from sympy import sympify; print(sympify('cosh(acos(-i + acosh(-g + i)))').is_zero)\"`. This is derived directly from the issue.\n- Test: unknown (SymPy's test runner and the relevant test file paths are not visible).\n- Lint/style check: unknown.\n\n## Project Structure\n\nUnknown. No paths are visible in the issue. Expected locations, to be confirmed:\n- The source module(s) defining `cosh`, `acos` and `acosh`.\n- The corresponding test module(s) for hyperbolic and trigonometric functions.\n\n## Code Style\n\nNo code is visible in the issue. Follow the existing conventions in the modules being changed. Assumption handlers should:\n- Return `True`, `False` or `None`, and never raise for undecidable cases.\n- Avoid querying a property of the argument that can, through inference, re-query the property being computed on the same object.\n\n## Testing Strategy\n\n- **Regression test:** add a test asserting that `sympify(\"cosh(acos(-i + acosh(-g + i)))\").is_zero` completes. If the correct value is determinable, assert it. Otherwise assert `is None`. Place it in the existing test module for hyperbolic functions (path unknown).\n- **Related queries:** in the same test, check that other common assumption queries on this expression complete without error (`is_real`, `is_positive`, `is_finite`, `is_extended_real`, etc.).\n- **Sub-expression coverage:** add assertions for the minimal sub-expression that triggers the cycle, once it is identified. For example, it may be `acos(x + acosh(y))` or `cosh(acos(z))` with generic symbols.\n- **Regression safety:** run the full existing test suites for the hyperbolic, trigonometric and assumptions areas. All must pass.\n\n## Boundaries\n\n- **Always:** reproduce the error before changing code. Identify the exact recursion cycle and record which handlers are involved. Add a regression test that fails before the fix and passes after. Keep assumption results conservative (`None` rather than a guess).\n- **Ask first:** changing the core assumptions engine or inference rules. Changing documented assumption results of existing functions. Broad refactors of the `cosh`, `acos` or `acosh` handlers beyond what breaks the cycle.\n- **Never:** raise `sys.setrecursionlimit` or catch `RecursionError` as the fix. Return a definite `True`/`False` without mathematical justification. Remove or weaken existing tests to make the suite pass.\n\n## Success Criteria\n\n1. The reproduction snippet from the issue runs and prints `True`, `False` or `None` with no exception.\n2. The returned value is mathematically correct, or `None`.\n3. A new regression test covering the issue's expression exists and passes. It failed before the fix.\n4. The existing hyperbolic, trigonometric and assumptions test suites pass unchanged.\n5. The PR description names the recursion cycle (which `_eval_is_*` handlers call each other) and explains how the fix breaks it.\n\n## Open Questions\n\n1. Which SymPy and Python versions were used? Does the bug reproduce on the current development branch?\n2. Was `i` intended as a generic symbol, or as the imaginary unit `I`? Should the fix also be verified with `I` substituted?\n3. What is the expected value of `is_zero` here: `False`, or `None` (unknown)? Is `None` acceptable to the reporter?\n4. Is the cycle confined to `cosh` handlers, or does it involve `acos`/`acosh` handlers, or general inference in the assumptions engine? This determines where the fix belongs.\n5. Should the same audit apply to sibling functions with similar handlers, such as `sinh`, `cos` and `asin`, or should this fix stay narrowly scoped?\n6. What are the exact test and lint commands, and which test file paths are relevant? None are visible in the issue.",
+ "ttft_ms": 2853,
+ "type": "result",
+ "duration_ms": 25108,
+ "uuid": "2d6d4f5e-687a-4a67-a3a1-dd6211215392",
+ "ttft_stream_ms": 1825,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 159,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1826,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

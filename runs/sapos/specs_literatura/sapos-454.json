@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 3699,
+ "stop_reason": "end_turn",
+ "session_id": "df34b2dc-2d0a-4f50-a22c-a6a9664ada6f",
+ "total_cost_usd": 0.015077000000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1106,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 304,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1106,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 304,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1106,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1106
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1275,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000141,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 304,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1106,
+   "webSearchRequests": 0,
+   "costUSD": 0.014936000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1106,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nVisualiza\u00e7\u00e3o do momento da inscri\u00e7\u00e3o na interface do SAPOS.\n\n## Descri\u00e7\u00e3o\nSolicita-se que a interface do SAPOS permita visualizar em que momento as inscri\u00e7\u00f5es foram feitas.\n\n## Vers\u00e3o do produto\nN\u00e3o informado na issue original.\n\n## Justificativa\nAtualmente \u00e9 dif\u00edcil identificar quando cada inscri\u00e7\u00e3o foi realizada. Por exemplo, n\u00e3o \u00e9 f\u00e1cil saber quais estudantes se inscreveram durante o per\u00edodo de ajustes.\n\n## Caso de uso ou cen\u00e1rio\nUm usu\u00e1rio do SAPOS quer identificar os estudantes que se inscreveram no per\u00edodo de ajustes. Para isso, precisa consultar na interface o momento em que cada inscri\u00e7\u00e3o foi feita.\n\n## Poss\u00edvel solu\u00e7\u00e3o\nExibir na interface do SAPOS o momento (data/hora) em que cada inscri\u00e7\u00e3o foi realizada. A issue original n\u00e3o traz outros detalhes de implementa\u00e7\u00e3o.",
+ "ttft_ms": 3299,
+ "type": "result",
+ "duration_ms": 3330,
+ "uuid": "094f62eb-f02d-45a3-a6c3-db2b6bcbf59c",
+ "ttft_stream_ms": 1053,
+ "time_to_request_ms": 473,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 8,
+  "input_attachments": 20,
+  "input_hooks": 8,
+  "conversation_append": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 26,
+  "init_frame_send": 9,
+  "engine_pickup": 3,
+  "loop_entry": 8,
+  "message_prep": 2,
+  "model_config_wait": 339,
+  "autocompact": 4,
+  "request_announcements": 14,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 2,
+  "request_build": 9
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 100,
+ "time_to_request_cpu_ms": 487,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 26,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 6,
+  "render_ms": 3,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 2,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 1,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 2,
+  "headers_ms": 0,
+  "cache_break_record_ms": 2,
+  "plans_ms": 2,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 2,
+  "record_attempt_ms": 0,
+  "other_ms": 1,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1053,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

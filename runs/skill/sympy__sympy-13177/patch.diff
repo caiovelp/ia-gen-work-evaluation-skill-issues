@@ -1,0 +1,29 @@
+diff --git a/sympy/core/mod.py b/sympy/core/mod.py
+index 11c800704..f7efc6696 100755
+--- a/sympy/core/mod.py
++++ b/sympy/core/mod.py
+@@ -39,7 +39,7 @@ def doit(p, q):
+             if p.is_infinite or q.is_infinite or p is nan or q is nan:
+                 return nan
+             if (p == q or p == -q or
+-                    p.is_Pow and p.exp.is_Integer and p.base == q or
++                    p.is_Pow and p.exp.is_Integer and p.base == q and q.is_integer or
+                     p.is_integer and q == 1):
+                 return S.Zero
+ 
+diff --git a/sympy/core/tests/test_arit.py b/sympy/core/tests/test_arit.py
+index 06d65203f..ecc73b30c 100755
+--- a/sympy/core/tests/test_arit.py
++++ b/sympy/core/tests/test_arit.py
+@@ -1902,3 +1902,11 @@ def test_issue_8247_8354():
+ def test_Add_is_zero():
+     x, y = symbols('x y', zero=True)
+     assert (x + y).is_zero
++
++
++def test_Mod_Pow_noninteger_base():
++    x = Symbol('x')
++    assert Mod(x**2, x) != 0
++    assert Mod(x**2, x).subs(x, Rational(3, 2)) == Rational(3, 4)
++    n = Symbol('n', integer=True)
++    assert Mod(n**2, n) == 0

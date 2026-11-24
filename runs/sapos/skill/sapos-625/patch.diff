@@ -1,0 +1,121 @@
+diff --git a/app/helpers/admissions/admission_processes_pdf_helper.rb b/app/helpers/admissions/admission_processes_pdf_helper.rb
+index 0920832c..8af6f287 100644
+--- a/app/helpers/admissions/admission_processes_pdf_helper.rb
++++ b/app/helpers/admissions/admission_processes_pdf_helper.rb
+@@ -20,8 +20,8 @@ module Admissions::AdmissionProcessesPdfHelper
+   def admission_process_pdf_title(admission_process)
+     [
+       ["<b>#{admission_process_pdf_t("generic.title", title: admission_process.title)}</b>"],
+-      ["<b>#{admission_process_pdf_t("generic.start", date: admission_process.start_date)}
+-        #{admission_process_pdf_t('generic.end', date: admission_process.end_date)}
++      ["<b>#{admission_process_pdf_t("generic.start", date: admission_process.start_date&.to_fs(:default))}
++        #{admission_process_pdf_t('generic.end', date: admission_process.end_date&.to_fs(:default))}
+         #{admission_process_pdf_t('generic.total', count: admission_process.admission_applications_count)}</b>"
+       ]
+     ]
+diff --git a/app/helpers/professors_helper.rb b/app/helpers/professors_helper.rb
+index 4d980e24..50496a7b 100644
+--- a/app/helpers/professors_helper.rb
++++ b/app/helpers/professors_helper.rb
+@@ -73,8 +73,8 @@ module ProfessorsHelper
+       tr_class = count.even? ? "even-record" : ""
+       body += "<tr class=\"record #{tr_class}\">
+                 <td>#{affiliation.institution.name}</td>
+-                <td>#{affiliation.start_date}</td>
+-                <td>#{affiliation.end_date}</td>
++                <td>#{affiliation.start_date&.to_fs(:default)}</td>
++                <td>#{affiliation.end_date&.to_fs(:default)}</td>
+               </tr>"
+     end
+ 
+diff --git a/app/models/admissions/filled_form_field_scholarity.rb b/app/models/admissions/filled_form_field_scholarity.rb
+index 2c49cde1..5fea29dd 100644
+--- a/app/models/admissions/filled_form_field_scholarity.rb
++++ b/app/models/admissions/filled_form_field_scholarity.rb
+@@ -51,7 +51,7 @@ class Admissions::FilledFormFieldScholarity < ActiveRecord::Base
+     ].reject(&:blank?).join(" - ")
+ 
+     date = [
+-      self.start_date, self.end_date
++      self.start_date&.to_fs(:default), self.end_date&.to_fs(:default)
+     ].reject(&:blank?).join(" - ")
+ 
+     result = "#{result} (#{date})" if date.present?
+diff --git a/config/initializers/fix_rails7_date_format.rb b/config/initializers/fix_rails7_date_format.rb
+deleted file mode 100644
+index e2a76a0a..00000000
+--- a/config/initializers/fix_rails7_date_format.rb
++++ /dev/null
+@@ -1,30 +0,0 @@
+-# Copyright (c) Universidade Federal Fluminense (UFF).
+-# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
+-
+-# frozen_string_literal: true
+-
+-# In Rails 7.0, Date.to_se stopped considering the :default format
+-# and deprecated it
+-# This monkeypatch restores the functionality
+-# Extracted from https://stackoverflow.com/questions/71177165/rails-ignores-the-default-date-format-after-upgrading-from-6-1-to-7-0
+-
+-require "date"
+-
+-class Date
+-  # O trecho original (do StackOverflow) caia em to_default_s, que era um metodo
+-  # interno do Rails -- alias do to_s original do Ruby -- removido no Rails 7.2.
+-  # Sem este alias, to_s com um formato desconhecido levanta NameError.
+-  alias_method :to_default_s, :to_s unless method_defined?(:to_default_s)
+-
+-  def to_s(format = :default)
+-    if formatter = DATE_FORMATS[format]
+-      if formatter.respond_to?(:call)
+-        formatter.call(self).to_s
+-      else
+-        strftime(formatter)
+-      end
+-    else
+-      to_default_s
+-    end
+-  end
+-end
+diff --git a/spec/initializers/fix_rails7_date_format_spec.rb b/spec/initializers/fix_rails7_date_format_spec.rb
+deleted file mode 100644
+index b3a0ff57..00000000
+--- a/spec/initializers/fix_rails7_date_format_spec.rb
++++ /dev/null
+@@ -1,36 +0,0 @@
+-# Copyright (c) Universidade Federal Fluminense (UFF).
+-# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
+-
+-# frozen_string_literal: true
+-
+-require "spec_helper"
+-
+-# O initializer sobrescreve Date#to_s para que a interpolacao de uma data use o
+-# formato :default (%d/%m/%Y), comportamento que o Rails 7.0 removeu de proposito.
+-# O ramo de fallback dependia de to_default_s, um metodo interno do Rails que o
+-# 7.2 removeu -- e que quebrou sem que nada acusasse, porque nenhum spec o
+-# exercitava.
+-RSpec.describe "Date#to_s com formato padrao" do
+-  let(:date) { Date.new(2026, 7, 22) }
+-
+-  it "usa o formato :default quando chamado sem argumento" do
+-    expect(date.to_s).to eq "22/07/2026"
+-  end
+-
+-  it "usa o formato :default quando ele e pedido explicitamente" do
+-    expect(date.to_s(:default)).to eq "22/07/2026"
+-  end
+-
+-  it "aceita outros formatos registrados em DATE_FORMATS" do
+-    expect(date.to_s(:iso8601)).to eq "2026-07-22"
+-  end
+-
+-  it "cai no to_s original do Ruby quando o formato e desconhecido" do
+-    expect { date.to_s(:formato_que_nao_existe) }.not_to raise_error
+-    expect(date.to_s(:formato_que_nao_existe)).to eq "2026-07-22"
+-  end
+-
+-  it "mantem to_default_s como o to_s original do Ruby" do
+-    expect(date.to_default_s).to eq "2026-07-22"
+-  end
+-end

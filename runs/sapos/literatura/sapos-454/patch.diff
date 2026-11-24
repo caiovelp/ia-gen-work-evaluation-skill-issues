@@ -1,0 +1,42 @@
+diff --git a/app/controllers/class_enrollments_controller.rb b/app/controllers/class_enrollments_controller.rb
+index f999e58c..b49165af 100644
+--- a/app/controllers/class_enrollments_controller.rb
++++ b/app/controllers/class_enrollments_controller.rb
+@@ -12,20 +12,20 @@ class ClassEnrollmentsController < ApplicationController
+     columns = [
+       :enrollment, :course_class, :situation, :disapproved_by_absence,
+       :grade, :obs, :grade_not_count_in_gpr,
+-      :justification_grade_not_count_in_gpr, :grade_label
++      :justification_grade_not_count_in_gpr, :grade_label, :created_at
+     ]
+     config.columns = columns
+     config.list.sorting = { enrollment: "ASC" }
+     config.list.columns = [
+       :enrollment, :course_class, :situation,
+-      :grade_label, :disapproved_by_absence
++      :grade_label, :disapproved_by_absence, :created_at
+     ]
+-    config.create.columns = columns - [:grade_label]
+-    config.update.columns = columns - [:grade_label]
++    config.create.columns = columns - [:grade_label, :created_at]
++    config.update.columns = columns - [:grade_label, :created_at]
+     config.show.columns = [
+       :enrollment, :course_class, :situation, :disapproved_by_absence,
+       :grade_label, :obs, :grade_not_count_in_gpr,
+-      :justification_grade_not_count_in_gpr,
++      :justification_grade_not_count_in_gpr, :created_at
+     ]
+     config.create.label = :create_class_enrollment_label
+ 
+diff --git a/config/locales/class_enrollment.pt-BR.yml b/config/locales/class_enrollment.pt-BR.yml
+index d42a7ecd..c11aea73 100644
+--- a/config/locales/class_enrollment.pt-BR.yml
++++ b/config/locales/class_enrollment.pt-BR.yml
+@@ -12,6 +12,7 @@ pt-BR:
+           attendance_false: "I"
+           attendance_true: "S"
+         enrollment: "Matrícula"
++        created_at: "Inscrição realizada em"
+         grade: "Nota"
+         grade_label: "Nota"
+         grade_not_count_in_gpr: "Não contabilizar nota"

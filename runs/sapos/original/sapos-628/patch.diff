@@ -1,0 +1,148 @@
+diff --git a/.claude/skills/homologacao/SKILL.md b/.claude/skills/homologacao/SKILL.md
+new file mode 100644
+index 00000000..da9f9af7
+--- /dev/null
++++ b/.claude/skills/homologacao/SKILL.md
+@@ -0,0 +1,16 @@
++---
++name: homologacao
++description: Comparar o app antes e depois em homologação (telas, PDFs, planilhas) contra o mesmo banco, com scripts de captura e comparação.
++---
++
++# homologacao
++
++1. Use o **mesmo banco** nas duas execuções (antes e depois).
++2. No código "antes": `scripts/capture.sh antes <base_url> <lista_de_urls.txt>`.
++3. Troque para o código "depois" e rode `scripts/capture.sh depois <base_url> <lista_de_urls.txt>`.
++4. `scripts/compare.sh antes depois` lista arquivos diferentes.
++5. Revise as diferenças manualmente (PDFs: compare o texto; planilhas: compare o conteúdo, não os bytes; telas: ignore tokens CSRF e timestamps).
++6. Verifique o comparador com um par sabidamente diferente e um idêntico.
++7. Capturas contêm dados pessoais: não commite.
++
++Passe cookies de sessão via `COOKIE_FILE` (formato curl).
+diff --git a/.claude/skills/homologacao/scripts/capture.sh b/.claude/skills/homologacao/scripts/capture.sh
+new file mode 100755
+index 00000000..95a1657b
+--- /dev/null
++++ b/.claude/skills/homologacao/scripts/capture.sh
+@@ -0,0 +1,10 @@
++#!/usr/bin/env bash
++# Uso: capture.sh <rótulo> <base_url> <arquivo_com_urls>
++set -euo pipefail
++label=$1; base=$2; list=$3
++mkdir -p "capturas/$label"
++while read -r path; do
++  [ -z "$path" ] && continue
++  name=$(echo "$path" | tr '/?&=' '____')
++  curl -sS -L ${COOKIE_FILE:+-b "$COOKIE_FILE"} "$base$path" -o "capturas/$label/$name"
++done < "$list"
+diff --git a/.claude/skills/homologacao/scripts/compare.sh b/.claude/skills/homologacao/scripts/compare.sh
+new file mode 100755
+index 00000000..aeb72b98
+--- /dev/null
++++ b/.claude/skills/homologacao/scripts/compare.sh
+@@ -0,0 +1,10 @@
++#!/usr/bin/env bash
++# Uso: compare.sh <rótulo_antes> <rótulo_depois>
++set -uo pipefail
++a=capturas/$1; b=capturas/$2; rc=0
++for f in "$a"/*; do
++  n=$(basename "$f")
++  if [ ! -f "$b/$n" ]; then echo "AUSENTE: $n"; rc=1
++  elif ! cmp -s "$f" "$b/$n"; then echo "DIFERENTE: $n"; rc=1; fi
++done
++exit $rc
+diff --git a/.claude/skills/safe-refactor/SKILL.md b/.claude/skills/safe-refactor/SKILL.md
+new file mode 100644
+index 00000000..d52f0c9a
+--- /dev/null
++++ b/.claude/skills/safe-refactor/SKILL.md
+@@ -0,0 +1,14 @@
++---
++name: safe-refactor
++description: Medir uma mudança (refatoração, atualização de dependência) pela suíte local - ler changelog, cobrir a lacuna, rodar antes, mudar, rodar depois, comparar.
++---
++
++# safe-refactor
++
++1. **Changelog**: leia as notas da mudança; confirme a versão resolvida em `Gemfile.lock`.
++2. **Cobrir a lacuna**: se o comportamento afetado não tem spec, escreva-o primeiro (sem alterar specs existentes).
++3. **Antes**: `bundle exec rspec --format json --out /tmp/antes.json`.
++4. **Mudar**.
++5. **Depois**: `bundle exec rspec --format json --out /tmp/depois.json`.
++6. **Comparar** os conjuntos de falhas (exemplos que passavam e agora falham, e vice-versa). Verifique também o próprio comparador com um caso conhecido.
++7. Repita no MariaDB (skill `suite-mariadb`) se a mudança toca o banco.
+diff --git a/.claude/skills/suite-mariadb/SKILL.md b/.claude/skills/suite-mariadb/SKILL.md
+new file mode 100644
+index 00000000..a75dda8f
+--- /dev/null
++++ b/.claude/skills/suite-mariadb/SKILL.md
+@@ -0,0 +1,13 @@
++---
++name: suite-mariadb
++description: Subir um MariaDB local fiel ao de produção e rodar a suíte contra ele.
++---
++
++# suite-mariadb
++
++1. Descubra a versão e a collation de produção; use a mesma imagem (`docker run -d --name sapos-mariadb -e MARIADB_ROOT_PASSWORD=root -p 3307:3306 mariadb:<versão> --character-set-server=utf8mb4 --collation-server=<collation>`).
++2. Confira a collation **materializada** nas tabelas (`SHOW TABLE STATUS`, `information_schema.COLUMNS`), não só a declarada no servidor/schema.
++3. Configure o `DATABASE_URL` (ex.: `mysql2://root:root@127.0.0.1:3307/sapos_test`) sem commitar credenciais.
++4. `RAILS_ENV=test bundle exec rails db:create db:schema:load && bundle exec rspec`.
++5. Compare com a execução em SQLite (skill `safe-refactor`).
++6. Remova o container ao terminar: `docker rm -f sapos-mariadb`.
+diff --git a/.gitignore b/.gitignore
+index 885ca1ce..73b1a94f 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -61,3 +61,4 @@ nbproject/
+ .DS_Store
+ /.env
+ .vscode/
++/capturas/
+diff --git a/AGENTS.md b/AGENTS.md
+new file mode 100644
+index 00000000..6f4b6466
+--- /dev/null
++++ b/AGENTS.md
+@@ -0,0 +1,33 @@
++# AGENTS.md
++
++Instruções para agentes de IA que trabalham neste repositório. A documentação do
++projeto está na pasta `wiki/`; consulte-a em vez de duplicar o conteúdo aqui.
++
++## Convenções de trabalho
++- Mudanças pequenas e focadas; um assunto por commit.
++- Não modifique testes existentes para fazê-los passar; adicione novos.
++- Rode a suíte (`bundle exec rspec`) antes e depois de mudar.
++- Mensagens de commit e documentação em português; código em inglês/português conforme o arquivo.
++
++## Atualização de dependências
++- Leia o changelog antes de atualizar.
++- Confira a versão realmente resolvida em `Gemfile.lock`, não a do `Gemfile`.
++- Atualize uma dependência (ou família) por vez e compare a suíte antes/depois.
++
++## Pontos cegos da suíte
++- A suíte roda em SQLite por padrão; produção usa MariaDB. Diferenças de collation,
++  case-sensitivity, tipos e SQL específico podem passar despercebidas. Veja a skill `suite-mariadb`.
++- Specs de views/PDF/planilhas não cobrem aparência: use a skill `homologacao`.
++
++## Monkey-patches sensíveis a upgrade
++- Revise os patches em `config/initializers/` e `lib/` a cada atualização do Rails
++  (ex.: `Date#to_s`, queries somente leitura). Confirme se continuam necessários e funcionando.
++
++## Dados sensíveis
++- Nunca commite credenciais, `config/secrets.yml`, dumps de banco ou dados pessoais de alunos.
++- Capturas de homologação (telas, PDFs, planilhas) ficam fora do git.
++
++## Skills
++- `.claude/skills/safe-refactor/` — medir uma mudança pela suíte local.
++- `.claude/skills/suite-mariadb/` — rodar a suíte contra MariaDB local.
++- `.claude/skills/homologacao/` — comparar o app antes/depois em homologação.
+diff --git a/CLAUDE.md b/CLAUDE.md
+new file mode 100644
+index 00000000..43c994c2
+--- /dev/null
++++ b/CLAUDE.md
+@@ -0,0 +1 @@
++@AGENTS.md

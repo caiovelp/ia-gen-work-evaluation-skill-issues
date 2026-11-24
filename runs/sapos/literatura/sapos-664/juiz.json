@@ -1,0 +1,1 @@
+{"justificativa": "Both partials now set `required` only when the field is configured as required and no file is saved yet (`!field.object.file.present?`). This is equivalent to the official fix's `file.blank?`, and it removes the `required` from hidden inputs that already have a file.", "veredito": "resolve"}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14257,
+ "stop_reason": "end_turn",
+ "session_id": "2b657fa9-8db6-4e7f-ba0c-a75faafc80b3",
+ "total_cost_usd": 0.0450629,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1682,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1570,
+  "output_tokens_details": {
+   "thinking_tokens": 229
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1682,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1570,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1682,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1682
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1889,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001989,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1570,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1682,
+   "webSearchRequests": 0,
+   "costUSD": 0.044864,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 229,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nPassing an unrecognized command-line option to pylint (e.g. `pylint -Q`) correctly reports `E0015: Unrecognized option found`, but pylint then also prints a Python traceback ending in `pylint.config.exceptions._UnrecognizedOptionError`. The traceback is unexpected and not user-friendly.\n\n## Steps to reproduce\n\n1. Install pylint `2.14.0-dev0` (with astroid `2.11.3`, Python `3.10.0b2`).\n2. Run pylint with an option it does not recognize:\n   ```shell\n   pylint -Q\n   ```\n3. Look at the console output.\n\n## Observed behavior\n\nPylint prints the expected `unrecognized-option` message:\n\n```\n************* Module Command line\nCommand line:1:0: E0015: Unrecognized option found: Q (unrecognized-option)\n```\n\nIt then prints a full Python traceback for an uncaught `_UnrecognizedOptionError`, raised from `_config_initialization` in `pylint/config/config_initialization.py` (see the stack trace below).\n\n## Expected behavior\n\n- The `E0015` line (`Command line:1:0: E0015: Unrecognized option found: Q (unrecognized-option)`) is useful and should still be shown.\n- No Python traceback should be printed for an unrecognized option.\n- The reporter suggests a user-friendly message instead, such as a usage hint. For comparison, mypy prints:\n  ```\n  $ mypy -Q\n  usage: mypy [-h] [-v] [-V] [more options; see below]\n              [-m MODULE] [-p PACKAGE] [-c PROGRAM_TEXT] [files ...]\n  mypy: error: unrecognized arguments: -Q\n  ```\n\n## Stack trace / error output\n\n```\n************* Module Command line\nCommand line:1:0: E0015: Unrecognized option found: Q (unrecognized-option)\nTraceback (most recent call last):\n  File \"/Users/markbyrne/venv310/bin/pylint\", line 33, in <module>\n    sys.exit(load_entry_point('pylint', 'console_scripts', 'pylint')())\n  File \"/Users/markbyrne/programming/pylint/pylint/__init__.py\", line 24, in run_pylint\n    PylintRun(argv or sys.argv[1:])\n  File \"/Users/markbyrne/programming/pylint/pylint/lint/run.py\", line 135, in __init__\n    args = _config_initialization(\n  File \"/Users/markbyrne/programming/pylint/pylint/config/config_initialization.py\", line 85, in _config_initialization\n    raise _UnrecognizedOptionError(options=unrecognized_options)\npylint.config.exceptions._UnrecognizedOptionError\n```\n\n## Test case\n\nMinimal check based on the reproduction command:\n\n```shell\npylint -Q 2>&1 | tee output.txt\n# Expected: output contains the E0015 message\ngrep -q \"E0015: Unrecognized option found: Q (unrecognized-option)\" output.txt\n# Expected: output contains no traceback (currently fails)\n! grep -q \"Traceback (most recent call last)\" output.txt\n```\n\n## Code example\n\nNot provided in the original report. The reproduction needs only the command line `pylint -Q`; no source file or configuration is involved.\n\n## Version and environment\n\n```\npylint 2.14.0-dev0\nastroid 2.11.3\nPython 3.10.0b2 (v3.10.0b2:317314165a, May 31 2021, 10:02:22) [Clang 12.0.5 (clang-1205.0.22.9)]\n```\n\n- pylint run from a development checkout inside a virtualenv (paths in the traceback: `/Users/markbyrne/venv310/...`, `/Users/markbyrne/programming/pylint/...`).\n- OS: Not provided in the original report (the paths and Clang build suggest macOS, but this is not stated).\n- Configuration / additional dependencies: Not provided in the original report.",
+ "ttft_ms": 3712,
+ "type": "result",
+ "duration_ms": 13581,
+ "uuid": "5b1211df-201a-4c6d-bc79-943e78451557",
+ "ttft_stream_ms": 1445,
+ "time_to_request_ms": 259,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 10,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 201,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 168,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1446,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

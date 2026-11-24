@@ -1,0 +1,138 @@
+diff --git a/app/models/admissions/form_field.rb b/app/models/admissions/form_field.rb
+index 47489e2e..02fb5078 100644
+--- a/app/models/admissions/form_field.rb
++++ b/app/models/admissions/form_field.rb
+@@ -258,9 +258,9 @@ class Admissions::FormField < ActiveRecord::Base
+   def self.search_name(field: nil, substring: false)
+     field = "%#{field}%" if field.present? && substring
+     Admissions::FormField.where(
+-      "name COLLATE :db_collation
+-        LIKE :field COLLATE :value_collation
+-      ", Collation.collations.merge(field:)
++      "name
++        LIKE :field
++      ", { field: }
+     )
+   end
+ 
+diff --git a/app/models/city.rb b/app/models/city.rb
+index 02bb16e9..da454c9c 100644
+--- a/app/models/city.rb
++++ b/app/models/city.rb
+@@ -30,21 +30,21 @@ class City < ApplicationRecord
+     cities = City
+     cities = cities.joins(:state) if country.present? || state.present?
+     cities = cities.joins(state: :country).where(
+-      "`countries`.`name` COLLATE :db_collation
+-        LIKE :country COLLATE :value_collation
+-      ", Collation.collations.merge(country:)
++      "`countries`.`name`
++        LIKE :country
++      ", { country: }
+     ) if country.present?
+     cities = cities.where(
+-      "`states`.`name` COLLATE :db_collation
+-        LIKE :state COLLATE :value_collation
+-        OR `states`.`code` COLLATE :db_collation
+-        LIKE :state COLLATE :value_collation
+-      ", Collation.collations.merge(state:)
++      "`states`.`name`
++        LIKE :state
++        OR `states`.`code`
++        LIKE :state
++      ", { state: }
+     ) if state.present?
+     cities.where(
+-      "`cities`.`name` COLLATE :db_collation
+-        LIKE :city COLLATE :value_collation
+-      ", Collation.collations.merge(city:)
++      "`cities`.`name`
++        LIKE :city
++      ", { city: }
+     )
+   end
+ 
+diff --git a/app/models/country.rb b/app/models/country.rb
+index 9e765dd3..312cb78a 100644
+--- a/app/models/country.rb
++++ b/app/models/country.rb
+@@ -22,9 +22,9 @@ class Country < ApplicationRecord
+   def self.search_name(country: nil, substring: false)
+     country = "%#{country}%" if country.present? && substring
+     Country.where(
+-      "name COLLATE :db_collation
+-        LIKE :country COLLATE :value_collation
+-      ", Collation.collations.merge(country:)
++      "name
++        LIKE :country
++      ", { country: }
+     )
+   end
+ 
+diff --git a/app/models/institution.rb b/app/models/institution.rb
+index af46c041..de3a5e8a 100644
+--- a/app/models/institution.rb
++++ b/app/models/institution.rb
+@@ -21,11 +21,11 @@ class Institution < ApplicationRecord
+   def self.search_name(institution: nil, substring: false)
+     institution = "%#{institution}%" if institution.present? && substring
+     Institution.where(
+-      "name COLLATE :db_collation
+-        LIKE :institution COLLATE :value_collation
+-       OR code COLLATE :db_collation
+-        LIKE :institution COLLATE :value_collation
+-      ", Collation.collations.merge(institution:)
++      "name
++        LIKE :institution
++       OR code
++        LIKE :institution
++      ", { institution: }
+     )
+   end
+ end
+diff --git a/app/models/major.rb b/app/models/major.rb
+index 4d284942..991e7d67 100644
+--- a/app/models/major.rb
++++ b/app/models/major.rb
+@@ -30,27 +30,27 @@ class Major < ApplicationRecord
+     level = "%#{level}%" if level.present? && substring
+     majors = Major
+     majors = majors.joins(:institution).where(
+-      "`institutions`.`name` COLLATE :db_collation
+-        LIKE :institution COLLATE :value_collation
+-      OR `institutions`.`code` COLLATE :db_collation
+-        LIKE :institution COLLATE :value_collation
+-      ", Collation.collations.merge(institution:)
++      "`institutions`.`name`
++        LIKE :institution
++      OR `institutions`.`code`
++        LIKE :institution
++      ", { institution: }
+     ) if institution.present?
+     majors = majors.joins(:level).where(
+-      "`levels`.`name` COLLATE :db_collation
+-        LIKE :level COLLATE :value_collation
+-      ", Collation.collations.merge(level:)
++      "`levels`.`name`
++        LIKE :level
++      ", { level: }
+     ) if level.present?
+     majors = majors.where(
+-      "`majors`.`name` COLLATE :db_collation
+-        LIKE :major COLLATE :value_collation
+-      ", Collation.collations.merge(major:)
++      "`majors`.`name`
++        LIKE :major
++      ", { major: }
+     )
+     if majors.empty? && ignore_association
+       majors = Major.where(
+-        "`majors`.`name` COLLATE :db_collation
+-          LIKE :major COLLATE :value_collation
+-        ", Collation.collations.merge(major:)
++        "`majors`.`name`
++          LIKE :major
++        ", { major: }
+       )
+     end
+     majors

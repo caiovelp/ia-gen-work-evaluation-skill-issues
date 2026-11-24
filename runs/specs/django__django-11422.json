@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22906,
+ "stop_reason": "end_turn",
+ "session_id": "68ad5078-9b0d-44fa-9701-a0c0651a7aab",
+ "total_cost_usd": 0.052222099999999994,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 879,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2208,
+  "output_tokens_details": {
+   "thinking_tokens": 151
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 879,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2208,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 879,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 879
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1468,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001593,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2208,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 879,
+   "webSearchRequests": 0,
+   "costUSD": 0.05206279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 151,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: StatReloader Must Track Changes to `manage.py` (Regression in Django 2.2)\n\n## Objective\n\n**What:** Restore the Django 2.1.x behavior where editing the entry-point script (`manage.py`) while `python manage.py runserver` is running triggers an automatic reload.\n\n**Why:** This is a regression. In Django 2.1.8 and earlier, editing `manage.py` triggered a reload. In Django 2.2.1 it does not. The reporter observed in the `django.utils.autoreload` log lines that `manage.py` never appears among the watched files. Developers who edit `manage.py`, for example to change `DJANGO_SETTINGS_MODULE` or add startup logic, get a silently stale server.\n\n**Who:** Developers running the development server with `runserver` and the autoreloader enabled, using `StatReloader`.\n\n**User story:**\n> As a developer running `python manage.py runserver`, when I save a change to `manage.py`, the dev server reloads so the change takes effect, as it did in Django 2.1.\n\n**Acceptance criteria:**\n1. When `runserver` is started via `python manage.py runserver`, the file `manage.py` is included in the set of files watched by `StatReloader`.\n2. Modifying `manage.py`, for example adding `print('sth')` inside `main()`, causes the autoreloader to detect a change and restart the server process.\n3. Files that are already watched in 2.2.1 are still watched.\n\n## Tech Stack\n\n- Python. The reporter used 3.6.2. The full supported Python range for the affected branch is **unknown**.\n- Django 2.2.1 is affected. Django 2.1.8 is the last known-good version.\n- Component: `django.utils.autoreload`, specifically `StatReloader`.\n- Reporter's platform: OSX 10.11, pip 19.1.1.\n\n## Commands\n\nThe repository is not visible, so all commands are **unknown**.\n\n- Build: unknown\n- Test (autoreload test suite): unknown\n- Lint: unknown\n- Manual reproduction:\n  ```\n  pip install Django==2.2.1\n  python manage.py runserver\n  # then edit manage.py, e.g. add print('sth') inside main()\n  ```\n\n## Project Structure\n\nOnly the module named in the issue is known. File paths in the repository are **unknown**.\n\n- `django.utils.autoreload` is the module that decides which files are watched and contains `StatReloader`.\n- Location of the autoreload tests: unknown.\n- Location of release notes / changelog for 2.2.x: unknown.\n\n## Code Style\n\nThe repository was not inspected, so no code snippet is included. Follow the existing Django conventions found in `django.utils.autoreload` and its tests. Those conventions are unknown here.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner command is unknown.\n- **Regression test (required):** a unit test showing that the entry-point script used to launch the process (the `__main__` module run as a file, e.g. `manage.py`) is included in the set of files the autoreloader watches. The test must fail on the current 2.2.1 behavior and pass after the fix.\n- **Non-regression:** the existing autoreload tests must keep passing. Normally imported modules, extra watched files, and similar cases must still be tracked.\n- **Edge cases to cover, where behavior is defined (see Open Questions):**\n  - `__main__` has no file. Examples: an interactive session, or `python -c`. This must not crash the reloader.\n  - Launched via `python -m django runserver` / `django-admin runserver` rather than `manage.py`.\n- **Manual check:** follow the reproduction steps above on the fixed version and confirm that the server reloads.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that reproduces the issue before changing behavior.\n  - Keep the change scoped to which files the autoreloader watches.\n  - Run the full autoreload test suite.\n- **Ask first:**\n  - Changing the public API or signatures in `django.utils.autoreload`.\n  - Changing behavior of `WatchmanReloader` beyond what is shared with `StatReloader`.\n  - Backporting decisions, i.e. which branches receive the fix.\n- **Never:**\n  - Remove or weaken existing autoreload tests.\n  - Add new dependencies.\n  - Introduce behavior that crashes when `__main__` lacks a file path.\n\n## Success Criteria\n\n1. With `python manage.py runserver` running under `StatReloader`, editing and saving `manage.py` triggers a server reload.\n2. `manage.py` (the script file of the `__main__` module) appears in the autoreloader's watched file set.\n3. The new regression test fails before the fix and passes after it.\n4. All existing autoreload tests pass.\n5. No error occurs when the process's `__main__` module has no associated file.\n\n## Assumptions\n\n1. **Probable cause (hypothesis, not verified against the code):** the Django 2.2 autoreloader builds its watched-file list from loaded modules in a way that skips the `__main__` module when a script is run directly. Such a module may lack the module metadata the new code relies on. Version 2.1 included it.\n2. The regression is specific to the file-watching list. It is not about change detection itself, since edits to other project files still reload.\n3. The fix should also benefit `WatchmanReloader` if both reloaders share the watched-file collection. The issue mentions only `StatReloader`.\n4. The issue is not OS-specific, even though it was reported on OSX 10.11.\n5. The target is the 2.2.x branch and the main development branch.\n\n## Open Questions\n\n1. Should the fix apply to both `StatReloader` and `WatchmanReloader`, or does only `StatReloader` need it?\n2. When launched via `django-admin runserver` or `python -m django runserver`, should the entry-point script also be watched? Or only a user-owned script like `manage.py`?\n3. Which branches should receive the fix: a 2.2.x backport, main only, or both?\n4. Is a release note entry required for the 2.2.x patch release?\n5. What are the exact test, lint, and build commands, and where do the autoreload tests live?",
+ "ttft_ms": 2882,
+ "type": "result",
+ "duration_ms": 22408,
+ "uuid": "5dd0f71d-7f6d-43d3-81d9-e72ee07f2e38",
+ "ttft_stream_ms": 1364,
+ "time_to_request_ms": 245,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 215,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 191,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1365,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

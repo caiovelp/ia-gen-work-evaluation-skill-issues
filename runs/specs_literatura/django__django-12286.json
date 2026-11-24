@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9543,
+ "stop_reason": "end_turn",
+ "session_id": "19325978-6235-4ec3-83af-bf226a9904ad",
+ "total_cost_usd": 0.0293467,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1218,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 972,
+  "output_tokens_details": {
+   "thinking_tokens": 125
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1218,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 972,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1218,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1218
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1427,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015470000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 972,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1218,
+   "webSearchRequests": 0,
+   "costUSD": 0.029192,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 125,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nDjango raises the system check error `translation.E004` when `LANGUAGE_CODE` is set to a sublanguage (e.g. `de-at`) that Django does not ship, even though its base language (`de`) is available. According to the Django documentation, Django should fall back to the base language in this case, so the check should not fail.\n\n## Steps to reproduce\n\n1. Use Django 3.0.2.\n2. In `settings.py`, set:\n   ```python\n   LANGUAGE_CODE = \"de-at\"\n   ```\n3. Run the project so that system checks execute.\n4. Observe the `translation.E004` error.\n5. For comparison, change the setting to:\n   ```python\n   LANGUAGE_CODE = \"es-ar\"\n   ```\n   `es-ar` is one of the translations Django provides out of the box.\n6. Run the project again. No error is raised.\n\n## Observed behavior\n\nWith `LANGUAGE_CODE = \"de-at\"`, the system check fails with `translation.E004`. It reports that `LANGUAGE_CODE` is not in the `LANGUAGES` setting. This happens even though the base language `de` is available.\n\nWith `LANGUAGE_CODE = \"es-ar\"`, Django works fine.\n\n## Expected behavior\n\nThe Django documentation says:\n\n> If a base language is available but the sublanguage specified is not, Django uses the base language. For example, if a user specifies de-at (Austrian German) but Django only has de available, Django uses de.\n\nSo `LANGUAGE_CODE = \"de-at\"` should pass the system checks without raising `translation.E004`, because the base language `de` is available.\n\n## Stack trace / error output\n\n```\nSystemCheckError: System check identified some issues:\nERRORS:\n?: (translation.E004) You have provided a value for the LANGUAGE_CODE setting that is not in the LANGUAGES setting.\n```\n\n## Test case\n\nNot provided in the original report.\n\nThe report implies a minimal check:\n- With `LANGUAGE_CODE = \"de-at\"` and the default `LANGUAGES`, the translation system checks should return no `translation.E004` error.\n- With `LANGUAGE_CODE = \"es-ar\"`, the checks pass, as they already do.\n\n## Code example\n\n```python\n# settings.py: triggers translation.E004\nLANGUAGE_CODE = \"de-at\"\n```\n\n```python\n# settings.py: works fine\nLANGUAGE_CODE = \"es-ar\"\n```\n\n## Version and environment\n\n- Django 3.0.2\n- Python version, OS and other environment details: Not provided in the original report.",
+ "ttft_ms": 2672,
+ "type": "result",
+ "duration_ms": 9130,
+ "uuid": "b8f526fb-d720-457a-b76c-179af9c5245c",
+ "ttft_stream_ms": 1318,
+ "time_to_request_ms": 276,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 20,
+  "input_attachments": 13,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 202,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 7,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 275,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 61,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1318,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

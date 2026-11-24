@@ -1,0 +1,13 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index d2568fddbf..6089db2e32 100755
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -929,6 +929,8 @@ default: %(va)s
+ 
+         self._axstack.remove(ax)
+         self._axobservers.process("_axes_change_event", self)
++        if self.canvas is not None and self.canvas.mouse_grabber is ax:
++            self.canvas.release_mouse(ax)
+         self.stale = True
+         self._localaxes.remove(ax)
+ 

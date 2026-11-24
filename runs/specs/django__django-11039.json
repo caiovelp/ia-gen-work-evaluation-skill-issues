@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22349,
+ "stop_reason": "end_turn",
+ "session_id": "1c56aeec-63eb-4ee4-b9a7-b4c30f5977cb",
+ "total_cost_usd": 0.054421500000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 903,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2308,
+  "output_tokens_details": {
+   "thinking_tokens": 132
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 903,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2308,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 903,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 903
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1487,
+   "outputTokens": 36,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001667,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2308,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 903,
+   "webSearchRequests": 0,
+   "costUSD": 0.054254800000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 132,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `sqlmigrate` should not wrap output in BEGIN/COMMIT when the database cannot roll back DDL\n\n## Objective\n\n`sqlmigrate` prints the SQL for a migration. Today it wraps that SQL in `BEGIN;` / `COMMIT;` whenever `migration.atomic` is true. The migration executor behaves differently. It adds the outer transaction only when **both** of these hold:\n\n1. the migration is atomic, **and**\n2. the schema editor can roll back DDL (`connection.features.can_rollback_ddl`).\n\nOn backends without transactional DDL, `sqlmigrate` output therefore misrepresents what the executor actually runs. It shows a transaction wrapper that is never applied and that cannot give atomicity for DDL on that backend.\n\n**Goal:** `sqlmigrate` wraps output in BEGIN/COMMIT under the same condition the executor uses: `migration.atomic and connection.features.can_rollback_ddl`.\n\n**Users:** Django developers and DBAs who inspect migration SQL, often to run it by hand, on backends that may lack transactional DDL.\n\n### Acceptance criteria\n- With an atomic migration and `can_rollback_ddl = True`, output is wrapped in BEGIN/COMMIT. This is the current behavior and is unchanged.\n- With an atomic migration and `can_rollback_ddl = False`, output is **not** wrapped in BEGIN/COMMIT.\n- With a non-atomic migration, output is **not** wrapped, whatever `can_rollback_ddl` says. This is the current behavior and is unchanged.\n- The decision uses the connection for the database `sqlmigrate` targets (its `--database` option), not always the default connection.\n\n## Assumptions\n1. The wrapping is controlled by `self.output_transaction` on the `sqlmigrate` command, as the issue states. The actual BEGIN/COMMIT emission comes from the base management command machinery, which is out of scope.\n2. The `sqlmigrate` command lives in Django's management commands package. The exact file path is **not shown in the issue and is unknown**.\n3. `connection.features.can_rollback_ddl` is the canonical feature flag, and the executor's condition is exactly `atomic and can_rollback_ddl`. This comes from the issue's description of the executor.\n4. The connection to use is the one `sqlmigrate` already resolves for the chosen database alias.\n5. No change to the executor, schema editor, or backend feature flags is required.\n6. No deprecation or release note is required beyond what the project normally needs for a bug fix. This needs confirmation; see Open Questions.\n\n## Tech Stack\n- Django (Python). The version or branch is **unknown**.\n- The test framework is Django's own test suite. The runner invocation is **unknown** because it is not visible in the issue.\n\n## Commands\n- Build: **unknown / not applicable**\n- Test (targeted): **unknown**. It must run the tests in `tests/migrations/test_commands.py`.\n- Test (full migrations suite): **unknown**\n- Lint: **unknown**\n\n## Project Structure\n- `tests/migrations/test_commands.py` holds the tests for migration management commands. This path is given in the issue.\n- The `sqlmigrate` command source file path is **unknown**.\n- The location of the existing non-atomic migration test fixture is **unknown**. The issue says an existing test overrides `MIGRATION_MODULES` to point at a non-atomic migration.\n\n## Code Style\n- Follow the existing Django code style in the touched files.\n- No snippet is available from the issue. Conventions are **unknown** beyond \"match the surrounding code.\"\n\n## Testing Strategy\n- **Level:** management-command tests in `tests/migrations/test_commands.py`.\n- **New test:** model it on the existing `sqlmigrate` test for non-atomic migrations. Instead of overriding `MIGRATION_MODULES` to use a non-atomic migration, use a normal atomic migration and **mock `connection.features.can_rollback_ddl` to `False`**.\n  - Assert that the output contains no BEGIN/COMMIT transaction wrapper. Use the same assertion style as the existing non-atomic test.\n- **Regression coverage:** the existing tests must still pass. These are the atomic-migration test (wrapped output) and the non-atomic test (unwrapped output).\n- The tests should not depend on the real backend's feature flag. Mocking keeps them deterministic across backends.\n\n## Boundaries\n- **Always:**\n  - Keep the `sqlmigrate` condition the same as the executor's condition.\n  - Use the connection for the selected database alias.\n  - Add the regression test in `tests/migrations/test_commands.py`.\n- **Ask first:**\n  - Changing the executor or schema editor logic.\n  - Extracting a shared helper for the \"should wrap in transaction\" condition.\n  - Changing behavior for backends' feature flags.\n  - Adding documentation or release notes.\n- **Never:**\n  - Change the generated SQL statements themselves.\n  - Alter or remove existing tests' expectations.\n  - Change the default value of `can_rollback_ddl` for any backend.\n\n## Success Criteria\n- [ ] `sqlmigrate` sets `output_transaction` to true only when `migration.atomic` and `connection.features.can_rollback_ddl` are both true.\n- [ ] A new test in `tests/migrations/test_commands.py` mocks `can_rollback_ddl = False` on an atomic migration and verifies there is no BEGIN/COMMIT in the output.\n- [ ] The existing `sqlmigrate` tests for atomic and non-atomic migrations pass unchanged.\n- [ ] The full migrations test module passes. The command for this is unknown; see Commands.\n\n## Open Questions\n1. What is the exact path of the `sqlmigrate` command source, and how does it currently obtain the connection? The issue does not show either.\n2. What is the name of the existing non-atomic `sqlmigrate` test that should be used as the template?\n3. Should the condition be factored into a shared helper so the executor and `sqlmigrate` cannot drift apart again, or kept inline as the issue suggests?\n4. Does this bug fix need a release note, and if so, for which Django version?\n5. Should the new test also cover a non-default `--database` alias whose backend has `can_rollback_ddl = False`?\n6. How should the test suite be run (runner command and settings)? This is not visible in the issue.",
+ "ttft_ms": 2457,
+ "type": "result",
+ "duration_ms": 21605,
+ "uuid": "e3c3e243-21ed-455f-ab85-396ea9cc27dd",
+ "ttft_stream_ms": 1323,
+ "time_to_request_ms": 260,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 226,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 140,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1323,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

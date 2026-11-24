@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27031,
+ "stop_reason": "end_turn",
+ "session_id": "86c745af-a0e8-4421-a9b1-cae4c898a7ca",
+ "total_cost_usd": 0.06207069999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 927,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2681,
+  "output_tokens_details": {
+   "thinking_tokens": 82
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 927,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2681,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 927,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 927
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1514,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001639,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2681,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 927,
+   "webSearchRequests": 0,
+   "costUSD": 0.06190679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 82,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Apply `autodoc_type_aliases` to Module Variables and Class Attributes\n\n## Objective\n\nThe `sphinx.ext.autodoc` configuration option `autodoc_type_aliases` is not applied to the type annotations of **module-level variables** or **class attributes**. The reporter expects the alias mapping to be honored for these members, as it already is (by implication) for other documented objects.\n\n**User:** A Sphinx documentation author who uses `from __future__ import annotations` and defines `autodoc_type_aliases` in `conf.py` so that string annotations resolve to fully qualified, documented types.\n\n**User story:** As a documentation author, when I annotate a module variable or class attribute with a name listed in `autodoc_type_aliases`, I want the rendered type to use the alias target, so that variable and attribute docs are consistent with function and method docs.\n\n**Reproduction (from the issue):**\n\n```python\n# example.py\nfrom __future__ import annotations\n\n\n#: blah blah blah\nvar: String\n\n\nclass MyString:\n    \"mystring\"\n\n    #: blah blah blah\n    var: String\n```\n\n```rst\n.. index.rst\n.. automodule:: example\n   :members:\n   :undoc-members:\n```\n\n```python\n# conf.py\nautodoc_type_aliases = {\n    'String': 'example.MyString'\n}\n```\n\n**Observed:** The alias is not applied to `example.var` or `example.MyString.var`. The issue does not show the exact rendered output.\n**Expected:** The alias is applied to both `example.var` and `example.MyString.var`.\n\n## Assumptions\n\n1. \"Does not effect\" means the rendered `:type:` of the variable and attribute shows the raw annotation (`String`) instead of the aliased target (`example.MyString`). The issue does not include the actual output.\n2. `autodoc_type_aliases` already works for function and method signatures. The bug is limited to the variable and attribute documenters.\n3. The fix belongs to the Sphinx 3.x line, since the reporter tested against HEAD of the 3.x branch.\n4. Both annotation sources in the example are in scope:\n   - module-level annotations (`var: String`)\n   - class-body annotations (`var: String` inside `MyString`)\n5. Annotations here are strings because of `from __future__ import annotations` (PEP 563). Applying the alias to non-stringified annotations is desirable but secondary.\n6. The alias value is emitted as the type text, and cross-referencing then follows normal Sphinx behavior. Whether `example.MyString` renders as a link is not part of this bug.\n7. Behavior when `autodoc_type_aliases` is empty or unset must not change.\n8. Unannotated variables and attributes, and annotations that don't match any alias key, must render exactly as before.\n\n## Tech Stack\n\n- Python (reporter: 3.9.0; minimum supported version for the 3.x branch: **unknown**)\n- Sphinx, 3.x branch, with the `sphinx.ext.autodoc` extension\n- Exact dependency versions: **unknown**\n\n## Commands\n\nThe issue gives none, and the repository is not visible.\n\n- Build: **unknown**\n- Test: **unknown** (the project's test runner and invocation are not shown)\n- Lint: **unknown**\n- Reproduce: build docs for the example project above with `sphinx.ext.autodoc` enabled. The exact `sphinx-build` invocation is **unknown/not given**.\n\n## Project Structure\n\nNot visible from the issue.\n\n- Location of the autodoc documenters for data/variables and attributes: **unknown**\n- Location of the code that applies `autodoc_type_aliases` today: **unknown**\n- Location of autodoc tests and test fixture roots: **unknown**\n\n## Code Style\n\nUnknown. Follow the existing conventions of the Sphinx codebase in the files being changed. The repository is not visible, so no style snippet can be given.\n\n## Testing Strategy\n\n- **Level:** Integration-style autodoc tests that generate directive output for a fixture module and assert on the rendered lines. The framework and fixture layout are **unknown** and must be matched to existing autodoc tests.\n- **Fixture:** A module equivalent to `example.py` above, using `from __future__ import annotations`, with:\n  - an annotated module variable\n  - a class with an annotated attribute\n  - both annotated with an alias key\n- **Cases:**\n  1. Module variable with an aliased annotation \u2192 the rendered type uses the alias target.\n  2. Class attribute with an aliased annotation \u2192 the rendered type uses the alias target.\n  3. Same fixture without `autodoc_type_aliases` \u2192 the rendered type is the raw annotation (regression guard).\n  4. Annotation not present in the alias map \u2192 unchanged output.\n  5. Existing tests for `autodoc_type_aliases` on functions and methods still pass.\n- **Coverage expectation:** **unknown**. The new code paths for the variable and attribute documenters must be exercised by at least the cases above.\n\n## Boundaries\n\n- **Always:**\n  - Keep existing behavior for functions and methods.\n  - Keep output unchanged when no alias matches.\n  - Add regression tests for both module variables and class attributes.\n  - Run the existing autodoc test suite.\n- **Ask first:**\n  - Changing the semantics or documentation of the `autodoc_type_aliases` config option.\n  - Altering how annotations are evaluated globally (for example, changes affecting `autodoc_typehints`).\n  - Adding dependencies.\n  - Backporting or forward-porting to branches other than 3.x.\n- **Never:**\n  - Remove or weaken existing tests.\n  - Change the public config option name or type.\n  - Introduce behavior that raises errors on annotations that can't be resolved; such annotations should fall back to their current rendering.\n\n## Success Criteria\n\n- [ ] With the reproduction project and `autodoc_type_aliases = {'String': 'example.MyString'}`, the documented type of `example.var` reflects `example.MyString`, not `String`.\n- [ ] Under the same conditions, the documented type of `example.MyString.var` reflects `example.MyString`.\n- [ ] Without `autodoc_type_aliases`, the output for both members is identical to the current output.\n- [ ] Annotations that match no alias key render identically to the current output.\n- [ ] Existing `autodoc_type_aliases` behavior for functions and methods is unchanged, and the existing tests pass.\n- [ ] New automated tests cover cases 1\u20134 in the Testing Strategy and pass.\n\n## Open Questions\n\n1. **Observed output:** What exactly is rendered today for `example.var` and `example.MyString.var`? Is it `String`, no type at all, or an error or warning?\n2. **Annotation styles in scope:** Should aliases also apply to:\n   - annotations without `from __future__ import annotations`?\n   - type comments (`# type: String`)?\n   - attributes declared only in `__init__` (`self.var: String = ...`)?\n3. **Other attribute-like members:** Should the fix also cover properties, slots, or instance attributes documented via other mechanisms, or only the two cases in the issue?\n4. **Interaction with `autodoc_typehints`:** Should `autodoc_typehints` settings (e.g. `\"none\"` or `\"description\"`) affect how aliased types appear for variables and attributes?\n5. **Partial matches:** Should an alias apply when the alias name appears inside a larger annotation, such as `List[String]` or `Optional[String]`, or only on exact whole-annotation matches?\n6. **Target branch and versions:** Is the 3.x branch the only target? What is the minimum supported Python version?\n7. **Docs:** Should the `autodoc_type_aliases` documentation be updated to state explicitly that it applies to variables and attributes?",
+ "ttft_ms": 2506,
+ "type": "result",
+ "duration_ms": 26075,
+ "uuid": "e99ec183-8325-4f30-bf15-553c3b5e7ea3",
+ "ttft_stream_ms": 1588,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 20,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 23,
+ "time_to_request_cpu_ms": 231,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1588,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

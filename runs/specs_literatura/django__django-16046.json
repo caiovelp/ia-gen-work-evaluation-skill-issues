@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6682,
+ "stop_reason": "end_turn",
+ "session_id": "96aaa213-7c72-4bb9-9416-bdf1527af8e1",
+ "total_cost_usd": 0.0186887,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1058,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 504,
+  "output_tokens_details": {
+   "thinking_tokens": 152
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1058,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 504,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1058,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1058
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1267,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001367,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 504,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1058,
+   "webSearchRequests": 0,
+   "costUSD": 0.018552,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 152,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`numberformat.py` raises `IndexError: string index out of range` when it formats a number field whose value is null for display in an admin `list_display`.\n\n## Steps to reproduce\n1. Have a model with a number field whose value is null.\n2. Include that field in the admin `list_display`.\n3. Open the admin change list so the field's value is formatted for display.\n\n## Observed behavior\nFormatting fails at this line in `numberformat.py`:\n```python\nif str_number[0] == \"-\"\n```\nIt raises `IndexError: string index out of range`.\n\n## Expected behavior\nThe original report does not state the expected behavior explicitly. It implies that a null number field in the admin `list_display` should be formatted without raising an `IndexError`.\n\n## Stack trace / error output\n```\nIndexError: string index out of range\n```\nThe full stack trace is not provided in the original report.\n\n## Test case\nNot provided in the original report.\n\n## Code example\nThis line in `numberformat.py` raises the error:\n```python\nif str_number[0] == \"-\"\n```\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 3350,
+ "type": "result",
+ "duration_ms": 6275,
+ "uuid": "e1d00851-8dec-405c-946a-b140dbfc9bbe",
+ "ttft_stream_ms": 1540,
+ "time_to_request_ms": 311,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 15,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 244,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 12,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 268,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1541,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

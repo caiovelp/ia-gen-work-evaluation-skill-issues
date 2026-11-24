@@ -1,0 +1,1 @@
+{"justificativa": "O patch candidato é idêntico à correção oficial: usa `user&.email`, o que evita o NoMethodError quando o token não existe e deixa o Devise renderizar a mensagem de token inválido.", "veredito": "resolve"}

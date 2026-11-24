@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25358,
+ "stop_reason": "end_turn",
+ "session_id": "907f2271-073d-4bd9-9698-3ad4e3c36831",
+ "total_cost_usd": 0.053974,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 858,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2304,
+  "output_tokens_details": {
+   "thinking_tokens": 170
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 858,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2304,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 858,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 858
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1447,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001592,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2304,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 858,
+   "webSearchRequests": 0,
+   "costUSD": 0.0538148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 170,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct the recursive-relationship hint for ambiguous intermediary models\n\n## Objective\n\nWhen a `ManyToManyField` uses an intermediary (`through`) model that has more than two `ForeignKey`s, and `through_fields` is not set, Django's system checks report an error. That error's hint currently reads:\n\n```\n'If you want to create a recursive relationship, '\n'use ForeignKey(\"%s\", symmetrical=False, through=\"%s\").'\n```\n\nThe hint is wrong in two ways:\n\n1. **Wrong field class.** `symmetrical` and `through` are `ManyToManyField` arguments, not `ForeignKey` arguments. A user who follows the hint literally gets invalid code.\n2. **Outdated requirement.** According to the reporter, `symmetrical=False` has not been required for recursive relationships with an intermediary model to `self` since Django 3.0.\n\n**Users:** Django developers who define M2M relationships with custom intermediary models and hit this check error.\n\n**Goal:** The hint gives correct, current, copy-pasteable guidance.\n\n**Acceptance criteria:**\n- The hint references `ManyToManyField`, not `ForeignKey`.\n- The hint no longer presents `symmetrical=False` as required, pending confirmation of Open Question 1.\n- Every occurrence of this hint is corrected, if it appears in more than one place (see Assumptions).\n- Any existing tests that assert the old hint text are updated. At least one test asserts the new text.\n- No other check message, error id, or check behaviour changes.\n\n## Assumptions\n\n1. The hint is emitted by Django's model-field system checks for M2M intermediary models, in the related-fields module. The exact file path, check id(s), and line numbers are **unknown**: there is no repository access.\n2. The same hint may appear in two sibling errors: one for ambiguous \"from\" foreign keys and one for ambiguous \"to\" foreign keys. Both need the same fix if both exist.\n3. The reporter's claim that `symmetrical=False` is unnecessary since Django 3.0 is correct. This is unverified.\n4. The `%s` placeholders keep their current meaning and substitution order. This is assumed to be (related model / `\"self\"`, through model name).\n5. This is a message-text fix only. It needs no deprecation and no behaviour change.\n6. Existing tests assert this hint text verbatim and will need updating. Test file locations are **unknown**.\n7. Docs may quote the hint, for example in the system check reference. Whether they do is **unknown**. If they do, they should be updated to match.\n8. The reporter's PR exists but is not visible. This spec does not depend on it.\n\n## Tech Stack\n\n- Python / Django, current main branch. The exact version is **unknown**.\n- Affected subsystem: system checks framework (`django.core.checks`) as used by relational model fields.\n\n## Commands\n\nAll of these are **unknown**. They are not given in the issue and the repository is not accessible.\n\n```\nBuild: unknown (pure Python; likely none)\nTest:  unknown (Django's own test runner invocation not visible)\nLint:  unknown\nDev:   n/a\n```\n\n## Project Structure\n\n**Unknown.** No repository access. The expected areas are:\n\n- Relational field definitions and their checks: path unknown\n- Tests for invalid model definitions / field checks: path unknown\n- System check reference docs: path unknown\n- Release notes, if the project requires an entry for message changes: path unknown\n\n## Code Style\n\n- Follow the existing style of the surrounding check message. Keep the implicit string concatenation and `%`-formatting exactly as it is used now.\n- Do not reformat unrelated code.\n- No real snippet of the surrounding code is available beyond the hint quoted in the issue.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner command is unknown.\n- **Level:** Unit tests of model checks. Define an intermediary model with more than two FKs and no `through_fields`, run the model checks, and assert the exact `Error` (message, hint, `obj`, `id`).\n- **Coverage:**\n  - Update existing assertions on the old hint.\n  - Ensure both the \"from\" and \"to\" ambiguity variants are covered, if both exist.\n  - Optionally cover a recursive (`\"self\"`) intermediary case.\n- **Regression:** The full check-related test modules pass unchanged apart from the hint text.\n\n## Boundaries\n\n- **Always:**\n  - Keep error ids, messages, and trigger conditions unchanged.\n  - Update tests that assert the hint alongside the text change.\n  - Keep both hint variants consistent.\n- **Ask first:**\n  - Changing the error message itself, beyond the hint.\n  - Adding a release note.\n  - Touching documentation beyond quoting the corrected hint.\n  - Backporting to stable branches.\n- **Never:**\n  - Change check logic or `through_fields` resolution behaviour.\n  - Alter `ManyToManyField` semantics around `symmetrical`.\n  - Delete failing tests instead of updating them.\n\n## Success Criteria\n\n- Triggering the ambiguous-intermediary check produces a hint of the form `use ManyToManyField(\"<model>\", through=\"<through>\")`. The final wording depends on Open Question 1.\n- The string `ForeignKey(` with `symmetrical=` or `through=` no longer appears in any check hint.\n- Updated tests pass, and no other tests in the checks and model-field suites regress.\n- Any docs that quote the hint match the code.\n\n## Open Questions\n\n1. **Is `symmetrical=False` truly unnecessary in all cases?** Should the hint drop it entirely, or mention it only as optional? Please confirm against the Django 3.0 change that relaxed the requirement.\n2. **Should the hint mention `through_fields`?** Specifying `through_fields` is the actual fix for an intermediary model with more than two FKs. The current hint only addresses the recursive case. Is changing the hint's scope in or out of this change?\n3. **How many places emit the hint?** Does it appear in both the \"from\" and \"to\" ambiguity errors, and anywhere else?\n4. **Is a release note required** for a corrected check hint? Should it be backported to supported stable branches?\n5. **Do the docs quote this hint verbatim** anywhere that must be updated?\n6. **Should the reporter's PR be the basis for review,** or should this be an independent implementation?",
+ "ttft_ms": 3537,
+ "type": "result",
+ "duration_ms": 24707,
+ "uuid": "514b6088-e82a-40ae-b4f1-d70254637245",
+ "ttft_stream_ms": 1320,
+ "time_to_request_ms": 226,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 189,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 126,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1320,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

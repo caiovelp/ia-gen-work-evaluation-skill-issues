@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27263,
+ "stop_reason": "end_turn",
+ "session_id": "05bd2753-ae6e-4b4f-a20e-3041657b5d0e",
+ "total_cost_usd": 0.056556199999999994,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 755,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2475,
+  "output_tokens_details": {
+   "thinking_tokens": 125
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 755,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2475,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 755,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 755
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1339,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001454,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2475,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 755,
+   "webSearchRequests": 0,
+   "costUSD": 0.0564108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 125,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `partitions()` yields independent dictionaries\n\n## Assumptions\n1. `partitions()` lives in `sympy/utilities/iterables.py`, as the issue states. I have not seen its exact signature. I assume it is roughly `partitions(n, m=None, k=None, size=False)`, and that with `size=True` it yields `(M, dict)` tuples instead of bare dicts.\n2. The reuse happens because one dict object is changed in place between `yield`s. Every yielded value is the same object, so `list(partitions(n))` returns N references to the final state.\n3. The docstring has a caveat about the reuse. It probably shows a workaround such as `[p.copy() for p in partitions(...)]`. I have not seen the exact text.\n4. Each yielded dict maps a part value to how many times it appears (e.g. `{2: 1, 1: 1}` for `3 = 2 + 1`). This format will not change.\n5. Copying the dict before yielding costs O(number of distinct parts) per partition. That is small next to the cost of generating the partition. This is the issue author's claim and has not been measured.\n6. Other functions in the same module may share the reuse pattern (e.g. multiset or ordered partition helpers). This change covers only `partitions()` unless the Open Questions decide otherwise.\n7. Callers that already call `.copy()` will keep working. They will just make one copy they no longer need.\n8. Other SymPy code may call `partitions()` and depend on the reuse, for example by changing the yielded dict on purpose. I have not checked this.\n\n## Objective\n`partitions()` should yield a new, independent dictionary for each partition. Collecting the results, for example with `list(partitions(n))`, should then give the correct partitions without any extra step. Changing one yielded dict must not affect any other yielded dict, and must not affect the generator's internal state.\n\n**Users:** SymPy users and SymPy-internal code that iterate over integer partitions.\n\n**Why:** The current behaviour surprises users. Simple code like `list(partitions(n))` gives results that look wrong. Code that stores or changes partitions can hit subtle bugs. A docstring warning does not prevent these mistakes.\n\n**User stories / acceptance:**\n- As a user, I can write `list(partitions(n))` and get every distinct partition of `n`, each one correct.\n- As a user, I can store yielded partitions in a list, set or dict and they stay correct after iteration continues.\n- As a user, I can change a yielded dict without breaking later partitions from the same iterator.\n- With `size=True`, the dict inside each `(M, dict)` tuple is also independent.\n\n## Tech Stack\n- Python. The supported versions are whatever SymPy currently supports (unknown).\n- SymPy. The affected module is `sympy.utilities.iterables`.\n- No new dependencies.\n\n## Commands\nUnknown, because the repository is not visible. Likely candidates to confirm:\n```\nTest (module):  unknown \u2014 e.g. pytest on the iterables test file, or SymPy's own test runner\nDoctests:       unknown \u2014 SymPy's doctest runner for sympy/utilities/iterables.py\nLint:           unknown\n```\n\n## Project Structure\n- `sympy/utilities/iterables.py` contains `partitions()` and its docstring. The path comes from the issue.\n- Test location: unknown. It is probably a `tests/` directory next to `iterables.py`, with a file such as `test_iterables.py`.\n- Other call sites of `partitions()` in SymPy: unknown. They need to be found with a search.\n\n## Code Style\n- Follow the existing style of `sympy/utilities/iterables.py`. I have not seen it, so no snippet is given.\n- Docstring examples are doctests, so they must stay runnable and correct.\n\n## Testing Strategy\n- **Unit tests** (in the existing iterables test file, location unknown):\n  - `list(partitions(n))` returns distinct, correct partitions for small `n` (e.g. 0, 1, 5, 6), with and without the `m` and `k` restrictions.\n  - Each yielded object is a different object: `len({id(p) for p in ps}) == len(ps)`.\n  - Changing a yielded dict does not change the following yields.\n  - With `size=True`, the dicts inside the tuples are independent, and `M` matches the sum of the dict's values.\n  - Edge cases, such as `n <= 0` and invalid `m`/`k`, behave as before. What \"as before\" means is unknown and must be checked against the current code.\n- **Doctests:** update the `partitions()` docstring examples and make sure they pass.\n- **Regression:** the full `sympy.utilities` test suite passes, and so do the test suites of any internal callers of `partitions()`.\n- **Performance (optional):** measure iterating all partitions of a moderately large `n` before and after the change, to back up the claim that the cost is small.\n\n## Boundaries\n- **Always:** keep the content of each yielded partition and the order of partitions exactly the same. Update the docstring so it matches the new behaviour. Add regression tests for list collection and for independence.\n- **Ask first:** changing the signature, or adding a flag that brings back the reuse behaviour. Changing other functions in `iterables.py` that reuse objects the same way. Removing \"unnecessary\" `.copy()` calls at internal call sites. Adding a deprecation or release note.\n- **Never:** change the partition representation (the dict format or the `(M, dict)` tuple). Change how many partitions are produced or their order. Remove or weaken existing tests without approval.\n\n## Success Criteria\n- `list(partitions(6))` equals the full list of the 11 distinct partitions of 6. Each element is a separate dict with the correct contents.\n- Each object yielded by `partitions()` is new, for every combination of `m`, `k` and `size`.\n- Changing a yielded dict has no effect on any later yielded value.\n- The docstring no longer warns about reuse and no longer requires `.copy()`. Its examples show direct use such as `list(partitions(...))`, and the doctests pass.\n- All existing tests pass, including tests for internal callers of `partitions()`.\n- If the slowdown is measured, it is acceptable to the maintainers. The threshold is still open.\n\n## Open Questions\n1. Should other functions in `sympy.utilities.iterables` that reuse output objects (if there are any) get the same fix in this change? Or should they be tracked separately?\n2. Should there be an opt-in way to keep the old reuse behaviour for performance-critical callers? For example, a keyword argument or a separate internal function.\n3. Does this change need a release note, or a note in the docstring about the behaviour change?\n4. What slowdown is acceptable? Should a benchmark be required before merging?\n5. Does any internal SymPy code depend on the reuse, for example by changing the yielded dict on purpose or comparing object identity?\n6. If internal call sites already call `.copy()`, should they be simplified in the same change or left alone?\n7. What are the exact test and doctest commands, and where is the test file?",
+ "ttft_ms": 2219,
+ "type": "result",
+ "duration_ms": 25587,
+ "uuid": "c0d626c7-e930-401b-b1db-057dc29b2116",
+ "ttft_stream_ms": 898,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 205,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 142,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 898,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

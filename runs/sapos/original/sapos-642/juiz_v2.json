@@ -1,0 +1,1 @@
+{"comportamentos": ["remover o monkey-patch config/initializers/recordselect_patch.rb que reabre AbstractMysqlAdapter: missing"], "justificativa": "O fix oficial remove o patch do adaptador MySQL em recordselect_patch.rb, mas o candidato só troca a sintaxe do enum em report_configuration.rb e não mexe nesse patch.", "veredito": "nao_resolve"}

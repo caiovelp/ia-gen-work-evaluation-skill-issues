@@ -1,0 +1,257 @@
+diff --git a/Gemfile b/Gemfile
+index 15b9408d..45a31456 100644
+--- a/Gemfile
++++ b/Gemfile
+@@ -8,7 +8,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
+ ruby "~> 3.2.1"
+ 
+ # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
+-gem "rails", "~> 7.0.7"
++gem "rails", "~> 7.0.8", ">= 7.0.8.1"
+ 
+ # The original asset pipeline for Rails [https://github.com/rails/sprockets-rails]
+ gem "sprockets-rails"
+diff --git a/Gemfile.lock b/Gemfile.lock
+index 3f64903e..dce76cd3 100644
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -28,61 +28,62 @@ GIT
+ GEM
+   remote: https://rubygems.org/
+   specs:
+-    actioncable (7.0.8)
+-      actionpack (= 7.0.8)
+-      activesupport (= 7.0.8)
++    actioncable (7.0.10)
++      actionpack (= 7.0.10)
++      activesupport (= 7.0.10)
+       nio4r (~> 2.0)
+       websocket-driver (>= 0.6.1)
+-    actionmailbox (7.0.8)
+-      actionpack (= 7.0.8)
+-      activejob (= 7.0.8)
+-      activerecord (= 7.0.8)
+-      activestorage (= 7.0.8)
+-      activesupport (= 7.0.8)
++    actionmailbox (7.0.10)
++      actionpack (= 7.0.10)
++      activejob (= 7.0.10)
++      activerecord (= 7.0.10)
++      activestorage (= 7.0.10)
++      activesupport (= 7.0.10)
+       mail (>= 2.7.1)
+       net-imap
+       net-pop
+       net-smtp
+-    actionmailer (7.0.8)
+-      actionpack (= 7.0.8)
+-      actionview (= 7.0.8)
+-      activejob (= 7.0.8)
+-      activesupport (= 7.0.8)
++    actionmailer (7.0.10)
++      actionpack (= 7.0.10)
++      actionview (= 7.0.10)
++      activejob (= 7.0.10)
++      activesupport (= 7.0.10)
+       mail (~> 2.5, >= 2.5.4)
+       net-imap
+       net-pop
+       net-smtp
+       rails-dom-testing (~> 2.0)
+-    actionpack (7.0.8)
+-      actionview (= 7.0.8)
+-      activesupport (= 7.0.8)
++    actionpack (7.0.10)
++      actionview (= 7.0.10)
++      activesupport (= 7.0.10)
++      racc
+       rack (~> 2.0, >= 2.2.4)
+       rack-test (>= 0.6.3)
+       rails-dom-testing (~> 2.0)
+       rails-html-sanitizer (~> 1.0, >= 1.2.0)
+-    actiontext (7.0.8)
+-      actionpack (= 7.0.8)
+-      activerecord (= 7.0.8)
+-      activestorage (= 7.0.8)
+-      activesupport (= 7.0.8)
++    actiontext (7.0.10)
++      actionpack (= 7.0.10)
++      activerecord (= 7.0.10)
++      activestorage (= 7.0.10)
++      activesupport (= 7.0.10)
+       globalid (>= 0.6.0)
+       nokogiri (>= 1.8.5)
+-    actionview (7.0.8)
+-      activesupport (= 7.0.8)
++    actionview (7.0.10)
++      activesupport (= 7.0.10)
+       builder (~> 3.1)
+       erubi (~> 1.4)
+       rails-dom-testing (~> 2.0)
+       rails-html-sanitizer (~> 1.1, >= 1.2.0)
+     active_scaffold_duplicate (1.1.4)
+       active_scaffold (>= 3.6.0.pre)
+-    activejob (7.0.8)
+-      activesupport (= 7.0.8)
++    activejob (7.0.10)
++      activesupport (= 7.0.10)
+       globalid (>= 0.3.6)
+-    activemodel (7.0.8)
+-      activesupport (= 7.0.8)
+-    activerecord (7.0.8)
+-      activemodel (= 7.0.8)
+-      activesupport (= 7.0.8)
++    activemodel (7.0.10)
++      activesupport (= 7.0.10)
++    activerecord (7.0.10)
++      activemodel (= 7.0.10)
++      activesupport (= 7.0.10)
+     activerecord-session_store (2.1.0)
+       actionpack (>= 6.1)
+       activerecord (>= 6.1)
+@@ -90,27 +91,37 @@ GEM
+       multi_json (~> 1.11, >= 1.11.2)
+       rack (>= 2.0.8, < 4)
+       railties (>= 6.1)
+-    activestorage (7.0.8)
+-      actionpack (= 7.0.8)
+-      activejob (= 7.0.8)
+-      activerecord (= 7.0.8)
+-      activesupport (= 7.0.8)
++    activestorage (7.0.10)
++      actionpack (= 7.0.10)
++      activejob (= 7.0.10)
++      activerecord (= 7.0.10)
++      activesupport (= 7.0.10)
+       marcel (~> 1.0)
+       mini_mime (>= 1.1.0)
+-    activesupport (7.0.8)
++    activesupport (7.0.10)
++      base64
++      benchmark (>= 0.3)
++      bigdecimal
+       concurrent-ruby (~> 1.0, >= 1.0.2)
++      drb
+       i18n (>= 1.6, < 2)
++      logger (>= 1.4.2)
+       minitest (>= 5.1)
++      mutex_m
++      securerandom (>= 0.3)
+       tzinfo (~> 2.0)
+     addressable (2.8.5)
+       public_suffix (>= 2.0.2, < 6.0)
+     ast (2.4.2)
+     awesome_print (1.9.2)
++    base64 (0.3.0)
+     bcrypt (3.1.19)
++    benchmark (0.5.0)
+     better_errors (2.10.1)
+       erubi (>= 1.0.0)
+       rack (>= 0.9.0)
+       rouge (>= 1.0.0)
++    bigdecimal (4.1.3)
+     bindex (0.8.1)
+     binding_of_caller (1.0.0)
+       debug_inspector (>= 0.0.1)
+@@ -180,6 +191,7 @@ GEM
+     dotenv-rails (2.8.1)
+       dotenv (= 2.8.1)
+       railties (>= 3.2)
++    drb (2.2.3)
+     erubi (1.12.0)
+     et-orbi (1.2.7)
+       tzinfo
+@@ -242,6 +254,7 @@ GEM
+       letter_opener (~> 1.7)
+       railties (>= 5.2)
+       rexml
++    logger (1.7.0)
+     loofah (2.21.4)
+       crass (~> 1.0.2)
+       nokogiri (>= 1.12.0)
+@@ -259,6 +272,7 @@ GEM
+     minitest (5.20.0)
+     msgpack (1.7.2)
+     multi_json (1.15.0)
++    mutex_m (0.3.0)
+     mysql2 (0.5.5)
+     net-http (0.3.2)
+       uri
+@@ -308,20 +322,20 @@ GEM
+     rack (2.2.8)
+     rack-test (2.1.0)
+       rack (>= 1.3)
+-    rails (7.0.8)
+-      actioncable (= 7.0.8)
+-      actionmailbox (= 7.0.8)
+-      actionmailer (= 7.0.8)
+-      actionpack (= 7.0.8)
+-      actiontext (= 7.0.8)
+-      actionview (= 7.0.8)
+-      activejob (= 7.0.8)
+-      activemodel (= 7.0.8)
+-      activerecord (= 7.0.8)
+-      activestorage (= 7.0.8)
+-      activesupport (= 7.0.8)
++    rails (7.0.10)
++      actioncable (= 7.0.10)
++      actionmailbox (= 7.0.10)
++      actionmailer (= 7.0.10)
++      actionpack (= 7.0.10)
++      actiontext (= 7.0.10)
++      actionview (= 7.0.10)
++      activejob (= 7.0.10)
++      activemodel (= 7.0.10)
++      activerecord (= 7.0.10)
++      activestorage (= 7.0.10)
++      activesupport (= 7.0.10)
+       bundler (>= 1.15.0)
+-      railties (= 7.0.8)
++      railties (= 7.0.10)
+     rails-dom-testing (2.2.0)
+       activesupport (>= 5.0.0)
+       minitest
+@@ -334,9 +348,9 @@ GEM
+     rails-html-sanitizer (1.6.0)
+       loofah (~> 2.21)
+       nokogiri (~> 1.14)
+-    railties (7.0.8)
+-      actionpack (= 7.0.8)
+-      activesupport (= 7.0.8)
++    railties (7.0.10)
++      actionpack (= 7.0.10)
++      activesupport (= 7.0.10)
+       method_source
+       rake (>= 12.2)
+       thor (~> 1.0)
+@@ -430,6 +444,7 @@ GEM
+       tilt
+     sdoc (2.6.1)
+       rdoc (>= 5.0)
++    securerandom (0.4.1)
+     selenium-webdriver (4.15.0)
+       rexml (~> 3.2, >= 3.2.5)
+       rubyzip (>= 1.2.2, < 3.0)
+@@ -477,9 +492,10 @@ GEM
+       bindex (>= 0.4.0)
+       railties (>= 6.0.0)
+     websocket (1.2.10)
+-    websocket-driver (0.7.6)
+-      websocket-extensions (>= 0.1.0)
+-    websocket-extensions (0.1.5)
++    websocket-driver (0.9.0)
++      base64
++      websocket-extensions (>= 0.2.0)
++    websocket-extensions (0.2.0)
+     xpath (3.2.0)
+       nokogiri (~> 1.8)
+     zeitwerk (2.6.12)
+@@ -529,7 +545,7 @@ DEPENDENCIES
+   prawn-table
+   pry
+   puma (>= 6.4.2)
+-  rails (~> 7.0.7)
++  rails (~> 7.0.8, >= 7.0.8.1)
+   rails-erd
+   rdoc (>= 6.5.1.1)
+   recaptcha

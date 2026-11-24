@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31195,
+ "stop_reason": "end_turn",
+ "session_id": "d588a284-630f-438b-9696-d00003d0b7d2",
+ "total_cost_usd": 0.0698028,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 746,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3141,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 746,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3141,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 746,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 746
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1335,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014400000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3141,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 746,
+   "webSearchRequests": 0,
+   "costUSD": 0.06965879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Add an `encoder` parameter to `django.utils.html.json_script()`\n\n## Assumptions\n\n1. The target is the Django codebase. The function in question is `django.utils.html.json_script()`, and its template filter counterpart is the documented `json_script` filter (likely in `django/template/defaultfilters.py`, but that location is **unverified**).\n2. Today `json_script()` serializes with `json.dumps(value, cls=DjangoJSONEncoder)`. It then escapes HTML-sensitive characters (`<`, `>`, `&`) and wraps the result in `<script type=\"application/json\">`. The issue confirms only the hardcoded `DjangoJSONEncoder`. The escaping details are assumed from general knowledge of Django.\n3. The new parameter is a keyword argument named `encoder`. It defaults to `None`, and `None` means \"use `DjangoJSONEncoder`\". This keeps every existing call working unchanged.\n4. `encoder` takes a **class** (a `json.JSONEncoder` subclass), not an instance. This matches the `cls=` convention of `json.dumps` and the `encoder` parameter on `JSONField` and `JsonResponse`.\n5. HTML escaping of the output must still apply no matter which encoder is used. A custom encoder must never be able to turn off XSS protection.\n6. This change does not alter the template filter's signature. Template filters accept at most one argument, and that slot may already be used by `element_id` (see Open Questions).\n7. Both parts of the issue are in scope: (a) the `encoder` parameter and (b) documenting `django.utils.html.json_script()` in the utilities reference docs.\n8. This is a new feature. It needs a release note in the next feature release's notes and a `versionchanged`/`versionadded` annotation in the docs.\n\n## Objective\n\nLet Python callers of `django.utils.html.json_script()` choose the JSON encoder class used to serialize the value. Today the encoder is hardcoded to `DjangoJSONEncoder`. Also document `django.utils.html.json_script()` publicly; today only the template filter is documented.\n\n**Users:** developers who build template context or HTML fragments in Python. They need custom serialization, for example for domain objects, special number formats, or types that `DjangoJSONEncoder` does not handle.\n\n**User stories:**\n- As a developer, I can call `json_script(value, encoder=MyEncoder)` and the JSON in the output reflects `MyEncoder`'s serialization.\n- As a developer who doesn't pass `encoder`, I get exactly the same output as before.\n- As a developer reading the docs, I can find `json_script()` in the `django.utils.html` reference. The entry covers its parameters, including `encoder`, and its escaping guarantees.\n\n**Acceptance criteria:**\n- `json_script()` accepts an optional `encoder` argument.\n- When `encoder` is omitted or `None`, `DjangoJSONEncoder` is used. Output is byte-for-byte identical to the current behavior.\n- When `encoder` is given, it is passed as the encoder class to JSON serialization.\n- The output is HTML-escaped the same way with any encoder.\n- The existing `element_id` behavior is unchanged.\n- The `json_script` template filter still behaves as before.\n- Docs describe `django.utils.html.json_script()`, including the `encoder` parameter, and cross-reference the template filter.\n- A release note announces the new parameter.\n\n## Tech Stack\n\n- Python and the standard library `json` module (`json.dumps(..., cls=...)`)\n- Django: `django.utils.html`, `django.core.serializers.json.DjangoJSONEncoder`\n- Docs: Sphinx/reStructuredText (assumed from Django's conventions; paths **unknown**)\n- Supported Python and Django versions: **unknown**\n\n## Commands\n\nNot stated in the issue, so all are **unknown**:\n\n```\nBuild: unknown\nTest: unknown (Django's test runner invocation, e.g. for the utils_tests / template filter test suites, not verified)\nLint: unknown\nDocs build: unknown\n```\n\n## Project Structure\n\nOnly the module paths named in the issue are known:\n\n```\ndjango/utils/html.py          \u2192 json_script() lives here (module path stated in issue)\n<unknown>                     \u2192 json_script template filter implementation\n<unknown>                     \u2192 DjangoJSONEncoder (import path django.core.serializers.json assumed)\n<unknown tests dir>           \u2192 tests for django.utils.html\n<unknown tests dir>           \u2192 tests for the json_script template filter\n<unknown docs path>           \u2192 django.utils reference docs (where json_script() docs should be added)\n<unknown docs path>           \u2192 built-in template filter docs (json_script filter, already documented)\n<unknown docs path>           \u2192 release notes for the next feature release\n```\n\n## Code Style\n\nThe codebase is not visible, so this section does not reproduce existing code. Intended public usage, for illustration only:\n\n```python\nfrom django.utils.html import json_script\n\njson_script({\"a\": value}, \"my-id\", encoder=MyCustomEncoder)\n```\n\nConventions to follow (assumed from Django's practices, **not verified**):\n- Keep the parameter optional with a `None` default, consistent with `encoder` parameters elsewhere in Django.\n- Follow the project's existing formatting and lint configuration (tooling **unknown**).\n- Docs use the project's existing reST function directives and version-change annotations.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite, which is `unittest`-based (runner command **unknown**).\n- **Unit tests for `django.utils.html.json_script()`:**\n  - A custom encoder subclass changes the serialized output. For example, an encoder that serializes some type in a recognizable way, and the output contains that representation.\n  - With a custom encoder, `<`, `>`, and `&` in the encoded data are still escaped in the output.\n  - Calls without `encoder`, and with `encoder=None`, produce output identical to the existing expected outputs.\n  - `encoder` works together with an `element_id` and without one.\n- **Regression:** existing `json_script` tests for both the utility and the template filter still pass unchanged.\n- **Docs:** the docs build succeeds with the new entry (command **unknown**).\n- Coverage threshold: **unknown**.\n\n## Boundaries\n\n- **Always:**\n  - Keep the parameter backward compatible (optional, default preserves `DjangoJSONEncoder`).\n  - Keep HTML escaping regardless of encoder.\n  - Add tests for the new parameter.\n  - Add docs and a release note.\n- **Ask first:**\n  - Changing the template filter's signature or behavior.\n  - Accepting encoder instances or callables in addition to classes.\n  - Adding further passthrough options, such as arbitrary `json.dumps` kwargs.\n  - Changing the parameter's position or name.\n  - Backporting to stable branches.\n- **Never:**\n  - Change the default encoder.\n  - Weaken or bypass output escaping.\n  - Change the `<script>` element structure or the `element_id` semantics.\n  - Remove or alter existing tests to make new behavior pass.\n\n## Success Criteria\n\n1. `json_script(value)` and `json_script(value, element_id)` return the same strings as before the change.\n2. `json_script(value, encoder=CustomEncoder)` serializes `value` using `CustomEncoder`. A test shows that output differs from the default where the encoders differ.\n3. With any encoder, the returned markup contains no unescaped `<`, `>`, or `&` from the JSON payload.\n4. The `json_script` template filter's existing tests pass without modification.\n5. `django.utils.html.json_script()` appears in the reference docs. The entry documents `value`, `element_id`, and `encoder`, the default encoder, and the escaping behavior, and links to the template filter.\n6. A release note for the next feature release mentions the new `encoder` parameter.\n7. The full relevant test suites and the docs build pass (commands **unknown**).\n\n## Open Questions\n\n1. **Parameter signature:** should `encoder` be keyword-only, or a third positional parameter after `element_id`? Is `element_id` currently optional in the targeted version? This affects ordering and the docs.\n2. **Class vs. instance:** confirm `encoder` takes a `JSONEncoder` subclass, as `json.dumps(cls=...)` does, and not an instance or a plain `default` callable.\n3. **Template filter exposure:** should the `json_script` filter gain any way to choose an encoder? Filters take one argument, so the assumption is no. Confirm this is out of scope.\n4. **Documenting the utility:** the issue asks whether `django.utils.html.json_script()` should be documented. The assumption is yes. Confirm where it belongs (the `django.utils.html` section of the utilities reference) and whether to document only `json_script()` or audit other undocumented `django.utils.html` helpers too (assumed: only `json_script()`).\n5. **Version targeting:** which Django release receives this feature, and therefore which release notes file and `versionchanged` version to use?\n6. **Escaping contract:** should the docs explicitly warn that a custom encoder's output is still escaped, and that the encoder must produce valid JSON?\n7. **Test, lint, and docs commands, and exact file paths:** these are unknown and need confirmation against the repository.",
+ "ttft_ms": 30116,
+ "type": "result",
+ "duration_ms": 30137,
+ "uuid": "028a3c7d-0278-43f7-81e8-3325daca6ec6",
+ "ttft_stream_ms": 1382,
+ "time_to_request_ms": 288,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 20,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 215,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 33,
+ "time_to_request_cpu_ms": 286,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 29,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1382,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26415,
+ "stop_reason": "end_turn",
+ "session_id": "6ad6e224-a31d-488f-83f5-0fcd491acb59",
+ "total_cost_usd": 0.0609592,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 950,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2616,
+  "output_tokens_details": {
+   "thinking_tokens": 160
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 950,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2616,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 950,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 950
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1534,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016840000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2616,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 950,
+   "webSearchRequests": 0,
+   "costUSD": 0.0607908,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 160,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Make `ModelChoiceIteratorValue` hashable\n\n## Assumptions\n\n1. The project is Django itself. The fix belongs in the framework, not in user code.\n2. `ModelChoiceIteratorValue` was introduced in Django 3.1. It wraps the raw choice value (usually a primary key) plus the model instance, and it is what `create_option()` receives as `value` for `ModelChoiceField` / `ModelMultipleChoiceField` widgets.\n3. The class defines `__eq__`, which compares against the wrapped value, but does not define `__hash__`. Python sets `__hash__ = None` on any class that defines `__eq__` without `__hash__`, which explains the `TypeError: unhashable type`. This is inferred from the error message and has not been verified against source.\n4. List membership (`value in [1, 2]`) works because it only uses `__eq__`. Dict and set membership fail because they need `__hash__` first. This matches the behaviour in the report.\n5. The intended semantics are that a `ModelChoiceIteratorValue` behaves like its wrapped `.value` for equality, so it should also hash like it. Python's rule requires that `a == b` implies `hash(a) == hash(b)`.\n6. Restoring 3.0-compatible behaviour for dict and set lookups counts as a regression fix and is eligible for the 3.1 stable branch. Backport policy is unconfirmed.\n\n## Objective\n\nRestore the Django 3.0 behaviour where the `value` passed to `ChoiceWidget.create_option()` for model choice fields can be used as a dict key or set member. Lookups such as `value in some_dict` and `some_dict[value]` must succeed and match entries keyed by the underlying primary key.\n\n**User:** Developers who subclass `Select`, `SelectMultiple` and similar widgets used with `ModelChoiceField`, and who look up per-option metadata in dicts or sets keyed by pk. A common example is adding `data-*` attributes to options.\n\n**User story:** As a developer upgrading from Django 3.0 to 3.1, I want `if value in self.show_fields:` to work in my `create_option()` override, so that my custom option attributes keep working without code changes.\n\n**Acceptance criteria:**\n- `hash(ModelChoiceIteratorValue(v, instance)) == hash(v)` for any hashable `v`.\n- `ModelChoiceIteratorValue(1, obj) in {1: [...]}` is `True`.\n- `{1: 'x'}[ModelChoiceIteratorValue(1, obj)]` returns `'x'`.\n- `ModelChoiceIteratorValue(1, obj) in {1, 2}` is `True`.\n- Existing equality behaviour is unchanged. This covers comparisons with raw values, with other `ModelChoiceIteratorValue` instances, and `str()` rendering.\n- List membership, which already works, still works.\n\n## Tech Stack\n\n- Python and Django. The supported Python versions for the target branch are unknown.\n- Affected component: Django forms. The class is expected to live alongside `ModelChoiceIterator` in Django's model forms module. The exact path is not visible in the issue and is marked as unknown.\n\n## Commands\n\nUnknown. The issue does not contain them. Expected form: Django's test runner, executed from the tests directory against the model forms test modules. The exact command and module labels still need to be confirmed.\n\n- Build: N/A (Python library)\n- Test: unknown\n- Lint: unknown (presumably flake8/isort per Django contribution guidelines; unconfirmed)\n\n## Project Structure\n\nUnknown from the issue. Locations to be identified:\n\n- **Source:** the module defining `ModelChoiceIteratorValue`.\n- **Tests:** the existing test module covering `ModelChoiceField` / `ModelChoiceIterator` widgets.\n- **Docs:** release notes for the relevant 3.1.x patch release, if this is treated as a regression fix.\n\n## Code Style\n\nThe project's conventions are not visible in the issue. Follow existing Django style in the surrounding module. The reporter's reproduction, which must work after the change, is:\n\n```python\ndef create_option(self, name, value, label, selected, index, subindex=None, attrs=None):\n    context = super().create_option(name, value, label, selected, index, subindex, attrs)\n    if not value:\n        return context\n    if value in self.show_fields:  # dict {1: ['first_name', 'last_name']}\n        context['attrs']['data-fields'] = json.dumps(self.show_fields[value])\n    return context\n```\n\n## Testing Strategy\n\n- **Unit test** on `ModelChoiceIteratorValue`:\n  - `hash()` equals the hash of the wrapped value.\n  - The object can be used as a dict key and a set member.\n  - It looks up correctly against raw-pk-keyed dicts.\n- **Widget-level regression test:**\n  - Write a `Select` subclass that overrides `create_option()` and does a dict lookup on `value`, mirroring the issue.\n  - Render it for a `ModelChoiceField` with a real queryset.\n  - Assert that the expected `data-*` attribute appears on the matching option.\n- **Existing tests** in the model forms / widgets suites must keep passing.\n- **Placement:** add the tests next to existing `ModelChoiceField` / iterator tests. The exact files are unknown.\n\n## Boundaries\n\n**Always:**\n- Keep `__hash__` consistent with `__eq__`.\n- Add a regression test that fails before the change.\n- Follow Django's contribution and style guidelines.\n\n**Ask first:**\n- Changing `__eq__` semantics.\n- Removing or replacing `ModelChoiceIteratorValue`.\n- Changing what `create_option()` receives as `value`, for example passing the raw pk again.\n- Backport scope.\n- Adding a release note or doc change.\n\n**Never:**\n- Make the hash depend on the model instance or object identity, since that would break the equality contract.\n- Make the wrapper mutable in a way that affects its hash.\n- Require users to unwrap `value.value` as the \"fix\".\n\n## Success Criteria\n\n1. The reporter's `create_option()` example runs without `TypeError` on the target Django version.\n2. It produces the same `data-fields` attribute it produced on Django 3.0.\n3. A new regression test covering hashability and dict/set lookup passes, and fails without the change.\n4. All existing forms and model-forms tests pass.\n5. `a == b \u21d2 hash(a) == hash(b)` holds for `ModelChoiceIteratorValue` versus its raw value.\n\n## Open Questions\n\n1. **Backport:** Should this be treated as a 3.1 regression and backported to the stable branch, with a release note in the next 3.1.x patch?\n2. **Unhashable values:** If the wrapped `.value` is itself unhashable (unusual for a pk, but possible with a custom `to_field_name`), should `hash()` raise `TypeError` as the raw value would? Assumed yes.\n3. **Documentation:** Should the docs for `ModelChoiceIteratorValue` and `create_option()` explicitly state that `value` is a wrapper and is hashable and comparable to the raw value?\n4. **Repository details:** What are the exact source file, test module, and test command in the repository? These are not visible in the issue.",
+ "ttft_ms": 2337,
+ "type": "result",
+ "duration_ms": 25522,
+ "uuid": "1ece5513-5cf1-440f-b0b0-6056e2e500bb",
+ "ttft_stream_ms": 1007,
+ "time_to_request_ms": 294,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 247,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 234,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1007,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

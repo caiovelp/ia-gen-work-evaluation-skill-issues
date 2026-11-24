@@ -1,0 +1,50 @@
+diff --git a/app/models/enrollment.rb b/app/models/enrollment.rb
+index 21e6a187..22638c8d 100644
+--- a/app/models/enrollment.rb
++++ b/app/models/enrollment.rb
+@@ -41,6 +41,7 @@ class Enrollment < ApplicationRecord
+   validates :student, presence: true
+   validates_associated :dismissal
+   validate :enrollment_has_main_advisor
++  validate :verify_advisors_accredited_at_level
+ 
+   validates_date :thesis_defense_date,
+     on_or_after: :admission_date,
+@@ -170,6 +171,24 @@ class Enrollment < ApplicationRecord
+     end
+   end
+ 
++  def verify_advisors_accredited_at_level
++    return if advisements.blank? || level.blank?
++    advisements_alive = advisements.reject(&:marked_for_destruction?)
++    return if advisements_alive.empty?
++
++    accredited = advisements_alive.select do |a|
++      next false if a.professor.blank?
++      AdvisementAuthorization.where(
++        professor_id: a.professor.id, level_id: level.id
++      ).exists?
++    end
++    if accredited.empty?
++      errors.add(:base, :no_accredited_advisor)
++    elsif advisements_alive.any? { |a| a.main_advisor && !accredited.include?(a) }
++      errors.add(:base, :main_advisor_not_accredited)
++    end
++  end
++
+   def verify_research_area_with_advisors
+     return if advisements.blank?
+     return if research_area.blank?
+diff --git a/config/locales/enrollment.pt-BR.yml b/config/locales/enrollment.pt-BR.yml
+index 7c256888..dda82aef 100644
+--- a/config/locales/enrollment.pt-BR.yml
++++ b/config/locales/enrollment.pt-BR.yml
+@@ -49,6 +49,8 @@ pt-BR:
+       models:
+         enrollment:
+           main_advisor_required: "Um dos orientadores deve ser Orientador Principal"
++          main_advisor_not_accredited: "O orientador principal deve ser credenciado no nível da matrícula"
++          no_accredited_advisor: "Pelo menos um orientador deve ser credenciado no nível da matrícula"
+           main_advisor_uniqueness: "Apenas um orientador pode ser Orientador Principal"
+           thesis_defense_date_before_admission_date: "anterior a Data de Admissão"
+           research_area_different_from_professors: "diferente de áreas de pesquisa do(s) orientador(es)"

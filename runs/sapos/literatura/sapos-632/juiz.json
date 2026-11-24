@@ -1,0 +1,1 @@
+{"justificativa": "O patch só alinha os argumentos da chamada na rake task. A causa raiz continua: o renderer baseado em AbstractController::Rendering não tem contexto de controller, então render_to_string segue devolvendo nil e o anexo sai com 0 bytes. O patch também não remove a funcionalidade, que seria a alternativa 1.", "veredito": "nao_resolve"}

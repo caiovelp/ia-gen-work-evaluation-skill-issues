@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21793,
+ "stop_reason": "end_turn",
+ "session_id": "76d07a2d-3983-4cdc-84f9-10b88ffac161",
+ "total_cost_usd": 0.0772503,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2603,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2806,
+  "output_tokens_details": {
+   "thinking_tokens": 212
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2603,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2806,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2603,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2603
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2813,
+   "outputTokens": 34,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002983,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2806,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2603,
+   "webSearchRequests": 0,
+   "costUSD": 0.07695199999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 212,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nBlock-multiplying a `BlockMatrix` that contains `ZeroMatrix` blocks works once but raises `AttributeError: 'Zero' object has no attribute 'cols'` when done a second time, e.g. `block_collapse(b * b * b)` or `b._blockmul(b)._blockmul(b)`.\n\nThe reporter found that after one multiplication the zero blocks of the result are `sympy.core.numbers.Zero` rather than `ZeroMatrix`. The reporter believes this is the cause but does not know why it happens.\n\n## Steps to reproduce\n\n1. Define a block matrix with zero blocks:\n   ```python\n   from sympy import *\n   a = MatrixSymbol(\"a\", 2, 2)\n   z = ZeroMatrix(2, 2)\n   b = BlockMatrix([[a, z], [z, z]])\n   ```\n2. Block-multiply once. This works:\n   ```python\n   block_collapse(b * b)\n   b._blockmul(b)\n   ```\n3. Block-multiply twice. This raises an exception:\n   ```python\n   block_collapse(b * b * b)\n   b._blockmul(b)._blockmul(b)\n   ```\n4. Optionally, inspect the type of a zero block after one multiplication:\n   ```python\n   type(b._blockmul(b).blocks[0, 1])\n   ```\n\n## Observed behavior\n\n- A single multiplication succeeds. Both `block_collapse(b * b)` and `b._blockmul(b)` return:\n  ```\n  Matrix([\n  [a**2, 0],\n  [0, 0]])\n  ```\n- A double multiplication fails. Both `block_collapse(b * b * b)` and `b._blockmul(b)._blockmul(b)` raise `AttributeError: 'Zero' object has no attribute 'cols'`.\n- The zero blocks in the result of one multiplication are `Zero`, not `ZeroMatrix`:\n  ```\n  >>> type(b._blockmul(b).blocks[0, 1])\n  <class 'sympy.core.numbers.Zero'>\n  ```\n\n## Expected behavior\n\nMultiplying the block matrix more than once should work the same way a single multiplication does, without raising an exception.\n\n## Stack trace / error output\n\n`block_collapse(b * b * b)`:\n```\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 297, in block_collapse\n    result = rule(expr)\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/strategies/core.py\", line 11, in exhaustive_rl\n    new, old = rule(expr), expr\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/strategies/core.py\", line 44, in chain_rl\n    expr = rule(expr)\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/strategies/core.py\", line 11, in exhaustive_rl\n    new, old = rule(expr), expr\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/strategies/core.py\", line 33, in conditioned_rl\n    return rule(expr)\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/strategies/core.py\", line 95, in switch_rl\n    return rl(expr)\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 361, in bc_matmul\n    matrices[i] = A._blockmul(B)\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 91, in _blockmul\n    self.colblocksizes == other.rowblocksizes):\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 80, in colblocksizes\n    return [self.blocks[0, i].cols for i in range(self.blockshape[1])]\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 80, in <listcomp>\n    return [self.blocks[0, i].cols for i in range(self.blockshape[1])]\nAttributeError: 'Zero' object has no attribute 'cols'\n```\n\n`b._blockmul(b)._blockmul(b)`:\n```\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 91, in _blockmul\n    self.colblocksizes == other.rowblocksizes):\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 80, in colblocksizes\n    return [self.blocks[0, i].cols for i in range(self.blockshape[1])]\n  File \"/home/jan/.pyenv/versions/3.7.4/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 80, in <listcomp>\n    return [self.blocks[0, i].cols for i in range(self.blockshape[1])]\nAttributeError: 'Zero' object has no attribute 'cols'\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction in the report. It checks only that no exception is raised, because the report does not state the expected result value.\n\n```python\nfrom sympy import MatrixSymbol, ZeroMatrix, BlockMatrix, block_collapse\n\ndef test_blockmatrix_zero_blocks_multiply_twice():\n    a = MatrixSymbol(\"a\", 2, 2)\n    z = ZeroMatrix(2, 2)\n    b = BlockMatrix([[a, z], [z, z]])\n\n    # Single multiplication works (per the report)\n    block_collapse(b * b)\n    b._blockmul(b)\n\n    # Double multiplication currently raises AttributeError\n    block_collapse(b * b * b)\n    b._blockmul(b)._blockmul(b)\n```\n\n## Code example\n\n```python\n>>> from sympy import *\n>>> a = MatrixSymbol(\"a\", 2, 2)\n>>> z = ZeroMatrix(2, 2)\n>>> b = BlockMatrix([[a, z], [z, z]])\n>>> block_collapse(b * b)          # works\n>>> b._blockmul(b)                 # works\n>>> block_collapse(b * b * b)      # AttributeError\n>>> b._blockmul(b)._blockmul(b)    # AttributeError\n>>> type(b._blockmul(b).blocks[0, 1])\n<class 'sympy.core.numbers.Zero'>\n```\n\n## Version and environment\n\n- SymPy 1.4, installed with pip\n- Python 3.7.4, installed via pyenv (based on the traceback paths)\n- Operating system: not stated; the paths (`/home/jan/...`) suggest a Unix-like system",
+ "ttft_ms": 4057,
+ "type": "result",
+ "duration_ms": 21225,
+ "uuid": "81203c5a-150e-45a1-a63c-e93909fed4cf",
+ "ttft_stream_ms": 1955,
+ "time_to_request_ms": 239,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 196,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 252,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1955,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

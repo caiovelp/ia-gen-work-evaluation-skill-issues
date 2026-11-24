@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33374,
+ "stop_reason": "end_turn",
+ "session_id": "09814ccd-54b5-4e28-a380-0c419eda04d3",
+ "total_cost_usd": 0.07380049999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1173,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3168,
+  "output_tokens_details": {
+   "thinking_tokens": 279
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1173,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3168,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1173,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1173
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1762,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018570000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3168,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1173,
+   "webSearchRequests": 0,
+   "costUSD": 0.0736148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 279,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Show Domain/Subdomain Information in `flask routes`\n\n## Objective\n\nThe `flask routes` CLI command lists every URL rule with its endpoint, methods and path. It does not show which domain or subdomain a rule belongs to. When blueprints are registered with `subdomain=...`, routes on different subdomains can share the same path, and the output cannot tell them apart:\n\n```\nadmin_blueprint.home            GET   /home\ntest_subdomain_blueprint.home   GET   /home\n```\n\nUsers currently have to read the app configuration to work out which `/home` serves `admin.test.local` and which serves `test.test.local`.\n\n**Who it's for:** Developers debugging or auditing routing in Flask apps that use subdomain routing (blueprint or route `subdomain=`) or host matching.\n\n**What we're building:** An extension to `flask routes` that shows each rule's domain or subdomain whenever that information is relevant. It must not change the output for apps that don't use subdomains or host matching.\n\n**Secondary need from the issue:** \"If it is not possible to fix routes, can you add or tell which method(s) should be used to get below information.\" The documentation should therefore point users to the public attributes that carry this information (the `subdomain` / `host` attributes of rules in `app.url_map`), so they can get it programmatically.\n\n### User stories\n\n1. As a developer whose app sets `SERVER_NAME='test.local'` and registers blueprints with `subdomain='admin'` and `subdomain='test'`, I run `flask routes` and see which domain each rule is served on. That is `admin.test.local`, `test.test.local` or `test.local`.\n2. As a developer whose app has no subdomain routing, I run `flask routes` and get the same output as today, with no new empty column.\n3. As a developer using host matching (`host_matching=True`), I see the host each rule is bound to.\n4. As a developer, I can sort the routes output by domain.\n\n## Assumptions\n\n1. The scope is the built-in `flask routes` command in the Flask project itself, not a third-party extension.\n2. Each Werkzeug `Rule` object exposes its subdomain and host bindings as attributes (`rule.subdomain`, `rule.host`). Flask sets these when a blueprint or route is registered with `subdomain=`, or when `host_matching` is enabled. This is based on the issue's blueprint usage and general Werkzeug knowledge, not verified against the repo.\n3. The domain displayed is built as follows:\n   - With host matching, it is the rule's host.\n   - Otherwise, a rule with a non-empty subdomain shows `<subdomain>.<SERVER_NAME>`.\n   - A rule with an empty subdomain shows `SERVER_NAME`.\n   This matches the issue's expected output.\n4. The column only appears when at least one rule has a non-empty subdomain, or when host matching is enabled. Output for apps that don't use either stays byte-for-byte unchanged.\n5. The existing options of `flask routes` (believed to be `--sort` and `--all-methods`) keep working. Sorting gains a domain-based option.\n6. Column order follows the issue's example: the domain column comes first, before Endpoint.\n7. No new dependencies are needed.\n\n## Tech Stack\n\n- Python, Flask, Werkzeug (routing), Click (CLI). Supported version ranges: **unknown**, so use the project's existing ones.\n\n## Commands\n\nAll unknown, because there is no repository access. They must be taken from the project's contributor docs or CI config.\n\n```\nBuild: unknown\nTest:  unknown (project test runner, likely pytest; verify)\nLint:  unknown\nDev:   flask --app <app> routes   # manual verification of the feature\n```\n\n## Project Structure\n\nUnknown. Expected locations to confirm:\n\n- The module that implements the `routes` CLI command (believed to be the Flask CLI module; exact path unverified)\n- The test module covering CLI commands (unverified)\n- CLI documentation page and changelog (unverified)\n\n## Code Style\n\nUnknown. Follow the existing conventions of the CLI module: Click option declarations, the table formatting already used by `flask routes`, type hints if present, and the project's formatter/linter config. No snippet is provided because none is visible in the issue.\n\n## Testing Strategy\n\n- **Framework:** The project's existing test framework and CLI test helpers (e.g. Click's `CliRunner` or Flask's CLI runner). Exact framework is unknown.\n- **Level:** Unit/CLI tests that build small apps in-test, invoke `routes`, and assert on the output.\n- **Cases to cover:**\n  - App without subdomains or host matching: no domain column, and output unchanged from current behavior.\n  - App with `SERVER_NAME` and blueprints on `admin` and `test` subdomains: column present, values are `admin.test.local`, `test.test.local` and `test.local` (the last for `static` and other non-subdomain rules).\n  - App with `host_matching=True` and rules bound to hosts: column shows each rule's host.\n  - Sorting by domain orders rows by the displayed domain.\n  - Existing options (`--sort` values, `--all-methods`) still behave as before, with and without the new column.\n  - Edge: subdomain set but `SERVER_NAME` unset. Expected behavior depends on an open question.\n- **Coverage:** Match project norms. Every new branch, column shown or hidden and host versus subdomain, must be covered.\n\n## Boundaries\n\n- **Always:**\n  - Keep `flask routes` output unchanged for apps without subdomains or host matching.\n  - Add tests for every new display branch.\n  - Update the CLI docs and changelog.\n  - Run the full test suite before committing.\n- **Ask first:**\n  - Changing column order or headers of the existing output.\n  - Adding new CLI flags beyond the sort option.\n  - Changing anything in Werkzeug.\n  - Adding any dependency.\n- **Never:**\n  - Change routing or matching behavior.\n  - Remove or rename existing `--sort` values.\n  - Modify or delete existing tests to make new ones pass without approval.\n\n## Success Criteria\n\n1. For the issue's example app, `flask routes` prints a domain column whose values are `admin.test.local` for `admin_blueprint.home`, `test.test.local` for `test_subdomain_blueprint.home`, and `test.local` for `static`.\n2. For an app with no subdomain rules and no host matching, the output is identical to the current output. An existing or new snapshot-style test asserts this.\n3. With `host_matching=True`, the column shows each rule's host. The header wording is to be decided (see Open Questions).\n4. A sort option orders rows by the domain column.\n5. `--all-methods` and all existing `--sort` values work unchanged.\n6. The docs describe the new column and show how to read the information programmatically from `app.url_map.iter_rules()` via the rule's `subdomain` / `host`.\n7. All tests and lint pass.\n\n## Open Questions\n\n1. **Column header:** Should it be a single `Domain` header as in the issue? Or should the header change by mode, e.g. `Host` when host matching is on and `Subdomain` / `Domain` otherwise?\n2. **Displayed value:** Should the column show the full domain (`admin.test.local`, as the issue requests) or only the raw subdomain (`admin`)? A full domain depends on `SERVER_NAME`. A raw subdomain does not, but is less readable.\n3. **`SERVER_NAME` unset:** If a rule has a subdomain but `SERVER_NAME` is not configured, what should be displayed? Options: the raw subdomain, a placeholder, or a warning.\n4. **Empty-subdomain rules:** When the column is shown, should rules with no subdomain display `SERVER_NAME`, as in the issue, or stay blank?\n5. **Subdomain matching config:** How should `subdomain_matching` / `default_subdomain` settings (if applicable in the target Flask version) affect what is displayed for rules without an explicit subdomain?\n6. **Variable subdomains** (e.g. `subdomain='<user>'`): Should they be shown literally as `<user>.test.local`?\n7. **Column visibility:** Should it be automatic (only when relevant) or controlled by an explicit flag? An automatic column changes output for subdomain users. Is that acceptable for anyone parsing this output?\n8. **Sort option name:** What should the new sort option be called, e.g. `domain`, or `host` / `subdomain`?\n9. **Target version:** Which Flask release should this land in, and does it count as a feature that needs a changelog entry under \"Unreleased\"?",
+ "ttft_ms": 4593,
+ "type": "result",
+ "duration_ms": 32711,
+ "uuid": "f09ebf07-1aaa-4f45-a2f9-332dec827b3c",
+ "ttft_stream_ms": 1538,
+ "time_to_request_ms": 296,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 16,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 221,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 39,
+ "time_to_request_cpu_ms": 336,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 28,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1539,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

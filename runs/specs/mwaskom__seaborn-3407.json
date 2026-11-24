@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31888,
+ "stop_reason": "end_turn",
+ "session_id": "9d9b0803-1723-4c45-bb46-7ef00fdf1a09",
+ "total_cost_usd": 0.0786673,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1825,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3147,
+  "output_tokens_details": {
+   "thinking_tokens": 349
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1825,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3147,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1825,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1825
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2415,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002565,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3147,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1825,
+   "webSearchRequests": 0,
+   "costUSD": 0.07841079999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 349,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `pairplot` / `PairGrid` support for DataFrames with MultiIndex columns\n\n## Assumptions\n\n1. The bug is in seaborn's `axisgrid.py` (`PairGrid.map_diag`, called from `pairplot`), as the traceback shows. The exact seaborn and pandas versions are not given in the issue. The traceback lines (`axisgrid.py:2144`, `map_diag` at line 1490) suggest a recent 0.12.x-era release.\n2. \"MultiIndex DataFrame\" means a DataFrame whose **columns** are a `pd.MultiIndex`. Each variable key is a tuple such as `(\"A\", \"1\")`. A MultiIndex on the row index is out of scope.\n3. A full tuple key is a valid, unambiguous column selector. `df[(\"A\", \"1\")]` returns a Series in pandas.\n4. The error message `\"['1'] not in index\"` means that `var` in `self.data[var]` reaches pandas as a list or array (for example, `['A', '1']`) rather than as a tuple. Pandas then treats it as a list of level-0 keys. **This is a hypothesis.** One possible cause is that the diagonal variables are stored in a NumPy array, which turns a sequence of tuples into a 2-D array. This has not been confirmed against the source.\n5. The expected behaviour is that `sns.pairplot(df)` works on the MRE without the user flattening the columns. It should produce the same grid as the flattened workaround, except for axis label text.\n6. Other `PairGrid` code paths (`map_offdiag`, `map_lower`, `map_upper`, `map`, the `hue` handling, and the `vars` / `x_vars` / `y_vars` parameters) may share the same tuple-key fragility. They are in scope only for the cases listed under Success Criteria.\n7. The workaround in the issue (`\"\".join(column)`) is user-side. Seaborn should not silently rename or flatten the user's columns.\n\n## Objective\n\nUsers who call `sns.pairplot(df)` (or build a `sns.PairGrid(df)` and call its map methods) on a DataFrame with MultiIndex columns currently get a `KeyError` from inside `PairGrid.map_diag`. The goal is to make seaborn treat each full column key (a tuple) as a single variable throughout the pair-grid pipeline, so that:\n\n- the default `pairplot(df)` call in the MRE renders a 4\u00d74 grid without error, and\n- the plotted data on each axis is identical to the data in the flattened-column workaround.\n\n**User:** a data analyst whose DataFrame has hierarchical column labels, for example from `pivot_table`, `groupby().agg()` with several functions, or `pd.concat(..., keys=...)`.\n\n**User story:** As an analyst with a MultiIndex-column DataFrame, I can call `sns.pairplot(df)` directly without flattening my columns first.\n\n## Tech Stack\n\n- Python, seaborn (version affected: unknown; reported traceback matches `axisgrid.py` with `pairplot` \u2192 `PairGrid.map_diag`)\n- pandas (version unknown; traceback goes through `MultiIndex._get_indexer_strict` / `_raise_if_missing`)\n- NumPy, matplotlib\n- Minimum supported versions of each dependency: unknown, see the repository's packaging metadata.\n\n## Commands\n\nNot visible from the issue. All are **unknown**:\n\n- Install (dev): unknown\n- Test: unknown (likely pytest, unconfirmed)\n- Lint: unknown\n- Build docs: unknown\n\n## Project Structure\n\nOnly what the traceback reveals:\n\n```\nseaborn/axisgrid.py   \u2192 PairGrid, pairplot (map_diag is where the error is raised)\n```\n\nLocation of the test suite and the test file for axisgrid: **unknown**.\n\n## Code Style\n\nNot visible from the issue. Follow the conventions in the existing `seaborn/axisgrid.py` and its test module. No code snippet is provided here, to avoid inventing style.\n\n## Testing Strategy\n\n- **Level:** unit and regression tests for `PairGrid` and `pairplot`, placed in the existing axisgrid test module (path unknown).\n- **Fixture:** a DataFrame with 2-level MultiIndex columns, mirroring the MRE: `(\"A\",\"1\"), (\"A\",\"2\"), (\"B\",\"1\"), (\"B\",\"2\")`, numeric. Use a fixed random seed.\n- **What to assert:**\n  - no exception is raised;\n  - the grid has the expected axes shape;\n  - the data plotted on each diagonal axis matches `df[col]` for the corresponding tuple key;\n  - the data on each off-diagonal axis matches the corresponding `(x, y)` tuple pair.\n- **Regression guard:** existing single-level-column tests must continue to pass unchanged.\n- Coverage target: unknown, follow project norms.\n\n## Boundaries\n\n- **Always:**\n  - Treat a column key as opaque, so that a tuple key is one variable.\n  - Add a regression test reproducing the MRE.\n  - Run the full axisgrid test suite before committing.\n- **Ask first:**\n  - Changing how axis labels are rendered for tuple keys (for example `\"A-1\"` versus `\"('A', '1')\"`).\n  - Extending the fix to `FacetGrid`, `JointGrid`, or the objects interface.\n  - Raising minimum pandas or NumPy versions.\n- **Never:**\n  - Mutate or flatten the user's DataFrame columns.\n  - Change behaviour for single-level column DataFrames.\n  - Remove or loosen existing tests.\n\n## Success Criteria\n\n1. Running the exact MRE from the issue completes without raising and returns a `PairGrid` whose axes array is 4\u00d74.\n2. Each diagonal histogram is built from `df[(\"A\",\"1\")]`, `df[(\"A\",\"2\")]`, `df[(\"B\",\"1\")]` and `df[(\"B\",\"2\")]` respectively, in column order.\n3. Each off-diagonal scatter at row *i*, column *j* uses `y = df[vars[i]]` and `x = df[vars[j]]`, with tuple keys.\n4. Behaviour is consistent across `diag_kind=\"hist\"` and `diag_kind=\"kde\"`, and across `kind=\"scatter\"` and at least one other `kind` (for example `\"kde\"` or `\"reg\"`).\n5. `corner=True` works with MultiIndex columns.\n6. Passing tuple keys explicitly via `vars=[(\"A\",\"1\"), (\"B\",\"2\")]`, and via `x_vars` / `y_vars`, selects exactly those columns.\n7. *(Pending the open question)* `hue=(\"B\",\"1\")` with a categorical column under a tuple key works.\n8. Axis labels for tuple-keyed variables are non-empty and identify the column. The exact format depends on the Open Questions.\n9. All pre-existing `PairGrid` and `pairplot` tests still pass.\n\n## Open Questions\n\n1. **Root cause confirmation:** is `var` arriving at `self.data[var]` as an array or list because the variable list is stored as a NumPy array, which would convert a list of tuples into a 2-D array? Or is there another cause?\n2. **Scope:** should the fix cover only `pairplot` / `PairGrid`, or also audit `FacetGrid` (`row` / `col` / `hue` with tuple keys) and `JointGrid` for the same issue?\n3. **Hue with a tuple key:** is `hue=(\"B\",\"1\")` expected to work, and should the legend title render the tuple?\n4. **Axis label format** for tuple keys: should it use the default `str(tuple)`, a joined form, or something configurable? Is there an existing seaborn convention?\n5. **Deeper MultiIndex levels and mixed key types:** should non-string levels, such as integers, be explicitly supported and tested?\n6. **Partial keys:** if a user passes a level-0 key like `vars=[\"A\"]` that maps to several columns, should seaborn raise a clear error, or is that undefined behaviour?\n7. **Version support:** what are the affected seaborn release and the minimum pandas version that must be supported? Some pandas versions may differ in how `df[array]` resolves on a MultiIndex.\n8. **Release:** is a changelog or release-note entry required, and in which file? The path is unknown.",
+ "ttft_ms": 4584,
+ "type": "result",
+ "duration_ms": 31221,
+ "uuid": "dd1aac7b-88d4-4463-974a-231bd0641b47",
+ "ttft_stream_ms": 1189,
+ "time_to_request_ms": 260,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 215,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 268,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1189,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

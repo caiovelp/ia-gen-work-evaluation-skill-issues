@@ -1,0 +1,62 @@
+diff --git a/app/helpers/class_schedules_helper.rb b/app/helpers/class_schedules_helper.rb
+index 22864273..e1ac2e60 100644
+--- a/app/helpers/class_schedules_helper.rb
++++ b/app/helpers/class_schedules_helper.rb
+@@ -4,6 +4,12 @@
+ # frozen_string_literal: true
+ 
+ module ClassSchedulesHelper
++  def year_form_column(record, options)
++    select :record, :year, options_for_select(
++      YearSemester.selectable_years(record.year), record.year
++    ), { include_blank: true }, options
++  end
++
+   def _start_date_column(record, options, attribute, same = nil)
+     unless record.persisted?
+       record.send("#{attribute}=", DateTime.current.midnight)
+diff --git a/app/helpers/course_classes_helper.rb b/app/helpers/course_classes_helper.rb
+index 8937f180..41ed0f07 100644
+--- a/app/helpers/course_classes_helper.rb
++++ b/app/helpers/course_classes_helper.rb
+@@ -72,7 +72,7 @@ module CourseClassesHelper
+       options[:disabled] = true
+     end
+     select :record, :year, options_for_select(
+-      YearSemester.selectable_years, record.year
++      YearSemester.selectable_years(record.year), record.year
+     ), { include_blank: true }, options
+   end
+ 
+diff --git a/app/helpers/enrollment_holds_helper.rb b/app/helpers/enrollment_holds_helper.rb
+index 07063f21..c22c8c08 100644
+--- a/app/helpers/enrollment_holds_helper.rb
++++ b/app/helpers/enrollment_holds_helper.rb
+@@ -4,4 +4,9 @@
+ # frozen_string_literal: true
+ 
+ module EnrollmentHoldsHelper
++  def year_form_column(record, options)
++    select :record, :year, options_for_select(
++      YearSemester.selectable_years(record.year), record.year
++    ), { include_blank: true }, options
++  end
+ end
+diff --git a/app/models/year_semester.rb b/app/models/year_semester.rb
+index 676898b4..19a4457f 100644
+--- a/app/models/year_semester.rb
++++ b/app/models/year_semester.rb
+@@ -17,9 +17,12 @@ class YearSemester
+   SECOND_SEMESTER_BEGIN_MONTH = 8
+   SECOND_SEMESTER_BEGIN_DAY = 1
+ 
+-  def self.selectable_years
++  def self.selectable_years(extra_year = nil)
+     start_year, end_year, swap = CustomVariable.year_semester_range
+     result = ((Date.today.year - start_year)..(Date.today.year + end_year)).to_a
++    if extra_year.present? && !result.include?(extra_year.to_i)
++      result = (result + [extra_year.to_i]).sort
++    end
+     result = result.reverse if swap
+     result
+   end

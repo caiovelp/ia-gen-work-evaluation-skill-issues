@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34663,
+ "stop_reason": "end_turn",
+ "session_id": "b359aa73-10fa-43db-b686-a920f9638aef",
+ "total_cost_usd": 0.08053869999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1259,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3470,
+  "output_tokens_details": {
+   "thinking_tokens": 314
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1259,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3470,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1259,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1259
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1854,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019590000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3470,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1259,
+   "webSearchRequests": 0,
+   "costUSD": 0.08034279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 314,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Colorbar Refreshes Correctly After `mappable.norm` Is Replaced\n\n## Objective\n\n**Problem.** If a user replaces the norm of a mappable that already has a colorbar (for example, `plot.norm = LogNorm()` on an `imshow` image), there is no working way to make the colorbar reflect the new norm:\n\n- `cb.update_normal(plot)` returns without error, but the colorbar does not change. It keeps its old linear scaling, ticks and color mapping.\n- `cb.update_bruteforce(plot)` raises `ZeroDivisionError`. Per the traceback, the error is raised in `LogNorm.inverse` (`vmin * ma.power((vmax / vmin), val)`), called from `Colorbar._process_values` through `Colorbar.draw_all`.\n\n**User.** A Matplotlib user who changes the normalization of an existing plot interactively or in a script, such as switching linear to log, and expects the attached colorbar to follow.\n\n**Goal.** After the user replaces `mappable.norm` with a new norm instance and calls the public colorbar update method, the colorbar must:\n\n1. Use the new norm for its color mapping, scaling, ticks and tick formatter. For a `LogNorm`, this means a log-scaled colorbar with log-appropriate ticks.\n2. Do this without raising, even when the new norm has not been scaled yet (`vmin`/`vmax` unset). In that case the limits should come from the mappable's data, the same way the image itself would be autoscaled.\n3. Still work for the common case where only the existing norm's limits or the cmap changed and the norm was not replaced.\n\n**Acceptance criteria (user-facing):**\n\n- Running the issue's example with only `cb.update_normal(plot)` (no `update_bruteforce`) produces a colorbar whose norm is the new `LogNorm`. Its limits match the image's data range and its axis is log-scaled.\n- Running the issue's example with `cb.update_bruteforce(plot)` does not raise `ZeroDivisionError`. Whether this method should be kept, deprecated or aliased is an open question.\n- The image and the colorbar agree on `vmin`/`vmax` after the update.\n\n## Assumptions\n\n1. The issue applies to the `Colorbar` class in `matplotlib/colorbar.py` and to `LogNorm` in `matplotlib/colors.py`. These are the files named in the traceback. Other files involved are unknown.\n2. The reporter's environment was Python 3.4 with an Anaconda-installed Matplotlib. The exact Matplotlib version is **unknown**. The fix targets the current development branch, not that release.\n3. The exception happens because the freshly constructed `LogNorm()` has no `vmin`/`vmax` when the colorbar processes it, and some fallback ends up with `vmin == 0`. This is a **hypothesis** based on the traceback and has not been verified against the source.\n4. `update_normal` is the intended public entry point for \"the mappable changed, refresh the colorbar\". The fix should make it handle norm replacement rather than adding a new API.\n5. Replacing the norm on the mappable, as opposed to mutating it, is a supported user action. The mappable's own norm is the source of truth, and the colorbar should follow it.\n6. Behavior for colorbars created without a mappable (`ColorbarBase` with an explicit norm) must not regress.\n7. Changing the norm type (for example, linear to log) may require resetting the colorbar's locator, formatter and axis scale. Any of these that the user set explicitly is out of scope unless the Open Questions resolve it otherwise.\n\n## Tech Stack\n\n- Python and NumPy (`numpy.ma` is used in `LogNorm.inverse`). Supported versions are **unknown** for the target branch.\n- Matplotlib. Relevant modules from the traceback: `matplotlib.colorbar` and `matplotlib.colors`. Relevant objects: `Colorbar`, `update_normal`, `update_bruteforce`, `draw_all`, `_process_values`, `_uniform_y`, `LogNorm.inverse`.\n\n## Commands\n\nThe issue does not state these. All are **unknown**:\n\n- Build: unknown\n- Test: unknown (likely a pytest-based suite, not confirmed)\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\nThe only paths visible from the issue are:\n\n```\nmatplotlib/colorbar.py   \u2192 Colorbar, update_normal, update_bruteforce, draw_all, _process_values\nmatplotlib/colors.py     \u2192 LogNorm (inverse)\n```\n\nThe location of tests, image-comparison baselines and docs or changelog entries is **unknown**.\n\n## Code Style\n\nThe project's conventions are not visible in the issue and are **unknown**. Follow the existing style of `matplotlib/colorbar.py` and `matplotlib/colors.py`. The user-facing usage the fix must support, taken from the issue:\n\n```python\nplot = ax.imshow(img, cmap='gray')\ncb = fig.colorbar(plot, ax=ax)\nplot.norm = LogNorm()\ncb.update_normal(plot)   # must now switch the colorbar to the LogNorm\n```\n\n## Testing Strategy\n\nThe framework and locations are **unknown**. The levels needed are:\n\n- **Regression unit test (issue reproducer):** create an image and a colorbar, replace the norm with an unscaled `LogNorm()`, call `update_normal`, and assert all of the following:\n  - The colorbar's norm is the new norm, or is equivalent to it.\n  - `vmin`/`vmax` match the image data range.\n  - No exception is raised, including during a subsequent `fig.canvas.draw()`.\n- **Regression for `update_bruteforce`:** the same scenario must not raise `ZeroDivisionError`. This depends on the decision about that method's future.\n- **Pre-scaled norm:** replacing the norm with `LogNorm(vmin=..., vmax=...)` must keep the user's explicit limits.\n- **Non-replacement path:** changing `plot.set_clim(...)` or `plot.set_cmap(...)` followed by `update_normal` still updates the colorbar, with no regression.\n- **Reverse direction:** switching from log back to linear (`Normalize()`) works.\n- **Visual check (optional):** an image-comparison test of the log colorbar after the switch, if the project uses baseline images. Whether it does is unknown.\n\nCoverage expectations are **unknown**.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the issue's example as a failing test before changing behavior.\n  - Keep the public method signatures `update_normal(mappable)` and `update_bruteforce(mappable)` intact.\n  - Run the existing colorbar and colors tests.\n- **Ask first:**\n  - Deprecating or removing `update_bruteforce`.\n  - Changing `LogNorm.inverse` semantics for unscaled or zero `vmin`. That is a `colors` module change with wider impact.\n  - Overriding locators or formatters the user set explicitly when the norm type changes.\n  - Adding new public API.\n- **Never:**\n  - Silently swallow the `ZeroDivisionError` without making the colorbar correct.\n  - Mutate the user's norm limits when they were explicitly set.\n  - Change unrelated colorbar layout or extension behavior.\n\n## Success Criteria\n\n1. The issue's script, using `update_normal` alone, renders a log-scaled colorbar matching the log-normalized image, with no exception.\n2. The issue's script, using `update_bruteforce`, does not raise `ZeroDivisionError`. It either works or follows the agreed deprecation path.\n3. An unscaled replacement norm is autoscaled from the mappable's data before the colorbar uses it, so the image and colorbar `vmin`/`vmax` are identical.\n4. An explicitly scaled replacement norm keeps its limits.\n5. `set_clim` and `set_cmap` followed by `update_normal` behave as before.\n6. All existing colorbar and colors tests pass, and the new regression tests pass.\n\n## Open Questions\n\n1. Which Matplotlib version and branch should the fix target, and has the current code changed since the reporter's version, given that the line numbers in the traceback may be stale?\n2. Should `update_normal` fully reset the colorbar (scale, locator, formatter) when the norm *type* changes, or only when the norm *instance* changes?\n3. What should happen to a user-customized locator or formatter on the colorbar when the norm is replaced? Keep it, or reset it to the new norm's default?\n4. What is the future of `update_bruteforce`? Fix it, deprecate it in favor of `update_normal`, or make it an alias?\n5. Should an unscaled norm be autoscaled by the colorbar from the mappable's array, or should the mappable be responsible for autoscaling when `.norm` is assigned (for example, through a norm property setter)?\n6. Should `LogNorm.inverse` itself guard against `vmin <= 0` or unset limits with a clear error, separately from the colorbar fix?\n7. Should assigning `plot.norm = ...` automatically notify and update attached colorbars, with no manual `update_normal` call? That would be a scope expansion.\n8. Are a changelog entry or doc update for `update_normal` required, and where do they go? The location is unknown.",
+ "ttft_ms": 4589,
+ "type": "result",
+ "duration_ms": 34001,
+ "uuid": "48856b35-97bb-4659-8c2f-997c267f60e6",
+ "ttft_stream_ms": 1424,
+ "time_to_request_ms": 247,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 4,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 216,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 114,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1424,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,26 @@
+diff --git a/sympy/core/exprtools.py b/sympy/core/exprtools.py
+index 57fad70407..3378bad01a 100755
+--- a/sympy/core/exprtools.py
++++ b/sympy/core/exprtools.py
+@@ -451,11 +451,17 @@ def as_expr(self):  # Factors
+                 b, e = factor.as_base_exp()
+                 if isinstance(exp, int):
+                     e = _keep_coeff(Integer(exp), e)
+-                elif isinstance(exp, Rational):
+-                    e = _keep_coeff(exp, e)
++                    args.append(b**e)
++                elif b.is_positive or (isinstance(exp, Rational)
++                        and exp.is_Integer) or exp.is_integer:
++                    if isinstance(exp, Rational):
++                        e = _keep_coeff(exp, e)
++                    else:
++                        e *= exp
++                    args.append(b**e)
+                 else:
+-                    e *= exp
+-                args.append(b**e)
++                    # (b**e)**exp != b**(e*exp) in general
++                    args.append(factor**exp)
+             else:
+                 args.append(factor)
+         return Mul(*args)

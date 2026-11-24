@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25902,
+ "stop_reason": "end_turn",
+ "session_id": "b6424b42-13df-48dd-9852-d5caa24fad12",
+ "total_cost_usd": 0.0743607,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2812,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2532,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2812,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2532,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2812,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2812
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3404,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00035390000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2532,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2812,
+   "webSearchRequests": 0,
+   "costUSD": 0.0740068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `cse()` must not extract bare `MatrixSymbol`s as common subexpressions when only their elements are used\n\n## Objective\n\nWhen an expression contains several element references to the same `MatrixSymbol` (e.g. `a[0, 0]`, `a[0, 1]`, \u2026, which are `MatrixElement` objects), `sympy.cse()` currently treats the parent `MatrixSymbol` (`a`) as a repeated subexpression. It then emits a replacement such as `(x0, a)` and rewrites every element reference as `x0[i, j]`.\n\nThis is not a real common-subexpression saving:\n\n- `x0` is only an alias (a copy) of the input matrix `a`.\n- Downstream code generation (e.g. `ccode`) turns `x0 = a` into a 16-element element-wise copy (`x0[0] = a[0]; \u2026`) and declares an extra array temporary.\n- The generated code is longer and slower than the original, and the temporary `x0` has no declared shape at codegen time.\n\n**Users:** people who substitute `MatrixSymbol` elements into scalar expressions so that codegen gets array inputs, then run `cse()` before `ccode`/codegen.\n\n**Desired behaviour:** a `MatrixSymbol` that appears only as the parent of `MatrixElement` indexing must not be emitted as a CSE replacement on its own. Element references must stay rooted at the original symbol, for example `(x1, a[0, 0])` or `a[0, 0]` used directly. They must not be rooted at an alias, as in `x0[0, 0]`.\n\n### Acceptance criteria (user-level)\n\n1. For the issue's example (`e2 = (A*B)` built from `MatrixSymbol(\"a\",4,4)` and `MatrixSymbol(\"b\",4,4)` elements), `cse(e2)` returns no replacement whose right-hand side is a bare `MatrixSymbol` (`a` or `b`).\n2. In the replacements and the reduced expressions, every `MatrixElement` has the original `MatrixSymbol` (`a` or `b`) as its parent, not a CSE symbol.\n3. Substituting the replacements back into the reduced expressions reproduces the original expression (`cse` round-trip correctness is preserved).\n4. Running `ccode` over the replacements, as in the issue, produces no whole-matrix copy statements (`x0[k] = a[k]`).\n\n## Assumptions\n\n1. The bug lies in `sympy.simplify.cse_main` (the function that finds repeated subexpressions treats the `MatrixSymbol` argument of each `MatrixElement` as a countable repeated subexpression). This is unverified because the repository is not available.\n2. Plain `Symbol`s are already excluded from being CSE'd. A `MatrixSymbol` used purely as a parent of indexing should be treated in the same way, as an atom.\n3. Matrix-level expressions that really repeat (e.g. `(A*B)` occurring twice in a matrix expression) remain valid CSE candidates. Only the bare `MatrixSymbol` leaf is excluded.\n4. Whether individual elements (`a[0,0]`) should still get their own `xN` aliases when repeated is acceptable either way. The issue does not object to `x1 = a[0,0]`, only to `x0 = a`.\n5. The issue's reproduction is Python 2 (`print` statements, an old `ccode` return signature with `human=False`). The fix targets the current supported SymPy/Python version, and tests should use current APIs.\n6. No public API signature of `cse()` changes.\n\n## Tech Stack\n\n- Python, SymPy. The exact supported versions are unknown, and the repository is not visible.\n- Components involved: `sympy.cse`, `MatrixSymbol`, `MatrixElement`, `sympy.printing.ccode`.\n\n## Commands\n\n- Build: unknown (none expected for pure Python).\n- Test: unknown. The project's test runner command and the path of the relevant test file are not visible in the issue.\n- Lint: unknown.\n- Reproduce: run the snippet from the issue (ported to Python 3 / the current `ccode` API).\n\n## Project Structure\n\nUnknown; the repository is not visible. The likely locations are assumptions only:\n\n- the CSE implementation module (assumed `sympy/simplify/cse_main.py`)\n- its test module (assumed a `tests/` directory next to it)\n\nBoth need confirmation.\n\n## Code Style\n\nUnknown. Follow existing conventions in the CSE module and its tests. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Regression test (unit):** build the issue's 4\u00d74 example (or a smaller 2\u00d72 one) with `MatrixSymbol` elements, call `cse()`, and assert:\n  - no replacement right-hand side is a `MatrixSymbol`;\n  - all `MatrixElement`s in the output have the original `MatrixSymbol` as parent;\n  - back-substitution equals the input.\n- **Non-regression:** run the existing CSE test suite unchanged. Existing tests with matrix expressions, including any that intentionally CSE `MatrixExpr`s, must still pass.\n- **Optional integration check:** `ccode` over the CSE output contains no element-wise copy of a whole input matrix.\n- Coverage expectations: unknown and project-defined.\n\n## Boundaries\n\n- **Always:**\n  - Keep `cse()` results mathematically equivalent to the input.\n  - Add a regression test reproducing the issue.\n  - Run the existing CSE tests.\n- **Ask first:**\n  - Changing the public signature or default options of `cse()`.\n  - Changing how genuine repeated matrix expressions (non-leaf `MatrixExpr`) are CSE'd.\n  - Changing `ccode`/codegen behaviour to work around the issue instead of fixing `cse`.\n- **Never:**\n  - Remove or weaken existing CSE tests to make the change pass.\n  - Special-case the issue's specific names (`a`, `b`) or shapes.\n\n## Success Criteria\n\n- [ ] The issue's example yields no `(xN, a)` / `(xN, b)` replacements.\n- [ ] No `MatrixElement` in the `cse()` output is indexed off a CSE-introduced symbol that merely aliases an input `MatrixSymbol`.\n- [ ] Round-trip: `reduced` with the replacements substituted back equals `e2`.\n- [ ] `ccode` of the CSE output for the example contains no whole-matrix copy loops.\n- [ ] All pre-existing CSE tests pass.\n\n## Open Questions\n\n1. Should repeated individual elements (`a[0,0]` used several times) still be aliased to scalar temporaries (`x1 = a[0,0]`), or should `MatrixElement`s of `MatrixSymbol`s also be treated as atoms and never CSE'd?\n2. If a bare `MatrixSymbol` appears both as an element parent and as a standalone operand in a matrix expression (e.g. `A*B + A[0,0]`), should it ever be CSE'd? The current proposal is never, since aliasing a leaf saves nothing.\n3. Should the same rule apply to other indexable leaf objects (e.g. `IndexedBase`/`Indexed`)? Is there existing behaviour there to stay consistent with?\n4. Which SymPy versions should the fix target or be backported to? The issue uses Python 2 and an older `ccode` API.\n5. What are the exact test command and test file locations in the repository? They are unknown from the issue.",
+ "ttft_ms": 25333,
+ "type": "result",
+ "duration_ms": 25366,
+ "uuid": "f43d0fdd-f918-4365-a90d-80d0e1832486",
+ "ttft_stream_ms": 1040,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 223,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 125,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1041,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

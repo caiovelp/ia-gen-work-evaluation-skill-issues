@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33252,
+ "stop_reason": "end_turn",
+ "session_id": "9a9dc785-9956-455e-a487-794413ce4591",
+ "total_cost_usd": 0.069523,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1442,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2845,
+  "output_tokens_details": {
+   "thinking_tokens": 366
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1442,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2845,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1442,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1442
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2032,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002162,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2845,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1442,
+   "webSearchRequests": 0,
+   "costUSD": 0.0693068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 366,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `migrate --database` must route all post-migration permission work to the named database\n\n## Objective\n\nWhen `manage.py migrate` is run with an explicit database, Django still makes at least one database read **after** the migrations finish that ignores that database. Instead, the read is sent to the configured `DATABASE_ROUTERS`. The reporter says this happens while permissions are being added, which suggests the `django.contrib.auth` post-migrate permission-creation step. That location is unverified.\n\n**Who is affected:** projects with a custom database router whose `db_for_read` / `db_for_write` depends on request-scoped state, such as a thread-local tenant set by middleware. During a management command there is no request, so the router raises an error. Here it raises `InvalidTenantException`. The reporter sees `read {}` printed (a `db_for_read` call with empty hints) just before the exception.\n\n**Expected behaviour:** when a database is named for `migrate`, every database call made in the context of that command uses the named database. This includes post-migrate signal handlers that ship with Django, such as permission creation. The router's `db_for_read` / `db_for_write` should not be needed to choose a database for these calls.\n\n**User stories / acceptance criteria:**\n- As an operator of a multi-tenant service, I can run `migrate` with a database argument and have it succeed even though my router raises an error when no tenant is set.\n- As a Django maintainer, I can rely on Django's built-in post-migrate work (at least permission creation) reading and writing only through the `using` database it receives.\n\n## Assumptions\n\n1. \"Database parameter\" means the `--database` option of the `migrate` management command. The issue does not name the exact flag.\n2. \"Adding Permissions\" refers to the automatic creation of `auth.Permission` rows (and possibly the related `contenttypes.ContentType` lookups) that runs after migration through the `post_migrate` signal. The exact function and file are **not visible in the issue** and must be confirmed in the codebase.\n3. The read that does not respect the database is a query, or a related-object/manager access, that goes through the default manager instead of a manager bound to the `using` database. Since `hints` is `{}`, it is probably a read with no instance hint. This is a hypothesis, not a confirmed root cause.\n4. The router in the report is only a reproducer. Fixing the problem means changing Django's database selection, not supporting routers that raise errors in general.\n5. Router `allow_migrate` calls are still expected and correct during `migrate`. They decide *whether* to migrate, not *which* database to use. The reporter's router returns `None` there and is not part of the failure.\n6. Other built-in post-migrate handlers, such as content types, may have the same problem. The minimum scope is the permission-creation path.\n7. The affected Django version is not stated. The behaviour is assumed to exist on the current main branch.\n\n## Tech Stack\n\n- Django (version **unknown**; not stated in the issue)\n- Python (version **unknown**)\n- Involved components, as described in the issue: the `migrate` management command, database routers (`DATABASE_ROUTERS`), and the auth permission machinery (`django.contrib.auth`, and likely `django.contrib.contenttypes`)\n\n## Commands\n\n**Unknown.** The issue does not include the repository's build, test, or lint commands.\n- Reproduce: `manage.py migrate` with a database argument (exact flag assumed to be `--database <alias>`) in a project configured as in the issue.\n- Test runner command: **unknown** (to be confirmed from the repository).\n- Lint command: **unknown**.\n\n## Project Structure\n\n**Unknown.** No repository layout is visible. The relevant areas, to be located:\n- The `migrate` management command implementation\n- The `post_migrate` handler(s) that create permissions (in `django.contrib.auth`)\n- The content type lookup/cache used by permission creation (in `django.contrib.contenttypes`)\n- The existing tests for multi-database behaviour and for auth management/permission creation\n\n## Code Style\n\nFollow the existing Django code style in the files being changed. No style snippet can be quoted because the source is not visible. Where possible, the fix should use the patterns already used nearby to bind queries to a specific database, such as passing `using` explicitly or using database-bound managers. It should not introduce a new mechanism.\n\n## Testing Strategy\n\n- **Framework / location:** Django's own test suite, using its multi-database test support. The exact test module and runner command are **unknown**.\n- **Regression test:**\n  - Install a test router whose `db_for_read` and `db_for_write` raise an error, or record any call to them.\n  - Run `migrate` against a non-default database, or call the permission-creation handler directly with a non-default `using` alias.\n  - Assert that no `db_for_read` / `db_for_write` call happens and that permissions are created in the named database.\n- **Cases to cover:**\n  - Fresh database, where all permissions must be created.\n  - Database where some permissions or content types already exist, which exercises the \"look up existing\" read path.\n  - Running against `default` with the same router, to check for no behavioural regression.\n- **Coverage expectation:** every database read and write in the permission-creation path runs with the explicit alias under test.\n\n## Boundaries\n\n- **Always:**\n  - Keep the fix limited to database selection: pass or bind `using` explicitly.\n  - Add a regression test that fails before the fix.\n  - Keep router `allow_migrate` semantics unchanged.\n- **Ask first:**\n  - Widening the change to other `post_migrate` handlers, such as content type creation, or to other management commands.\n  - Changing the public signatures of signal handlers or managers.\n  - Changing content type cache behaviour, which is shared across databases.\n- **Never:**\n  - Add special cases for the reporter's router or for thread-local tenancy.\n  - Suppress or catch router exceptions to hide the problem.\n  - Change behaviour for callers that do not pass a database.\n\n## Success Criteria\n\n1. With a router whose `db_for_read` / `db_for_write` raise an error, `migrate` against a named database completes without calling those methods during permission creation.\n2. All `auth.Permission` rows, and any content types that permission creation needs, are read from and written to the named database only.\n3. A regression test reproducing the issue (`db_for_read` called with empty hints during post-migrate permission creation) fails before the change and passes after it.\n4. The existing multi-database, auth, and contenttypes tests still pass.\n5. Running `migrate` without a database argument behaves exactly as it did before.\n\n## Open Questions\n\n1. Which Django version(s) did the reporter observe this on, and should the fix be backported?\n2. What is the exact source of the stray read? Candidates include a content type lookup or cache access, a related-object access on a model instance, or a queryset that is not bound to `using`. This needs confirming in the code.\n3. Should the scope include **all** built-in `post_migrate` handlers (for example content type creation and removal of stale content types), or only permission creation as the title says?\n4. Should this guarantee also cover third-party `post_migrate` receivers? Django can only pass `using` to them; it cannot enforce that they use it. Should this be documented?\n5. Is the content type cache keyed by database? Could a cached `ContentType` loaded from one database be used to create permissions in another?\n6. Does `--database` have to also suppress `db_for_write` calls, or only reads? The report shows only a read, but the stated expectation covers \"all DB calls.\"",
+ "ttft_ms": 6445,
+ "type": "result",
+ "duration_ms": 32722,
+ "uuid": "27e83a8a-d424-4c34-8768-eb3fd9e12ecc",
+ "ttft_stream_ms": 2389,
+ "time_to_request_ms": 301,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 14,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 27,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 211,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 9,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 48,
+ "time_to_request_cpu_ms": 345,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 22,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2390,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

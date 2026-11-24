@@ -1,0 +1,37 @@
+diff --git a/app/views/enrollments/grades_report_pdf.pdf.prawn b/app/views/enrollments/grades_report_pdf.pdf.prawn
+index 5cf4ff6c..76457749 100644
+--- a/app/views/enrollments/grades_report_pdf.pdf.prawn
++++ b/app/views/enrollments/grades_report_pdf.pdf.prawn
+@@ -12,7 +12,7 @@ new_document(
+     )
+   ),
+   pdf_type: :grades_report,
+-  override: can?(:override_report_signature_type, @enrollment) ? { signature_type: @signature_override }.compact : nil
++  override: (!current_user.nil? && can?(:override_report_signature_type, @enrollment)) ? { signature_type: @signature_override }.compact : nil
+ ) do |pdf|
+   enrollment_student_header(pdf, enrollment: @enrollment)
+ 
+diff --git a/lib/tasks/maintenance.rake b/lib/tasks/maintenance.rake
+index 4222d5b5..06c309a7 100644
+--- a/lib/tasks/maintenance.rake
++++ b/lib/tasks/maintenance.rake
+@@ -50,15 +50,16 @@ namespace :maintenance do
+ 
+   private
+     def prepare_attachments(notification_result)
+-      include SharedPdfConcern
+-      include AbstractController::Rendering
++      renderer = NotificationsController.new
++      renderer.request = ActionDispatch::TestRequest.create
++      renderer.response = ActionDispatch::TestResponse.new
+       notification_result[:notifications].each do |message|
+         attachments = notification_result[:notifications_attachments][message]
+         next if attachments.blank?
+         if attachments[:grades_report_pdf]
+           enrollment = Enrollment.find(message[:enrollments_id])
+           attachments[:grades_report_pdf][:file_contents] =
+-            render_enrollments_grades_report_pdf(enrollment)
++            renderer.send(:render_enrollments_grades_report_pdf, enrollment)
+         end
+       end
+       notification_result

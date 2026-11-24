@@ -1,0 +1,13 @@
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 8ba346adb..c158a4a8e 100755
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -1143,7 +1143,7 @@ def _futrig(e, **kwargs):
+         lambda x: _eapply(factor, x, trigs),
+         TR14,  # factored powers of identities
+         [identity, lambda x: _eapply(_mexpand, x, trigs)],
+-        TRmorrie,
++        [identity, TRmorrie],
+         TR10i,  # sin-cos products > sin-cos of sums
+         [identity, TR8],  # sin-cos products -> sin-cos of sums
+         [identity, lambda x: TR2i(TR2(x))],  # tan -> sin-cos -> tan

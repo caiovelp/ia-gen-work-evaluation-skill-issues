@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34402,
+ "stop_reason": "end_turn",
+ "session_id": "47b09fc9-5b01-4a5f-a09c-a11bdada559a",
+ "total_cost_usd": 0.07515909999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1083,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3265,
+  "output_tokens_details": {
+   "thinking_tokens": 431
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1083,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3265,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1083,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1083
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1668,
+   "outputTokens": 315,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003243,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 295,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3265,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1083,
+   "webSearchRequests": 0,
+   "costUSD": 0.07483479999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 431,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Callable model-field defaults must not be overwritten by submitted data in the hidden initial input of ModelForms\n\n## Objective\n\n**Problem.** In the Django admin, an inline form can lose its validation errors and its data on a second, unchanged submit. This happens when the inline's model field has a callable default (here `ArrayField(..., default=list)`). The form field then renders a hidden initial input (`show_hidden_initial=True`).\n\n**Reproduction from the issue:**\n\n1. Models: `Thing`, and `RelatedModel` with an FK to `Thing` and `plop = ArrayField(models.CharField(max_length=42), default=list)`.\n2. Admin: `ThingAdmin` with a `TabularInline` for `RelatedModel`, `extra = 1`, using a `ModelForm` whose `clean()` always raises `ValidationError(\"whatever\")`.\n3. Go to `/admin/my_app/thing/add/` and type anything (e.g. `test`) in `plop`.\n4. Submit. The inline shows the error, which is correct.\n5. Submit again without changes. No error is shown, the inline is dismissed, and `plop` is now empty. This is wrong.\n\n**Observed cause (from the issue).** After the first submit, the re-rendered form contains:\n\n```html\n<input type=\"hidden\" name=\"initial-relatedmodel_set-0-plop\" value=\"test\" id=\"initial-relatedmodel_set-0-id_relatedmodel_set-0-plop\">\n```\n\nThe hidden \"initial\" input carries the user-submitted value (`test`) instead of the field's true initial value (the callable default, `[]`). On the second submit, `has_changed()` compares the submitted `test` with the hidden initial `test` and concludes the form is unchanged. The formset then treats the extra form as empty and skips validation. The user's data is silently discarded.\n\n**Users affected:**\n\n- Admin users editing inlines.\n- More generally, any developer who renders a bound `ModelForm` or formset containing fields with callable defaults.\n\n**Success** means re-submitting an unchanged, invalid form keeps reporting the same validation errors and keeps the entered data.\n\n**Acceptance criteria / user stories:**\n\n- As an admin user, when I re-submit an invalid inline without changes, I still see the validation error and my input is preserved.\n- As a developer, a bound form's hidden initial input (`initial-<prefix>-<field>`) always holds the field's initial value, never the submitted value.\n\n## Assumptions\n\n1. The bug is in Django core (forms / model forms / formsets), not in the admin templates or in `ArrayField` specifically. `ArrayField` is just a common field with a callable default.\n2. `show_hidden_initial=True` is set automatically on form fields generated from model fields with callable defaults. The reporter's workaround (forcing `show_hidden_initial=False`) is consistent with this.\n3. The hidden initial widget is rendered from the bound value (`data`) when the form is bound, instead of from `initial`. This is the root mechanism.\n4. The same defect likely affects any field type with a callable default, not only `ArrayField` / PostgreSQL. This needs to be confirmed with a non-Postgres field.\n5. The expected behavior is that the hidden initial value reflects the value the form was originally initialized with. For an unsaved instance, that is the evaluated callable default.\n6. The fix must not change the rendered value of the visible widget. That widget should still show the user's submitted data.\n7. The reporter's workaround (globally disabling `show_hidden_initial`) is not the desired fix. Hidden initial exists so that `has_changed()` works correctly for callable defaults.\n\n## Tech Stack\n\n- Django. The affected version(s) are **unknown** (not stated in the issue).\n- Python version: **unknown**.\n- `django.contrib.postgres` (`ArrayField`) and PostgreSQL appear in the reproduction. Whether they are required to reproduce is **unknown** (see Assumption 4).\n- `django.contrib.admin` (`ModelAdmin`, `TabularInline`).\n\n## Commands\n\nAll **unknown** \u2014 not visible from the issue or repository.\n\n- Build: unknown\n- Test (full suite): unknown\n- Test (targeted forms / model_forms / admin_inlines / postgres tests): unknown\n- Lint: unknown\n\n## Project Structure\n\n**Unknown.** No repository access is available.\n\nLikely relevant areas are the Django forms layer (bound field rendering and hidden initial handling), model form field generation (callable default \u2192 `show_hidden_initial`), formsets (empty extra-form detection via `has_changed()`) and the admin inlines. The exact file paths are unconfirmed.\n\n## Code Style\n\n**Unknown** beyond following existing Django project conventions. No code snippet is provided, because none is visible.\n\n## Testing Strategy\n\nFramework and locations are **unknown** (presumably Django's own test suite). Required test coverage:\n\n- **Form level (no admin, no Postgres if possible):**\n  - Take a form field with `show_hidden_initial=True` whose initial comes from a callable.\n  - Bind it with data that differs from initial.\n  - Render it, and assert that the hidden initial input contains the *initial* value, not the submitted value.\n- **Round-trip `has_changed()`:**\n  - Simulate submit \u2192 render \u2192 resubmit, using the rendered hidden initial value as POST data.\n  - Assert that `has_changed()` is still `True` on the second submit.\n- **Formset level:**\n  - Use an extra form with a callable-default field, invalid on submit.\n  - Resubmit using the re-rendered hidden initial.\n  - Assert that the form is not skipped as empty and that its errors persist.\n- **Admin regression (inline):**\n  - Reproduce the issue's scenario.\n  - Assert that the second submit still shows the error and that the entered value is preserved.\n- **`ArrayField`-specific test:** run under PostgreSQL if the existing test infrastructure supports it.\n- **Non-regression:**\n  - Fields without callable defaults are unaffected.\n  - The visible widget still renders the submitted data.\n  - Unbound forms render the hidden initial unchanged.\n\n## Boundaries\n\n- **Always:**\n  - Write regression tests that reproduce the issue first.\n  - Keep visible widgets rendering bound data.\n  - Preserve existing `show_hidden_initial` semantics for `has_changed()`.\n- **Ask first:**\n  - Changing the public behavior or signature of form or bound-field APIs.\n  - Changing when `show_hidden_initial` is enabled for model fields.\n  - Any change that alters rendered HTML for non-callable-default fields.\n  - Backporting to older release branches.\n- **Never:**\n  - \"Fix\" this by disabling `show_hidden_initial` globally for callable defaults.\n  - Special-case `ArrayField` only, if the root cause is generic.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. Following the issue's reproduction steps, the second (unchanged) submit still displays the `ValidationError` on the inline and keeps the `plop` value.\n2. For a bound form, the `initial-\u2026` hidden input renders the field's initial value (e.g. empty for `default=list`), never the submitted value.\n3. On re-submission, `has_changed()` returns `True` for a form whose submitted data differs from the true initial value.\n4. All existing forms, model_forms, formsets and admin inline tests pass. New regression tests fail before the fix and pass after.\n\n## Open Questions\n\n1. Which Django version(s) are affected, and should the fix be backported?\n2. Does the bug reproduce with a non-`ArrayField` field that has a callable default (e.g. `CharField(default=some_callable)`)? This determines whether the scope is generic or `ArrayField` / `contrib.postgres`-specific.\n3. Should the hidden initial value come from the form's `initial` at bind time, or be re-evaluated from the callable on each render? This matters for non-deterministic callables such as `timezone.now` or `uuid4`.\n4. Is the `ArrayField` widget's handling of list vs. string values (`[]` vs. `\"\"`) part of the comparison mismatch, and does it need its own fix?\n5. Should the reporter's workaround (`show_hidden_initial=False`) be documented as unsupported or discouraged once this is fixed?\n6. What are the repository's exact test and lint commands, and what is the test layout? All of these are unknown.",
+ "ttft_ms": 6226,
+ "type": "result",
+ "duration_ms": 32572,
+ "uuid": "594bde99-7b24-4a8d-9505-a4e753d29d58",
+ "ttft_stream_ms": 1026,
+ "time_to_request_ms": 238,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 11,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 169,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1026,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11803,
+ "stop_reason": "end_turn",
+ "session_id": "0b072b09-a462-4c58-9262-91acea25bb6e",
+ "total_cost_usd": 0.0321166,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1476,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1006,
+  "output_tokens_details": {
+   "thinking_tokens": 207
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1476,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1006,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1476,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1476
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1686,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001806,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1006,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1476,
+   "webSearchRequests": 0,
+   "costUSD": 0.031936,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 207,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen an `Enum` member is used as the `default` of a `CharField`, the generated migration serializes it by its **value** (`Status('Good')`) instead of its **name** (`Status['GOOD']`). If the enum values are translated with Django's `gettext_lazy`, the value changes with the user's language. Existing migration files then fail with `ValueError: 'Good' is not a valid Status`, because the original untranslated value is no longer a valid member value.\n\n## Steps to reproduce\n\n1. In `models.py`, define an `Enum` whose member values are wrapped in `gettext_lazy`, and use one of its members as the default of a `CharField` (see **Code example**).\n2. Generate a migration for the model.\n3. Look at the generated migration file. The field is written as `models.CharField(default=Status('Good'), max_length=128)`.\n4. Enable translation so that `'Good'` is translated into another language.\n5. Load or run the previously generated migration.\n\n## Observed behavior\n\n- The generated migration uses the enum member's value:\n  ```python\n  ('status', models.CharField(default=Status('Good'), max_length=128))\n  ```\n- After `'Good'` is translated into another word, it is no longer a value of the `Status` enum. The migration file raises an error on that line (see **Stack trace / error output**).\n\n## Expected behavior\n\nThe generated migration should refer to the enum member by its name, which does not change with translation:\n\n```python\n('status', models.CharField(default=Status['GOOD'], max_length=128))\n```\n\nThis would stay correct no matter what the value is translated to.\n\n## Stack trace / error output\n\n```\nValueError: 'Good' is not a valid Status\n```\n\nNo full stack trace was included in the original report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\n`models.py`:\n\n```python\nfrom enum import Enum\nfrom django.utils.translation import gettext_lazy as _\nfrom django.db import models\n\nclass Status(Enum):\n    GOOD = _('Good')  # 'Good' will be translated\n    BAD = _('Bad')    # 'Bad' will be translated\n\n    def __str__(self):\n        return self.name\n\nclass Item(models.Model):\n    status = models.CharField(default=Status.GOOD, max_length=128)\n```\n\nGenerated migration (excerpt):\n\n```python\n...\n('status', models.CharField(default=Status('Good'), max_length=128))\n...\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 3768,
+ "type": "result",
+ "duration_ms": 11480,
+ "uuid": "331dfd70-2e1e-41ad-ae4e-e5ee0e55e98d",
+ "ttft_stream_ms": 1531,
+ "time_to_request_ms": 424,
+ "time_to_request_phases_ms": {
+  "other": 42,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 42,
+  "input_hooks": 38,
+  "tool_pool_refresh": 4,
+  "init_message": 24,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 236,
+  "autocompact": 6,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 4,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 100,
+ "time_to_request_cpu_ms": 571,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 33,
+  "cpu_ms": 138,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1531,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

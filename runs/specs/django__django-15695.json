@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33879,
+ "stop_reason": "end_turn",
+ "session_id": "a302f9d1-b239-4665-9e01-3c2f1734fdae",
+ "total_cost_usd": 0.07683629999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1061,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3365,
+  "output_tokens_details": {
+   "thinking_tokens": 303
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1061,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3365,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1061,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1061
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1645,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001775,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3365,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1061,
+   "webSearchRequests": 0,
+   "costUSD": 0.07665879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 303,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: RenameIndex re-apply crash after backward on an unnamed `unique_together` index\n\n## Objective\n\nWhen `RenameIndex` targets an **unnamed** index (identified by fields, created via `unique_together`), the sequence **forwards \u2192 backwards \u2192 forwards** crashes. On PostgreSQL the second `database_forwards()` raises:\n\n```\ndjango.db.utils.ProgrammingError: relation \"new_pony_test_idx\" already exists\n```\n\nThe cause is a state mismatch. Today `database_backwards()` for the unnamed case is a no-op that runs zero queries, so the index keeps the name `new_pony_test_idx`. Re-applying forwards then tries to rename the index to a name it already has.\n\n**Who is affected:** Developers who reverse and re-apply migrations that contain `RenameIndex` with old fields, for example when switching branches or using `migrate app <previous>` followed by `migrate`. Third-party backends may also be affected.\n\n**What success looks like:** Moving such a migration backward and then forward again completes without error. After the final forward step, the index is named `new_pony_test_idx`. The database and the migration state stay consistent across repeated cycles.\n\n**Issue statement of intent:** \"RenameIndex() should restore the old auto-generated name when an unnamed index for unique_together is moving backward.\"\n\n> \u26a0\ufe0f This intent conflicts with the issue's own proposed test. That test keeps the existing assertions that backwards runs 0 queries and that `new_pony_test_idx` still exists after backwards. See Open Questions Q1.\n\n### Acceptance criteria\n1. AC1: For an unnamed-index `RenameIndex` (old fields, `unique_together`), running `database_forwards`, then `database_backwards`, then `database_forwards` on PostgreSQL raises no exception.\n2. AC2: After the second `database_forwards`, an index named `new_pony_test_idx` exists on the table.\n3. AC3: Exactly one index covers those fields after the cycle. There are no duplicates and no orphaned auto-named indexes.\n4. AC4: The backward behaviour matches whichever option Q1 resolves to, and the test asserts it explicitly:\n   - **Option A:** Backwards stays a no-op with 0 queries, and forwards tolerates the index already having the target name.\n   - **Option B:** Backwards restores the original auto-generated name.\n5. AC5: Existing `RenameIndex` behaviour for **named** indexes (`old_name`) does not change, either forwards or backwards.\n6. AC6: The operation's deconstruction output does not change.\n7. AC7: The scenario passes on every database backend in the project's test matrix, not only PostgreSQL. SQLite, MySQL and Oracle behaviour is unknown and must be verified.\n\n## Assumptions\n\n1. The codebase is Django. The operation is `RenameIndex` in the migrations operations module. The exact source path is not shown in the issue, so it is **unknown**.\n2. The relevant test is in `OperationTests` in `tests/migrations/test_operations.py`, around lines 2988\u20132997 according to the diff. It uses `operation`, `app_label`, `project_state`, `new_state`, `table_name` and `assertIndexNameExists`.\n3. \"Unnamed index\" means a `RenameIndex` built with `old_fields`, not `old_name`, and pointing at an index created via `unique_together`.\n4. The crash was observed on PostgreSQL. Other backends may fail differently or not at all.\n5. The fix should not require changes to migration files or the autodetector output.\n6. The fix should not need a new dependency or a schema/format change to migrations.\n\n## Tech Stack\n\n- Python and Django. Versions are **unknown**.\n- PostgreSQL is the backend where the failure was reproduced. The version is **unknown**.\n- Test framework: Django's test suite (`OperationTestBase` / `OperationTests`).\n\n## Commands\n\nThe issue does not provide any commands. All of the following are **unknown** and need confirmation:\n- Build: unknown\n- Test (targeted): unknown. It should run `tests/migrations/test_operations.py` against PostgreSQL.\n- Test (full migrations suite): unknown\n- Lint/format: unknown\n\n## Project Structure\n\nOnly what the issue shows:\n```\ntests/migrations/test_operations.py  \u2192 Migration operation tests (OperationTests); regression test goes here\n```\n- Location of the `RenameIndex` implementation: **unknown**.\n- Location of the schema editor and index-rename backend code: **unknown**.\n\n## Code Style\n\nNo style guide is visible. Follow the conventions of the surrounding code in `tests/migrations/test_operations.py`. The issue's diff shows those conventions:\n\n```python\n# Re-apply renaming.\nwith connection.schema_editor() as editor:\n    operation.database_forwards(app_label, editor, project_state, new_state)\nself.assertIndexNameExists(table_name, \"new_pony_test_idx\")\n```\n\nConventions:\n- Short `#` comments describe each step.\n- Each step runs inside a `with connection.schema_editor() as editor:` block.\n- Assertions use the existing `assertIndexNameExists` helper.\n- Query counts are checked with `assertNumQueries` where that applies.\n\n## Testing Strategy\n\n- **Regression test:** Extend the existing unnamed-index `RenameIndex` test in `tests/migrations/test_operations.py` with the re-apply step shown in the issue. Write it first and confirm it fails on PostgreSQL.\n- **Backward assertions:** Make the test state the decided backward contract explicitly (Q1):\n  - Option A: query count and the index name after backwards.\n  - Option B: the auto-generated name restored and `new_pony_test_idx` gone.\n- **Repeated cycles (optional, recommended):** Cover forwards \u2192 backwards \u2192 forwards \u2192 backwards to show the operation is stable over more than one cycle.\n- **Non-regression:** The existing tests for named-index `RenameIndex` and for `RenameIndex` with old fields must still pass unchanged.\n- **Backends:** Run on PostgreSQL at minimum, plus the other backends in CI. The CI matrix is **unknown**.\n- **Coverage expectations:** **unknown**.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the crash with a failing test before changing any behaviour.\n  - Keep the database and migration state consistent.\n  - Keep deconstruction output stable.\n  - Run the full migrations test module.\n- **Ask first:**\n  - Changing the documented or tested backward contract of `RenameIndex` for unnamed indexes (Q1).\n  - Adding queries to `database_backwards` that are currently asserted to be 0.\n  - Changing schema-editor or backend-level rename APIs.\n  - Changing how auto-generated index names are computed.\n- **Never:**\n  - Remove or weaken the existing `assertNumQueries(0)` assertion or other existing assertions without approval.\n  - Swallow database errors with broad `try/except`.\n  - Change behaviour for named-index `RenameIndex`.\n  - Alter unrelated operations.\n\n## Success Criteria\n\n- [ ] The issue's diff, with the re-apply step added, passes on PostgreSQL.\n- [ ] After forwards \u2192 backwards \u2192 forwards, `new_pony_test_idx` exists and exactly one index covers the fields.\n- [ ] The backward behaviour for unnamed indexes matches the option chosen in Q1 and is asserted in the test.\n- [ ] All existing `RenameIndex` and migrations operation tests pass on every backend in CI.\n- [ ] `operation.deconstruct()` output does not change.\n\n## Open Questions\n\n1. **Q1 \u2013 Backward contract:** Should `database_backwards` for an unnamed index restore the original auto-generated name, as the issue description says? Or should it stay a 0-query no-op, as the issue's own test still asserts, with `database_forwards` treating an index that already has the target name as a no-op? These two options are mutually exclusive, and the choice decides AC4.\n2. **Q2:** If Option B is chosen, how should the original auto-generated name be determined? Should it be recomputed the way index names are normally generated, or looked up from the database by fields? Is that name guaranteed to be the same across backends and versions?\n3. **Q3:** If Option A is chosen, how should forwards detect that the index already has the target name? Possible sources are database introspection or a comparison of the found index's name with `new_name`. Is introspection acceptable here?\n4. **Q4:** Does the same crash or inconsistency happen on SQLite, MySQL and Oracle? Should the fix be verified on all of them?\n5. **Q5:** Is this a regression from an earlier release, and should the fix be backported? Which versions are affected?\n6. **Q6:** What are the exact commands to run the targeted test against PostgreSQL in this repository? Where does the `RenameIndex` implementation live?\n7. **Q7:** Does the same issue apply to unnamed indexes from `index_together`, or only `unique_together`? Should the fix and tests cover both?",
+ "ttft_ms": 4750,
+ "type": "result",
+ "duration_ms": 33041,
+ "uuid": "9bf0c979-d9f2-412c-8890-7186a08e8f6f",
+ "ttft_stream_ms": 1563,
+ "time_to_request_ms": 231,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 197,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 123,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1564,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

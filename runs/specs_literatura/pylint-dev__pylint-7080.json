@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 18006,
+ "stop_reason": "end_turn",
+ "session_id": "75d965c4-890d-4942-b331-f57ec8b81e20",
+ "total_cost_usd": 0.1315433,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 11758,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1813,
+  "output_tokens_details": {
+   "thinking_tokens": 314
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 11758,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1813,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 11758,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 11758
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 11968,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0012113,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1813,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 11758,
+   "webSearchRequests": 0,
+   "costUSD": 0.130332,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 314,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen pylint runs with `--recursive=y`, the `ignore-paths` option set in `pyproject.toml` has no effect. Files under `src/gen/`, which match the configured `ignore-paths` pattern, are still linted and reported.\n\n## Steps to reproduce\n\n1. Create a project with a `src/` directory that contains Python modules, including auto-generated modules in `src/gen/` (in the report: `about.py`, `design.py`, `resources_rc.py`, `settings.py`, `update_checker.py`).\n2. Add this configuration to `pyproject.toml`:\n   ```toml\n   [tool.pylint.MASTER]\n   ignore-paths = [\n     # Auto generated\n     \"^src/gen/.*$\",\n   ]\n   ```\n3. From the project root, run:\n   ```shell\n   pylint --recursive=y src/\n   ```\n4. Look at the reported modules in the output.\n\n## Observed behavior\n\nPylint lints and reports messages for every module under `src/gen/` (`about`, `design`, `resources_rc`, `settings`, `update_checker`), as well as for modules outside that directory (for example `region_selection`). The `ignore-paths` setting appears to be ignored entirely.\n\nThe output shows file paths with Windows-style backslash separators (for example `src\\gen\\about.py`).\n\n## Expected behavior\n\nFiles matching `ignore-paths` (`src\\gen\\*`) should not be checked when running with `--recursive=y`.\n\n## Stack trace / error output\n\nNo stack trace occurs. Below is an excerpt of the pylint output from the original report. Most of the repeated messages for `src\\gen\\*` are omitted.\n\n```shell\n************* Module region_selection\nsrc\\region_selection.py:170:0: R0914: Too many local variables (17/15) (too-many-locals)\n************* Module about\nsrc\\gen\\about.py:2:0: R2044: Line with empty comment (empty-comment)\nsrc\\gen\\about.py:4:0: R2044: Line with empty comment (empty-comment)\nsrc\\gen\\about.py:57:0: C0301: Line too long (504/120) (line-too-long)\nsrc\\gen\\about.py:12:0: C0103: Class name \"Ui_AboutAutoSplitWidget\" doesn't conform to '_?_?[a-zA-Z]+?$' pattern (invalid-name)\n...\n************* Module design\nsrc\\gen\\design.py:2:0: R2044: Line with empty comment (empty-comment)\n...\n************* Module resources_rc\nsrc\\gen\\resources_rc.py:1:0: C0302: Too many lines in module (2311/1000) (too-many-lines)\n...\n************* Module settings\nsrc\\gen\\settings.py:2:0: R2044: Line with empty comment (empty-comment)\n...\n************* Module update_checker\nsrc\\gen\\update_checker.py:2:0: R2044: Line with empty comment (empty-comment)\n...\nsrc\\gen\\update_checker.py:1:0: R0401: Cyclic import (AutoSplit -> menu_bar -> error_messages) (cyclic-import)\n\n--------------------------------------------------------------------------\nYour code has been rated at -158.32/10 (previous run: -285.20/10, +126.88)\n```\n\n## Test case\n\nThis test case is derived from the reproduction in the report:\n\n- **Setup:** a project with `src/` containing at least one Python file, and `src/gen/` containing at least one Python file. `pyproject.toml` contains `[tool.pylint.MASTER]` with `ignore-paths = [\"^src/gen/.*$\"]`.\n- **Action:** run `pylint --recursive=y src/` from the project root.\n- **Assertion:** the output contains no messages for files under `src/gen/` (`src\\gen\\` on Windows).\n- **Currently:** the assertion fails, because messages for `src\\gen\\*.py` are reported.\n\n## Code example\n\nConfiguration used (`pyproject.toml`):\n\n```toml\n[tool.pylint.MASTER]\nignore-paths = [\n  # Auto generated\n  \"^src/gen/.*$\",\n]\n```\n\nCommand used:\n\n```shell\npylint --recursive=y src/\n```\n\n## Version and environment\n\n- pylint 2.14.1\n- astroid 2.11.5\n- Python 3.9.6 (tags/v3.9.6:db3ff76, Jun 28 2021, 15:26:21) [MSC v.1929 64 bit (AMD64)]\n- OS: Windows 10.0.19044\n- Additional dependencies: none reported",
+ "ttft_ms": 5390,
+ "type": "result",
+ "duration_ms": 16520,
+ "uuid": "72d7c521-6e02-47f4-8e3d-17dc183a0914",
+ "ttft_stream_ms": 1520,
+ "time_to_request_ms": 273,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 5,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 3,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 206,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 34,
+ "time_to_request_cpu_ms": 303,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1520,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

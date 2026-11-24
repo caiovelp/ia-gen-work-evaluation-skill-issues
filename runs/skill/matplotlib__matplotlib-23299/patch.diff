@@ -1,0 +1,16 @@
+diff --git a/lib/matplotlib/__init__.py b/lib/matplotlib/__init__.py
+index c268a56724..bac1ad6549 100755
+--- a/lib/matplotlib/__init__.py
++++ b/lib/matplotlib/__init__.py
+@@ -1087,7 +1087,10 @@ def rc_context(rc=None, fname=None):
+              plt.plot(x, y)  # uses 'print.rc'
+ 
+     """
+-    orig = rcParams.copy()
++    # Don't restore the backend: doing so could revert a resolved backend to
++    # the auto sentinel, making a later get_backend() close all figures.
++    orig = dict(rcParams.copy())
++    del orig['backend']
+     try:
+         if fname:
+             rc_file(fname)

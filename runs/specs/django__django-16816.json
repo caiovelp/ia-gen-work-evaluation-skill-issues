@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 36834,
+ "stop_reason": "end_turn",
+ "session_id": "5e64ec78-79e5-4b0d-9ee5-62ba52aa559c",
+ "total_cost_usd": 0.09200389999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2440,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3565,
+  "output_tokens_details": {
+   "thinking_tokens": 735
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2440,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3565,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2440,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2440
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3021,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003131,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3565,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2440,
+   "webSearchRequests": 0,
+   "costUSD": 0.09169079999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 735,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Admin system check E108 must flag `list_display` entries that fail at changelist render time\n\n## Assumptions\n\n1. The models follow the Django tutorial shape. `Choice` has a `ForeignKey` to `Question`, and `Question` has no field or attribute named `choice`. The reproduction is only linked (\"see github\"), so this is inferred.\n2. `\"choice\"` therefore resolves through `Question._meta.get_field(\"choice\")` to the **reverse** side of the FK, a one-to-many relation. The system check accepts this because the lookup succeeds. At render time, `_get_non_gfk_field` rejects reverse relations with `FieldDoesNotExist`, as the traceback shows. `label_for_field` then falls back to attribute lookup, finds nothing, and raises `AttributeError`.\n3. The root cause is a mismatch. The check uses a looser definition of \"valid field\" than the runtime code in `django/contrib/admin/utils.py` (`label_for_field` / `_get_non_gfk_field`).\n4. The fix belongs to Django itself (`django.contrib.admin` system checks), not to the reporter's project. The exact file holding the E108 check is not shown in the issue and is **unknown** here. It is presumably `django/contrib/admin/checks.py`.\n5. Other relation kinds that `_get_non_gfk_field` rejects may have the same gap. Examples are reverse one-to-many relations reached through a `related_query_name`, and generic foreign keys. These are in scope only if they also pass the check and then crash at render time.\n6. Many-to-many fields are already covered by a separate check (admin.E109). They are out of scope unless that check also misses reverse many-to-many relations.\n7. The Django version is unknown. The traceback mentions Python list comprehensions (`<listcomp>`), which suggests Python \u2264 3.11 and a Django 4.x-era codebase.\n\n## Objective\n\nWhen a `ModelAdmin.list_display` entry cannot be rendered by the changelist, Django should report it at system-check time, through `manage.py check` or server startup. It should not let the changelist page fail with HTTP 500.\n\n**User:** Django developers configuring `ModelAdmin.list_display`.\n\n**User story:** As a developer, if I put the name of a reverse relation (e.g. `\"choice\"`) in `list_display`, I want `manage.py check` to report an error that explains the problem, instead of finding out from an `AttributeError: Unable to lookup 'choice' on Question or QuestionAdmin` when I open `/admin/polls/question/`.\n\n**Success looks like:** Any `list_display` item that passes the system checks can be resolved by `label_for_field` without raising. Any item that `label_for_field` would reject is reported by a check.\n\n## Tech Stack\n\n- Python, with the version unknown (\u2264 3.11 judging by the traceback).\n- Django, with the version unknown.\n- Components involved:\n  - `django.contrib.admin` system checks (admin.E108, possibly admin.E109).\n  - `django/contrib/admin/utils.py` (`label_for_field`, `_get_non_gfk_field`).\n  - `django/contrib/admin/templatetags/admin_list.py` (`result_headers`).\n\n## Commands\n\n- Build: unknown (not given in the issue).\n- Test: unknown. Django's own test-runner invocation is not shown in the issue.\n- Lint: unknown.\n- Reproduce (user project): `python manage.py check`, which currently reports no errors. Then `GET /admin/polls/question/`, which currently returns HTTP 500.\n\n## Project Structure\n\nOnly paths visible in the traceback are listed:\n\n```\ndjango/contrib/admin/utils.py                    \u2192 label_for_field, _get_non_gfk_field (runtime lookup)\ndjango/contrib/admin/templatetags/admin_list.py  \u2192 result_headers / result_list (changelist rendering)\ndjango/core/exceptions.py                        \u2192 FieldDoesNotExist\n```\n\n- Location of the E108 check implementation: unknown (assumed `django/contrib/admin/checks.py`).\n- Location of the relevant tests: unknown.\n- Location of the system-check documentation listing E108: unknown.\n\n## Code Style\n\nFollow the existing conventions of the surrounding Django admin checks code. No snippet is available from the issue.\n\n- Error messages should follow the existing E108 wording style. That style names the offending `list_display[n]` item, the value, and the model/admin class.\n- Reuse existing check IDs. Do not invent new ones unless maintainers agree (see Open Questions).\n\n## Testing Strategy\n\n- Framework: Django's own test suite. The runner command and test locations are unknown.\n- Test level: unit tests on `ModelAdmin.check()` output, plus a regression assertion that matches the runtime behaviour.\n- Required cases:\n  1. A `list_display` entry naming a **reverse FK relation** (e.g. `\"choice\"` on `QuestionAdmin`) produces a check error. Today it produces none.\n  2. Existing valid entries produce **no new errors**. These include:\n     - concrete fields;\n     - forward FKs;\n     - callables;\n     - `ModelAdmin` methods;\n     - model attributes/properties;\n     - the `\"__str__\"` string;\n     - `\"field__related\"` lookups, if the Django version in use supports them.\n  3. Existing E108 cases (a name that is neither field nor attribute) still produce E108 with unchanged wording, unless wording changes are approved.\n  4. Existing E109 (many-to-many) behaviour is unchanged.\n  5. Consistency property: for each case in the tests, \"check passes\" \u21d4 \"`label_for_field` does not raise.\"\n- Coverage expectations: every relation type that `_get_non_gfk_field` rejects has at least one check test.\n\n## Boundaries\n\n- **Always:**\n  - Keep the check and the runtime lookup consistent.\n  - Add regression tests for the reported case.\n  - Preserve existing error IDs and messages for already-covered cases.\n- **Ask first:**\n  - Changing the text of E108 or E109.\n  - Deciding whether reverse relations should be reported under E108 or E109, or under a new ID.\n  - Changing runtime `list_display` behaviour, e.g. making reverse relations renderable.\n  - Touching documentation for system checks or release notes.\n- **Never:**\n  - Turn currently valid `list_display` configurations into check errors.\n  - Silence the runtime `AttributeError` as a way of \"fixing\" the issue.\n  - Weaken existing checks.\n\n## Success Criteria\n\n1. With `Choice.question = ForeignKey(Question)` and `QuestionAdmin.list_display = [\"choice\"]`, the system checks report an admin error that identifies `list_display[0]` and the value `'choice'`.\n2. No configuration that passes the admin system checks causes `label_for_field` to raise `AttributeError` for a reverse-relation `list_display` entry.\n3. All previously valid `list_display` configurations still pass checks.\n4. The existing E108/E109 tests still pass. New regression tests cover reverse FK relations.\n5. Documentation for the affected check ID reflects the expanded coverage, if the wording changes.\n\n## Open Questions\n\n1. **Which check ID should report reverse relations?**\n   - E108 (\"refers to X, which is not a callable, an attribute of \u2026, or an attribute or method on \u2026\").\n   - E109 (\"must not be a ManyToManyField\"), with its message broadened to \"many-to-many field or reverse foreign key\".\n   - A new ID.\n2. Should **reverse one-to-one** and **reverse many-to-many** relations be covered too? Is their runtime behaviour actually broken? This needs verification against `_get_non_gfk_field`.\n3. Are **generic foreign keys** (`GenericForeignKey`) in `list_display` affected the same way, or are they handled by attribute fallback?\n4. If the related model defines `related_query_name` or `related_name`, should the check consider the query name, the accessor name, or both? For example, `\"choice_set\"` would succeed via attribute lookup and must not be flagged.\n5. Which Django version(s) should the fix target? Is backporting expected?\n6. Exact paths of the check implementation, its tests, and the system-check docs are unknown from the issue. They need confirmation.\n7. The linked GitHub reproduction was not available. Does it match Assumption 1, or does `\"choice\"` refer to something else?",
+ "ttft_ms": 8739,
+ "type": "result",
+ "duration_ms": 36160,
+ "uuid": "9e2afb5f-e7cb-48a5-be26-5df76f0ad468",
+ "ttft_stream_ms": 1627,
+ "time_to_request_ms": 263,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 217,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 252,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1627,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

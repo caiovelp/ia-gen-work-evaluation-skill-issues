@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 48990,
+ "stop_reason": "end_turn",
+ "session_id": "467836a9-a00c-4db5-b2b7-64463c220f00",
+ "total_cost_usd": 0.1061584,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1318,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 4727,
+  "output_tokens_details": {
+   "thinking_tokens": 604
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1318,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 4727,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1318,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1318
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1906,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002036,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 4727,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1318,
+   "webSearchRequests": 0,
+   "costUSD": 0.1059548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 604,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Detailed Assertion Reports for `all()` / `any()` Calls\n\n## Assumptions\n\n1. The target is pytest's **assertion rewriter**, the AST transformation that produces the `+ where \u2026` explanations. The issue says this, but I have not seen the module path or code.\n2. The change only affects test modules that pytest already rewrites. Modules where rewriting is disabled, or which were imported before rewriting took effect, keep their current behaviour.\n3. The reported environment is pytest 4.4.0 on Python 3.7.3. The feature targets the **current development branch** of pytest, and it must work on every Python version that branch supports. That version range is unknown to me.\n4. \"Unroll\" means the assertion behaves *as if* it were written as a `for` loop with an inner `assert`. Failure output should reuse the existing per-expression explanation machinery, for example `where False = is_even(1)`. No new reporting format is invented.\n5. Only calls whose callee is the builtin `all` or `any` are candidates. A call to some other object bound to the name `all` or `any` must keep its original behaviour.\n6. Only two argument forms are in scope: a **single generator expression** or a **single list comprehension** passed directly as the only positional argument. Calls such as `all(some_list)`, `all(map(...))` and `all(x for x in y, ...)` with extra arguments are out of scope and keep today's output.\n7. The rewrite must not change test outcomes. A passing assertion still passes, a failing one still fails, and evaluation order, laziness and side effects stay the same except where an Open Question below says otherwise.\n8. This is a feature or enhancement, not a bug fix. Its changelog category is unknown.\n\n## Objective\n\n**Problem.** `assert all(pred(x) for x in xs)` and `assert any(...)` currently fail with messages that carry no information:\n\n- With a generator: `where False = all(<generator object ... at 0x...>)`\n- With a list comprehension: `where False = all([False, False, False, ...])`. This shows that something failed but not which element or why.\n\nUsers who want a useful report must rewrite the assertion as a `for` loop with an inner `assert`. That is more verbose, and for `any` it needs `break` or helper logic.\n\n**Goal.** When an `assert` uses `all()` over a generator expression or list comprehension, the failure report should identify the **first element whose predicate is falsy**. It should explain that predicate with pytest's existing explanation output, matching what the equivalent `for`-loop form produces today.\n\n**Users.** People writing pytest tests who assert a predicate across a collection.\n\n**User stories**\n\n- As a test author, when `assert all(is_even(n) for n in nums)` fails, I see which `n` failed and the explanation for `is_even(n)`, e.g. `where False = is_even(1)`.\n- As a test author, I get the same improved report whether I use a generator expression or a list comprehension.\n- As a test author, assertions that pass behave exactly as before, with no new side effects and no changed evaluation.\n- As a test author, if I have shadowed or redefined `all`/`any`, my function is called unmodified.\n- As a test author using `any(...)`, I get a report that is more informative than the bare `<generator object>` repr. The exact content is still open (see Open Questions).\n\n**Out of scope**\n\n- Other reducers such as `sum`, `min`, `max`, `sorted`, or user-defined helpers.\n- Set or dict comprehensions, and arbitrary iterables passed by name. These are candidates for follow-up; see Open Questions.\n- Changing explanation formatting for anything other than these calls.\n\n## Tech Stack\n\n- Language: Python. The supported version range on the target branch is **unknown**. The issue reporter uses 3.7.3.\n- Component: pytest assertion rewriting, which is AST-based. The exact module path is **unknown**.\n- Reporter environment from the issue: pytest 4.4.0, py 1.8.0, pluggy 0.9.0, attrs 19.1.0, more-itertools 7.0.0, six 1.12.0, atomicwrites 1.3.0, macOS (darwin).\n- New dependencies: none expected. Adding any requires asking first.\n\n## Commands\n\nAll commands are **unknown**, because the repository is not visible. They need to be filled in from the project's contributor docs or CI config.\n\n```\nBuild:  unknown\nTest:   unknown (likely the project's tox/pytest invocation \u2014 to be confirmed)\nLint:   unknown\nDev:    unknown\n```\n\n## Project Structure\n\n**Unknown**, because the repository is not visible. To be confirmed:\n\n```\n<assertion rewriter module>   \u2192 unknown path\n<assertion rewriter tests>    \u2192 unknown path\n<changelog fragments dir>     \u2192 unknown path / naming convention\n<user docs on assertions>     \u2192 unknown path\n```\n\n## Code Style\n\nThe project's conventions are unknown. The behaviour example below comes straight from the issue and is the reference for the desired output. It is a test input, not implementation code.\n\n```python\ndef is_even(n):\n    return n % 2 == 0\n\ndef test_all_even():\n    even_stevens = list(range(1, 100, 2))\n    assert all(is_even(number) for number in even_stevens)\n```\n\nDesired failure output: equivalent to the existing `for`-loop output, i.e. it contains\n\n```\nE       assert False\nE        +  where False = is_even(1)\n```\n\n## Testing Strategy\n\n- **Framework:** pytest's own test suite. It presumably includes facilities for running inner test files and matching their output, but the specific fixtures and helpers are **unknown**.\n- **Test level:** mostly integration-style tests. Each one writes a small test module, runs pytest on it, and asserts on the failure output. A few unit-level checks of the rewriting may be useful if the existing suite does that.\n- **Cases to cover:**\n  - `all(<genexp>)` failing: the report names the first falsy element's explanation.\n  - `all([<listcomp>])` failing: the same report.\n  - `all(...)` passing: no failure and no behavioural change.\n  - Empty iterable: `all(...)` passes, and `any(...)` fails with a sensible message.\n  - `any(<genexp>)` and `any([<listcomp>])` failing: the agreed report format.\n  - `all`/`any` shadowed by a local, global or import: no rewrite, original behaviour.\n  - Comprehensions with `if` filters, with multiple `for` clauses, and with nested comprehensions.\n  - The iteration variable does not leak into the enclosing scope, and it does not clash with names in the test.\n  - Short-circuiting is preserved for generator expressions. Elements after the first falsy one are not consumed, for example by an iterator with side effects or a counter.\n  - Eager evaluation is preserved for list comprehensions. All elements are still evaluated before `all`/`any` sees them, even if the report only explains one of them.\n  - A predicate that raises still raises the same exception.\n  - The assertion has a custom message: `assert all(...), \"msg\"`.\n  - `all(...)` appears inside a larger expression, such as `not all(...)`, `all(...) and x`, or a comparison. The behaviour here depends on an Open Question.\n  - Async comprehensions inside `async def` tests, if supported. This depends on an Open Question.\n- **Coverage:** the project's expectations are unknown. Every new branch of the rewrite should be exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Preserve the semantics of the original assertion: outcome, evaluation order, laziness and short-circuiting, side effects, exceptions, and scoping.\n  - Reuse the existing assertion-explanation machinery rather than adding a parallel format.\n  - Fall back to the current behaviour for any argument shape that is not explicitly supported.\n  - Add tests and a changelog entry following the project's conventions.\n- **Ask first:**\n  - Changing which builtins or argument shapes are rewritten beyond `all`/`any` with a single genexp or listcomp.\n  - Anything that evaluates list-comprehension elements differently from plain Python.\n  - Adding dependencies, or changing the minimum supported Python version.\n  - Adding a config option or opt-out flag.\n  - Changes to user-facing docs beyond a changelog entry.\n- **Never:**\n  - Rewrite calls to a user-shadowed `all`/`any`.\n  - Change the result of a passing or failing assertion.\n  - Consume more elements of a generator than plain `all`/`any` would.\n  - Leak comprehension variables into the test's namespace.\n  - Remove or weaken existing assertion-rewriting tests.\n\n## Success Criteria\n\n1. Running the issue's generator-expression example produces a failure report that contains `where False = is_even(1)`, or the equivalent per-element explanation, instead of `all(<generator object ...>)`.\n2. Running the issue's list-comprehension example produces the same per-element report instead of `all([False, False, ...])`.\n3. For every supported form, a passing `all(...)` or `any(...)` assertion still passes. The test suite of a project that relies on these calls passes unchanged.\n4. For generator expressions, the number of elements consumed from the underlying iterator matches plain Python in both the pass and fail cases. A test with a counting iterator verifies this.\n5. For list comprehensions, the evaluation side effects match plain Python. This is verified by test.\n6. When `all` or `any` is rebound in the test module or function, the original object is called and the output matches today's.\n7. Unsupported shapes, such as a named iterable, `map(...)`, set or dict comprehensions, or extra arguments, produce output identical to today's.\n8. Exceptions raised by the predicate or the iterable propagate unchanged.\n9. The `any(...)` failure output follows whatever format is agreed in Open Questions, and a test covers it.\n10. The full existing pytest test suite passes. The command for running it is unknown.\n\n## Open Questions\n\n1. **`any` semantics.** When `any(...)` fails, every element was falsy, so there is no single \"first failing\" element. What should the report show? Options:\n   - (a) The explanation for the last element.\n   - (b) The first element.\n   - (c) Something else, such as a summary.\n   - (d) No unrolling for `any`, only for `all`.\n2. **List comprehensions and eagerness.** A list comprehension evaluates every element before `all` runs. Should the rewrite keep full eager evaluation and then explain only the first falsy element? Or is changing to short-circuit evaluation acceptable? The current proposal is to preserve eager evaluation, per Boundaries.\n3. **Assertion position.** Should only an assertion whose top-level expression is exactly `all(...)` or `any(...)` be rewritten? Or should nested occurrences also be rewritten, such as `not all(...)`, `all(...) and other`, or `x == all(...)`?\n4. **Shadowing detection.** Is a static check enough, meaning no local, global or import binding of `all`/`any` in the module? Or must the check happen at runtime, e.g. confirming the called object `is` the builtin? Runtime checking also covers `builtins` being patched.\n5. **Comprehension shapes.** Should comprehensions with multiple `for` clauses, `if` filters, nested comprehensions, or `async for` be supported? Or should they fall back to today's behaviour?\n6. **Other iterables.** Is it in scope, now or later, to improve reports for `all(iterable_name)`, `all(map(f, xs))`, or set and dict comprehensions?\n7. **Element identification.** Should the report also show the value of the loop variable, e.g. `number = 1`, or only the predicate explanation as in the `for`-loop form?\n8. **Python version support.** What Python versions does the target branch support? AST node shapes for comprehensions and calls differ across versions.\n9. **Opt-out.** Should users be able to disable this behaviour, e.g. via a config option, in case of unexpected semantic differences?\n10. **Prior attempts.** Has this been attempted or discussed before in the project, for example an earlier implementation that was reverted? If so, which semantic problems must this spec explicitly guard against?\n11. **Project logistics.** What are the exact build, test and lint commands, the module and test file paths, and the changelog fragment convention?",
+ "ttft_ms": 8643,
+ "type": "result",
+ "duration_ms": 48421,
+ "uuid": "b69d7855-28d0-41c2-a5dd-03cd03f40b76",
+ "ttft_stream_ms": 1532,
+ "time_to_request_ms": 221,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 112,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1532,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

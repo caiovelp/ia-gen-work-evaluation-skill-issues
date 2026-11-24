@@ -1,0 +1,13 @@
+diff --git a/sympy/simplify/trigsimp.py b/sympy/simplify/trigsimp.py
+index 34a3bab3f..6a819413d 100755
+--- a/sympy/simplify/trigsimp.py
++++ b/sympy/simplify/trigsimp.py
+@@ -503,7 +503,7 @@ def traverse(e):
+ 
+     trigsimpfunc = {
+         'fu': (lambda x: fu(x, **opts)),
+-        'matching': (lambda x: futrig(x)),
++        'matching': (lambda x: futrig(exptrigsimp(x) if x.has(exp) else x)),
+         'groebner': (lambda x: groebnersimp(x, **opts)),
+         'combined': (lambda x: futrig(groebnersimp(x,
+                                polynomial=True, hints=[2, tan]))),

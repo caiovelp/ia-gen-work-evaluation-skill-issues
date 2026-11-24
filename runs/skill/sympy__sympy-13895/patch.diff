@@ -1,0 +1,24 @@
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 8c8e2d738..b2dbeaee1 100755
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -1679,8 +1679,7 @@ def _eval_power(self, expt):
+                     return Rational(self.q, self.p)
+                 if self.is_negative:
+                     if expt.q != 1:
+-                        return -(S.NegativeOne)**((expt.p % expt.q) /
+-                               S(expt.q))*Rational(self.q, -self.p)**ne
++                        return S.NegativeOne**expt*Rational(self.q, -self.p)**ne
+                     else:
+                         return S.NegativeOne**ne*Rational(self.q, -self.p)**ne
+                 else:
+@@ -2224,8 +2223,7 @@ def _eval_power(self, expt):
+             ne = -expt
+             if self.is_negative:
+                 if expt.q != 1:
+-                    return -(S.NegativeOne)**((expt.p % expt.q) /
+-                            S(expt.q))*Rational(1, -self)**ne
++                    return S.NegativeOne**expt*Rational(1, -self)**ne
+                 else:
+                     return (S.NegativeOne)**ne*Rational(1, -self)**ne
+             else:

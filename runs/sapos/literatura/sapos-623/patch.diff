@@ -1,0 +1,12 @@
+diff --git a/app/models/admissions/form_field.rb b/app/models/admissions/form_field.rb
+index 5c018769..fcbf0833 100644
+--- a/app/models/admissions/form_field.rb
++++ b/app/models/admissions/form_field.rb
+@@ -267,6 +267,7 @@ class Admissions::FormField < ActiveRecord::Base
+     field: nil, substring: false, limit: 10,
+     in_main: true, in_letter: false
+   )
++    field = field.to_s
+     result = self.search_name(field:, substring:).limit(limit).map(&:name)
+     block = -> (param) {
+       label = param[0]

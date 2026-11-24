@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29697,
+ "stop_reason": "end_turn",
+ "session_id": "ae401604-7791-4c6e-b27a-20b26011770e",
+ "total_cost_usd": 0.06538229999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1029,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2801,
+  "output_tokens_details": {
+   "thinking_tokens": 165
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1029,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2801,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1029,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1029
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1620,
+   "outputTokens": 195,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002595,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 173,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2801,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1029,
+   "webSearchRequests": 0,
+   "costUSD": 0.0651228,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 165,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `QuerySet.none()` on combined querysets must return no results\n\n## Objective\n\nCalling `.none()` on a queryset built with `union()` returns every row the combined query would return, instead of returning no rows. For an ordinary queryset, and for one combined with the `|` operator, `.none()` correctly returns nothing.\n\n**Observed user impact (from the issue):**\n- A `forms.ModelMultipleChoiceField` uses `Publication.objects.filter(id__lt=2).union(Publication.objects.filter(id__gt=5))` as its queryset, with `required=False`.\n- The form is used through a `ModelAdmin` for a model with a `ManyToManyField` to `Publication`.\n- The form is submitted with no publications selected.\n- Result: **all** publications matching the union are added to the M2M relation.\n- Expected result, which is what the `|` version does: **no** publications are added.\n\n**Why this matters:** The bug silently writes data. An empty selection turns into \"select everything\", which causes unintended changes to relations in admin forms. Any other code that uses `.none()` as a safe empty result on a combined queryset is also affected.\n\n**Users:**\n- Developers who pass combined querysets to model forms or the admin.\n- Any code that calls `.none()` on a combined queryset.\n\n**Acceptance criteria:**\n1. `qs1.union(qs2).none()` returns an empty result. This holds for iteration, `len()`, `count()`, `exists()`, and `list()`.\n2. The same applies to the other set-operation combinators (`intersection()`, `difference()`), assuming they share the code path (see Open Questions).\n3. Submitting the issue's `ModelMultipleChoiceField` (union queryset, `required=False`) with an empty selection adds no related objects.\n4. Existing behavior of `.none()` on plain querysets and on `|`-combined querysets does not change.\n5. Existing behavior of non-empty `union()` / `intersection()` / `difference()` queries does not change.\n\n## Assumptions\n\n1. The target codebase is Django itself (ORM `QuerySet` and `forms.ModelMultipleChoiceField`). This is not a user project.\n2. `ModelMultipleChoiceField.clean()` returns `self.queryset.none()` when the value is empty and the field is not required. That is how the empty-submit path reaches `.none()`. This is inferred from the symptom and has not been verified against the source.\n3. The defect is in the ORM, in how `.none()` / the empty-query state interacts with combinator queries. It is not in the forms layer, and the form code needs no change.\n4. `intersection()` and `difference()` go through the same combinator mechanism as `union()`, so they likely have the same defect.\n5. The fix must work on all database backends Django supports for combinator queries. No backend-specific behavior is expected.\n6. The `null=True` on the `ManyToManyField` in the issue has no effect on the bug.\n\n## Tech Stack\n\n- Python and Django. Versions are **unknown**; the issue does not give an affected version.\n- Components involved: the Django ORM (`QuerySet.none()`, `union()` / combinator queries) and Django forms (`ModelMultipleChoiceField`). The admin is only the place where the bug showed up.\n\n## Commands\n\n**Unknown.** The issue gives no build, test, or lint commands, and the repository is not accessible. They must be confirmed from the repository's contributor or testing documentation.\n\n```\nBuild: unknown\nTest:  unknown (full suite and targeted test modules for queries/combinators and model forms)\nLint:  unknown\n```\n\n## Project Structure\n\n**Unknown.** No paths are given in the issue. The work is expected to touch:\n- the ORM queryset / query-compilation code that handles `.none()` and combinators (exact location unknown)\n- the existing test modules for combined querysets (location unknown)\n- the existing test modules for model forms / `ModelMultipleChoiceField` (location unknown)\n\n## Code Style\n\nFollow the existing conventions of the codebase (unknown here, not visible). The only code in the issue shows the scenario that reproduces the bug:\n\n```python\nclass Publication(models.Model):\n    pass\n\nclass Article(models.Model):\n    publications = models.ManyToManyField(to=Publication, blank=True, null=True)\n\nclass ArticleForm(forms.ModelForm):\n    publications = forms.ModelMultipleChoiceField(\n        Publication.objects.filter(id__lt=2).union(\n            Publication.objects.filter(id__gt=5)\n        ),\n        required=False,\n    )\n    class Meta:\n        model = Article\n        fields = [\"publications\"]\n```\n\n## Testing Strategy\n\nThe framework and test locations are **unknown**. Use the project's existing test framework and put new tests next to the existing tests for combined querysets and for model forms.\n\n**Regression tests at the ORM level (primary):**\n- `union(...).none()` yields no rows.\n- Check the same through every evaluation path: iteration, `count()`, `exists()`.\n- Repeat for `intersection(...).none()` and `difference(...).none()`, subject to backend feature support for those operations.\n- Control case: `(qs1 | qs2).none()` is empty. This already passes and must keep passing.\n\n**Regression test at the forms level (secondary):**\n- A `ModelMultipleChoiceField` with a union queryset and `required=False`, cleaned with an empty value, gives an empty queryset.\n- Saving such a form adds no M2M relations.\n\n**Regression safety:**\n- All existing combinator-query and model-form tests must still pass.\n\nCoverage targets: unknown, so follow project norms.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the bug with a failing test before changing behavior.\n  - Keep `.none()` semantics consistent across plain, `|`-combined, and combinator querysets.\n  - Run the full relevant test suites before committing.\n- **Ask first:**\n  - Changing the public behavior of combinator querysets beyond the `.none()` case.\n  - Changing `ModelMultipleChoiceField` / forms code. The fix is assumed to belong in the ORM.\n  - Adding backend-specific handling.\n  - Adding dependencies.\n- **Never:**\n  - Work around the bug only in the forms layer and leave `.none()` broken.\n  - Remove or weaken existing tests.\n  - Change unrelated set-operation behavior.\n\n## Success Criteria\n\n- [ ] A test showing that `union(...).none()` returns rows fails before the change and passes after it.\n- [ ] `.none()` on `intersection()` and `difference()` querysets also returns no rows, on backends that support those operations.\n- [ ] `count()` and `exists()` on a `.none()`'d combined queryset return `0` and `False`.\n- [ ] Cleaning a `ModelMultipleChoiceField` with an empty value and a union queryset (`required=False`) gives no objects, and saving the form adds no relations.\n- [ ] `.none()` on plain and `|`-combined querysets behaves the same as before.\n- [ ] All existing combinator-query and model-form tests pass.\n\n## Open Questions\n\n1. Which Django version(s) are affected, and which branch should the fix target?\n2. Does the defect also affect `intersection()` and `difference()`, or only `union()`? The spec assumes all three.\n3. What should happen when `.none()` is called on one of the *inputs* to a combinator, e.g. `qs1.none().union(qs2)`? Is that in scope or a separate issue?\n4. Should further operations on a `.none()`'d combined queryset (e.g. `order_by()`, `values()`, slicing) be covered explicitly by tests?\n5. Should documentation mention `.none()` on combined querysets, or is this a pure bug fix with a release note only?\n6. What are the exact test, build, and lint commands and test module locations in the repository? These are currently unknown.",
+ "ttft_ms": 3034,
+ "type": "result",
+ "duration_ms": 27522,
+ "uuid": "38793f81-5cc8-4450-a547-67ee92b959dc",
+ "ttft_stream_ms": 1416,
+ "time_to_request_ms": 231,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 197,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 189,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1416,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

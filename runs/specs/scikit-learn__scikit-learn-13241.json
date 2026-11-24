@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32463,
+ "stop_reason": "end_turn",
+ "session_id": "51abea17-bc2f-4ef1-ac48-22f5d86187b7",
+ "total_cost_usd": 0.0694131,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 940,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3039,
+  "output_tokens_details": {
+   "thinking_tokens": 341
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 940,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3039,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 940,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 940
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1523,
+   "outputTokens": 180,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00024230000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 155,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3039,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 940,
+   "webSearchRequests": 0,
+   "costUSD": 0.0691708,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 341,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Deterministic Output Signs for `KernelPCA` (rbf kernel)\n\n## Objective\n\n**Problem.** A user runs `KernelPCA(n_components=7, kernel='rbf', copy_X=False, n_jobs=-1).fit_transform(X)` several times on the same dataset (scikit-learn 0.18.1). The absolute values match across runs, but the signs of individual components differ. Each component flips on its own, as the three reported runs show:\n\n| Run | c1 | c2 | c3 | c4 | c5 | c6 | c7 |\n|---|---|---|---|---|---|---|---|\n| 1 | \u2212 | \u2212 | \u2212 | + | \u2212 | \u2212 | + |\n| 2 | + | + | + | \u2212 | \u2212 | \u2212 | \u2212 |\n| 3 | \u2212 | \u2212 | + | + | + | + | + |\n\n**Background.** An eigenvector is only defined up to sign, so `v` and `\u2212v` are both valid kernel principal components. Both answers are mathematically correct. The problem is that the output is not reproducible. Downstream users expect repeated calls on identical input to return identical output. This matters for pipelines, caching, model comparison and tests.\n\n**Goal.** Make the signs of `KernelPCA` components deterministic for identical input and identical parameters. Do this through a deterministic sign convention, by documenting the behaviour, or both. Which of these is in scope is an open question.\n\n**Users.** scikit-learn users who use `KernelPCA` for dimensionality reduction and need reproducible embeddings.\n\n**User stories**\n- As a user, when I call `fit_transform(X)` repeatedly on the same `X` with the same parameters, I get identical output, signs included.\n- As a user, if sign indeterminacy is inherent to the method, the documentation tells me so and tells me how to get reproducible results (for example by setting a seed or choosing a solver, if applicable).\n\n## Assumptions\n\n1. The variation comes from the eigen-decomposition step. One likely source is an iterative solver started from a random vector. The other is the eigenvector sign ambiguity itself. Neither has been checked in code; the code is not visible.\n2. The rbf kernel is not special. Any kernel whose eigenproblem goes through the same solver path is probably affected. The issue only demonstrates rbf.\n3. `n_jobs=-1` and `copy_X=False` are not the cause. They should not affect eigenvector signs. Unverified.\n4. The user did not pass a random seed. Whether `KernelPCA` in 0.18.1 accepts one, and what it controls, is unknown from the issue.\n5. Any fix will target the current development version, not 0.18.1.\n6. The fix must not change the magnitudes or ordering of components, or the subspace they span. Only the signs may become canonical.\n7. A sign convention similar to the one used elsewhere in the library for SVD-based decompositions is acceptable, if one exists. Not verified.\n\n## Tech Stack\n\n- Python, scikit-learn (reported version 0.18.1). The target version for the fix is unknown.\n- NumPy/SciPy eigen-solvers, assumed. The exact solvers used by `KernelPCA` are unknown from the issue.\n\n## Commands\n\n- Build: unknown\n- Test: unknown\n- Lint: unknown\n- Reproduce: unknown as a runnable command. The issue gives only this snippet, and `X` is not provided:\n  ```python\n  pca = KernelPCA(n_components=7, kernel='rbf', copy_X=False, n_jobs=-1)\n  pca.fit_transform(X)\n  ```\n\n## Project Structure\n\nUnknown. The location of the `KernelPCA` implementation, its tests and its documentation is not visible in the issue.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the module that contains `KernelPCA`. No code snippet is available.\n\n## Testing Strategy\n\n- **Framework:** unknown. Use the project's existing test framework and layout.\n- **Regression test (required):**\n  - Fit `KernelPCA` with `kernel='rbf'` and `n_components=7` several times on the same fixed dataset.\n  - Assert that the outputs are exactly or numerically equal, signs included.\n  - Cover every eigen-solver option that `KernelPCA` exposes, including the automatic choice.\n  - Cover dataset sizes that trigger each solver path. The thresholds are unknown.\n- **Invariance test:** compare outputs from different solvers on the same data. They should agree up to numerical tolerance after any sign convention is applied, if that is in scope.\n- **Non-regression:**\n  - Absolute values of transformed data are unchanged by the fix.\n  - Explained eigenvalues are unchanged.\n  - `transform` on new data stays consistent with `fit_transform`.\n  - `inverse_transform` still works, if applicable.\n- **Coverage expectations:** unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep the component subspace, eigenvalues and ordering unchanged.\n  - Add a regression test that reproduces the sign flip.\n  - Make `fit_transform` and `fit(...).transform(...)` use the same sign convention.\n- **Ask first:**\n  - Introducing or changing a public parameter, such as a random seed or a solver default.\n  - Changing results for existing users. A canonical sign convention will flip signs relative to some current outputs, which is a behaviour change that needs a changelog note.\n  - Changing behaviour of other decomposition estimators.\n- **Never:**\n  - Change magnitudes or the selection of components.\n  - Remove or weaken existing tests to accommodate the change.\n  - Claim that the issue is fixed if signs can still vary across solver paths without documentation saying so.\n\n## Success Criteria\n\n1. On a fixed dataset, repeated `KernelPCA(n_components=7, kernel='rbf').fit_transform(X)` calls return identical output (`np.allclose`, signs included) in the same environment, for every solver path.\n2. Repeated `fit(X).transform(X)` calls are equally deterministic and match `fit_transform(X)`.\n3. Absolute values of the output and the fitted eigenvalues are numerically equal to pre-fix values.\n4. The sign behaviour is documented in the `KernelPCA` docstring: either the deterministic convention that is applied, or the inherent indeterminacy and how to control it.\n5. A regression test exists that fails on the current code and passes after the change.\n6. A changelog entry notes that output signs may differ from previous versions, if a canonical sign convention is adopted.\n\n## Open Questions\n\n1. **Resolution type.** Should this be fixed in code (deterministic sign convention), handled in documentation only (\"signs are arbitrary\"), or both?\n2. **Root cause.** Is the run-to-run variation caused by a randomly initialised iterative eigen-solver? Or does it also occur with the dense or exact solver? This affects whether seeding alone is sufficient.\n3. **Determinism scope.** Is determinism required only across repeated runs in the same environment, or also across eigen-solvers, platforms and BLAS/LAPACK backends?\n4. **Sign convention.** If a convention is adopted, which one? For example, the largest-absolute-value entry of each eigenvector is positive. Should it match an existing convention used by other decomposition estimators in the library?\n5. **Random seed.** Does `KernelPCA` already expose a random seed parameter for its solver? If not, is adding one acceptable?\n6. **Reproduction data.** Can the reporter provide `X` (or its shape and dtype) and confirm which solver was used? This determines which code path to test.\n7. **Backward compatibility.** Is a one-time change of output signs for existing users acceptable, and does it need a deprecation period or only a changelog note?\n8. **Other kernels and estimators.** Should the fix cover all kernels, and possibly other estimators that share the same eigen-decomposition code? Or only `KernelPCA`?\n9. **Target version.** Which release or branch should receive the fix? 0.18.1 itself is assumed to be out of scope.",
+ "ttft_ms": 5338,
+ "type": "result",
+ "duration_ms": 30174,
+ "uuid": "5ac14366-1ef0-4d24-97ef-ef4a01966d0f",
+ "ttft_stream_ms": 1595,
+ "time_to_request_ms": 284,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 23,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 206,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 34,
+ "time_to_request_cpu_ms": 285,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1596,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

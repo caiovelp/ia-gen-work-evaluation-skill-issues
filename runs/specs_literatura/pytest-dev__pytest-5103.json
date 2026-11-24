@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10838,
+ "stop_reason": "end_turn",
+ "session_id": "7801cfea-bdad-46c8-8940-41831339052e",
+ "total_cost_usd": 0.0350476,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1672,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1073,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1672,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1073,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1672,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1672
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1906,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002036,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1073,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1672,
+   "webSearchRequests": 0,
+   "costUSD": 0.034844,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nUnroll the iterable passed to `all()`/`any()` calls in assertions so that failure reports show which element failed.\n\n## Description\nUsing the built-in `all()` or `any()` to assert a predicate over an iterable is concise. When such an assertion fails, however, pytest's report does not show which element caused the failure.\n\nThe same test written three ways gives these results:\n\n**1. Generator expression**\n```sh\n    def test_all_even():\n        even_stevens = list(range(1,100,2))\n>       assert all(is_even(number) for number in even_stevens)\nE       assert False\nE        +  where False = all(<generator object test_all_even.<locals>.<genexpr> at 0x101f82ed0>)\n```\nThe report shows only the generator object, which gives no useful information.\n\n**2. List comprehension**\n```sh\n    def test_all_even():\n        even_stevens = list(range(1,100,2))\n>       assert all([is_even(number) for number in even_stevens])\nE       assert False\nE        +  where False = all([False, False, False, False, False, False, ...])\n```\nThe report shows a list of boolean results but not the input values that produced them.\n\n**3. For loop**\n```sh\n    def test_all_even():\n        even_stevens = list(range(1,100,2))\n        for number in even_stevens:\n>           assert is_even(number)\nE           assert False\nE            +  where False = is_even(1)\n\ntest_all_any.py:7: AssertionError\n```\nOnly this form gives a meaningful report, identifying the failing call `is_even(1)`.\n\n## Product version\n- pytest 4.4.0\n- Python 3.7.3\n- Platform: darwin (macOS)\n- py 1.8.0, pluggy 0.9.0\n\nFull `pip list` of the environment:\n```\nPackage        Version\n-------------- -------\natomicwrites   1.3.0\nattrs          19.1.0\nmore-itertools 7.0.0\npip            19.0.3\npluggy         0.9.0\npy             1.8.0\npytest         4.4.0\nsetuptools     40.8.0\nsix            1.12.0\n```\n\n## Rationale\n- `all()`/`any()` are a natural and concise way to assert a predicate over an iterable, but their failure messages are not useful for debugging.\n- The for-loop form gives a good report but is much more verbose.\n- `all()`-style assertions do not translate cleanly into a for loop. Doing so requires a `break` or a helper function, which the author considers undesirable.\n- Users should not have to give up concise test code to get informative failure reports.\n\n## Use case or scenario\nA developer wants to assert that every element of a collection satisfies a predicate, for example that every number in `even_stevens = list(range(1,100,2))` is even, using `assert all(is_even(number) for number in even_stevens)`. When the assertion fails, the developer wants the report to identify the specific failing element (e.g., `where False = is_even(1)`), as the for-loop version does, rather than an opaque generator object or a list of `False` values.\n\n## Possible solution\nThe original request proposes that pytest's assertion rewriter \"unroll\" the iterable in `all()`/`any()` calls into the equivalent for-loop form (form 3 above). The existing assertion reporting would then produce a detailed message for the failing element.",
+ "ttft_ms": 10177,
+ "type": "result",
+ "duration_ms": 10199,
+ "uuid": "df119bbd-e308-46f1-98f9-d03dc5fceaaa",
+ "ttft_stream_ms": 2016,
+ "time_to_request_ms": 256,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 17,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 205,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 225,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2016,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,19 @@
+diff --git a/sympy/printing/mathematica.py b/sympy/printing/mathematica.py
+index 4c2ffd81e..6931d0217 100755
+--- a/sympy/printing/mathematica.py
++++ b/sympy/printing/mathematica.py
+@@ -106,6 +106,14 @@ def _print_Integral(self, expr):
+             args = expr.args
+         return "Hold[Integrate[" + ', '.join(self.doprint(a) for a in args) + "]]"
+ 
++    def _print_Derivative(self, expr):
++        return "D[" + ', '.join(self.doprint(a) for a in
++                                     [expr.expr] + list(expr.variables)) + "]"
++
++    def _print_Float(self, expr):
++        res = StrPrinter._print_Float(self, expr)
++        return res.replace('e', '*^')
++
+     def _print_Sum(self, expr):
+         return "Hold[Sum[" + ', '.join(self.doprint(a) for a in expr.args) + "]]"
+ 

@@ -1,0 +1,113 @@
+diff --git a/.github/workflows/rubyonrails.yml b/.github/workflows/rubyonrails.yml
+index dc3c92af..ba8e0a39 100644
+--- a/.github/workflows/rubyonrails.yml
++++ b/.github/workflows/rubyonrails.yml
+@@ -1,7 +1,14 @@
+ # This workflow will install a prebuilt Ruby version, install dependencies, and run tests.
+ name: "Ruby on Rails CI"
+ 
+-on: [push, pull_request]
++on:
++  push:
++  pull_request:
++  # O audit depende do tempo, nao do codigo: uma CVE nova torna o lock
++  # vulneravel sem push algum. Neste gatilho roda so o job `checks`, e nele
++  # so o Audit.
++  schedule:
++    - cron: "0 6 * * 1"
+ 
+ # No job writes to the repository contents: only checkout, setup and artifact
+ # upload. The qlty upload uses secrets.QLTY_COVERAGE_TOKEN; the GitHub coverage
+@@ -11,7 +18,53 @@ permissions:
+   contents: read
+ 
+ jobs:
++  # Checagens estaticas: nao dependem de navegador nem de banco, entao rodam
++  # uma vez so, em paralelo com `test` e sem `needs` -- encadear atrasaria a
++  # suite e traria de volta um vermelho escondendo o outro. O portao e a branch
++  # protection exigindo os dois status.
++  checks:
++    runs-on: ubuntu-latest
++    env:
++      RAILS_ENV: test
++      BUNDLE_WITHOUT: production
++
++    steps:
++      - name: Checkout code
++        uses: actions/checkout@v5
++
++      - name: Install Ruby and gems
++        uses: ruby/setup-ruby@v1
++        with:
++          bundler-cache: true
++          cache-version: 3
++
++      # O Gemfile nao declara piso de seguranca (">= x.y.z"): piso envelhece
++      # calado. O que garante que o lock nao carrega CVE conhecida e esta
++      # checagem, contra a base de advisories baixada na hora. Unico passo que
++      # roda no gatilho semanal.
++      - name: Audit
++        run: bundle exec bundle-audit check --update
++
++      - name: Lint
++        if: github.event_name != 'schedule'
++        run: bundle exec rubocop
++
++      # Modo relatorio ate o mantenedor triar os avisos existentes; depois, com
++      # um config/brakeman.ignore anotado, remover --no-exit-on-warn para virar
++      # portao, como o rubocop virou na #644.
++      - name: Brakeman
++        if: github.event_name != 'schedule'
++        run: bundle exec brakeman --no-pager --no-exit-on-warn
++
++      # O eager load le colunas pelo active_scaffold, entao precisa de esquema.
++      - name: Zeitwerk
++        if: github.event_name != 'schedule'
++        run: |
++          cp config/database.yml.example config/database.yml
++          bundle exec rake db:schema:load zeitwerk:check
++
+   test:
++    if: github.event_name != 'schedule'
+     runs-on: ubuntu-latest
+ 
+     # A suite roda nos dois navegadores que a aplicacao encontra: Chrome, que e o
+@@ -98,22 +151,6 @@ jobs:
+       - name: Set up database schema
+         run: bundle exec rake db:schema:load --trace
+ 
+-      # O Gemfile não declara piso de segurança (">= x.y.z"): piso envelhece
+-      # calado quando sai a correção seguinte, e passa a afirmar cobertura que
+-      # não existe. O que garante que o lock não carrega CVE conhecida é esta
+-      # checagem, contra a base de advisories baixada na hora. Ela também
+-      # acusa o rebaixamento silencioso do resolvedor, que era o argumento do
+-      # piso. Roda antes da suíte porque é rápida e falha barato.
+-      - name: Audit
+-        run: bundle exec bundle-audit check --update
+-
+-      # O rubocop está no Gemfile desde sempre e nenhum workflow o executava --
+-      # tanto que ficou quebrado por um bump de gem sem ninguém notar (#644). Com
+-      # as ofensas em zero, o gate é sustentável. Roda antes da suíte porque é
+-      # rápido e falha barato.
+-      - name: Lint
+-        run: bundle exec rubocop
+-
+       # --profile: os dez exemplos mais lentos de cada navegador ficam no log. A
+       # matriz mostrou o Firefox 1,5x mais lento que o Chrome no runner (e 2x
+       # mais rapido no Mac); so o perfil diz se a diferenca e uniforme, da
+@@ -193,6 +230,7 @@ jobs:
+           fail-on-error: false
+ 
+   smoke-test:
++    if: github.event_name != 'schedule'
+     runs-on: ubuntu-latest
+ 
+     env:
+@@ -232,6 +270,7 @@ jobs:
+   # Roda em MariaDB porque e o banco de producao, e porque so nele carrega o
+   # bloco atras de `unless is_sqlite` em db/seeds/02.reports_notifications.rb.
+   seed:
++    if: github.event_name != 'schedule'
+     runs-on: ubuntu-latest
+ 
+     services:

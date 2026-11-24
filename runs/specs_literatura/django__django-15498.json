@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6017,
+ "stop_reason": "end_turn",
+ "session_id": "8200a0ae-fb47-4b1a-999e-92c254df085e",
+ "total_cost_usd": 0.0173847,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1078,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 427,
+  "output_tokens_details": {
+   "thinking_tokens": 61
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1078,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 427,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1078,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1078
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1287,
+   "outputTokens": 168,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00021270000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 145,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 427,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1078,
+   "webSearchRequests": 0,
+   "costUSD": 0.017172,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 61,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAn empty string value for the `If-Modified-Since` HTTP header now raises an exception. It used to be ignored. The report says this regression started with commit `d6aff369ad3`.\n\n## Steps to reproduce\n1. Use a version that includes commit `d6aff369ad3`.\n2. Send a request where the `If-Modified-Since` header is set to an empty string (`\"\"`).\n3. Let the request go through the code that handles `If-Modified-Since`.\n\n(The original report does not give the exact entry point, function or request setup.)\n\n## Observed behavior\nAn exception is raised when the `If-Modified-Since` header is an empty string.\n\n## Expected behavior\nAn empty `If-Modified-Since` header should be ignored, as it was before commit `d6aff369ad3`.\n\n## Stack trace / error output\nNot provided in the original report.\n\n## Test case\nNot provided in the original report.\n\n## Code example\nNot provided in the original report.\n\n## Version and environment\n- The regression was introduced in commit `d6aff369ad3`. The behavior was correct before this commit.\n- No other version or environment details are provided in the original report.",
+ "ttft_ms": 2077,
+ "type": "result",
+ "duration_ms": 5095,
+ "uuid": "ef5c881e-1959-4083-a14d-6556c68287d2",
+ "ttft_stream_ms": 1406,
+ "time_to_request_ms": 300,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 25,
+  "engine_pickup": 2,
+  "message_prep": 2,
+  "model_config_wait": 214,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 6
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 49,
+ "time_to_request_cpu_ms": 337,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1407,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

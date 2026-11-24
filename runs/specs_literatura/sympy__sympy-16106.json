@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12883,
+ "stop_reason": "end_turn",
+ "session_id": "4677bc60-9ae7-4724-9aa0-b23cb1f7a078",
+ "total_cost_usd": 0.0447496,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1811,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1502,
+  "output_tokens_details": {
+   "thinking_tokens": 150
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1811,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1502,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1811,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1811
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2041,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002136,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1502,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1811,
+   "webSearchRequests": 0,
+   "costUSD": 0.044536,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 150,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAdd MathML printer support for `IndexedBase` / `Indexed` objects\n\n## Description\nConverting an `Indexed` object (created by indexing an `IndexedBase`) to MathML with `sympy.printing.mathml` fails with `TypeError: 'Indexed' object is not iterable`.\n\nThe MathML printer has no specific print method for `Indexed`, so it falls back to `_print_Basic`, which tries to iterate over the expression (`for arg in e:`). Because `Indexed` objects are not iterable, this raises the exception.\n\nThe failure also occurs for more complex expressions in which at least one element is `Indexed`.\n\n**Steps to reproduce:**\n\n```\nIn [340]: sympy.__version__\nOut[340]: '1.0.1.dev'\n\nIn [341]: from sympy.abc import (a, b)\n\nIn [342]: sympy.printing.mathml(sympy.IndexedBase(a)[b])\n```\n\n**Actual result:**\n\n```\n---------------------------------------------------------------------------\nTypeError                                 Traceback (most recent call last)\n<ipython-input-342-b32e493b70d3> in <module>()\n----> 1 sympy.printing.mathml(sympy.IndexedBase(a)[b])\n\n/dev/shm/gerrit/venv/stable-3.5/lib/python3.5/site-packages/sympy/printing/mathml.py in mathml(expr, **settings)\n    442 def mathml(expr, **settings):\n    443     \"\"\"Returns the MathML representation of expr\"\"\"\n--> 444     return MathMLPrinter(settings).doprint(expr)\n    445 \n    446 \n\n/dev/shm/gerrit/venv/stable-3.5/lib/python3.5/site-packages/sympy/printing/mathml.py in doprint(self, expr)\n     36         Prints the expression as MathML.\n     37         \"\"\"\n---> 38         mathML = Printer._print(self, expr)\n     39         unistr = mathML.toxml()\n     40         xmlbstr = unistr.encode('ascii', 'xmlcharrefreplace')\n\n/dev/shm/gerrit/venv/stable-3.5/lib/python3.5/site-packages/sympy/printing/printer.py in _print(self, expr, *args, **kwargs)\n    255                 printmethod = '_print_' + cls.__name__\n    256                 if hasattr(self, printmethod):\n--> 257                     return getattr(self, printmethod)(expr, *args, **kwargs)\n    258             # Unknown object, fall back to the emptyPrinter.\n    259             return self.emptyPrinter(expr)\n\n/dev/shm/gerrit/venv/stable-3.5/lib/python3.5/site-packages/sympy/printing/mathml.py in _print_Basic(self, e)\n    356     def _print_Basic(self, e):\n    357         x = self.dom.createElement(self.mathml_tag(e))\n--> 358         for arg in e:\n    359             x.appendChild(self._print(arg))\n    360         return x\n\nTypeError: 'Indexed' object is not iterable\n```\n\n**Expected result:**\nA MathML representation of the indexed expression, without an exception.\n\n## Product version\nSymPy `1.0.1.dev` (Python 3.5)\n\n## Rationale\nAt present, no expression that contains an `Indexed` element can be exported to MathML. This applies both to a single indexed object and to any larger expression that contains one. Users who work with indexed quantities therefore cannot use the MathML printer at all for those expressions.\n\n## Use case or scenario\nA user builds an expression with an indexed symbol, such as `IndexedBase(a)[b]`, either alone or inside a more complex expression. The user then wants to convert it to MathML with `sympy.printing.mathml(...)`.\n\n## Possible solution\nThe title of the request suggests adding a dedicated MathML printer for `IndexedBase` (and its `Indexed` objects). The printer would then no longer fall back to the generic `_print_Basic` method, which fails. No further implementation details were provided in the original request.",
+ "ttft_ms": 2867,
+ "type": "result",
+ "duration_ms": 12389,
+ "uuid": "c951bef7-70eb-4384-8b20-71a04a238d90",
+ "ttft_stream_ms": 1425,
+ "time_to_request_ms": 254,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 233,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1426,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

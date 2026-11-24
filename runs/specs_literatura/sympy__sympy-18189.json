@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13158,
+ "stop_reason": "end_turn",
+ "session_id": "f54dc012-eb36-4130-8968-278bd460c146",
+ "total_cost_usd": 0.0386587,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1333,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1391,
+  "output_tokens_details": {
+   "thinking_tokens": 329
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1333,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1391,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1333,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1333
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1547,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001667,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1391,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1333,
+   "webSearchRequests": 0,
+   "costUSD": 0.038492,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 329,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWith `permute=True`, `diophantine` returns an incomplete set of solutions depending on the order of symbols passed in `syms`. For the equation `n**4 + m**4 - 2**4 - 3**4`, `syms=(m, n)` returns all 8 signed and permuted solutions, but `syms=(n, m)` returns only `{(3, 2)}`.\n\n## Steps to reproduce\n\n1. Make `m` and `n` available as symbols. The original report does not show how they were defined.\n2. Run:\n   ```python\n   diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(m, n), permute=True)\n   ```\n   and note the result.\n3. Run the same call with the symbol order reversed:\n   ```python\n   diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(n, m), permute=True)\n   ```\n4. Compare the two results.\n\n## Observed behavior\n\nWith `syms=(m, n)`, the full set of 8 solutions is returned:\n```\n{(-3, -2), (-3, 2), (-2, -3), (-2, 3), (2, -3), (2, 3), (3, -2), (3, 2)}\n```\n\nWith `syms=(n, m)`, only one solution is returned:\n```\n{(3, 2)}\n```\n\n## Expected behavior\n\nThe result should not depend on the order of `syms`, except for the order of values within each tuple. With `syms=(n, m)` and `permute=True`, the call should return the complete set of solutions, the same as with `syms=(m, n)`. Because the equation is symmetric in `m` and `n`, the expected set is:\n```\n{(-3, -2), (-3, 2), (-2, -3), (-2, 3), (2, -3), (2, 3), (3, -2), (3, 2)}\n```\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the function returns incomplete results.\n\n## Test case\n\nMinimal test derived from the report's snippet. The symbol setup is assumed, since the report does not show it.\n\n```python\n# assumes m, n are symbols and diophantine is imported (setup not shown in the original report)\nfull = {(-3, -2), (-3, 2), (-2, -3), (-2, 3), (2, -3), (2, 3), (3, -2), (3, 2)}\neq = n**4 + m**4 - 2**4 - 3**4\n\nassert diophantine(eq, syms=(m, n), permute=True) == full  # passes per report\nassert diophantine(eq, syms=(n, m), permute=True) == full  # fails: returns {(3, 2)}\n```\n\n## Code example\n\n```\nIn [10]: diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(m,n), permute=True)\nOut[10]: {(-3, -2), (-3, 2), (-2, -3), (-2, 3), (2, -3), (2, 3), (3, -2), (3, 2)}\n\nIn [11]: diophantine(n**4 + m**4 - 2**4 - 3**4, syms=(n,m), permute=True)\nOut[11]: {(3, 2)}\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 4970,
+ "type": "result",
+ "duration_ms": 12656,
+ "uuid": "2a7148fd-511e-47fd-bdad-2b9359c44b71",
+ "ttft_stream_ms": 1315,
+ "time_to_request_ms": 243,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 0,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 20,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 198,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 187,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1315,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

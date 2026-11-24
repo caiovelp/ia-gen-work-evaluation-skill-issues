@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33404,
+ "stop_reason": "end_turn",
+ "session_id": "9b3867d0-3c25-400b-b4c3-c7b897fda8b7",
+ "total_cost_usd": 0.07677119999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1055,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3364,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1055,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3364,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1055,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1055
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1639,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018040000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3364,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1055,
+   "webSearchRequests": 0,
+   "costUSD": 0.07659079999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore Correct Shape for `Matrix.hstack` / `Matrix.vstack` with Zero-Dimension Matrices\n\n## Assumptions\n\n1. The 1.0 behavior (`(0, 6)`) is the correct, intended behavior, and the 1.1 result (`(0, 3)`) is a regression, not a deliberate change.\n2. `hstack` and `vstack` should be symmetric. The issue only demonstrates `hstack`, but the title names `vstack` as well. So `vstack` of matrices with shapes `(0,0), (1,0), (2,0), (3,0)` is assumed to have the same defect and should return `(6, 0)`.\n3. The likely root cause is an internal shortcut for \"empty\" (null) matrices. For example, a join path that discards or replaces a matrix when `rows == 0` or `cols == 0`, which drops the column count of the preceding accumulated result. This is an unverified hypothesis. The repository was not inspected.\n4. The fix belongs in the shared matrix base or common layer that all matrix classes inherit from. It is not specific to the mutable dense `Matrix` class. The exact module and file are unknown.\n5. Shape rules follow standard block-matrix concatenation:\n   - **hstack:** the result has the common row count and the **sum** of column counts.\n   - **vstack:** the result has the **sum** of row counts and the common column count.\n   - A zero-size dimension is still a valid dimension that must agree or be summed.\n6. Matrices with a mismatched non-joined dimension should still raise a shape error. For example, hstack of `(0, 2)` and `(1, 2)` should fail. The exception is a fully empty `(0, 0)` matrix: it is assumed to be compatible with any shape, as it was in 1.0. This needs confirmation (see Open Questions).\n7. Element values and order in the result must be unchanged for non-degenerate inputs.\n\n## Objective\n\nRestore correct, consistent shape computation for `Matrix.hstack` and `Matrix.vstack` when any input matrix has a zero dimension.\n\n- **User:** SymPy users who build matrices incrementally or programmatically. In this kind of code, empty blocks such as `(0, n)` and `(n, 0)` occur naturally.\n- **Problem:** In SymPy 1.1, `Matrix.hstack` of `(0,0), (0,1), (0,2), (0,3)` returns shape `(0, 3)`. In SymPy 1.0 it returned `(0, 6)`.\n- **Inconsistency:** The equivalent case with one row works correctly. Shapes `(1,0), (1,1), (1,2), (1,3)` give `(1, 6)`.\n- **Why it matters:** The wrong shape silently corrupts downstream shape logic. Later operations then fail, or worse, succeed with the wrong dimensions.\n\n**Acceptance criteria (user stories):**\n\n- As a user, when I hstack matrices with 0 rows, the column counts are summed, exactly as they are for matrices with \u22651 row.\n- As a user, when I vstack matrices with 0 columns, the row counts are summed, exactly as they are for matrices with \u22651 column.\n- As a user, I get the same shape results regardless of the concrete matrix class:\n  - mutable dense\n  - immutable dense\n  - sparse variants, if they share `hstack`/`vstack`\n\n## Tech Stack\n\n- Language: Python. The supported versions for this SymPy line are unknown.\n- Library: SymPy. The regression was introduced between 1.0 and 1.1. The target branch or version for the fix is unknown.\n- Relevant APIs: `Matrix.hstack`, `Matrix.vstack`, `Matrix.zeros`, `.shape`. The underlying `row_join`/`col_join` may be involved; this is unverified.\n\n## Commands\n\n| Purpose | Command |\n|---|---|\n| Reproduce | `python -c \"import sympy as sy; print(sy.Matrix.hstack(*[sy.Matrix.zeros(0, i) for i in range(4)]).shape)\"`, expected `(0, 6)` |\n| Build | Unknown (not visible in issue) |\n| Test | Unknown (project test runner and invocation not visible in issue) |\n| Lint | Unknown |\n\n## Project Structure\n\nUnknown. The issue does not show the repository layout, so the following are all unknown:\n\n- the location of the matrix source modules\n- which module defines `hstack`/`vstack`\n- where matrix tests live\n\n## Code Style\n\nUnknown from the issue. Follow the existing conventions of the SymPy matrices module and its test files. New tests should mirror the reproduction style from the issue:\n\n```python\nM1 = Matrix.zeros(0, 0)\nM2 = Matrix.zeros(0, 1)\nM3 = Matrix.zeros(0, 2)\nM4 = Matrix.zeros(0, 3)\nassert Matrix.hstack(M1, M2, M3, M4).shape == (0, 6)\n```\n\n## Testing Strategy\n\n- **Level:** Unit tests in the existing matrix test suite. The location and framework are unknown; the framework is presumably whatever SymPy's matrix tests already use.\n- **Regression cases (required):**\n  - hstack of `(0,0),(0,1),(0,2),(0,3)` \u2192 `(0, 6)`\n  - vstack of `(0,0),(1,0),(2,0),(3,0)` \u2192 `(6, 0)`\n  - hstack of `(1,0),(1,1),(1,2),(1,3)` \u2192 `(1, 6)` (must remain correct)\n  - vstack of `(0,1),(1,1),(2,1),(3,1)` \u2192 `(6, 1)`\n- **Edge cases:**\n  - hstack/vstack with a single argument returns that matrix's shape.\n  - hstack/vstack with no arguments: existing behavior is preserved (unknown; see Open Questions).\n  - All inputs `(0,0)` \u2192 `(0, 0)`.\n  - `(0, 0)` appears at the start, the middle, and the end of the argument list.\n  - Mixed zero-width and non-zero-width blocks, e.g. hstack of `(2,0),(2,3),(2,0)` \u2192 `(2, 3)`, with element values preserved.\n- **Error cases:** Incompatible non-joined dimensions still raise the existing shape error. Example: hstack of `(0,2)` and `(1,2)`.\n- **Class coverage:** Run the regression cases against every matrix class that exposes `hstack`/`vstack`. The full list of classes is unknown.\n- **Direct joins:** Cover `row_join`/`col_join` directly with the same empty-dimension cases if they are the underlying mechanism.\n- **Coverage expectation:** All new branches in the join or stack logic are exercised. The project's numeric coverage threshold is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests that fail before the fix and pass after.\n  - Keep `hstack`/`vstack` behavior symmetric.\n  - Preserve element values and ordering.\n  - Run the full matrix test suite.\n- **Ask first:**\n  - Changing which mismatched-shape combinations raise errors versus being accepted.\n  - Changing the special-case semantics of `(0, 0)` matrices.\n  - Touching sparse-matrix-specific join implementations.\n  - Any change to public method signatures.\n- **Never:**\n  - Change the result for non-degenerate inputs.\n  - Remove or weaken existing tests.\n  - Special-case only the exact example from the issue instead of fixing the general rule.\n\n## Success Criteria\n\n1. `Matrix.hstack(Matrix.zeros(0,0), Matrix.zeros(0,1), Matrix.zeros(0,2), Matrix.zeros(0,3)).shape == (0, 6)`.\n2. `Matrix.vstack(Matrix.zeros(0,0), Matrix.zeros(1,0), Matrix.zeros(2,0), Matrix.zeros(3,0)).shape == (6, 0)`.\n3. `Matrix.hstack(Matrix.zeros(1,0), Matrix.zeros(1,1), Matrix.zeros(1,2), Matrix.zeros(1,3)).shape == (1, 6)` (unchanged).\n4. For any compatible inputs, the shape is determined by these two rules alone. It never depends on whether a dimension happens to be zero.\n   - hstack: rows are the common row count; columns are the sum of the column counts.\n   - vstack: rows are the sum of the row counts; columns are the common column count.\n5. Criteria 1\u20134 hold for every matrix class sharing these methods.\n6. Incompatible shapes still raise the same exception type as before.\n7. The existing matrix test suite passes with no modifications to existing assertions.\n\n## Open Questions\n\n1. Is the 1.0 result `(0, 6)` definitively the intended behavior? Did any 1.1 changelog or discussion intentionally alter empty-matrix stacking?\n2. Should a `(0, 0)` matrix stay universally compatible in hstack/vstack, acting as an identity element regardless of the other operands' shapes? Or should only matching non-joined dimensions be allowed? For example, should hstack of `(0,0)` and `(2,3)` succeed with `(2, 3)`?\n3. Should hstack of `(0, n)` and `(k, m)` with `k > 0` be an error, or be accepted? What did 1.0 do?\n4. Which matrix classes must be covered (dense mutable/immutable, sparse mutable/immutable, others)? Do any of them have their own `row_join`/`col_join` implementations?\n5. What is the expected behavior of `hstack()`/`vstack()` with zero arguments?\n6. Which branch or release should the fix target? Is a backport to the 1.1.x line required?\n7. What are the project's exact test, lint, and build commands, and where are the matrix tests located?",
+ "ttft_ms": 32847,
+ "type": "result",
+ "duration_ms": 32884,
+ "uuid": "2b70a38c-4591-48a8-b7a5-2569686df0b3",
+ "ttft_stream_ms": 1461,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 13,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 293,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1462,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

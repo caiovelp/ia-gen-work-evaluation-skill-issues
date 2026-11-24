@@ -1,0 +1,17 @@
+diff --git a/pylint/lint/expand_modules.py b/pylint/lint/expand_modules.py
+index 289e1afc..372eff45 100755
+--- a/pylint/lint/expand_modules.py
++++ b/pylint/lint/expand_modules.py
+@@ -32,6 +32,12 @@ def get_python_path(filepath: str) -> str:
+     dirname = os.path.realpath(os.path.expanduser(filepath))
+     if not os.path.isdir(dirname):
+         dirname = os.path.dirname(dirname)
++    elif not os.path.exists(os.path.join(dirname, "__init__.py")):
++        # A directory without __init__.py containing a module of the same name
++        # (a/a.py) would be shadowed by that module if it were on the path.
++        inner = os.path.join(dirname, os.path.basename(dirname))
++        if os.path.exists(inner + ".py") or os.path.isdir(inner):
++            return os.path.dirname(dirname)
+     while True:
+         if not os.path.exists(os.path.join(dirname, "__init__.py")):
+             return dirname

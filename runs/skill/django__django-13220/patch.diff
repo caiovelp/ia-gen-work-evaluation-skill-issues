@@ -1,0 +1,42 @@
+diff --git a/django/core/exceptions.py b/django/core/exceptions.py
+index dc084b8692..1affe895ee 100755
+--- a/django/core/exceptions.py
++++ b/django/core/exceptions.py
+@@ -1,6 +1,7 @@
+ """
+ Global Django exception and warning classes.
+ """
++from django.utils.hashable import make_hashable
+ 
+ 
+ class FieldDoesNotExist(Exception):
+@@ -182,6 +183,29 @@ class ValidationError(Exception):
+     def __repr__(self):
+         return 'ValidationError(%s)' % self
+ 
++    def _key(self):
++        def errors_key(errors):
++            counts = {}
++            for error in errors:
++                k = (str(error.message), error.code, make_hashable(error.params))
++                counts[k] = counts.get(k, 0) + 1
++            return frozenset(counts.items())
++
++        if hasattr(self, 'error_dict'):
++            return 'dict', frozenset(
++                (field, errors_key(errors))
++                for field, errors in self.error_dict.items()
++            )
++        return 'list', errors_key(self.error_list)
++
++    def __eq__(self, other):
++        if not isinstance(other, ValidationError):
++            return NotImplemented
++        return self._key() == other._key()
++
++    def __hash__(self):
++        return hash(self._key())
++
+ 
+ class EmptyResultSet(Exception):
+     """A database query predicate is impossible."""

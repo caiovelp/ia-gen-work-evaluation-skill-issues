@@ -1,0 +1,1 @@
+{"justificativa": "The candidate makes the same code change as the official fix: it puts :scholarship back into config.subform.columns, so the field reappears and is accepted when the record is saved. Only the explanatory comment is missing.", "veredito": "resolve"}

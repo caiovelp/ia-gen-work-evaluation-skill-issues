@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26683,
+ "stop_reason": "end_turn",
+ "session_id": "4882ab6f-e830-4eb8-869e-9415b756decd",
+ "total_cost_usd": 0.06004859999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 927,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2580,
+  "output_tokens_details": {
+   "thinking_tokens": 68
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 927,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2580,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 927,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 927
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1513,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016180000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2580,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 927,
+   "webSearchRequests": 0,
+   "costUSD": 0.05988679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 68,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore `pairplot` support for `hue_order` subsets of hue values\n\n## Objective\n\n**Problem.** In seaborn < 0.11, a user could plot a subset of the hue levels by passing a `hue_order` list containing only those levels. Rows whose hue value was not in `hue_order` were not plotted. In seaborn 0.11.1 the same call raises an exception instead. The first frame of the traceback is in `seaborn/_core.py`:\n\n```\nTypeError: ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\n```\n\n**Reproduction (from the issue):**\n\n```python\nimport seaborn as sns\niris = sns.load_dataset(\"iris\")\n# The hue column contains three species; plot only two\nsns.pairplot(iris, hue=\"species\", hue_order=[\"setosa\", \"versicolor\"])\n```\n\n**Who is affected.** Users of `sns.pairplot` who use `hue_order` to filter which hue levels appear. This is a regression from pre-0.11 behavior.\n\n**Goal.** Restore the pre-0.11 behavior. When `hue_order` is a strict subset of the values in the `hue` column, `pairplot` should:\n\n- succeed,\n- plot only observations whose hue value is in `hue_order`, and\n- order and color those levels according to `hue_order`.\n\n**User stories / acceptance**\n\n- As a user, I can call `pairplot(data, hue=col, hue_order=subset)` without an exception.\n- As a user, I can see that points, and diagonal univariate plots, for excluded hue levels are absent from every panel.\n- As a user, I can see that the legend lists only the levels in `hue_order`, in that order.\n\n## Assumptions\n\n1. The intended behavior is the pre-0.11 behavior: excluded levels are silently dropped, not reported as an error or warning.\n2. The failure comes from the hue-mapping layer in `seaborn/_core.py`. Hue values outside `hue_order` probably have no lookup entry, and the fallback path calls `np.isnan` on a non-numeric (string) key. This is inferred from the traceback and has not been verified against source.\n3. The same root cause may affect other functions that use the 0.11 hue-mapping core, such as `scatterplot` and `histplot` used on pairplot diagonals. The fix belongs in the shared layer, not only in `pairplot`.\n4. The default diagonal kind for `pairplot` with `hue` (KDE in 0.11) and the off-diagonal scatter both need to respect the subset.\n5. The issue does not depend on the matplotlib version or backend. It was reported on matplotlib 3.3.2 with the MacOSX, Agg and inline backends.\n6. A subset `hue_order` on a numeric hue variable is out of scope unless it shares the same code path. The reported case is categorical (string) hue.\n\n## Tech Stack\n\n- Python library: seaborn. The bug was reported on 0.11.1; the target version for the fix is unknown.\n- Dependencies seen in the issue: matplotlib 3.3.2, NumPy (`isnan` ufunc), and pandas (the iris DataFrame).\n- Exact supported version ranges are **unknown** (not visible in the issue).\n\n## Commands\n\nAll commands are **unknown**, because the repository is not visible:\n\n- Build/install: unknown\n- Test: unknown (likely pytest, but not confirmed)\n- Lint: unknown\n- Dev: N/A (library)\n\n## Project Structure\n\n- `seaborn/_core.py`: hue mapping core. This is where the first exception is raised, according to the issue.\n- Location of `pairplot` / `PairGrid`: **unknown** (not shown in the issue).\n- Test directory and file layout: **unknown**.\n- Docs and changelog location: **unknown**.\n\n## Code Style\n\n- Unknown. Follow the existing conventions in `seaborn/_core.py` and the surrounding test files.\n- No snippet is available from the repository.\n\n## Testing Strategy\n\n- **Regression test (required).** Reproduce the issue scenario: a categorical hue column with 3 levels and a `hue_order` containing 2 of them. Assert that `pairplot` completes without an exception.\n- **Behavioral assertions:**\n  - Off-diagonal axes contain only points from rows whose hue is in `hue_order`. Check this by artist count or by plotted offsets matching the filtered data.\n  - Diagonal axes draw one artist set per included level only.\n  - Legend entries equal `hue_order`, in order.\n- **Core-level test.** Exercise the hue mapping in `_core.py` directly with data containing levels outside the order list. Assert that no exception is raised and that excluded values are handled consistently, for example by mapping to a sentinel or being dropped. The exact contract is an open question.\n- **Guard tests.** Verify existing behavior is unchanged:\n  - `hue_order` equal to the full set,\n  - `hue_order` omitted,\n  - numeric hue.\n- Test framework, location and coverage requirements are **unknown**.\n- Avoid network access in tests. The bundled iris dataset may require a download, so prefer a small synthetic DataFrame.\n\n## Boundaries\n\n- **Always:**\n  - Add a failing regression test before the fix.\n  - Keep the fix in the shared hue-mapping layer if that is where the root cause is.\n  - Preserve existing behavior when `hue_order` covers all levels or is not given.\n  - Run the full test suite.\n- **Ask first:**\n  - Changing public signatures.\n  - Emitting a new warning for dropped levels.\n  - Changing behavior of other plotting functions (`scatterplot`, `histplot`, `kdeplot`, etc.) beyond what is needed to fix the shared bug.\n  - Adding dependencies.\n- **Never:**\n  - Mutate the user's input DataFrame.\n  - Silently change behavior for numeric hue.\n  - Remove or skip existing failing tests without approval.\n\n## Success Criteria\n\n1. `sns.pairplot(iris, hue=\"species\", hue_order=[\"setosa\", \"versicolor\"])` runs without exception on the target version.\n2. \"virginica\" observations do not appear in any panel, whether diagonal or off-diagonal.\n3. The legend shows exactly `[\"setosa\", \"versicolor\"]`, in that order, with palette colors assigned by position in `hue_order`.\n4. A regression test covering this scenario is added, fails before the fix and passes after.\n5. All existing tests pass.\n6. A full-set `hue_order` and an omitted `hue_order` produce output identical to the current behavior.\n\n## Open Questions\n\n1. Should excluded hue levels be dropped silently, as in pre-0.11, or should a warning be emitted?\n2. Should the fix apply to all functions built on the 0.11 hue-mapping core (e.g. `scatterplot(hue_order=subset)`), or only to `pairplot`? Do those functions currently fail the same way?\n3. What is the expected behavior for a numeric hue variable when `hue_order` is given as a subset?\n4. What should happen with data rows whose hue is NaN when `hue_order` is provided?\n5. Should `PairGrid` used directly (not through `pairplot`) also support subset `hue_order`, and is it currently broken?\n6. Which release branch or version should the fix target? Is a changelog or release-notes entry required, and where?\n7. What are the repository's test, lint and build commands, and where do the tests live?",
+ "ttft_ms": 2206,
+ "type": "result",
+ "duration_ms": 26144,
+ "uuid": "b077797a-962b-4245-8290-dac87f5573c8",
+ "ttft_stream_ms": 1598,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 213,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 138,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1598,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

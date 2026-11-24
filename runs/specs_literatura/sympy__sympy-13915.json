@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11039,
+ "stop_reason": "end_turn",
+ "session_id": "370889fe-0ff6-424b-aa1d-ad4add5f779f",
+ "total_cost_usd": 0.0320372,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1281,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1081,
+  "output_tokens_details": {
+   "thinking_tokens": 175
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1281,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1081,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1281,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1281
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1487,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016120000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1081,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1281,
+   "webSearchRequests": 0,
+   "costUSD": 0.031876,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 175,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn SymPy 1.1.1, `subs` returns `1` for an expression that is undefined at the substituted value. With `r = (1/(a+b) + 1/(a-b))/(1/(a+b) - 1/(a-b))`, `r.subs(b, a)` returns `1`. Substituting `b = a` makes the subexpression `1/(a-b)` undefined, so `r` itself should be undefined. For comparison, the limit `r.limit(b, a)` evaluates to `-1`, not `1`.\n\n## Steps to reproduce\n\n1. Start a Python session with SymPy 1.1.1 installed.\n2. Run `from sympy import *`.\n3. Define the symbols: `a, b = symbols('a,b')`.\n4. Build the expression: `r = (1/(a+b) + 1/(a-b))/(1/(a+b) - 1/(a-b))`.\n5. Evaluate `r.subs(b, a)`.\n\n## Observed behavior\n\n`r.subs(b, a)` returns `1`:\n\n```\nIn [4]: r.subs(b,a)\nOut[4]: 1\n```\n\n## Expected behavior\n\nThe result should be undefined. When `b` is replaced by `a`, the subexpression `1/(a-b)` becomes `1/0`. As the reporter puts it: \"whenever a subexpression of r is undefined, r itself is undefined.\"\n\nThe reporter also notes that the limit `r.limit(b, a)` gives `-1`. This shows that `1` is not the value of the expression as `b` approaches `a` either.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the call silently returns `1`.\n\n## Test case\n\n```python\nfrom sympy import symbols\n\ndef test_subs_into_undefined_subexpression():\n    a, b = symbols('a,b')\n    r = (1/(a+b) + 1/(a-b))/(1/(a+b) - 1/(a-b))\n    # 1/(a-b) is undefined at b == a, so r is undefined there;\n    # currently this returns 1\n    assert r.subs(b, a) != 1\n```\n\n## Code example\n\nFrom the original IPython session:\n\n```python\nfrom sympy import *\n\na, b = symbols('a,b')\nr = (1/(a+b) + 1/(a-b))/(1/(a+b) - 1/(a-b))\n\nr.subs(b, a)    # returns 1 (expected: undefined)\nr.limit(b, a)   # -1\n```\n\n## Version and environment\n\n- SymPy: 1.1.1\n- Python: 3.6.4 | Anaconda custom (64-bit) | (default, Dec 21 2017, 15:39:08)\n- IPython: 6.2.1\n- Operating system: Not provided in the original report.",
+ "ttft_ms": 3443,
+ "type": "result",
+ "duration_ms": 10442,
+ "uuid": "18669c37-5330-4e8f-8ea3-56f2bae6aaec",
+ "ttft_stream_ms": 1483,
+ "time_to_request_ms": 288,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 15,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 234,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 38,
+ "time_to_request_cpu_ms": 272,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1483,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

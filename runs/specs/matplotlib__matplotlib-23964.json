@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32753,
+ "stop_reason": "end_turn",
+ "session_id": "c18bcdcb-59b3-4e85-b989-e5c61d91452a",
+ "total_cost_usd": 0.08171740000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2523,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3017,
+  "output_tokens_details": {
+   "thinking_tokens": 90
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2523,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3017,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2523,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2523
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3106,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00032260000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3017,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2523,
+   "webSearchRequests": 0,
+   "costUSD": 0.0813948,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 90,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: PostScript backend handles empty lines in multi-line text\n\n## Objective\n\nSaving a figure with the PostScript backend (`.eps`, and likely `.ps`) fails with `TypeError: cannot unpack non-iterable NoneType object` when a text artist contains an empty line, for example `'\\nLower label'`. The goal is to let these figures save without error, matching the behavior of the PNG, PDF, SVG and Qt backends.\n\n**Users:** Matplotlib users who export figures to PostScript/EPS with multi-line text (annotations, titles, possibly other `Text` artists) that contain an empty line.\n\n**Regression context:** The issue reports this works in matplotlib \u2264 3.5.3 and fails in 3.6.0.\n\n**Observed failure path (from the traceback):**\n`Figure.savefig` \u2192 `backend_ps._print_ps` \u2192 `_print_figure` \u2192 `Figure.draw` \u2192 `Axes.draw` \u2192 `Annotation.draw` \u2192 `Text.draw` (text.py:736, called per line with `clean_line`) \u2192 `RendererPS.draw_text` (backend_ps.py:673, `for ps_name, xs_names in stream:`) \u2192 `TypeError`.\n\n**Reporter's hypothesis (not verified):** In `RendererPS.draw_text`, the code that builds `stream` appends the \"current stream\" without checking whether it is set. When the line string is empty, no glyph is processed, so the current stream stays `None` and a `None` entry reaches the unpacking loop. The reporter says that adding `if curr_stream:` before line 669 of `backend_ps.py` appears to fix it.\n\n### Acceptance criteria / user stories\n\n- As a user, I can save a figure whose annotation text is `'\\nLower label'` as `figure.eps` without an exception.\n- As a user, I can save a figure whose title is `'\\nLower title'` as EPS without an exception.\n- The rendered output still shows the non-empty lines in the same positions as before the regression, and the empty line still takes up vertical space.\n- Text without empty lines renders exactly as it does today, with no regression in PS output.\n\n## Assumptions\n\n1. The root cause is in `RendererPS.draw_text` in `matplotlib/backends/backend_ps.py`, which receives an empty string for the empty line. This is based on the traceback and the reporter's hint, and has not been confirmed against the source.\n2. The bug affects the default (non-usetex, non-mathtext) text path, i.e. the font-subsetting/glyph-stream path. The usetex and mathtext paths are assumed to be unaffected or out of scope unless investigation shows otherwise.\n3. Both `.eps` and `.ps` outputs go through the same `draw_text` code, so both are affected.\n4. Any text with an empty line triggers the failure, whether it is a leading empty line, a trailing one, a middle one, or an entirely empty string. Only the leading-empty-line case is confirmed by the issue.\n5. The fix should be minimal and local to the PS backend. No change to `Text.draw` line-splitting behavior is intended.\n6. The project uses pytest and has an existing test module for the PS backend. This is assumed, not seen; the exact path is unknown.\n7. The fix targets the current development branch, with a possible backport to the 3.6.x maintenance line.\n\n## Tech Stack\n\n- Python (the issue reports 3.9.13; the supported range is unknown)\n- Matplotlib: the bug is reported in 3.6.0, and 3.5.3 is the last known good version\n- Affected component: PostScript backend (`backend_ps.py`)\n- Other dependencies and versions: unknown\n\n## Commands\n\nAll commands are unknown because the repository is not visible.\n\n```\nBuild:   UNKNOWN\nTest:    UNKNOWN (likely a pytest invocation targeting the PS backend tests)\nLint:    UNKNOWN\nDev:     N/A\n```\n\nReproduction script (from the issue):\n\n```python\nfrom matplotlib.figure import Figure\n\nfigure = Figure()\nax = figure.add_subplot(111)\n# ax.set_title('\\nLower title')  # this would cause an error as well\nax.annotate(text='\\nLower label', xy=(0, 0))\nfigure.savefig('figure.eps')\n```\n\n## Project Structure\n\nOnly what the traceback reveals:\n\n```\nmatplotlib/backends/backend_ps.py  \u2192 PostScript backend; RendererPS.draw_text (failure site, ~line 669\u2013673 in 3.6.0)\nmatplotlib/text.py                 \u2192 Text.draw splits text into lines and calls renderer.draw_text per line (~line 736)\nmatplotlib/figure.py               \u2192 Figure.savefig entry point\nmatplotlib/backend_bases.py        \u2192 print_figure dispatch\n```\n\n- Location of the PS backend tests: UNKNOWN\n- Location of the changelog / release notes for bug fixes: UNKNOWN\n\n## Code Style\n\nUNKNOWN. Follow the existing conventions in `backend_ps.py`. Keep the change minimal, guard against the empty/`None` stream case at the point where it arises, and add no new public API.\n\n## Testing Strategy\n\n- **Framework:** assumed pytest (unverified).\n- **Regression test(s):** add tests to the existing PS backend test module (path unknown) that save to an in-memory buffer or a temporary file in PS/EPS format:\n  - an annotation whose text has a leading empty line (`'\\nLower label'`)\n  - a title with a leading empty line (`'\\nLower title'`)\n  - optionally, a middle empty line (`'A\\n\\nB'`), a trailing empty line (`'A\\n'`), and an empty string (`''`)\n- **Pass condition:** `savefig` completes without raising, for both `format='ps'` and `format='eps'`.\n- **Non-regression:** the existing PS backend tests, including any image-comparison tests, still pass.\n- **Optional:** check that the output contains the non-empty line's glyphs, so we know nothing was silently dropped.\n- **Coverage expectation:** UNKNOWN. At minimum, the new guard branch is exercised by a test.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the failure with the issue's script before changing code.\n  - Add a regression test that fails before the fix and passes after it.\n  - Run the existing PS backend tests.\n  - Keep the fix scoped to the PS backend.\n- **Ask first:**\n  - Changing `Text.draw` line-splitting, for example skipping empty lines before they reach renderers. This affects all backends.\n  - Changing the usetex or mathtext code paths.\n  - Modifying or regenerating baseline images.\n  - Backporting to maintenance branches.\n- **Never:**\n  - Swallow exceptions broadly (for example, a blanket `try/except` around `draw_text`).\n  - Change other backends' behavior.\n  - Remove or skip failing tests to make the suite pass.\n  - Change the public API.\n\n## Success Criteria\n\n1. The reproduction script from the issue runs without exception and produces `figure.eps`.\n2. The same holds with `ax.set_title('\\nLower title')`, and for `.ps` output.\n3. The regression tests cover at least the leading-empty-line case. They fail on the pre-fix code and pass after the fix.\n4. All existing PS backend tests pass unchanged.\n5. The visual output for text without empty lines is unchanged.\n6. For text with empty lines, the empty line still contributes vertical spacing, consistent with other backends such as PDF and SVG.\n\n## Open Questions\n\n1. Is the reporter's diagnosis correct, i.e. that the per-glyph stream builder in `draw_text` appends a `None` \"current stream\" when the line is empty? Or does an earlier code path return `None` for some other reason?\n2. Should the guard go where the stream is built (skip appending a `None` or empty stream), or should `draw_text` return early when given an empty string? Which approach matches the backend's conventions?\n3. Which change between 3.5.3 and 3.6.0 introduced this regression, for example a refactor of font subsetting or text streaming? Should that change be reviewed for related edge cases, such as strings made only of characters that produce no glyphs?\n4. Are the usetex and mathtext PS paths affected by empty lines as well? Should they be covered by this fix or by tests?\n5. Where do PS backend tests live, and is there a preferred pattern for \"saves without error\" tests (in-memory buffer vs. temp file)?\n6. Is a changelog / release note entry required for bug fixes, and where does it go?\n7. Should the fix be backported to 3.6.x?\n8. Is the whitespace-only line case (e.g. `'  \\nLabel'`) also relevant to verify?",
+ "ttft_ms": 2809,
+ "type": "result",
+ "duration_ms": 31989,
+ "uuid": "41a51eb7-0ca3-4300-8ed0-973d67893926",
+ "ttft_stream_ms": 1871,
+ "time_to_request_ms": 262,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 15,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 250,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 23,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1871,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

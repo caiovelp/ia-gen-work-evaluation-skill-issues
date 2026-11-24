@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22023,
+ "stop_reason": "end_turn",
+ "session_id": "6f58f72e-a694-4460-b23c-c219f310c0a8",
+ "total_cost_usd": 0.0792089,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 3808,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2416,
+  "output_tokens_details": {
+   "thinking_tokens": 309
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3808,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2416,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 3808,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3808
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4019,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0004169,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2416,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 3808,
+   "webSearchRequests": 0,
+   "costUSD": 0.078792,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 309,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nSince Django 3.2, every `ForeignObjectRel` has an `identity` property, which is a tuple used for comparison and for computing `__hash__`. Elements that might not be hashable, such as `limit_choices_to`, are passed through `make_hashable`. In `ManyToManyRel`, `through_fields` is not passed through `make_hashable`. `through_fields` can be a list, so hashing a `ManyToManyRel` whose `through_fields` is a list raises `TypeError: unhashable type: 'list'`.\n\nThe error appears when Django runs system checks on a project with a proxy model. The reporter guesses that this is because proxy models run more checks than regular models (29 vs. 24), but this is unconfirmed.\n\n## Steps to reproduce\n\n1. Define the following models in an app:\n   - `Parent`, a concrete model.\n   - `ProxyParent`, a proxy of `Parent`.\n   - `Child`, which has a `ManyToManyField` to `Parent` through an explicit model `ManyToManyModel`, with `through_fields` given as a **list** (`['child', 'parent']`).\n   - `ManyToManyModel`, the intermediate model.\n2. Run any `manage.py` command that performs system checks, for example `python manage.py check`.\n3. The command fails during model checks (`_check_field_name_clashes`).\n\n## Observed behavior\n\nThe system check framework crashes with `TypeError: unhashable type: 'list'`. The error comes from `ForeignObjectRel.__hash__` (`return hash(self.identity)`) while `Model._check_field_name_clashes` evaluates `if f not in used_fields:`.\n\nThe reporter says the failure only happens when a proxy model is checked.\n\n## Expected behavior\n\nThe report does not state this explicitly. It implies that system checks should complete without a `TypeError` when `through_fields` is a list, and that `ManyToManyRel` should be hashable in that case, like other relations whose identity elements are made hashable.\n\n## Stack trace / error output\n\n```\n File \"manage.py\", line 23, in <module>\n    main()\n File \"manage.py\", line 19, in main\n    execute_from_command_line(sys.argv)\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/__init__.py\", line 419, in execute_from_command_line\n    utility.execute()\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/__init__.py\", line 413, in execute\n    self.fetch_command(subcommand).run_from_argv(self.argv)\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py\", line 354, in run_from_argv\n    self.execute(*args, **cmd_options)\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py\", line 393, in execute\n    self.check()\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/management/base.py\", line 419, in check\n    all_issues = checks.run_checks(\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/checks/registry.py\", line 76, in run_checks\n    new_errors = check(app_configs=app_configs, databases=databases)\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/core/checks/model_checks.py\", line 34, in check_all_models\n    errors.extend(model.check(**kwargs))\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/db/models/base.py\", line 1277, in check\n    *cls._check_field_name_clashes(),\n File \"/home/tom/PycharmProjects/djangbroken_m2m_projectProject/venv/lib/python3.8/site-packages/django/db/models/base.py\", line 1465, in _check_field_name_clashes\n    if f not in used_fields:\n File \"/home/tom/PycharmProjects/broken_m2m_project/venv/lib/python3.8/site-packages/django/db/models/fields/reverse_related.py\", line 140, in __hash__\n    return hash(self.identity)\nTypeError: unhashable type: 'list'\n```\n\n## Test case\n\nThis minimal test case is derived from the report's reproduction. With the models from the \"Code example\" section installed in an app, run the system checks:\n\n```\npython manage.py check\n```\n\nExpected: the checks complete without raising an exception.\nActual: `TypeError: unhashable type: 'list'`, as shown above.\n\n## Code example\n\n```python\nfrom django.db import models\n\n\nclass Parent(models.Model):\n    name = models.CharField(max_length=256)\n\n\nclass ProxyParent(Parent):\n    class Meta:\n        proxy = True\n\n\nclass Child(models.Model):\n    parent = models.ForeignKey(Parent, on_delete=models.CASCADE)\n    many_to_many_field = models.ManyToManyField(\n        to=Parent,\n        through=\"ManyToManyModel\",\n        through_fields=['child', 'parent'],\n        related_name=\"something\"\n    )\n\n\nclass ManyToManyModel(models.Model):\n    parent = models.ForeignKey(Parent, on_delete=models.CASCADE, related_name='+')\n    child = models.ForeignKey(Child, on_delete=models.CASCADE, related_name='+')\n    second_child = models.ForeignKey(Child, on_delete=models.CASCADE, null=True, default=None)\n```\n\n## Version and environment\n\n- Django: 3.2. The report says the `identity` property was introduced in 3.2, so the problem affects 3.2. The exact patch version is not provided.\n- Python: 3.8, according to the virtualenv paths in the traceback (`venv/lib/python3.8/site-packages`).\n- OS: not stated; the paths (`/home/tom/...`) suggest a Linux/Unix system.\n- Database: not provided in the original report.",
+ "ttft_ms": 5061,
+ "type": "result",
+ "duration_ms": 21457,
+ "uuid": "9d21e06d-3492-47d5-8d43-6101acbaa075",
+ "ttft_stream_ms": 1643,
+ "time_to_request_ms": 292,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 15,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 228,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 269,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1643,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

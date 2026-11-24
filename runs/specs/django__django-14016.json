@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30636,
+ "stop_reason": "end_turn",
+ "session_id": "0c4aa87f-ce38-414c-9542-1c3c7d96747c",
+ "total_cost_usd": 0.0632186,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 836,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2765,
+  "output_tokens_details": {
+   "thinking_tokens": 161
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 836,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2765,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 836,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 836
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1423,
+   "outputTokens": 435,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003598,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 414,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2765,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 836,
+   "webSearchRequests": 0,
+   "costUSD": 0.0628588,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 161,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Q object `|` / `&` combination must not crash on non-pickleable lookup values\n\n## Objective\n\nCombining `django.db.models.Q` objects with the `|` operator raises `TypeError: cannot pickle '<type>' object` when one operand holds a lookup value that cannot be pickled, such as `dict_keys`.\n\nReproduction from the issue:\n\n```python\n>>> from django.db.models import Q\n>>> Q(x__in={}.keys())\n<Q: (AND: ('x__in', dict_keys([])))>\n>>> Q() | Q(x__in={}.keys())\nTraceback (most recent call last):\n...\nTypeError: cannot pickle 'dict_keys' object\n```\n\nConstructing the `Q` works. Combining it fails.\n\n**Who is affected:** Django users who build queries by combining `Q` objects. Starting from an empty `Q()` and OR-ing filters onto it is a common pattern, and so is passing lookup values such as `dict.keys()`, views or generators.\n\n**Goal:** If a `Q` object can be constructed, combining it with another `Q` through `|` or `&` should succeed. The result should be semantically equivalent to the operands. Operand type should not matter. Users should not need workarounds such as `Q(x__in={})` or `list(d.keys())`.\n\n**User stories:**\n- As a developer, I can write `Q() | Q(x__in=d.keys())` and get a `Q` equivalent to `Q(x__in=d.keys())`.\n- As a developer, I can write `Q(x__in=d.keys()) | Q()` and `Q() & Q(x__in=d.keys())` without errors.\n- As a developer, combining `Q` objects never mutates either operand.\n\n## Assumptions\n\n1. The failure happens in the `Q` combination path (`Q._combine` or equivalent). When one operand is empty, that path copies the other operand with `copy.deepcopy`, and deepcopy falls back to pickling (`__reduce_ex__`) for types like `dict_keys`. This is inferred from the error message and has not been verified against the source.\n2. The issue applies to `&` as well as `|`, because both operators use the same combination path. This is unverified.\n3. The fix belongs in Django core (`django.db.models.Q` / `django.utils.tree.Node` area). Exact file paths are unknown and not visible in the issue.\n4. The returned `Q` must still be independent of the operand: mutating the result must not mutate the original `Q`. The copy guarantee should stay at the `Q` / tree level and not be dropped entirely.\n5. Lookup *values* do not need to be deep-copied. Sharing the same value object, for example the same `dict_keys` instance, between the operand and the result is acceptable.\n6. No public API change is intended. This is a bug fix.\n7. The target Django version or branch is unknown. Assume the current main development branch.\n\n## Tech Stack\n\n- Python and Django. Exact versions are unknown and not stated in the issue.\n- Affected API: `django.db.models.Q` and the operators `|` and `&`, plus possibly `~`.\n- No new dependencies.\n\n## Commands\n\nUnknown. The issue does not state the repository's build or test commands.\n- Build: unknown\n- Test: unknown. Django's own test runner invocation must be confirmed from the repository.\n- Lint: unknown\n\n## Project Structure\n\nUnknown and not visible in the issue. Expected relevant areas, unverified:\n- The module defining `Q` (under `django/db/models/`, exact file unknown)\n- The generic tree/node base class `Q` inherits from (exact location unknown)\n- The existing test module(s) covering `Q` behavior (location unknown)\n\n## Code Style\n\nFollow the existing Django code style in the affected modules. No snippet can be given because no source is visible. Conventions to confirm in the repository:\n- Existing linting and formatting rules (unknown)\n- Regression tests named and placed alongside existing `Q` tests\n\n## Testing Strategy\n\n- **Level:** Unit tests on `Q` combination. No database is required for the core behavior.\n- **Regression tests (must fail before the fix and pass after):**\n  - `Q() | Q(x__in={}.keys())` does not raise and equals `Q(x__in={}.keys())` in structure.\n  - `Q(x__in={}.keys()) | Q()` does not raise.\n  - `Q() & Q(x__in={}.keys())` and `Q(x__in={}.keys()) & Q()` do not raise.\n- **Non-regression tests:**\n  - Combining two non-empty `Q` objects still produces the expected connector and children.\n  - The result of combining with an empty `Q` is a new object. Mutating it, for example by adding children, does not change the original operand.\n  - Existing `Q` tests and query-construction tests continue to pass.\n- **Optional:** an integration check that a queryset filtered with `Q() | Q(pk__in=d.keys())` evaluates correctly against the test database.\n- Coverage expectation: unknown, so follow project norms.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests that reproduce the reported traceback.\n  - Keep operand immutability: combining must not mutate either operand.\n  - Run the full `Q`/query test suites before considering the change done.\n- **Ask first:**\n  - Changing `Q.__deepcopy__`, `Q.__reduce__`/pickling behavior, or the generic tree node class. These affect other subclasses and serialization, such as pickled querysets.\n  - Converting user-supplied lookup values, for example turning `dict_keys` into a `list`, because that changes what users observe in `Q.children`.\n  - Any change to `Q` public API or `repr`.\n- **Never:**\n  - Silently swallow `TypeError` and return a wrong or partially combined `Q`.\n  - Remove or weaken existing `Q` tests.\n  - Break pickling of `Q` objects or querysets that pickle correctly today.\n\n## Success Criteria\n\n1. `Q() | Q(x__in={}.keys())` returns a `Q` without raising, and it is equal to `Q(x__in={}.keys())`.\n2. The same holds for `Q(x__in={}.keys()) | Q()`, `Q() & Q(x__in={}.keys())` and `Q(x__in={}.keys()) & Q()`.\n3. The same holds for at least one other non-pickleable value type, for example `dict_values` or a generator-free view object, to show the fix is not specific to `dict_keys`.\n4. The returned `Q` is a distinct object from the non-empty operand. Mutating the returned `Q`'s children does not affect the operand.\n5. All existing `Q` and query tests pass unchanged.\n6. Pickling behavior of `Q` objects with pickleable values is unchanged.\n\n## Open Questions\n\n1. Is the fix accepted in principle? The reporter asks whether there is agreement that this should not crash. Confirm with maintainers before implementing.\n2. Should combination keep value identity (share the `dict_keys` object) or normalize values to a list or tuple? This spec assumes identity is kept.\n3. Is a shallow, structural copy of the `Q` tree an acceptable replacement for `deepcopy`? Does any code rely on lookup values being deep-copied during combination, for example mutable lists that are later mutated by the caller?\n4. Does the same problem affect `~Q(...)` (negation) or other paths that deepcopy `Q`, such as queryset cloning? Are those in scope?\n5. Are values that cannot be pickled *and* are consumed on iteration, such as generators, in scope, or only re-iterable views like `dict_keys`?\n6. Which Django version or branch is targeted, and is a backport expected?\n7. What are the exact test commands and test file locations in the repository?",
+ "ttft_ms": 3441,
+ "type": "result",
+ "duration_ms": 28231,
+ "uuid": "fb2c274e-f2eb-4b7a-9211-baa8e5fa8d44",
+ "ttft_stream_ms": 1431,
+ "time_to_request_ms": 235,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 205,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 119,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1431,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,32 @@
+diff --git a/sympy/core/numbers.py b/sympy/core/numbers.py
+index 8c8e2d738..008515c11 100755
+--- a/sympy/core/numbers.py
++++ b/sympy/core/numbers.py
+@@ -2248,11 +2248,9 @@ def _eval_power(self, expt):
+         if p is not False:
+             dict = {p[0]: p[1]}
+         else:
+-            dict = Integer(self).factors(limit=2**15)
++            dict = Integer(b_pos).factors(limit=2**15)
+ 
+         # now process the dict of factors
+-        if self.is_negative:
+-            dict[-1] = 1
+         out_int = 1  # integer part
+         out_rad = 1  # extracted radicals
+         sqr_int = 1
+@@ -2282,8 +2280,13 @@ def _eval_power(self, expt):
+                     break
+         for k, v in sqr_dict.items():
+             sqr_int *= k**(v//sqr_gcd)
+-        if sqr_int == self and out_int == 1 and out_rad == 1:
++        if sqr_int == abs(self) and out_int == 1 and out_rad == 1:
+             result = None
++        elif self.is_negative:
++            # (-b)**e = (-1)**e*b**e; -1 must not be mixed with the radicals
++            # since (-1)**(a/b) cannot be combined with other bases' powers
++            result = S.NegativeOne**expt*out_int*out_rad*Pow(
++                sqr_int, Rational(sqr_gcd, expt.q))
+         else:
+             result = out_int*out_rad*Pow(sqr_int, Rational(sqr_gcd, expt.q))
+         return result

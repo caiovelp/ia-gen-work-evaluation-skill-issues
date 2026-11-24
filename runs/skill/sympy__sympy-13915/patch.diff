@@ -1,0 +1,33 @@
+diff --git a/sympy/core/mul.py b/sympy/core/mul.py
+index 4f01eeedb..2b4ca9412 100755
+--- a/sympy/core/mul.py
++++ b/sympy/core/mul.py
+@@ -376,6 +376,8 @@ def flatten(cls, seq):
+         # combination can slow things down.
+ 
+         # gather exponents of common bases...
++        has_nan = []
++
+         def _gather(c_powers):
+             common_b = {}  # b:e
+             for b, e in c_powers:
+@@ -385,6 +387,10 @@ def _gather(c_powers):
+             for b, d in common_b.items():
+                 for di, li in d.items():
+                     d[di] = Add(*li)
++                    if d[di].is_zero and len(li) > 1 and \
++                            b.has(S.ComplexInfinity, S.NaN):
++                        # X*X**-1 with X undefined/infinite is not 1
++                        has_nan.append(True)
+             new_c_powers = []
+             for b, e in common_b.items():
+                 new_c_powers.extend([(b, c*t) for t, c in e.items()])
+@@ -392,6 +398,8 @@ def _gather(c_powers):
+ 
+         # in c_powers
+         c_powers = _gather(c_powers)
++        if has_nan:
++            return [S.NaN], [], None
+ 
+         # and in num_exp
+         num_exp = _gather(num_exp)

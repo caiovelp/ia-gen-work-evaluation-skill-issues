@@ -1,0 +1,24 @@
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 73c20334d0..4f03ebcfcd 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -23,7 +23,7 @@
+ from sympy.core.add import Add
+ from sympy.core.containers import Tuple
+ from sympy.core.numbers import Float
+-from sympy.core.parameters import global_parameters
++from sympy.core.parameters import global_parameters, evaluate as _evaluate
+ from sympy.simplify import nsimplify, simplify
+ from sympy.geometry.exceptions import GeometryError
+ from sympy.functions.elementary.miscellaneous import sqrt
+@@ -152,7 +152,9 @@ def __new__(cls, *args, **kwargs):
+                         'warn' or 'ignore'.'''))
+         if any(coords[dim:]):
+             raise ValueError('Nonzero coordinates cannot be removed.')
+-        if any(a.is_number and im(a) for a in coords):
++        with _evaluate(True):
++            imaginary = any(a.is_number and im(a) for a in coords)
++        if imaginary:
+             raise ValueError('Imaginary coordinates are not permitted.')
+         if not all(isinstance(a, Expr) for a in coords):
+             raise TypeError('Coordinates must be valid SymPy expressions.')

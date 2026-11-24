@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34789,
+ "stop_reason": "end_turn",
+ "session_id": "6df1ec48-71ba-401b-a029-bdb0e5ca2131",
+ "total_cost_usd": 0.0770067,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1284,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3278,
+  "output_tokens_details": {
+   "thinking_tokens": 71
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1284,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3278,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1284,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1284
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1869,
+   "outputTokens": 234,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003039,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 210,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3278,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1284,
+   "webSearchRequests": 0,
+   "costUSD": 0.0767028,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 71,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Order-independent merging of 3+ Media objects without spurious MediaOrderConflictWarning\n\n## Objective\n\nWhen a form combines the `Media` of three or more widgets, Django merges the lists one pair at a time. Each pairwise merge can create an ordering constraint that no input actually declared. A later merge then sees a conflict that does not exist, so Django:\n\n1. emits a `MediaOrderConflictWarning` that should not be raised, and\n2. produces an asset order that breaks a dependency the inputs did declare.\n\n**Who is affected:** Django users who build forms or widgets whose combined `Media` comes from three or more sources. Third-party widget and admin authors are affected too, because they cannot control the order in which their widgets are combined.\n\n**Reproduction from the issue:**\n\n```python\nfrom django import forms\nclass ColorPicker(forms.Widget):\n    class Media:\n        js = ['color-picker.js']\nclass SimpleTextWidget(forms.Widget):\n    class Media:\n        js = ['text-editor.js']\nclass FancyTextWidget(forms.Widget):\n    class Media:\n        js = ['text-editor.js', 'text-editor-extras.js', 'color-picker.js']\nclass MyForm(forms.Form):\n    background_color = forms.CharField(widget=ColorPicker())\n    intro = forms.CharField(widget=SimpleTextWidget())\n    body = forms.CharField(widget=FancyTextWidget())\n```\n\n**Current behaviour:** `MyForm().media` warns that `text-editor-extras.js` and `text-editor.js` are in opposite order. It returns `js=['text-editor-extras.js', 'color-picker.js', 'text-editor.js']`, which places `text-editor-extras.js` before its dependency `text-editor.js`.\n\n**Expected behaviour:** No warning. It returns `js=['text-editor.js', 'text-editor-extras.js', 'color-picker.js']`.\n\n**Root cause stated in the issue:** `ColorPicker().media + SimpleTextWidget().media` yields `['color-picker.js', 'text-editor.js']`. That result imposes a \"color-picker before text-editor\" constraint that neither input declared.\n\n**Secondary problem:** The warning names the wrong pair of files. The genuinely misordered pair is `color-picker.js` and `text-editor.js`, but the warning reports a different pair.\n\n### User stories / acceptance criteria\n\n- As a form author, combining several widgets' media gives a final order that respects every ordering declared in any single input list. This holds whenever such an order exists, regardless of how many widgets there are or what order they are declared in.\n- As a form author, I see a `MediaOrderConflictWarning` only when the inputs genuinely contradict each other. An example is one list declaring A before B while another declares B before A.\n- When a genuine conflict is reported, the files named in the warning are the files that are actually in conflict.\n\n## Tech Stack\n\n- Django, in the `django.forms` Media subsystem. The traceback points at `django/forms/widgets.py`, the module that defines `MediaOrderConflictWarning`.\n- Python. Supported versions are unknown, as is the target Django branch or version (see Open Questions).\n- The issue refers to \"Django 1.11 before order-checking was added\", so the bug exists in versions after 1.11.\n\n## Commands\n\n- Build: unknown (not stated in the issue)\n- Test: unknown. Django's test runner invocation is not given in the issue.\n- Lint: unknown\n- Dev: not applicable (library change)\n\n## Project Structure\n\n- `django/forms/widgets.py`: contains the `Media` class, its merge logic, and `MediaOrderConflictWarning`. The path is known from the traceback in the issue.\n- Location of the existing forms/media tests: unknown.\n- Location of documentation for form assets/Media ordering, and of release notes: unknown.\n\n## Code Style\n\n- Follow existing Django conventions in `django/forms/widgets.py`. No snippet is available beyond the issue.\n- Coding style rules (e.g. flake8/isort configuration): unknown.\n\n## Testing Strategy\n\n- **Level:** unit tests for `Media` merging, using the existing forms/media test suite. Its location and framework invocation are unknown; it is presumably Django's own `unittest`-based test suite.\n- **Required test cases:**\n  1. **The issue's reproduction:** three widgets combined in a form give `js == ['text-editor.js', 'text-editor-extras.js', 'color-picker.js']` with no `MediaOrderConflictWarning` raised.\n  2. **Order-independence:** the same three media objects, combined in every permutation of declaration order, all respect the declared dependencies (`text-editor.js` before `text-editor-extras.js`) and emit no warning. Whether the exact final list must be identical across permutations is an open question.\n  3. **Genuine conflict:** two lists declaring `[A, B]` and `[B, A]` still emit `MediaOrderConflictWarning`.\n  4. **Warning content:** in a genuine conflict, the warning message names the conflicting files.\n  5. **Regression:** existing two-object merge behaviour and existing Media tests still pass. This includes CSS merging per media type, duplicate removal, and `Media` defined via `media` property or `class Media` with `extend`.\n  6. **CSS parity:** CSS lists that hit the same 3+ merge scenario behave consistently with JS.\n- Tests should assert on warnings explicitly. They must assert that no warning occurs in the valid case and that one does occur in the conflict case.\n- Coverage expectations: unknown. At minimum, cover the merge function's conflict and non-conflict paths.\n\n## Boundaries\n\n- **Always:**\n  - Preserve every relative order declared within any single input list whenever a consistent order exists.\n  - Keep de-duplication of repeated assets.\n  - Keep the public API unchanged: `Media`, `Media.__add__`, `Media.merge` (if public), and the `MediaOrderConflictWarning` class and its category.\n  - Add regression tests for the issue's exact scenario.\n- **Ask first:**\n  - Changing the internal representation of `Media` objects. For example, keeping the original per-source lists instead of eagerly merged lists, which affects `__repr__`, pickling, and subclasses.\n  - Changing the public or semi-public signature of `Media.merge`.\n  - Changing the documented ordering guarantees, or the stable order produced for inputs with no dependencies between them.\n  - Changing warning text that users or tests may match on.\n  - Backporting to stable branches.\n- **Never:**\n  - Remove or silence `MediaOrderConflictWarning` for genuine conflicts.\n  - Delete or weaken existing Media tests to make the change pass.\n  - Introduce new dependencies.\n\n## Success Criteria\n\n1. `MyForm().media` from the issue returns `js=['text-editor.js', 'text-editor-extras.js', 'color-picker.js']`.\n2. Accessing `MyForm().media` emits zero `MediaOrderConflictWarning`s.\n3. For any number (\u22653) of Media inputs whose declared orderings are mutually consistent, the merged result is warning-free and satisfies every declared pairwise ordering. This holds independent of the order in which inputs are added.\n4. For inputs with a genuine ordering contradiction, a `MediaOrderConflictWarning` is still emitted, and it names files that are actually in conflict.\n5. All pre-existing Media/forms tests pass unchanged, unless an expected-output change is explicitly approved.\n6. Merging the media of a form with many widgets shows no pathological performance regression. The threshold is unknown; see Open Questions.\n\n## Assumptions\n\n1. The bug is caused by eager pairwise merging, which loses which constraints came from real inputs versus artifacts of earlier merges, as described in the issue.\n2. Ordering constraints come only from the relative order of items within each individually declared list (a widget's `class Media` / `media`). Concatenating two independent lists is not intended to create a constraint between their items.\n3. When items have no declared relative order, any order is acceptable, but the result should be deterministic. Preferring declaration/first-appearance order is desirable.\n4. The same reasoning and fix apply to CSS lists (per medium) as to JS lists.\n5. Adding `Media` objects with `+`, including via form/widget media aggregation, is the code path in scope.\n6. The fix targets Django's main development branch.\n\n## Open Questions\n\n1. Which Django branch or version is targeted, and should the fix be backported to stable releases?\n2. Must the merged order be identical regardless of the order in which widgets are declared on the form, or only consistent with declared dependencies?\n3. For unrelated assets, is there a required tie-breaking rule, such as first-seen order? Should results for existing two-object merges remain byte-for-byte identical?\n4. When a genuine conflict exists, which pair(s) should the warning report, what should the resulting fallback order be, and may the warning message text change?\n5. Is changing `Media`'s internal storage acceptable? This could affect `__repr__`, subclasses, and code that reads `_js`/`_css` directly.\n6. Is there a performance budget for merging media on forms with many widgets?\n7. Where do the relevant tests and docs live, and are documentation or release-note updates required? (Unknown from the issue.)\n8. Should `Media` objects built manually, e.g. `Media(js=[...])` added to widget media, be treated the same as `class Media` declarations for constraint purposes?",
+ "ttft_ms": 2307,
+ "type": "result",
+ "duration_ms": 33111,
+ "uuid": "c5fe1812-e7fa-4104-86c0-c2ce86075248",
+ "ttft_stream_ms": 1613,
+ "time_to_request_ms": 264,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 244,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1613,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

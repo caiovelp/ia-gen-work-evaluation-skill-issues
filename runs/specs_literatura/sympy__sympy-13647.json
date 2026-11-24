@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14737,
+ "stop_reason": "end_turn",
+ "session_id": "01909f61-c224-411b-8ebe-3da66def6c2e",
+ "total_cost_usd": 0.044811300000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1621,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1582,
+  "output_tokens_details": {
+   "thinking_tokens": 345
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1621,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1582,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1621,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1621
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1833,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001953,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1582,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1621,
+   "webSearchRequests": 0,
+   "costUSD": 0.044616,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 345,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`Matrix.col_insert()` returns an incorrect matrix in SymPy 1.1.1. When columns are inserted into the middle of a 6\u00d76 identity matrix, the original columns to the right of the insertion point are placed in the wrong rows. The 3\u00d73 identity block that should be in the bottom three rows appears in the top three rows. The reporter asks whether this is related to the recent matrix refactor (cc @siefkenj).\n\n## Steps to reproduce\n\n1. Import SymPy: `import sympy as sm`\n2. Create a 6\u00d76 identity matrix: `M = sm.eye(6)`\n3. Create a 6\u00d72 matrix of twos: `V = 2 * sm.ones(6, 2)`\n4. Insert `V` before column index 3 of `M`: `M.col_insert(3, V)`\n5. Inspect the resulting 6\u00d78 matrix.\n\n## Observed behavior\n\nThe result is:\n\n```\n\u23a11  0  0  2  2  1  0  0\u23a4\n\u23a2                      \u23a5\n\u23a20  1  0  2  2  0  1  0\u23a5\n\u23a2                      \u23a5\n\u23a20  0  1  2  2  0  0  1\u23a5\n\u23a2                      \u23a5\n\u23a20  0  0  2  2  0  0  0\u23a5\n\u23a2                      \u23a5\n\u23a20  0  0  2  2  0  0  0\u23a5\n\u23a2                      \u23a5\n\u23a30  0  0  2  2  0  0  0\u23a6\n```\n\nThe 3\u00d73 identity block to the right of the columns of twos is in the top three rows (rows 0\u20132).\n\n## Expected behavior\n\nThe original columns 3\u20135 of `eye(6)` should keep their row positions after the two inserted columns of twos. The 3\u00d73 identity block on the right should therefore be in the bottom three rows:\n\n```\n\u23a11  0  0  2  2  0  0  0\u23a4\n\u23a20  1  0  2  2  0  0  0\u23a5\n\u23a20  0  1  2  2  0  0  0\u23a5\n\u23a20  0  0  2  2  1  0  0\u23a5\n\u23a20  0  0  2  2  0  1  0\u23a5\n\u23a30  0  0  2  2  0  0  1\u23a6\n```\n\n(This matrix follows from the report's statement that the block \"is shifted from the bottom three rows to the top three rows\". The report does not show it explicitly.)\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the method returns a wrong result.\n\n## Test case\n\nMinimal test built from the reproduction in the report:\n\n```python\nimport sympy as sm\n\ndef test_col_insert_middle_of_identity():\n    M = sm.eye(6)\n    V = 2 * sm.ones(6, 2)\n    result = M.col_insert(3, V)\n    expected = sm.Matrix([\n        [1, 0, 0, 2, 2, 0, 0, 0],\n        [0, 1, 0, 2, 2, 0, 0, 0],\n        [0, 0, 1, 2, 2, 0, 0, 0],\n        [0, 0, 0, 2, 2, 1, 0, 0],\n        [0, 0, 0, 2, 2, 0, 1, 0],\n        [0, 0, 0, 2, 2, 0, 0, 1],\n    ])\n    assert result == expected\n```\n\n## Code example\n\nFrom the original report (IPython session):\n\n```python\nimport sympy as sm\n\nM = sm.eye(6)\nV = 2 * sm.ones(6, 2)\nM.col_insert(3, V)\n```\n\n## Version and environment\n\n- SymPy version: `1.1.1` (from `sm.__version__`)\n- Run in IPython\n- Python version, OS and other environment details: Not provided in the original report.",
+ "ttft_ms": 5600,
+ "type": "result",
+ "duration_ms": 14350,
+ "uuid": "f2c22be8-6b55-4335-b2e6-260cca2117ab",
+ "ttft_stream_ms": 1568,
+ "time_to_request_ms": 436,
+ "time_to_request_phases_ms": {
+  "other": 23,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 76,
+  "input_hooks": 10,
+  "tool_pool_refresh": 2,
+  "init_message": 43,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 257,
+  "autocompact": 3,
+  "query_setup": 2,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 23,
+ "time_to_request_cpu_ms": 490,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "nested_memory",
+  "slowest_producer_ms": 49,
+  "cpu_ms": 102,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1569,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

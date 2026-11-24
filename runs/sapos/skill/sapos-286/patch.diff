@@ -1,0 +1,28 @@
+diff --git a/app/models/enrollment_hold.rb b/app/models/enrollment_hold.rb
+index ba6719c1..0e064675 100644
+--- a/app/models/enrollment_hold.rb
++++ b/app/models/enrollment_hold.rb
+@@ -17,6 +17,7 @@ class EnrollmentHold < ApplicationRecord
+ 
+   validate :validate_dates
+ 
++  after_create :cancel_class_enrollments
+   after_commit :create_phase_completions
+ 
+   def to_label
+@@ -58,6 +59,15 @@ class EnrollmentHold < ApplicationRecord
+     (ys + (number_of_semesters - 1)).semester_end
+   end
+ 
++  # Cancels (same effect as the manual cancel: the class enrollment is removed
++  # and its request is updated) every class enrollment still registered.
++  # Runs inside the save transaction: any failure rolls the hold back.
++  def cancel_class_enrollments
++    enrollment.class_enrollments
++      .where(situation: ClassEnrollment::REGISTERED)
++      .each(&:destroy!)
++  end
++
+   def create_phase_completions
+     enrollment.create_phase_completions
+   end

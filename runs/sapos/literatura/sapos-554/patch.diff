@@ -1,0 +1,25 @@
+diff --git a/app/helpers/scholarships_helper.rb b/app/helpers/scholarships_helper.rb
+index 3c9dff74..b0ac9485 100644
+--- a/app/helpers/scholarships_helper.rb
++++ b/app/helpers/scholarships_helper.rb
+@@ -161,7 +161,7 @@ module ScholarshipsHelper
+       body += "<tr class=\"record #{tr_class}\">
+                 <td>#{sd.enrollment.to_label}</td>
+                 <td>#{I18n.localize(sd.start_date, format: :monthyear2)}</td>
+-                <td>#{I18n.localize(sd.end_date, format: :monthyear2)}</td>
++                <td>#{monthyear2(sd.end_date, blank_text: '-')}</td>
+                 <td>#{cancel_date}</td>
+               </tr>"
+     end
+diff --git a/app/models/scholarship_duration.rb b/app/models/scholarship_duration.rb
+index e492072c..8b462f48 100644
+--- a/app/models/scholarship_duration.rb
++++ b/app/models/scholarship_duration.rb
+@@ -194,6 +194,7 @@ class ScholarshipDuration < ApplicationRecord
+ 
+   def last_date
+     return self.cancel_date.end_of_month unless self.cancel_date.nil?
++    return (Date.today + 100.years).end_of_month if self.end_date.nil?
+     self.end_date.end_of_month
+   end
+ 

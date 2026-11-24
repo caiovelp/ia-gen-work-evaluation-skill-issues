@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30339,
+ "stop_reason": "end_turn",
+ "session_id": "4865993e-ac7a-496b-aa2c-e60adf863f17",
+ "total_cost_usd": 0.076002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2091,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2906,
+  "output_tokens_details": {
+   "thinking_tokens": 292
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2091,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2906,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2091,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2091
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2682,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002832,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2906,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2091,
+   "webSearchRequests": 0,
+   "costUSD": 0.0757188,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 292,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Figure DPI must survive pickle round-trips on HiDPI (M1/Retina) macOS\n\n## Objective\n\n**Problem.** On an M1 Mac using the `MacOSX` backend, each pickle \u2192 unpickle round-trip of a Matplotlib `Figure` doubles its `dpi`. Repeating the round-trip grows the DPI exponentially: 200 \u2192 400 \u2192 \u2026 \u2192 419430400. Eventually unpickling fails with:\n\n```\nOverflowError: signed integer is greater than maximum\n```\n\nThe error is raised from `_macosx.FigureCanvas.__init__(self, width, height)` in `matplotlib/backends/backend_macosx.py`. That call is reached via `Figure.__setstate__` (`matplotlib/figure.py`) \u2192 `new_figure_manager_given_figure` (`matplotlib/backend_bases.py`).\n\n**Who is affected.** Users who pickle figures, for example to cache them, send them between processes, or save and restore sessions. The reported setup is:\n\n- macOS 12.4 on arm64\n- `MacOSX` backend\n- Matplotlib 3.5.2\n- Python 3.9.12, installed via pip\n\nThe reporter says the Python version does not matter.\n\n**Desired behavior.** Unpickling a figure gives back a figure with the same `dpi` as the original. The value stays stable however many round-trips are done. The display-scaling factor (device pixel ratio) must not compound across round-trips.\n\n**Acceptance criteria (user-visible).**\n\n- AC1: After one pickle round-trip, `fig2.dpi == fig.dpi`.\n- AC2: After N consecutive round-trips (the reproduction uses 32), `dpi` equals the value before the first round-trip, and no `OverflowError` is raised.\n- AC3: The figure's size in inches (`get_size_inches()`) is also unchanged after round-trips. *(Assumed; see Assumptions.)*\n- AC4: The behavior on non-HiDPI displays and other backends does not regress.\n\n## Assumptions\n\n1. **Suspected cause (not verified).** The root cause is likely HiDPI/Retina scaling, not \"M1\" as such. The canvas likely multiplies the figure's DPI by a device pixel ratio of 2. The pickled state then likely stores this already-scaled DPI. On unpickle, the new canvas would apply the ratio again, so the scaling compounds.\n   - Supporting evidence: the first printed value is 200.0, which is twice the usual default of 100.\n   - This hypothesis must be confirmed during implementation.\n2. **Other affected setups.** The bug probably also affects Intel Macs with Retina displays, and possibly other backends that support device-pixel-ratio scaling. Only the `MacOSX` backend on M1 has been reported.\n3. **What \"dpi is preserved\" means.** It means `fig.dpi` reads the same value before and after unpickling within the same display environment.\n4. **Figure size.** Size in inches should be preserved as well as DPI.\n5. **Scope of the fix.** The fix belongs in Matplotlib's figure pickling and/or canvas DPI-scaling logic. No change is needed in user code.\n6. **Version under test.** The target is the current development branch. The report was against 3.5.2, and whether the bug still exists on main is unknown.\n\n## Tech Stack\n\n- Python, Matplotlib, and the `MacOSX` backend (a native `_macosx` extension module), as named in the traceback.\n- Other versions, dependency pins and the build toolchain: **unknown**. They are not visible in the issue.\n\n## Commands\n\n- Build: **unknown**\n- Test: **unknown** (likely pytest, but the exact invocation is not visible)\n- Lint: **unknown**\n- Reproduce: run the script from the issue with the `MacOSX` backend on a HiDPI Mac.\n\n## Project Structure\n\nOnly the files that appear in the traceback are known:\n\n```\nmatplotlib/figure.py                 \u2192 Figure.__setstate__ (unpickling path)\nmatplotlib/backend_bases.py          \u2192 new_figure_manager_given_figure\nmatplotlib/backends/backend_macosx.py \u2192 FigureCanvas.__init__ (where the overflow is raised)\n```\n\nUnknown:\n\n- Test directory locations.\n- The location of the native `_macosx` source.\n- Where device-pixel-ratio handling lives.\n\n## Code Style\n\n**Unknown.** Follow the conventions already used in the files listed above. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Regression test (unit level).**\n  - Create a figure and simulate a device pixel ratio greater than 1, if a backend-independent mechanism for that exists (unknown).\n  - Pickle and unpickle it, then assert that `dpi` and the size in inches are unchanged.\n  - Repeat the round-trip several times and assert the values stay stable.\n- **Pickle tests for normal displays.** Existing pickle tests must still pass.\n- **Manual verification.**\n  - Run the issue's reproduction script on a HiDPI Mac with the `MacOSX` backend.\n  - The DPI must stay constant over 32 iterations, and no `OverflowError` may occur.\n- **CI limits.** Whether CI can exercise the `MacOSX` backend on HiDPI hardware is **unknown**. A backend-agnostic test that simulates the device pixel ratio is preferred.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix.\n  - Keep the existing pickle format compatible where feasible.\n  - Run the existing test suite.\n- **Ask first:**\n  - Changing the public meaning of `Figure.dpi`, meaning whether it is \"logical\" or \"physical\" DPI.\n  - Changing the pickled-state format in a way that affects older pickles.\n  - Modifying the native `_macosx` extension.\n- **Never:**\n  - Mask the bug by clamping the DPI or catching `OverflowError`.\n  - Special-case \"M1\" or `arm64` in the fix.\n  - Remove or skip existing tests.\n\n## Success Criteria\n\n1. The issue's reproduction script prints the same DPI on every one of its 32 iterations and finishes without error on an M1/HiDPI Mac with the `MacOSX` backend.\n2. A new automated test asserts that `dpi` and the size in inches are unchanged after a single round-trip and after multiple round-trips when a device pixel ratio greater than 1 is in effect.\n3. All existing pickle and figure tests pass.\n4. Behavior on displays with a device pixel ratio of 1, and on non-macOS backends, is unchanged.\n\n## Open Questions\n\n1. **Initial DPI value.** The \"expected outcome\" shows 200 throughout, but the default DPI is presumably 100. Should a fresh figure on a Retina display report `fig.dpi == 200` (physical) or `100` (logical)? This spec only requires that the value is stable across round-trips. Is it acceptable for the initial value to stay 200?\n2. **Moving between displays.** If a figure is pickled on a HiDPI display and unpickled on a display with a ratio of 1 (or the other way round), what `dpi` should it have?\n3. **Other backends.** Are other HiDPI-aware backends known to have the same compounding problem? If so, should they be included in this fix's scope?\n4. **Old pickles.** Do pickles created by affected versions, which may contain an already-doubled DPI, need to load correctly? Or is only new pickling behavior in scope?\n5. **Reproducibility on main.** Is the bug still reproducible on the current development branch, or only on 3.5.2?\n6. **Test tooling.** What are the exact test command and test file locations? Is there an existing way to simulate a device pixel ratio in tests?",
+ "ttft_ms": 4475,
+ "type": "result",
+ "duration_ms": 29664,
+ "uuid": "def72bdf-621b-44d8-95bd-cbe9796baa68",
+ "ttft_stream_ms": 1453,
+ "time_to_request_ms": 257,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 236,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1453,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

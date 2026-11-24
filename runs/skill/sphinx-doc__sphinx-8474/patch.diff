@@ -1,0 +1,26 @@
+diff --git a/CHANGES b/CHANGES
+index b17c7b202..a80c8a430 100755
+--- a/CHANGES
++++ b/CHANGES
+@@ -41,6 +41,8 @@ Bugs fixed
+ ----------
+ 
+ * #7613: autodoc: autodoc does not respect __signature__ of the class
++* std domain: the "no number is assigned for ..." warning for :rst:role:`numref`
++  now names the target instead of ending with an empty description
+ * #4606: autodoc: the location of the warning is incorrect for inherited method
+ * #8105: autodoc: the signature of class constructor is incorrect if the class
+   is decorated
+diff --git a/sphinx/domains/std.py b/sphinx/domains/std.py
+index 4bde57930..0829f8f9c 100755
+--- a/sphinx/domains/std.py
++++ b/sphinx/domains/std.py
+@@ -852,7 +852,7 @@ class StandardDomain(Domain):
+             if fignumber is None:
+                 return contnode
+         except ValueError:
+-            logger.warning(__("no number is assigned for %s: %s"), figtype, labelid,
++            logger.warning(__("no number is assigned for %s: %s"), figtype, labelid or target,
+                            location=node)
+             return contnode
+ 

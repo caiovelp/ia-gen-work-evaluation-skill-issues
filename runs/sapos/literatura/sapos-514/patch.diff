@@ -1,0 +1,40 @@
+diff --git a/db/migrate/20241215000000_change_notification_logs_subject_to_text.rb b/db/migrate/20241215000000_change_notification_logs_subject_to_text.rb
+new file mode 100644
+index 00000000..f1b80e00
+--- /dev/null
++++ b/db/migrate/20241215000000_change_notification_logs_subject_to_text.rb
+@@ -0,0 +1,12 @@
++# frozen_string_literal: true
++
++# Allows long subjects (e.g. long class names) in notification logs
++class ChangeNotificationLogsSubjectToText < ActiveRecord::Migration[7.0]
++  def up
++    change_column :notification_logs, :subject, :text
++  end
++
++  def down
++    change_column :notification_logs, :subject, :string, limit: 255
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 0821ea84..acd5d364 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_12_08_063322) do
++ActiveRecord::Schema[7.0].define(version: 2024_12_15_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -631,7 +631,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_12_08_063322) do
+     t.datetime "created_at", precision: nil, null: false
+     t.datetime "updated_at", precision: nil, null: false
+     t.string "to", limit: 255
+-    t.string "subject", limit: 255
++    t.text "subject"
+     t.text "body"
+     t.string "attachments_file_names"
+     t.string "reply_to", limit: 255

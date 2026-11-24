@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25348,
+ "stop_reason": "end_turn",
+ "session_id": "40296172-cd0f-461e-8ef2-67b083b2238b",
+ "total_cost_usd": 0.054469800000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 798,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2353,
+  "output_tokens_details": {
+   "thinking_tokens": 163
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 798,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2353,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 798,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 798
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1390,
+   "outputTokens": 32,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000155,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2353,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 798,
+   "webSearchRequests": 0,
+   "costUSD": 0.0543148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 163,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: viewcode must honor `viewcode_enable_epub=False` when html and epub builds run in one invocation\n\n## Objective\n\n**Problem.** With `sphinx.ext.viewcode` enabled and `viewcode_enable_epub=False`, which the issue describes as the default, running `make html epub` still produces viewcode module pages (highlighted source pages) in the epub output. The reporter expects epub builds to omit these pages unless `viewcode_enable_epub=True`.\n\n**Who is affected.** Sphinx users who build HTML and EPUB in one command, as in `make html epub`, with viewcode enabled. Their epub ends up containing source-code pages they did not ask for.\n\n**Goal.** Whether viewcode module pages appear in an epub build depends only on `viewcode_enable_epub`. It must not depend on which builders ran earlier in the same invocation or on what is cached from a previous build.\n\n**Acceptance criteria (user stories)**\n- As a user with `viewcode_enable_epub=False`, when I run `make html epub`, the HTML output contains viewcode module pages and the epub output contains none.\n- As a user with `viewcode_enable_epub=False`, when I run `make epub` alone, the epub output contains no viewcode module pages. This is presumably already true; it is a regression guard.\n- As a user with `viewcode_enable_epub=True`, epub output contains viewcode module pages, whether epub is built alone or after html.\n- HTML-only builds behave exactly as they do today.\n\n## Assumptions\n\n1. `viewcode_enable_epub` defaults to `False`, as the issue implies (\"should not be created for epub by default\").\n2. The bug only shows up when an HTML-family build runs before the epub build, either in the same `make` invocation or through a shared build environment. The issue only shows `make html epub`, and does not say whether `make epub` alone is affected.\n3. Root-cause hypothesis, not verified: viewcode decides per build whether to *collect* module info, but generates pages from data stored in the shared/pickled build environment. Data collected during the html build is therefore reused when the epub builder generates pages. This must be confirmed against the source.\n4. \"Module pages\" covers both the per-module highlighted source pages and the `_modules/index` overview page.\n5. The fix targets the Sphinx 3.x branch, since the reporter used \"HEAD of 3.x\". Whether it should also be forward-ported is an open question.\n6. The issue says \"epub\", but the same logic probably applies to every epub-family builder name that viewcode checks. The exact set is unknown.\n7. Other viewcode behaviour is unchanged: `viewcode_import`, `viewcode_follow_imported_members`, and the `[source]` links in HTML.\n\n## Tech Stack\n\n- Python. The reporter used 3.9.1; the project's supported range is unknown.\n- Sphinx, 3.x branch.\n- Extension under change: `sphinx.ext.viewcode`. Its file location is unknown and not shown in the issue.\n- Builders involved: `html`, `epub`.\n\n## Commands\n\n- Reproduce, from the issue: `make html epub`, run in a Sphinx project with `extensions = ['sphinx.ext.viewcode']` and `viewcode_enable_epub = False`.\n- Build: unknown.\n- Test: unknown. The project's test runner and flags are not visible.\n- Lint: unknown.\n\n## Project Structure\n\nUnknown. No repository layout is visible. To be filled in once these are located:\n- the viewcode extension source module\n- the existing viewcode tests and their test-root fixtures\n\n## Code Style\n\nUnknown. Follow the existing conventions of the viewcode extension and the Sphinx codebase. No snippet is available.\n\n## Testing Strategy\n\n- **Framework:** unknown (to be confirmed from the repo).\n- **Regression test (required):** using the existing viewcode test fixtures, build `html` and then `epub` against the *same* source and build environment, with `viewcode_enable_epub=False`. Assert that:\n  - the html output contains module pages\n  - the epub output contains no module pages and no `_modules` index\n- **Complementary tests:**\n  - epub-only build with `viewcode_enable_epub=False`: no module pages\n  - html then epub with `viewcode_enable_epub=True`: epub contains module pages\n  - existing viewcode HTML tests keep passing unchanged\n- **Level:** integration (real builder runs). The bug lives in how builders interact through shared environment state, so unit tests alone are not enough.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after it.\n  - Keep HTML output unchanged.\n  - Keep the meaning and default of `viewcode_enable_epub` unchanged.\n- **Ask first:**\n  - Changing the config value's default or semantics.\n  - Changing which builder names count as \"epub\".\n  - Changing the stored environment data format in ways that could affect incremental builds or pickled environments.\n  - Backporting or forward-porting beyond 3.x.\n- **Never:**\n  - Remove or weaken existing viewcode tests.\n  - Disable viewcode for non-epub builders.\n  - Fix the problem by requiring users to run separate clean builds.\n\n## Success Criteria\n\n1. With `viewcode_enable_epub=False`, `make html epub` yields an epub with zero viewcode module pages, and the HTML output still has them.\n2. With `viewcode_enable_epub=True`, epub output includes module pages, whether built alone or after html.\n3. An epub-only build with the default setting produces no module pages.\n4. A new automated regression test covers the html \u2192 epub sequence and passes.\n5. The existing test suite passes.\n6. The changelog entry required by the project's convention is added. The convention itself is unknown.\n\n## Open Questions\n\n1. Does `make epub` alone, from a clean build directory, also produce module pages? Or does the bug need a prior html build in the same environment?\n2. Does the bug also show up across *separate* invocations that share a build directory (`make html` and then, later, `make epub`)? If so, does the fix need to cover that case too?\n3. Besides `epub`, which builders must the fix cover (e.g. `epub3`, or other epub-derived builders)?\n4. Besides the module pages and `_modules/index`, should epub also omit any `[source]` links or references that point to module pages?\n5. Which branch should receive the fix: 3.x only, or should it be merged forward?\n6. What are the project's test, lint, and changelog conventions and commands? They are not visible from the issue.",
+ "ttft_ms": 2804,
+ "type": "result",
+ "duration_ms": 24372,
+ "uuid": "8f7b72c4-1ae9-4a70-9d55-07102cb40cb9",
+ "ttft_stream_ms": 1215,
+ "time_to_request_ms": 257,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 18,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 208,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 240,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1215,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

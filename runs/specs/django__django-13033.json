@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30333,
+ "stop_reason": "end_turn",
+ "session_id": "c30da2a7-a955-4120-9a1d-fb3ae936cc3c",
+ "total_cost_usd": 0.0799984,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2239,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3046,
+  "output_tokens_details": {
+   "thinking_tokens": 205
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2239,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3046,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2239,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2239
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2821,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00029560000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3046,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2239,
+   "webSearchRequests": 0,
+   "costUSD": 0.0797028,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 205,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Ordering by a relation's `_id` attname must not apply the related model's default ordering (self-referential FK)\n\n## Objective\n\nWhen a queryset is ordered by a lookup path ending in a foreign key's **attname** (for example `order_by(\"record__root_id\")`), Django should order by the local FK column directly. It should not do either of these:\n\n- Join to the related table.\n- Expand into the related model's `Meta.ordering`.\n\nThe issue was reported on Django 2.2.10 and confirmed on 3.0.6. It shows up when the FK points to its own model (`OneModel.root \u2192 OneModel`) and that model defines `Meta.ordering = (\"-id\",)`.\n\nCurrent behavior for `TwoModel.objects.filter(record__oneval__in=[1,2,3]).order_by(\"record__root_id\")`:\n\n- It adds an unnecessary `LEFT OUTER JOIN \"orion_onemodel\" T3 ON (\"orion_onemodel\".\"root_id\" = T3.\"id\")`.\n- It orders by `T3.\"id\" DESC`. This is the related model's default ordering, applied instead of the requested ascending order.\n- `order_by(\"-record__root_id\")` produces `ORDER BY T3.\"id\" ASC`. The explicit direction is combined with, and here inverts, the model's default `-id`.\n\nExpected behavior for `order_by(\"record__root_id\")`:\n\n- It matches `order_by(\"record__root__id\")` and the `annotate(root_id=F(\"record__root_id\")).order_by(\"root_id\")` workaround.\n- It produces a single `INNER JOIN` to `orion_onemodel`.\n- It orders by `ORDER BY \"orion_onemodel\".\"root_id\" ASC`, or `DESC` for the `-` prefix.\n\n**Users:** Django ORM users who order querysets by FK attnames across relations, especially on models with self-referential FKs and a `Meta.ordering`.\n\n### Acceptance criteria\n\n1. `order_by(\"record__root_id\")` orders by `\"orion_onemodel\".\"root_id\" ASC` with no extra self-join.\n2. `order_by(\"-record__root_id\")` orders by `\"orion_onemodel\".\"root_id\" DESC` with no extra self-join.\n3. `order_by(\"record__root__id\")` keeps its current correct SQL, with no regression.\n4. `order_by(\"record__root\")` keeps its documented behavior: ordering by the relation name applies the related model's default ordering. See Open Question 1.\n5. The behavior is the same whether the FK targets the same model or a different model that has `Meta.ordering`.\n\n## Assumptions\n\n1. This is a bug in Django's ORM ordering resolution, not intended behavior. The reporter's comparison case points to this: a FK to a third model does not show the problem.\n2. The root cause is in how an ordering name is resolved to a field. When the final path component is the FK attname (`root_id`), it seems to be treated as the relation itself (`root`), which triggers expansion of the related model's `Meta.ordering`. The self-referential case probably exposes this because the related model has a default ordering.\n3. Ordering by the bare relation name (`record__root`) applying the related model's `Meta.ordering` is documented and intended, and must stay unchanged.\n4. In the reporter's annotate example, `\"zero_id\"` is a transcription typo for `\"root_id\"` and is not a separate symptom.\n5. The fix targets the current Django development branch. Backporting to 2.2.x or 3.0.x is out of scope unless maintainers request it.\n6. The table prefix `orion_` comes from the reporter's app label and is not significant.\n\n## Tech Stack\n\n- Python and Django. The versions in the issue are 2.2.10 and 3.0.6. The target branch version is **unknown**.\n- Database backend: not specified. The SQL looks backend-agnostic. Which backends the tests should run against is **unknown**.\n\n## Commands\n\n**Unknown.** The repository is not visible.\n\n- Build: unknown\n- Test: unknown (Django's own test runner invocation and the relevant test labels are not shown in the issue)\n- Lint: unknown\n- Dev: N/A\n\n## Project Structure\n\n**Unknown.** The repository is not visible. Areas likely involved, all unconfirmed:\n\n- ORM SQL compilation and ordering resolution: path unknown\n- Existing ordering tests that use self-referential FKs and models with `Meta.ordering`: path unknown\n\n## Code Style\n\nUnknown. Follow the existing conventions of the Django codebase. No snippet is available.\n\nThe test models from the issue are the minimal reproduction:\n\n```python\nclass OneModel(models.Model):\n    class Meta:\n        ordering = (\"-id\",)\n    id = models.BigAutoField(primary_key=True)\n    root = models.ForeignKey(\"OneModel\", on_delete=models.CASCADE, null=True)\n    oneval = models.BigIntegerField(null=True)\n\nclass TwoModel(models.Model):\n    id = models.BigAutoField(primary_key=True)\n    record = models.ForeignKey(OneModel, on_delete=models.CASCADE)\n    twoval = models.BigIntegerField(null=True)\n```\n\n## Testing Strategy\n\n- Framework: Django's own test suite. The exact runner command is unknown.\n- Level: ORM and query tests. Two kinds of assertions are needed:\n  - Assertions on generated SQL: no extra join, correct `ORDER BY` column and direction.\n  - Assertions on result ordering against real data, so the fix is checked against behavior and not only SQL text.\n- Required cases:\n  - Self-referential FK, ascending: `order_by(\"record__root_id\")`.\n  - Self-referential FK, descending: `order_by(\"-record__root_id\")`.\n  - Equivalence with `order_by(\"record__root__id\")`.\n  - Regression guard: `order_by(\"record__root\")` still applies `OneModel.Meta.ordering`.\n  - Non-self-referential FK to a model with `Meta.ordering`, ordered by its attname: unchanged or correct.\n- Coverage expectations: unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests reproducing the issue's querysets.\n  - Run the existing ordering and query test suites.\n  - Keep ordering by relation name (`record__root`) unchanged.\n- **Ask first:**\n  - Any change to the documented semantics of ordering by a relation name.\n  - Any change that alters generated SQL for queries not involving FK attnames.\n  - Backports to older release branches.\n- **Never:**\n  - Change `Meta.ordering` semantics globally.\n  - Remove or weaken existing ordering tests.\n  - Special-case only self-referential FKs if the root cause is attname-versus-name resolution in general.\n\n## Success Criteria\n\n- For the issue's models and data, `order_by(\"record__root_id\")` returns rows sorted ascending by `OneModel.root_id`. The generated SQL contains exactly one join to `orion_onemodel` and `ORDER BY \"orion_onemodel\".\"root_id\" ASC`.\n- `order_by(\"-record__root_id\")` returns rows sorted descending by `root_id`, with `ORDER BY \"orion_onemodel\".\"root_id\" DESC` and no extra join.\n- `order_by(\"record__root_id\")` and `order_by(\"record__root__id\")` produce equivalent SQL.\n- `order_by(\"record__root\")` still orders according to `OneModel.Meta.ordering` (`-id` on the joined row).\n- The existing test suite passes.\n\n## Open Questions\n\n1. Should `order_by(\"record__root\")` (relation name) keep applying the related model's `Meta.ordering`? The reporter notes it yields the same SQL as `record__root_id`. We assume yes, because this is documented behavior, but maintainers should confirm that only the attname path should change.\n2. Is the double-join for the relation-name case (`record__root`) on a self-referential FK also considered a bug? Or is it the expected cost of applying the related model's default ordering?\n3. When ordering by a relation name, should an explicit `-` prefix combine with the related model's default direction (`-` on `-id` giving `ASC`)? This should be confirmed as intended so it is not \"fixed\" by accident.\n4. Which Django branches should receive the fix: main only, or backports to 3.0.x and 3.1.x?\n5. What are the exact test locations and runner commands in the repository? Both are unknown.\n6. Can the reporter confirm that `\"zero_id\"` in the annotate example is a typo for `\"root_id\"`?",
+ "ttft_ms": 3712,
+ "type": "result",
+ "duration_ms": 29730,
+ "uuid": "db3607c1-0094-4997-ad84-177f335b76da",
+ "ttft_stream_ms": 1456,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 212,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 2,
+  "client_creation": 0,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 251,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1457,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

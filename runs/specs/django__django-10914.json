@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28794,
+ "stop_reason": "end_turn",
+ "session_id": "ea30da31-462c-4fe5-a201-bbbcce0db9c5",
+ "total_cost_usd": 0.06362530000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 953,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2748,
+  "output_tokens_details": {
+   "thinking_tokens": 118
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 953,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2748,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 953,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 953
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1540,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001705,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2748,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 953,
+   "webSearchRequests": 0,
+   "costUSD": 0.0634548,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 118,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Default `FILE_UPLOAD_PERMISSIONS` to `0o644`\n\n## Objective\n\nFiles saved through `FileSystemStorage` currently get inconsistent permissions when `FILE_UPLOAD_PERMISSIONS` is not set. The result depends on which temporary upload class handled the data:\n\n| Upload path (default `FILE_UPLOAD_HANDLERS`) | Typical size | Resulting permissions (reported) |\n|---|---|---|\n| In-memory uploaded file (reporter calls it `MemoryUploadedFile`) | Small | Derived from process umask (e.g. `0o644`) |\n| `TemporaryUploadedFile` (`tempfile.NamedTemporaryFile` + `os.rename`) | Large | `0o600` on some systems (CentOS 7.4.1708, Python 3.6.5) |\n\nPython's `tempfile` creates files as `0o600` for security reasons. Renaming the file keeps that mode, so a file's permissions depend on its upload size. Nothing in the File Uploads documentation warns about this.\n\n**Goal:** Uploaded files get predictable, consistent permissions by default, whatever their size and whichever upload handler was used.\n\n**Users affected:**\n- Django developers and operators who deploy file uploads.\n- Downstream consumers of uploaded files, such as web servers serving media and other processes or users that need to read those files.\n\n**Requested changes (from the issue title and description):**\n1. Change the default value of the `FILE_UPLOAD_PERMISSIONS` setting to `0o644`.\n2. Document the permission behavior. The docs should warn that permissions can differ between in-memory and temporary-file uploads when no explicit permission is configured, or explain the new default, or both.\n\n## Assumptions\n\n1. The setting is `FILE_UPLOAD_PERMISSIONS`, plural, as written in the description. \"FILE_UPLOAD_PERMISSION\" in the title is a typo.\n2. The current default of `FILE_UPLOAD_PERMISSIONS` is \"unset\" (`None`), meaning Django does not `chmod` saved files. The issue implies this but does not state it.\n3. When `FILE_UPLOAD_PERMISSIONS` is set, `FileSystemStorage` applies it to every saved file, so both upload paths end up with the same mode. Changing the default is therefore enough to give consistent behavior.\n4. Users who explicitly set `FILE_UPLOAD_PERMISSIONS`, including to `None`, keep their configured behavior. Explicitly setting `None` still restores the old \"no chmod\" behavior.\n5. The change is in scope only for `FileSystemStorage` and the setting's default. Third-party storage backends and `FILE_UPLOAD_DIRECTORY_PERMISSIONS` are out of scope.\n6. This is a behavior change in a default setting, so it requires a release note and documentation updates (setting reference and File Uploads page), not only a code change.\n7. `0o644` is acceptable as a default from a security standpoint: world-readable, owner-writable, consistent with typical umask `022` results for in-memory uploads.\n\n## Tech Stack\n\n- Python and Django. The supported versions and target release for this change are **unknown**.\n- Python standard library modules `tempfile` and `os`, as referenced in the issue.\n\n## Commands\n\nAll unknown; repository not visible.\n- Build: unknown\n- Test: unknown (Django's test runner invocation not provided)\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\nUnknown; repository not visible. Areas expected to be touched, by concept rather than verified path:\n- Global default settings definition: location of the `FILE_UPLOAD_PERMISSIONS` default\n- `FileSystemStorage` implementation\n- Settings reference documentation for `FILE_UPLOAD_PERMISSIONS`\n- File Uploads topic documentation\n- Release notes for the target version\n- Tests for file storage / file uploads\n\n## Code Style\n\nUnknown. Follow the existing conventions of the Django codebase. Use octal literals in the `0o644` form, as written in the issue.\n\n## Testing Strategy\n\nThe framework and test locations are unknown; use the project's existing test suite for file storage and uploads. Required coverage:\n\n- **Default value:** With no user override, the setting's default equals `0o644`.\n- **Large upload path:** A file large enough to use `TemporaryUploadedFile`, saved via `FileSystemStorage` with default settings, ends up with mode `0o644`.\n- **Small upload path:** A small in-memory upload saved with default settings ends up with mode `0o644`.\n- **Override:** An explicit `FILE_UPLOAD_PERMISSIONS` value, such as `0o640`, is applied instead of the default.\n- **Opt-out:** Explicitly setting `FILE_UPLOAD_PERMISSIONS = None` restores the previous behavior, i.e. no chmod is applied.\n- **Platform caveat:** Permission assertions are POSIX-specific. Tests should follow whatever skip conventions exist for Windows. Those conventions are unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep explicit user configuration authoritative.\n  - Update the settings reference, the File Uploads docs, and the release notes together with the default change.\n  - Add tests covering both upload paths.\n- **Ask first:**\n  - Changing `FILE_UPLOAD_DIRECTORY_PERMISSIONS` defaults.\n  - Altering the `chmod` mechanism in `FileSystemStorage`.\n  - Backporting to maintenance releases.\n  - Adding a deprecation period instead of a direct default change.\n- **Never:**\n  - Change permissions of files created outside the upload/storage save path.\n  - Weaken security of temporary files while they are still temporary, i.e. before the move.\n  - Silently ignore an explicit `None` setting.\n\n## Success Criteria\n\n1. With default settings, a file saved by `FileSystemStorage` has mode `0o644`. This holds for both in-memory and temporary-file uploads, on systems where `tempfile` creates `0o600` files.\n2. Upload size no longer affects final file permissions under default settings.\n3. Explicit `FILE_UPLOAD_PERMISSIONS` values, including `None`, behave as before.\n4. The settings reference shows the new default `0o644`. It also explains that `None` leaves permissions platform-dependent, potentially `0o600` for large uploads.\n5. The File Uploads documentation covers permission behavior, including the in-memory vs. temporary-file inconsistency when permissions are unset.\n6. The release notes call out the default change as a backwards-incompatible or behavior change.\n7. New and existing tests pass.\n\n## Open Questions\n\n1. Should this land as a direct default change in the next feature release, or go through a deprecation/warning period first?\n2. Is a documentation-only fix wanted for currently supported releases, i.e. the warning the reporter originally asked for, in addition to the default change?\n3. Is `0o644` the agreed value, or should something more restrictive be considered (e.g. `0o640`) for multi-user hosts?\n4. Should `FILE_UPLOAD_DIRECTORY_PERMISSIONS` get a matching non-`None` default for consistency, or stay out of scope?\n5. How should the new default interact with the process umask? Is the mode applied exactly via chmod, regardless of umask?\n6. What are the expected behavior and test handling on Windows, where POSIX modes are largely not meaningful?\n7. Are there existing GitHub reports or prior tickets to reference? The reporter mentions GitHub reports but gives no links.\n8. What are the target Django version, supported Python versions, and the exact test, lint, and docs commands for this repository?",
+ "ttft_ms": 2930,
+ "type": "result",
+ "duration_ms": 28112,
+ "uuid": "40a03106-db20-4cb4-9cd0-291da6a540dc",
+ "ttft_stream_ms": 1707,
+ "time_to_request_ms": 289,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 24,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 205,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 22,
+ "time_to_request_cpu_ms": 302,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1707,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

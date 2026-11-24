@@ -1,0 +1,1967 @@
+diff --git a/.github/workflows/rubyonrails.yml b/.github/workflows/rubyonrails.yml
+index 73304160..5b08766a 100644
+--- a/.github/workflows/rubyonrails.yml
++++ b/.github/workflows/rubyonrails.yml
+@@ -91,6 +91,10 @@ jobs:
+         if: github.event_name != 'schedule'
+         run: bundle exec rspec spec/config/schema_dump_spec.rb
+ 
++      - name: Javascript (node_modules versionado)
++        if: github.event_name != 'schedule'
++        run: bundle exec rake javascript:check
++
+   test:
+     if: github.event_name != 'schedule'
+     runs-on: ubuntu-latest
+diff --git a/.gitignore b/.gitignore
+index 9f55bbc2..cc486393 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -56,7 +56,6 @@
+ /app/assets/images/student
+ coverage/
+ /vendor/bundle
+-/node_modules/
+ 
+ # Ignore IDEs and text editors
+ .idea/
+diff --git a/lib/tasks/javascript.rake b/lib/tasks/javascript.rake
+new file mode 100644
+index 00000000..e28a19ec
+--- /dev/null
++++ b/lib/tasks/javascript.rake
+@@ -0,0 +1,86 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# lib/tasks/javascript.rake
++#
++# O node_modules e versionado de proposito (a instalacao nao exige node nem
++# yarn; o Sprockets le a pasta direto). Esta checagem garante que a pasta nao
++# divirja dos manifestos. Nao precisa de node, rede ou banco.
++require "json"
++
++module JavascriptCheck
++  module_function
++
++  # Retorna a lista de erros (vazia se tudo consistente).
++  def erros(raiz = Rails.root)
++    raiz = Pathname.new(raiz)
++    erros = []
++    pkg = JSON.parse(File.read(raiz.join("package.json")))
++    lock = File.read(raiz.join("yarn.lock"))
++    integridade_path = raiz.join("node_modules/.yarn-integrity")
++    integridade = File.exist?(integridade_path) ? JSON.parse(File.read(integridade_path)) : nil
++    if integridade.nil?
++      erros << "node_modules/.yarn-integrity nao existe"
++    end
++
++    (pkg["dependencies"] || {}).merge(pkg["devDependencies"] || {}).each do |nome, faixa|
++      chave = "#{nome}@#{faixa}"
++
++      entrada = lock_entry(lock, chave)
++      if entrada.nil?
++        erros << "yarn.lock nao tem entrada '#{chave}' (package.json declara #{nome} #{faixa})"
++        versao_lock = nil
++      else
++        versao_lock = entrada
++      end
++
++      instalado_path = raiz.join("node_modules", nome, "package.json")
++      versao_instalada = File.exist?(instalado_path) ? JSON.parse(File.read(instalado_path))["version"] : nil
++      if versao_instalada.nil?
++        erros << "node_modules/#{nome}/package.json nao existe"
++      elsif versao_lock && versao_lock != versao_instalada
++        sentido = (Gem::Version.new(versao_lock) > Gem::Version.new(versao_instalada)) ? "lock a frente da pasta" : "pasta a frente do lock"
++        erros << "#{nome}: yarn.lock tem #{versao_lock}, node_modules tem #{versao_instalada} (#{sentido})"
++      end
++
++      if integridade
++        padroes = integridade["topLevelPatterns"] || []
++        unless padroes.include?(chave)
++          erros << "#{nome}: .yarn-integrity registra #{padroes.inspect}, package.json declara '#{chave}'"
++        end
++      end
++    end
++    erros
++  end
++
++  # Versao da entrada do yarn.lock cuja chave inclui o padrao dado.
++  def lock_entry(lock, chave)
++    lock.scan(/^("?[^\s#][^\n]*?"?):\n((?:[ ]{2,}[^\n]*\n)+)/).each do |cabecalho, corpo|
++      chaves = cabecalho.split(",").map { |c| c.strip.delete_prefix('"').delete_suffix('"') }
++      next unless chaves.include?(chave)
++      m = corpo.match(/^\s+version "([^"]+)"/)
++      return m[1] if m
++    end
++    nil
++  end
++end
++
++namespace :javascript do
++  desc "Verifica que node_modules versionado bate com package.json e yarn.lock"
++  task :check do
++    require "pathname"
++    require_relative "../../config/boot" unless defined?(Rails)
++    raiz = Pathname.new(File.expand_path("../..", __dir__))
++    erros = JavascriptCheck.erros(raiz)
++    if erros.empty?
++      puts "node_modules consistente com package.json e yarn.lock"
++    else
++      warn "node_modules divergiu dos manifestos:"
++      erros.each { |e| warn "  - #{e}" }
++      warn "Para sincronizar: yarn install e commite node_modules (veja a skill dependencias)."
++      exit 1
++    end
++  end
++end
+diff --git a/node_modules/.yarn-integrity b/node_modules/.yarn-integrity
+index f0e76099..7ef266b4 100644
+--- a/node_modules/.yarn-integrity
++++ b/node_modules/.yarn-integrity
+@@ -6,10 +6,10 @@
+   "flags": [],
+   "linkedModules": [],
+   "topLevelPatterns": [
+-    "codemirror@^5.55.0"
++    "codemirror@^5.58.2"
+   ],
+   "lockfileEntries": {
+-    "codemirror@^5.55.0": "https://registry.yarnpkg.com/codemirror/-/codemirror-5.55.0.tgz#23731f641288f202a6858fdc878f3149e0e04363"
++    "codemirror@^5.58.2": "https://registry.yarnpkg.com/codemirror/-/codemirror-5.58.2.tgz#ed54a1796de1498688bea1cdd4e9eeb187565d1b"
+   },
+   "files": [],
+   "artifacts": {}
+diff --git a/node_modules/codemirror/AUTHORS b/node_modules/codemirror/AUTHORS
+index f041a057..b8087133 100644
+--- a/node_modules/codemirror/AUTHORS
++++ b/node_modules/codemirror/AUTHORS
+@@ -15,6 +15,7 @@ Adán Lobato
+ Aditya Toshniwal
+ Adrian Aichner
+ Adrian Heine
++Adrian Kunz
+ Adrien Bertrand
+ aeroson
+ Ahmad Amireh
+@@ -113,6 +114,7 @@ Bert Chang
+ Bharad
+ BigBlueHat
+ Billy Moon
++Bin Ni
+ binny
+ Bjorn Hansen
+ B Krishna Chaitanya
+@@ -206,6 +208,7 @@ David Barnett
+ David H. Bronke
+ David Mignot
+ David Pathakjee
++David R. Myers
+ David Rodrigues
+ David Santana
+ David Vázquez
+@@ -313,6 +316,7 @@ Hakan Tunc
+ Hanno Fellmann
+ Hans Engel
+ Hanzhao Deng
++Haoran Yu
+ Harald Schilly
+ Hardest
+ Harshvardhan Gupta
+@@ -329,6 +333,8 @@ hidaiy
+ Hiroyuki Makino
+ hitsthings
+ Hocdoc
++Howard
++Howard Jing
+ Hugues Malphettes
+ Ian Beck
+ Ian Davies
+@@ -345,6 +351,7 @@ ilvalle
+ Ilya Kharlamov
+ Ilya Zverev
+ Ingo Richter
++Intervue
+ Irakli Gozalishvili
+ Ivan Kurnosov
+ Ivoah
+@@ -441,6 +448,7 @@ jwallers@gmail.com
+ kaniga
+ karevn
+ Karol
++Kaushik Kulkarni
+ Kayur Patel
+ Kazuhito Hokamura
+ kcwiakala
+@@ -491,6 +499,7 @@ Lorenzo Simionato
+ Lorenzo Stoakes
+ Louis Mauchet
+ Luca Fabbri
++Lucas Buchala
+ Luciano Longo
+ Luciano Santana
+ Lu Fangjian
+@@ -516,6 +525,7 @@ Marijn Haverbeke
+ Mário Gonçalves
+ Mario Pietsch
+ Mark Anderson
++Mark Boyes
+ Mark Dalgleish
+ Mark Hamstra
+ Mark Lentczner
+@@ -626,6 +636,7 @@ Nikolaj Kappler
+ Nikolay Kostov
+ nilp0inter
+ Nils Knappmeier
++Nina Pypchenko
+ Nisarg Jhaveri
+ nlwillia
+ noragrossman
+@@ -636,6 +647,7 @@ Olivia Ytterbrink
+ Opender Singh
+ opl-
+ Oreoluwa Onatemowo
++orionlee
+ oscar.lofwenhamn
+ Oskar Segersvärd
+ ossdev
+@@ -657,6 +669,7 @@ Patrick Strawderman
+ Paul Garvin
+ Paul Ivanov
+ Paul Masson
++Paul Schmidt
+ Pavel
+ Pavel Feldman
+ Pavel Petržela
+@@ -819,6 +832,7 @@ Tobias Bertelsen
+ TobiasBg
+ Todd Berman
+ Todd Kennedy
++tokafew420
+ Tomas-A
+ Tomas Varaneckas
+ Tom Erik Støwer
+diff --git a/node_modules/codemirror/CHANGELOG.md b/node_modules/codemirror/CHANGELOG.md
+index b87340b5..80200fc7 100644
+--- a/node_modules/codemirror/CHANGELOG.md
++++ b/node_modules/codemirror/CHANGELOG.md
+@@ -1,4 +1,72 @@
+-## 5.55.0 (2020-05-20)
++## 5.58.2 (2020-10-23)
++
++### Bug fixes
++
++Fix a bug where horizontally scrolling the cursor into view sometimes failed with a non-fixed gutter.
++
++[julia mode](https://codemirror.net/mode/julia/): Fix an infinite recursion bug.
++
++## 5.58.1 (2020-09-23)
++
++### Bug fixes
++
++[placeholder addon](https://codemirror.net/doc/manual.html#addon_placeholder): Remove arrow function that ended up in the code.
++
++## 5.58.0 (2020-09-21)
++
++### Bug fixes
++
++Make backspace delete by code point, not glyph.
++
++Suppress flickering focus outline when clicking on scrollbars in Chrome.
++
++Fix a bug that prevented attributes added via `markText` from showing up unless the span also had some other styling.
++
++Suppress cut and paste context menu entries in readonly editors in Chrome.
++
++[placeholder addon](https://codemirror.net/doc/manual.html#addon_placeholder): Update placeholder visibility during composition.
++
++### New features
++
++Make it less cumbersome to style new lint message types.
++
++[vim bindings](https://codemirror.net/demo/vim.html): Support black hole register, `gn` and `gN`
++
++## 5.57.0 (2020-08-20)
++
++### Bug fixes
++
++Fix issue that broke binding the macOS Command key.
++
++[comment addon](https://codemirror.net/doc/manual.html#addon_comment): Keep selection in front of inserted markers when adding a block comment.
++
++[css mode](https://codemirror.net/mode/css/): Recognize more properties and value names.
++
++[annotatescrollbar addon](https://codemirror.net/doc/manual.html#addon_annotatescrollbar): Don't hide matches in collapsed content.
++
++### New features
++
++[vim bindings](https://codemirror.net/demo/vim.html): Support tag text objects in xml and html modes.
++
++## 5.56.0 (2020-07-20)
++
++### Bug fixes
++
++Line-wise pasting was fixed on Chrome Windows.
++
++[wast mode](https://codemirror.net/mode/wast/): Follow standard changes.
++
++[soy mode](https://codemirror.net/mode/soy/): Support import expressions, template type, and loop indices.
++
++[sql-hint addon](https://codemirror.net/doc/manual.html#addon_sql-hint): Improve handling of double quotes.
++
++### New features
++
++[show-hint addon](https://codemirror.net/doc/manual.html#addon_show-hint): New option `scrollMargin` to control how many options are visible beyond the selected one.
++
++[hardwrap addon](https://codemirror.net/doc/manual.html#addon_hardwrap): New option `forceBreak` to disable breaking of words that are longer than a line.
++
++## 5.55.0 (2020-06-21)
+ 
+ ### Bug fixes
+ 
+diff --git a/node_modules/codemirror/README.md b/node_modules/codemirror/README.md
+index 2a7b1f5e..92debf44 100644
+--- a/node_modules/codemirror/README.md
++++ b/node_modules/codemirror/README.md
+@@ -2,7 +2,6 @@
+ 
+ [![Build Status](https://travis-ci.org/codemirror/CodeMirror.svg)](https://travis-ci.org/codemirror/CodeMirror)
+ [![NPM version](https://img.shields.io/npm/v/codemirror.svg)](https://www.npmjs.org/package/codemirror)
+-[![Join the chat at https://gitter.im/codemirror/CodeMirror](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/codemirror/CodeMirror)  
+ 
+ CodeMirror is a versatile text editor implemented in JavaScript for
+ the browser. It is specialized for editing code, and comes with over
+diff --git a/node_modules/codemirror/addon/comment/comment.js b/node_modules/codemirror/addon/comment/comment.js
+index 8394e85a..dac48d03 100644
+--- a/node_modules/codemirror/addon/comment/comment.js
++++ b/node_modules/codemirror/addon/comment/comment.js
+@@ -13,7 +13,7 @@
+ 
+   var noOptions = {};
+   var nonWS = /[^\s\u00a0]/;
+-  var Pos = CodeMirror.Pos;
++  var Pos = CodeMirror.Pos, cmp = CodeMirror.cmpPos;
+ 
+   function firstNonWS(str) {
+     var found = str.search(nonWS);
+@@ -126,7 +126,9 @@
+           if (i != end || lastLineHasText)
+             self.replaceRange(lead + pad, Pos(i, 0));
+       } else {
++        var atCursor = cmp(self.getCursor("to"), to) == 0, empty = !self.somethingSelected()
+         self.replaceRange(endString, to);
++        if (atCursor) self.setSelection(empty ? to : self.getCursor("from"), to)
+         self.replaceRange(startString, from);
+       }
+     });
+diff --git a/node_modules/codemirror/addon/display/placeholder.js b/node_modules/codemirror/addon/display/placeholder.js
+index 4eabe3d9..89bb93f3 100644
+--- a/node_modules/codemirror/addon/display/placeholder.js
++++ b/node_modules/codemirror/addon/display/placeholder.js
+@@ -15,11 +15,13 @@
+       cm.on("blur", onBlur);
+       cm.on("change", onChange);
+       cm.on("swapDoc", onChange);
++      CodeMirror.on(cm.getInputField(), "compositionupdate", cm.state.placeholderCompose = function() { onComposition(cm) })
+       onChange(cm);
+     } else if (!val && prev) {
+       cm.off("blur", onBlur);
+       cm.off("change", onChange);
+       cm.off("swapDoc", onChange);
++      CodeMirror.off(cm.getInputField(), "compositionupdate", cm.state.placeholderCompose)
+       clearPlaceholder(cm);
+       var wrapper = cm.getWrapperElement();
+       wrapper.className = wrapper.className.replace(" CodeMirror-empty", "");
+@@ -46,6 +48,18 @@
+     cm.display.lineSpace.insertBefore(elt, cm.display.lineSpace.firstChild);
+   }
+ 
++  function onComposition(cm) {
++    setTimeout(function() {
++      var empty = false, input = cm.getInputField()
++      if (input.nodeName == "TEXTAREA")
++        empty = !input.value
++      else if (cm.lineCount() == 1)
++        empty = !/[^\u200b]/.test(input.querySelector(".CodeMirror-line").textContent)
++      if (empty) setPlaceholder(cm)
++      else clearPlaceholder(cm)
++    }, 20)
++  }
++
+   function onBlur(cm) {
+     if (isEmpty(cm)) setPlaceholder(cm);
+   }
+diff --git a/node_modules/codemirror/addon/hint/show-hint.js b/node_modules/codemirror/addon/hint/show-hint.js
+index c55deab3..cd0d6a7b 100644
+--- a/node_modules/codemirror/addon/hint/show-hint.js
++++ b/node_modules/codemirror/addon/hint/show-hint.js
+@@ -379,12 +379,14 @@
+     },
+ 
+     scrollToActive: function() {
+-      var node = this.hints.childNodes[this.selectedHint]
++      var margin = this.completion.options.scrollMargin || 0;
++      var node1 = this.hints.childNodes[Math.max(0, this.selectedHint - margin)];
++      var node2 = this.hints.childNodes[Math.min(this.data.list.length - 1, this.selectedHint + margin)];
+       var firstNode = this.hints.firstChild;
+-      if (node.offsetTop < this.hints.scrollTop)
+-        this.hints.scrollTop = node.offsetTop - firstNode.offsetTop;
+-      else if (node.offsetTop + node.offsetHeight > this.hints.scrollTop + this.hints.clientHeight)
+-        this.hints.scrollTop = node.offsetTop + node.offsetHeight - this.hints.clientHeight + firstNode.offsetTop;
++      if (node1.offsetTop < this.hints.scrollTop)
++        this.hints.scrollTop = node1.offsetTop - firstNode.offsetTop;
++      else if (node2.offsetTop + node2.offsetHeight > this.hints.scrollTop + this.hints.clientHeight)
++        this.hints.scrollTop = node2.offsetTop + node2.offsetHeight - this.hints.clientHeight + firstNode.offsetTop;
+     },
+ 
+     screenAmount: function() {
+diff --git a/node_modules/codemirror/addon/hint/sql-hint.js b/node_modules/codemirror/addon/hint/sql-hint.js
+index 0b89b79f..5b65e291 100644
+--- a/node_modules/codemirror/addon/hint/sql-hint.js
++++ b/node_modules/codemirror/addon/hint/sql-hint.js
+@@ -187,7 +187,7 @@
+   function eachWord(lineText, f) {
+     var words = lineText.split(/\s+/)
+     for (var i = 0; i < words.length; i++)
+-      if (words[i]) f(words[i].replace(/[,;]/g, ''))
++      if (words[i]) f(words[i].replace(/[`,;]/g, ''))
+   }
+ 
+   function findTableByAlias(alias, editor) {
+@@ -264,7 +264,7 @@
+       token.string = token.string.slice(0, cur.ch - token.start);
+     }
+ 
+-    if (token.string.match(/^[.`"\w@][\w$#]*$/g)) {
++    if (token.string.match(/^[.`"'\w@][\w$#]*$/g)) {
+       search = token.string;
+       start = token.start;
+       end = token.end;
+diff --git a/node_modules/codemirror/addon/hint/xml-hint.js b/node_modules/codemirror/addon/hint/xml-hint.js
+index 7575b370..543d19b6 100644
+--- a/node_modules/codemirror/addon/hint/xml-hint.js
++++ b/node_modules/codemirror/addon/hint/xml-hint.js
+@@ -101,8 +101,14 @@
+           }
+           replaceToken = true;
+         }
+-        for (var i = 0; i < atValues.length; ++i) if (!prefix || matches(atValues[i], prefix, matchInMiddle))
+-          result.push(quote + atValues[i] + quote);
++        function returnHintsFromAtValues(atValues) {
++          if (atValues)
++            for (var i = 0; i < atValues.length; ++i) if (!prefix || matches(atValues[i], prefix, matchInMiddle))
++              result.push(quote + atValues[i] + quote);
++          return returnHints();
++        }
++        if (atValues && atValues.then) return atValues.then(returnHintsFromAtValues);
++        return returnHintsFromAtValues(atValues);
+       } else { // An attribute name
+         if (token.type == "attribute") {
+           prefix = token.string;
+@@ -112,11 +118,14 @@
+           result.push(attr);
+       }
+     }
+-    return {
+-      list: result,
+-      from: replaceToken ? Pos(cur.line, tagStart == null ? token.start : tagStart) : cur,
+-      to: replaceToken ? Pos(cur.line, token.end) : cur
+-    };
++    function returnHints() {
++      return {
++        list: result,
++        from: replaceToken ? Pos(cur.line, tagStart == null ? token.start : tagStart) : cur,
++        to: replaceToken ? Pos(cur.line, token.end) : cur
++      };
++    }
++    return returnHints();
+   }
+ 
+   CodeMirror.registerHelper("hint", "xml", getHints);
+diff --git a/node_modules/codemirror/addon/lint/lint.css b/node_modules/codemirror/addon/lint/lint.css
+index f097cfe3..08718659 100644
+--- a/node_modules/codemirror/addon/lint/lint.css
++++ b/node_modules/codemirror/addon/lint/lint.css
+@@ -25,22 +25,20 @@
+   -ms-transition: opacity .4s;
+ }
+ 
+-.CodeMirror-lint-mark-error, .CodeMirror-lint-mark-warning {
++.CodeMirror-lint-mark {
+   background-position: left bottom;
+   background-repeat: repeat-x;
+ }
+ 
+-.CodeMirror-lint-mark-error {
+-  background-image:
+-  url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJDw4cOCW1/KIAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAHElEQVQI12NggIL/DAz/GdA5/xkY/qPKMDAwAADLZwf5rvm+LQAAAABJRU5ErkJggg==")
+-  ;
+-}
+-
+ .CodeMirror-lint-mark-warning {
+   background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJFhQXEbhTg7YAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAMklEQVQI12NkgIIvJ3QXMjAwdDN+OaEbysDA4MPAwNDNwMCwiOHLCd1zX07o6kBVGQEAKBANtobskNMAAAAASUVORK5CYII=");
+ }
+ 
+-.CodeMirror-lint-marker-error, .CodeMirror-lint-marker-warning {
++.CodeMirror-lint-mark-error {
++  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAADCAYAAAC09K7GAAAAAXNSR0IArs4c6QAAAAZiS0dEAP8A/wD/oL2nkwAAAAlwSFlzAAALEwAACxMBAJqcGAAAAAd0SU1FB9sJDw4cOCW1/KIAAAAZdEVYdENvbW1lbnQAQ3JlYXRlZCB3aXRoIEdJTVBXgQ4XAAAAHElEQVQI12NggIL/DAz/GdA5/xkY/qPKMDAwAADLZwf5rvm+LQAAAABJRU5ErkJggg==");
++}
++
++.CodeMirror-lint-marker {
+   background-position: center center;
+   background-repeat: no-repeat;
+   cursor: pointer;
+@@ -51,20 +49,20 @@
+   position: relative;
+ }
+ 
+-.CodeMirror-lint-message-error, .CodeMirror-lint-message-warning {
++.CodeMirror-lint-message {
+   padding-left: 18px;
+   background-position: top left;
+   background-repeat: no-repeat;
+ }
+ 
+-.CodeMirror-lint-marker-error, .CodeMirror-lint-message-error {
+-  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAHlBMVEW7AAC7AACxAAC7AAC7AAAAAAC4AAC5AAD///+7AAAUdclpAAAABnRSTlMXnORSiwCK0ZKSAAAATUlEQVR42mWPOQ7AQAgDuQLx/z8csYRmPRIFIwRGnosRrpamvkKi0FTIiMASR3hhKW+hAN6/tIWhu9PDWiTGNEkTtIOucA5Oyr9ckPgAWm0GPBog6v4AAAAASUVORK5CYII=");
+-}
+-
+ .CodeMirror-lint-marker-warning, .CodeMirror-lint-message-warning {
+   background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAANlBMVEX/uwDvrwD/uwD/uwD/uwD/uwD/uwD/uwD/uwD6twD/uwAAAADurwD2tQD7uAD+ugAAAAD/uwDhmeTRAAAADHRSTlMJ8mN1EYcbmiixgACm7WbuAAAAVklEQVR42n3PUQqAIBBFUU1LLc3u/jdbOJoW1P08DA9Gba8+YWJ6gNJoNYIBzAA2chBth5kLmG9YUoG0NHAUwFXwO9LuBQL1giCQb8gC9Oro2vp5rncCIY8L8uEx5ZkAAAAASUVORK5CYII=");
+ }
+ 
++.CodeMirror-lint-marker-error, .CodeMirror-lint-message-error {
++  background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAHlBMVEW7AAC7AACxAAC7AAC7AAAAAAC4AAC5AAD///+7AAAUdclpAAAABnRSTlMXnORSiwCK0ZKSAAAATUlEQVR42mWPOQ7AQAgDuQLx/z8csYRmPRIFIwRGnosRrpamvkKi0FTIiMASR3hhKW+hAN6/tIWhu9PDWiTGNEkTtIOucA5Oyr9ckPgAWm0GPBog6v4AAAAASUVORK5CYII=");
++}
++
+ .CodeMirror-lint-marker-multiple {
+   background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAcAAAAHCAMAAADzjKfhAAAACVBMVEUAAAAAAAC/v7914kyHAAAAAXRSTlMAQObYZgAAACNJREFUeNo1ioEJAAAIwmz/H90iFFSGJgFMe3gaLZ0od+9/AQZ0ADosbYraAAAAAElFTkSuQmCC");
+   background-repeat: no-repeat;
+diff --git a/node_modules/codemirror/addon/lint/lint.js b/node_modules/codemirror/addon/lint/lint.js
+index 5bc1af18..963f2cf2 100644
+--- a/node_modules/codemirror/addon/lint/lint.js
++++ b/node_modules/codemirror/addon/lint/lint.js
+@@ -83,10 +83,10 @@
+ 
+   function makeMarker(cm, labels, severity, multiple, tooltips) {
+     var marker = document.createElement("div"), inner = marker;
+-    marker.className = "CodeMirror-lint-marker-" + severity;
++    marker.className = "CodeMirror-lint-marker CodeMirror-lint-marker-" + severity;
+     if (multiple) {
+       inner = marker.appendChild(document.createElement("div"));
+-      inner.className = "CodeMirror-lint-marker-multiple";
++      inner.className = "CodeMirror-lint-marker CodeMirror-lint-marker-multiple";
+     }
+ 
+     if (tooltips != false) CodeMirror.on(inner, "mouseover", function(e) {
+@@ -114,7 +114,7 @@
+     var severity = ann.severity;
+     if (!severity) severity = "error";
+     var tip = document.createElement("div");
+-    tip.className = "CodeMirror-lint-message-" + severity;
++    tip.className = "CodeMirror-lint-message CodeMirror-lint-message-" + severity;
+     if (typeof ann.messageHTML != 'undefined') {
+       tip.innerHTML = ann.messageHTML;
+     } else {
+@@ -183,7 +183,7 @@
+         if (state.hasGutter) tipLabel.appendChild(annotationTooltip(ann));
+ 
+         if (ann.to) state.marked.push(cm.markText(ann.from, ann.to, {
+-          className: "CodeMirror-lint-mark-" + severity,
++          className: "CodeMirror-lint-mark CodeMirror-lint-mark-" + severity,
+           __annotation: ann
+         }));
+       }
+diff --git a/node_modules/codemirror/addon/scroll/annotatescrollbar.js b/node_modules/codemirror/addon/scroll/annotatescrollbar.js
+index 9fe61ec1..c12e44cd 100644
+--- a/node_modules/codemirror/addon/scroll/annotatescrollbar.js
++++ b/node_modules/codemirror/addon/scroll/annotatescrollbar.js
+@@ -72,10 +72,16 @@
+     var wrapping = cm.getOption("lineWrapping");
+     var singleLineH = wrapping && cm.defaultTextHeight() * 1.5;
+     var curLine = null, curLineObj = null;
++
+     function getY(pos, top) {
+       if (curLine != pos.line) {
+-        curLine = pos.line;
+-        curLineObj = cm.getLineHandle(curLine);
++        curLine = pos.line
++        curLineObj = cm.getLineHandle(pos.line)
++        var visual = cm.getLineHandleVisualStart(curLineObj)
++        if (visual != curLineObj) {
++          curLine = cm.getLineNumber(visual)
++          curLineObj = visual
++        }
+       }
+       if ((curLineObj.widgets && curLineObj.widgets.length) ||
+           (wrapping && curLineObj.height > singleLineH))
+diff --git a/node_modules/codemirror/addon/wrap/hardwrap.js b/node_modules/codemirror/addon/wrap/hardwrap.js
+index 29cc15f0..f194946c 100644
+--- a/node_modules/codemirror/addon/wrap/hardwrap.js
++++ b/node_modules/codemirror/addon/wrap/hardwrap.js
+@@ -29,11 +29,20 @@
+     return {from: start, to: end};
+   }
+ 
+-  function findBreakPoint(text, column, wrapOn, killTrailingSpace) {
++  function findBreakPoint(text, column, wrapOn, killTrailingSpace, forceBreak) {
+     var at = column
+     while (at < text.length && text.charAt(at) == " ") at++
+     for (; at > 0; --at)
+       if (wrapOn.test(text.slice(at - 1, at + 1))) break;
++
++    if (at == 0 && !forceBreak) {
++      // didn't find a break point before column, in non-forceBreak mode try to
++      // find one after 'column'.
++      for (at = column + 1; at < text.length - 1; ++at) {
++        if (wrapOn.test(text.slice(at - 1, at + 1))) break;
++      }
++    }
++
+     for (var first = true;; first = false) {
+       var endOfText = at;
+       if (killTrailingSpace)
+@@ -47,6 +56,7 @@
+     from = cm.clipPos(from); to = cm.clipPos(to);
+     var column = options.column || 80;
+     var wrapOn = options.wrapOn || /\s\S|-[^\.\d]/;
++    var forceBreak = options.forceBreak !== false;
+     var killTrailing = options.killTrailingSpace !== false;
+     var changes = [], curLine = "", curNo = from.line;
+     var lines = cm.getRange(from, to, false);
+@@ -68,7 +78,7 @@
+       curLine += text;
+       if (i) {
+         var firstBreak = curLine.length > column && leadingSpace == spaceTrimmed &&
+-          findBreakPoint(curLine, column, wrapOn, killTrailing);
++          findBreakPoint(curLine, column, wrapOn, killTrailing, forceBreak);
+         // If this isn't broken, or is broken at a different point, remove old break
+         if (!firstBreak || firstBreak.from != oldLen || firstBreak.to != oldLen + spaceInserted) {
+           changes.push({text: [spaceInserted ? " " : ""],
+@@ -80,12 +90,16 @@
+         }
+       }
+       while (curLine.length > column) {
+-        var bp = findBreakPoint(curLine, column, wrapOn, killTrailing);
+-        changes.push({text: ["", leadingSpace],
+-                      from: Pos(curNo, bp.from),
+-                      to: Pos(curNo, bp.to)});
+-        curLine = leadingSpace + curLine.slice(bp.to);
+-        ++curNo;
++        var bp = findBreakPoint(curLine, column, wrapOn, killTrailing, forceBreak);
++        if (bp.from != bp.to || forceBreak) {
++          changes.push({text: ["", leadingSpace],
++                        from: Pos(curNo, bp.from),
++                        to: Pos(curNo, bp.to)});
++          curLine = leadingSpace + curLine.slice(bp.to);
++          ++curNo;
++        } else {
++          break;
++        }
+       }
+     }
+     if (changes.length) cm.operation(function() {
+diff --git a/node_modules/codemirror/keymap/vim.js b/node_modules/codemirror/keymap/vim.js
+index bca6d46d..789e1e55 100644
+--- a/node_modules/codemirror/keymap/vim.js
++++ b/node_modules/codemirror/keymap/vim.js
+@@ -8,7 +8,7 @@
+  * Supported Ex commands:
+  *   Refer to defaultExCommandMap below.
+  *
+- * Registers: unnamed, -, a-z, A-Z, 0-9
++ * Registers: unnamed, -, ., :, /, _, a-z, A-Z, 0-9
+  *   (Does not respect the special case for number registers when delete
+  *    operator is made with these commands: %, (, ),  , /, ?, n, N, {, } )
+  *   TODO: Implement the remaining registers.
+@@ -141,6 +141,8 @@
+     { keys: 'gU', type: 'operator', operator: 'changeCase', operatorArgs: {toLower: false}, isEdit: true },
+     { keys: 'n', type: 'motion', motion: 'findNext', motionArgs: { forward: true, toJumplist: true }},
+     { keys: 'N', type: 'motion', motion: 'findNext', motionArgs: { forward: false, toJumplist: true }},
++    { keys: 'gn', type: 'motion', motion: 'findAndSelectNextInclusive', motionArgs: { forward: true }},
++    { keys: 'gN', type: 'motion', motion: 'findAndSelectNextInclusive', motionArgs: { forward: false }},
+     // Operator-Motion dual commands
+     { keys: 'x', type: 'operatorMotion', operator: 'delete', motion: 'moveByCharacters', motionArgs: { forward: true }, operatorMotionArgs: { visualLine: false }},
+     { keys: 'X', type: 'operatorMotion', operator: 'delete', motion: 'moveByCharacters', motionArgs: { forward: false }, operatorMotionArgs: { visualLine: true }},
+@@ -416,7 +418,7 @@
+     var lowerCaseAlphabet = makeKeyRange(97, 26);
+     var numbers = makeKeyRange(48, 10);
+     var validMarks = [].concat(upperCaseAlphabet, lowerCaseAlphabet, numbers, ['<', '>']);
+-    var validRegisters = [].concat(upperCaseAlphabet, lowerCaseAlphabet, numbers, ['-', '"', '.', ':', '/']);
++    var validRegisters = [].concat(upperCaseAlphabet, lowerCaseAlphabet, numbers, ['-', '"', '.', ':', '_', '/']);
+ 
+     function isLine(cm, line) {
+       return line >= cm.firstLine() && line <= cm.lastLine();
+@@ -1128,6 +1130,8 @@
+     }
+     RegisterController.prototype = {
+       pushText: function(registerName, operator, text, linewise, blockwise) {
++        // The black hole register, "_, means delete/yank to nowhere.
++        if (registerName === '_') return;
+         if (linewise && text.charAt(text.length - 1) !== '\n'){
+           text += '\n';
+         }
+@@ -1574,7 +1578,7 @@
+         motionArgs.repeat = repeat;
+         clearInputState(cm);
+         if (motion) {
+-          var motionResult = motions[motion](cm, origHead, motionArgs, vim);
++          var motionResult = motions[motion](cm, origHead, motionArgs, vim, inputState);
+           vim.lastMotion = motions[motion];
+           if (!motionResult) {
+             return;
+@@ -1772,6 +1776,87 @@
+         highlightSearchMatches(cm, query);
+         return findNext(cm, prev/** prev */, query, motionArgs.repeat);
+       },
++      /**
++       * Find and select the next occurrence of the search query. If the cursor is currently
++       * within a match, then find and select the current match. Otherwise, find the next occurrence in the
++       * appropriate direction.
++       *
++       * This differs from `findNext` in the following ways:
++       *
++       * 1. Instead of only returning the "from", this returns a "from", "to" range.
++       * 2. If the cursor is currently inside a search match, this selects the current match
++       *    instead of the next match.
++       * 3. If there is no associated operator, this will turn on visual mode.
++       */
++      findAndSelectNextInclusive: function(cm, _head, motionArgs, vim, prevInputState) {
++        var state = getSearchState(cm);
++        var query = state.getQuery();
++
++        if (!query) {
++          return;
++        }
++
++        var prev = !motionArgs.forward;
++        prev = (state.isReversed()) ? !prev : prev;
++
++        // next: [from, to] | null
++        var next = findNextFromAndToInclusive(cm, prev, query, motionArgs.repeat, vim);
++
++        // No matches.
++        if (!next) {
++          return;
++        }
++
++        // If there's an operator that will be executed, return the selection.
++        if (prevInputState.operator) {
++          return next;
++        }
++
++        // At this point, we know that there is no accompanying operator -- let's
++        // deal with visual mode in order to select an appropriate match.
++
++        var from = next[0];
++        // For whatever reason, when we use the "to" as returned by searchcursor.js directly,
++        // the resulting selection is extended by 1 char. Let's shrink it so that only the
++        // match is selected.
++        var to = Pos(next[1].line, next[1].ch - 1);
++
++        if (vim.visualMode) {
++          // If we were in visualLine or visualBlock mode, get out of it.
++          if (vim.visualLine || vim.visualBlock) {
++            vim.visualLine = false;
++            vim.visualBlock = false;
++            CodeMirror.signal(cm, "vim-mode-change", {mode: "visual", subMode: ""});
++          }
++
++          // If we're currently in visual mode, we should extend the selection to include
++          // the search result.
++          var anchor = vim.sel.anchor;
++          if (anchor) {
++            if (state.isReversed()) {
++              if (motionArgs.forward) {
++                return [anchor, from];
++              }
++
++              return [anchor, to];
++            } else {
++              if (motionArgs.forward) {
++                return [anchor, to];
++              }
++
++              return [anchor, from];
++            }
++          }
++        } else {
++          // Let's turn visual mode on.
++          vim.visualMode = true;
++          vim.visualLine = false;
++          vim.visualBlock = false;
++          CodeMirror.signal(cm, "vim-mode-change", {mode: "visual", subMode: ""});
++        }
++
++        return prev ? [to, from] : [from, to];
++      },
+       goToMark: function(cm, _head, motionArgs, vim) {
+         var pos = getMarkPos(cm, vim, motionArgs.selectedCharacter);
+         if (pos) {
+@@ -1867,8 +1952,8 @@
+         // move to previous/next line is triggered.
+         if (line < first && cur.line == first){
+           return this.moveToStartOfLine(cm, head, motionArgs, vim);
+-        }else if (line > last && cur.line == last){
+-            return this.moveToEol(cm, head, motionArgs, vim, true);
++        } else if (line > last && cur.line == last){
++            return moveToEol(cm, head, motionArgs, vim, true);
+         }
+         if (motionArgs.toFirstChar){
+           endCh=findFirstNonWhiteSpaceCharacter(cm.getLine(line));
+@@ -1970,16 +2055,8 @@
+         vim.lastHSPos = cm.charCoords(head,'div').left;
+         return moveToColumn(cm, repeat);
+       },
+-      moveToEol: function(cm, head, motionArgs, vim, keepHPos) {
+-        var cur = head;
+-        var retval= Pos(cur.line + motionArgs.repeat - 1, Infinity);
+-        var end=cm.clipPos(retval);
+-        end.ch--;
+-        if (!keepHPos) {
+-          vim.lastHPos = Infinity;
+-          vim.lastHSPos = cm.charCoords(end,'div').left;
+-        }
+-        return retval;
++      moveToEol: function(cm, head, motionArgs, vim) {
++        return moveToEol(cm, head, motionArgs, vim, false);
+       },
+       moveToFirstNonWhiteSpaceCharacter: function(cm, head) {
+         // Go to the start of the line where the text begins, or the end for
+@@ -2069,6 +2146,8 @@
+             if (operatorArgs) { operatorArgs.linewise = true; }
+             tmp.end.line--;
+           }
++        } else if (character === 't') {
++          tmp = expandTagUnderCursor(cm, head, inclusive);
+         } else {
+           // No text object defined for this, don't move.
+           return null;
+@@ -3295,6 +3374,49 @@
+       return { start: Pos(cur.line, start), end: Pos(cur.line, end) };
+     }
+ 
++    /**
++     * Depends on the following:
++     *
++     * - editor mode should be htmlmixedmode / xml
++     * - mode/xml/xml.js should be loaded
++     * - addon/fold/xml-fold.js should be loaded
++     *
++     * If any of the above requirements are not true, this function noops.
++     *
++     * This is _NOT_ a 100% accurate implementation of vim tag text objects.
++     * The following caveats apply (based off cursory testing, I'm sure there
++     * are other discrepancies):
++     *
++     * - Does not work inside comments:
++     *   ```
++     *   <!-- <div>broken</div> -->
++     *   ```
++     * - Does not work when tags have different cases:
++     *   ```
++     *   <div>broken</DIV>
++     *   ```
++     * - Does not work when cursor is inside a broken tag:
++     *   ```
++     *   <div><brok><en></div>
++     *   ```
++     */
++    function expandTagUnderCursor(cm, head, inclusive) {
++      var cur = head;
++      if (!CodeMirror.findMatchingTag || !CodeMirror.findEnclosingTag) {
++        return { start: cur, end: cur };
++      }
++
++      var tags = CodeMirror.findMatchingTag(cm, head) || CodeMirror.findEnclosingTag(cm, head);
++      if (!tags || !tags.open || !tags.close) {
++        return { start: cur, end: cur };
++      }
++
++      if (inclusive) {
++        return { start: tags.open.from, end: tags.close.to };
++      }
++      return { start: tags.open.to, end: tags.close.from };
++    }
++
+     function recordJumpPosition(cm, oldCur, newCur) {
+       if (!cursorEqual(oldCur, newCur)) {
+         vimGlobalState.jumpList.add(cm, oldCur, newCur);
+@@ -3562,6 +3684,18 @@
+       }
+     }
+ 
++    function moveToEol(cm, head, motionArgs, vim, keepHPos) {
++      var cur = head;
++      var retval= Pos(cur.line + motionArgs.repeat - 1, Infinity);
++      var end=cm.clipPos(retval);
++      end.ch--;
++      if (!keepHPos) {
++        vim.lastHPos = Infinity;
++        vim.lastHSPos = cm.charCoords(end,'div').left;
++      }
++      return retval;
++    }
++
+     function moveToCharacter(cm, repeat, forward, character) {
+       var cur = cm.getCursor();
+       var start = cur.ch;
+@@ -3836,7 +3970,7 @@
+       return Pos(curr_index.ln, curr_index.pos);
+     }
+ 
+-    // TODO: perhaps this finagling of start and end positions belonds
++    // TODO: perhaps this finagling of start and end positions belongs
+     // in codemirror/replaceRange?
+     function selectCompanionObject(cm, head, symb, inclusive) {
+       var cur = head, start, end;
+@@ -4303,6 +4437,42 @@
+         return cursor.from();
+       });
+     }
++    /**
++     * Pretty much the same as `findNext`, except for the following differences:
++     *
++     * 1. Before starting the search, move to the previous search. This way if our cursor is
++     * already inside a match, we should return the current match.
++     * 2. Rather than only returning the cursor's from, we return the cursor's from and to as a tuple.
++     */
++    function findNextFromAndToInclusive(cm, prev, query, repeat, vim) {
++      if (repeat === undefined) { repeat = 1; }
++      return cm.operation(function() {
++        var pos = cm.getCursor();
++        var cursor = cm.getSearchCursor(query, pos);
++
++        // Go back one result to ensure that if the cursor is currently a match, we keep it.
++        var found = cursor.find(!prev);
++
++        // If we haven't moved, go back one more (similar to if i==0 logic in findNext).
++        if (!vim.visualMode && found && cursorEqual(cursor.from(), pos)) {
++          cursor.find(!prev);
++        }
++
++        for (var i = 0; i < repeat; i++) {
++          found = cursor.find(prev);
++          if (!found) {
++            // SearchCursor may have returned null because it hit EOF, wrap
++            // around and try again.
++            cursor = cm.getSearchCursor(query,
++                (prev) ? Pos(cm.lastLine()) : Pos(cm.firstLine(), 0) );
++            if (!cursor.find(prev)) {
++              return;
++            }
++          }
++        }
++        return [cursor.from(), cursor.to()];
++      });
++    }
+     function clearSearchHighlight(cm) {
+       var state = getSearchState(cm);
+       cm.removeOverlay(getSearchState(cm).getOverlay());
+diff --git a/node_modules/codemirror/lib/codemirror.css b/node_modules/codemirror/lib/codemirror.css
+index 56896500..a64f97c7 100644
+--- a/node_modules/codemirror/lib/codemirror.css
++++ b/node_modules/codemirror/lib/codemirror.css
+@@ -184,6 +184,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #a22;}
+   position: absolute;
+   z-index: 6;
+   display: none;
++  outline: none;
+ }
+ .CodeMirror-vscrollbar {
+   right: 0; top: 0;
+diff --git a/node_modules/codemirror/lib/codemirror.js b/node_modules/codemirror/lib/codemirror.js
+index a47a298a..5c464cb0 100644
+--- a/node_modules/codemirror/lib/codemirror.js
++++ b/node_modules/codemirror/lib/codemirror.js
+@@ -1841,7 +1841,7 @@
+       }
+     }
+     builder.trailingSpace = displayText.charCodeAt(text.length - 1) == 32;
+-    if (style || startStyle || endStyle || mustWrap || css) {
++    if (style || startStyle || endStyle || mustWrap || css || attributes) {
+       var fullStyle = style || "";
+       if (startStyle) { fullStyle += startStyle; }
+       if (endStyle) { fullStyle += endStyle; }
+@@ -3276,8 +3276,10 @@
+     var on = true;
+     display.cursorDiv.style.visibility = "";
+     if (cm.options.cursorBlinkRate > 0)
+-      { display.blinker = setInterval(function () { return display.cursorDiv.style.visibility = (on = !on) ? "" : "hidden"; },
+-        cm.options.cursorBlinkRate); }
++      { display.blinker = setInterval(function () {
++        if (!cm.hasFocus()) { onBlur(cm); }
++        display.cursorDiv.style.visibility = (on = !on) ? "" : "hidden";
++      }, cm.options.cursorBlinkRate); }
+     else if (cm.options.cursorBlinkRate < 0)
+       { display.cursorDiv.style.visibility = "hidden"; }
+   }
+@@ -3477,14 +3479,15 @@
+       if (newTop != screentop) { result.scrollTop = newTop; }
+     }
+ 
+-    var screenleft = cm.curOp && cm.curOp.scrollLeft != null ? cm.curOp.scrollLeft : display.scroller.scrollLeft;
+-    var screenw = displayWidth(cm) - (cm.options.fixedGutter ? display.gutters.offsetWidth : 0);
++    var gutterSpace = cm.options.fixedGutter ? 0 : display.gutters.offsetWidth;
++    var screenleft = cm.curOp && cm.curOp.scrollLeft != null ? cm.curOp.scrollLeft : display.scroller.scrollLeft - gutterSpace;
++    var screenw = displayWidth(cm) - display.gutters.offsetWidth;
+     var tooWide = rect.right - rect.left > screenw;
+     if (tooWide) { rect.right = rect.left + screenw; }
+     if (rect.left < 10)
+       { result.scrollLeft = 0; }
+     else if (rect.left < screenleft)
+-      { result.scrollLeft = Math.max(0, rect.left - (tooWide ? 0 : 10)); }
++      { result.scrollLeft = Math.max(0, rect.left + gutterSpace - (tooWide ? 0 : 10)); }
+     else if (rect.right > screenw + screenleft - 3)
+       { result.scrollLeft = rect.right + (tooWide ? 0 : 10) - screenw; }
+     return result
+@@ -6641,7 +6644,7 @@
+     46: "Delete", 59: ";", 61: "=", 91: "Mod", 92: "Mod", 93: "Mod",
+     106: "*", 107: "=", 109: "-", 110: ".", 111: "/", 145: "ScrollLock",
+     173: "-", 186: ";", 187: "=", 188: ",", 189: "-", 190: ".", 191: "/", 192: "`", 219: "[", 220: "\\",
+-    221: "]", 222: "'", 63232: "Up", 63233: "Down", 63234: "Left", 63235: "Right", 63272: "Delete",
++    221: "]", 222: "'", 224: "Mod", 63232: "Up", 63233: "Down", 63234: "Left", 63235: "Right", 63272: "Delete",
+     63273: "Home", 63275: "End", 63276: "PageUp", 63277: "PageDown", 63302: "Insert"
+   };
+ 
+@@ -6776,7 +6779,7 @@
+     var base = name;
+     if (event.altKey && base != "Alt") { name = "Alt-" + name; }
+     if ((flipCtrlCmd ? event.metaKey : event.ctrlKey) && base != "Ctrl") { name = "Ctrl-" + name; }
+-    if ((flipCtrlCmd ? event.ctrlKey : event.metaKey) && base != "Cmd") { name = "Cmd-" + name; }
++    if ((flipCtrlCmd ? event.ctrlKey : event.metaKey) && base != "Mod") { name = "Cmd-" + name; }
+     if (!noShift && event.shiftKey && base != "Shift") { name = "Shift-" + name; }
+     return name
+   }
+@@ -7002,7 +7005,7 @@
+     goGroupRight: function (cm) { return cm.moveH(1, "group"); },
+     goGroupLeft: function (cm) { return cm.moveH(-1, "group"); },
+     goWordRight: function (cm) { return cm.moveH(1, "word"); },
+-    delCharBefore: function (cm) { return cm.deleteH(-1, "char"); },
++    delCharBefore: function (cm) { return cm.deleteH(-1, "codepoint"); },
+     delCharAfter: function (cm) { return cm.deleteH(1, "char"); },
+     delWordBefore: function (cm) { return cm.deleteH(-1, "word"); },
+     delWordAfter: function (cm) { return cm.deleteH(1, "word"); },
+@@ -7877,7 +7880,9 @@
+     attachDoc(this, doc);
+ 
+     if ((options.autofocus && !mobile) || this.hasFocus())
+-      { setTimeout(bind(onFocus, this), 20); }
++      { setTimeout(function () {
++        if (this$1.hasFocus() && !this$1.state.focused) { onFocus(this$1); }
++      }, 20); }
+     else
+       { onBlur(this); }
+ 
+@@ -8117,7 +8122,7 @@
+           { from = Pos(from.line, from.ch - deleted); }
+         else if (cm.state.overwrite && !paste) // Handle overwrite
+           { to = Pos(to.line, Math.min(getLine(doc, to.line).text.length, to.ch + lst(textLines).length)); }
+-        else if (paste && lastCopied && lastCopied.lineWise && lastCopied.text.join("\n") == inserted)
++        else if (paste && lastCopied && lastCopied.lineWise && lastCopied.text.join("\n") == textLines.join("\n"))
+           { from = to = Pos(from.line, 0); }
+       }
+       var changeEvent = {from: from, to: to, text: multiPaste ? multiPaste[i$1 % multiPaste.length] : textLines,
+@@ -8640,14 +8645,14 @@
+   }
+ 
+   // Used for horizontal relative motion. Dir is -1 or 1 (left or
+-  // right), unit can be "char", "column" (like char, but doesn't
+-  // cross line boundaries), "word" (across next word), or "group" (to
+-  // the start of next group of word or non-word-non-whitespace
+-  // chars). The visually param controls whether, in right-to-left
+-  // text, direction 1 means to move towards the next index in the
+-  // string, or towards the character to the right of the current
+-  // position. The resulting position will have a hitSide=true
+-  // property if it reached the end of the document.
++  // right), unit can be "codepoint", "char", "column" (like char, but
++  // doesn't cross line boundaries), "word" (across next word), or
++  // "group" (to the start of next group of word or
++  // non-word-non-whitespace chars). The visually param controls
++  // whether, in right-to-left text, direction 1 means to move towards
++  // the next index in the string, or towards the character to the right
++  // of the current position. The resulting position will have a
++  // hitSide=true property if it reached the end of the document.
+   function findPosH(doc, pos, dir, unit, visually) {
+     var oldPos = pos;
+     var origDir = dir;
+@@ -8661,7 +8666,12 @@
+     }
+     function moveOnce(boundToLine) {
+       var next;
+-      if (visually) {
++      if (unit == "codepoint") {
++        var ch = lineObj.text.charCodeAt(pos.ch + (unit > 0 ? 0 : -1));
++        if (isNaN(ch)) { next = null; }
++        else { next = new Pos(pos.line, Math.max(0, Math.min(lineObj.text.length, pos.ch + dir * (ch >= 0xD800 && ch < 0xDC00 ? 2 : 1))),
++                            -dir); }
++      } else if (visually) {
+         next = moveVisually(doc.cm, lineObj, pos, dir);
+       } else {
+         next = moveLogically(lineObj, pos, dir);
+@@ -8677,7 +8687,7 @@
+       return true
+     }
+ 
+-    if (unit == "char") {
++    if (unit == "char" || unit == "codepoint") {
+       moveOnce();
+     } else if (unit == "column") {
+       moveOnce(true);
+@@ -9621,6 +9631,7 @@
+   TextareaInput.prototype.readOnlyChanged = function (val) {
+     if (!val) { this.reset(); }
+     this.textarea.disabled = val == "nocursor";
++    this.textarea.readOnly = !!val;
+   };
+ 
+   TextareaInput.prototype.setUneditable = function () {};
+@@ -9771,7 +9782,7 @@
+ 
+   addLegacyProps(CodeMirror);
+ 
+-  CodeMirror.version = "5.55.0";
++  CodeMirror.version = "5.58.2";
+ 
+   return CodeMirror;
+ 
+diff --git a/node_modules/codemirror/mode/css/css.js b/node_modules/codemirror/mode/css/css.js
+index 441ba4ab..240c270a 100644
+--- a/node_modules/codemirror/mode/css/css.js
++++ b/node_modules/codemirror/mode/css/css.js
+@@ -29,7 +29,8 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+       valueKeywords = parserConfig.valueKeywords || {},
+       allowNested = parserConfig.allowNested,
+       lineComment = parserConfig.lineComment,
+-      supportsAtComponent = parserConfig.supportsAtComponent === true;
++      supportsAtComponent = parserConfig.supportsAtComponent === true,
++      highlightNonStandardPropertyKeywords = config.highlightNonStandardPropertyKeywords !== false;
+ 
+   var type, override;
+   function ret(style, tp) { type = tp; return style; }
+@@ -197,7 +198,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+         override = "property";
+         return "maybeprop";
+       } else if (nonStandardPropertyKeywords.hasOwnProperty(word)) {
+-        override = "string-2";
++        override = highlightNonStandardPropertyKeywords ? "string-2" : "property";
+         return "maybeprop";
+       } else if (allowNested) {
+         override = stream.match(/^\s*:(?:\s|$)/, false) ? "property" : "tag";
+@@ -291,7 +292,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+       else if (propertyKeywords.hasOwnProperty(word))
+         override = "property";
+       else if (nonStandardPropertyKeywords.hasOwnProperty(word))
+-        override = "string-2";
++        override = highlightNonStandardPropertyKeywords ? "string-2" : "property";
+       else if (valueKeywords.hasOwnProperty(word))
+         override = "atom";
+       else if (colorKeywords.hasOwnProperty(word))
+@@ -442,17 +443,18 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "monochrome", "min-monochrome", "max-monochrome", "resolution",
+     "min-resolution", "max-resolution", "scan", "grid", "orientation",
+     "device-pixel-ratio", "min-device-pixel-ratio", "max-device-pixel-ratio",
+-    "pointer", "any-pointer", "hover", "any-hover"
++    "pointer", "any-pointer", "hover", "any-hover", "prefers-color-scheme"
+   ], mediaFeatures = keySet(mediaFeatures_);
+ 
+   var mediaValueKeywords_ = [
+     "landscape", "portrait", "none", "coarse", "fine", "on-demand", "hover",
+-    "interlace", "progressive"
++    "interlace", "progressive",
++    "dark", "light"
+   ], mediaValueKeywords = keySet(mediaValueKeywords_);
+ 
+   var propertyKeywords_ = [
+     "align-content", "align-items", "align-self", "alignment-adjust",
+-    "alignment-baseline", "anchor-point", "animation", "animation-delay",
++    "alignment-baseline", "all", "anchor-point", "animation", "animation-delay",
+     "animation-direction", "animation-duration", "animation-fill-mode",
+     "animation-iteration-count", "animation-name", "animation-play-state",
+     "animation-timing-function", "appearance", "azimuth", "backdrop-filter",
+@@ -503,7 +505,9 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "list-style-image", "list-style-position", "list-style-type", "margin",
+     "margin-bottom", "margin-left", "margin-right", "margin-top", "marks",
+     "marquee-direction", "marquee-loop", "marquee-play-count", "marquee-speed",
+-    "marquee-style", "max-block-size", "max-height", "max-inline-size",
++    "marquee-style", "mask-clip", "mask-composite", "mask-image", "mask-mode",
++    "mask-origin", "mask-position", "mask-repeat", "mask-size","mask-type",
++    "max-block-size", "max-height", "max-inline-size",
+     "max-width", "min-block-size", "min-height", "min-inline-size", "min-width",
+     "mix-blend-mode", "move-to", "nav-down", "nav-index", "nav-left", "nav-right",
+     "nav-up", "object-fit", "object-position", "offset", "offset-anchor",
+@@ -540,7 +544,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "text-height", "text-indent", "text-justify", "text-orientation",
+     "text-outline", "text-overflow", "text-rendering", "text-shadow",
+     "text-size-adjust", "text-space-collapse", "text-transform",
+-    "text-underline-position", "text-wrap", "top", "transform", "transform-origin",
++    "text-underline-position", "text-wrap", "top", "touch-action", "transform", "transform-origin",
+     "transform-style", "transition", "transition-delay", "transition-duration",
+     "transition-property", "transition-timing-function", "translate",
+     "unicode-bidi", "user-select", "vertical-align", "visibility", "voice-balance",
+@@ -552,11 +556,11 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "flood-opacity", "lighting-color", "stop-color", "stop-opacity", "pointer-events",
+     "color-interpolation", "color-interpolation-filters",
+     "color-rendering", "fill", "fill-opacity", "fill-rule", "image-rendering",
+-    "marker", "marker-end", "marker-mid", "marker-start", "shape-rendering", "stroke",
++    "marker", "marker-end", "marker-mid", "marker-start", "paint-order", "shape-rendering", "stroke",
+     "stroke-dasharray", "stroke-dashoffset", "stroke-linecap", "stroke-linejoin",
+     "stroke-miterlimit", "stroke-opacity", "stroke-width", "text-rendering",
+     "baseline-shift", "dominant-baseline", "glyph-orientation-horizontal",
+-    "glyph-orientation-vertical", "text-anchor", "writing-mode"
++    "glyph-orientation-vertical", "text-anchor", "writing-mode",
+   ], propertyKeywords = keySet(propertyKeywords_);
+ 
+   var nonStandardPropertyKeywords_ = [
+@@ -623,7 +627,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "after-white-space", "ahead", "alias", "all", "all-scroll", "alphabetic", "alternate",
+     "always", "amharic", "amharic-abegede", "antialiased", "appworkspace",
+     "arabic-indic", "armenian", "asterisks", "attr", "auto", "auto-flow", "avoid", "avoid-column", "avoid-page",
+-    "avoid-region", "background", "backwards", "baseline", "below", "bidi-override", "binary",
++    "avoid-region", "axis-pan", "background", "backwards", "baseline", "below", "bidi-override", "binary",
+     "bengali", "blink", "block", "block-axis", "bold", "bolder", "border", "border-box",
+     "both", "bottom", "break", "break-all", "break-word", "bullets", "button", "button-bevel",
+     "buttonface", "buttonhighlight", "buttonshadow", "buttontext", "calc", "cambodian",
+@@ -647,7 +651,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "ethiopic-halehame-sid-et", "ethiopic-halehame-so-et",
+     "ethiopic-halehame-ti-er", "ethiopic-halehame-ti-et", "ethiopic-halehame-tig",
+     "ethiopic-numeric", "ew-resize", "exclusion", "expanded", "extends", "extra-condensed",
+-    "extra-expanded", "fantasy", "fast", "fill", "fixed", "flat", "flex", "flex-end", "flex-start", "footnotes",
++    "extra-expanded", "fantasy", "fast", "fill", "fill-box", "fixed", "flat", "flex", "flex-end", "flex-start", "footnotes",
+     "forwards", "from", "geometricPrecision", "georgian", "graytext", "grid", "groove",
+     "gujarati", "gurmukhi", "hand", "hangul", "hangul-consonant", "hard-light", "hebrew",
+     "help", "hidden", "hide", "higher", "highlight", "highlighttext",
+@@ -662,7 +666,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "line-through", "linear", "linear-gradient", "lines", "list-item", "listbox", "listitem",
+     "local", "logical", "loud", "lower", "lower-alpha", "lower-armenian",
+     "lower-greek", "lower-hexadecimal", "lower-latin", "lower-norwegian",
+-    "lower-roman", "lowercase", "ltr", "luminosity", "malayalam", "match", "matrix", "matrix3d",
++    "lower-roman", "lowercase", "ltr", "luminosity", "malayalam", "manipulation", "match", "matrix", "matrix3d",
+     "media-controls-background", "media-current-time-display",
+     "media-fullscreen-button", "media-mute-button", "media-play-button",
+     "media-return-to-realtime-button", "media-rewind-button",
+@@ -671,13 +675,13 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "media-volume-slider-container", "media-volume-sliderthumb", "medium",
+     "menu", "menulist", "menulist-button", "menulist-text",
+     "menulist-textfield", "menutext", "message-box", "middle", "min-intrinsic",
+-    "mix", "mongolian", "monospace", "move", "multiple", "multiply", "myanmar", "n-resize",
++    "mix", "mongolian", "monospace", "move", "multiple", "multiple_mask_images", "multiply", "myanmar", "n-resize",
+     "narrower", "ne-resize", "nesw-resize", "no-close-quote", "no-drop",
+     "no-open-quote", "no-repeat", "none", "normal", "not-allowed", "nowrap",
+     "ns-resize", "numbers", "numeric", "nw-resize", "nwse-resize", "oblique", "octal", "opacity", "open-quote",
+     "optimizeLegibility", "optimizeSpeed", "oriya", "oromo", "outset",
+     "outside", "outside-shape", "overlay", "overline", "padding", "padding-box",
+-    "painted", "page", "paused", "persian", "perspective", "plus-darker", "plus-lighter",
++    "painted", "page", "paused", "persian", "perspective", "pinch-zoom", "plus-darker", "plus-lighter",
+     "pointer", "polygon", "portrait", "pre", "pre-line", "pre-wrap", "preserve-3d",
+     "progress", "push-button", "radial-gradient", "radio", "read-only",
+     "read-write", "read-write-plaintext-only", "rectangle", "region",
+@@ -695,8 +699,8 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "slider-vertical", "sliderthumb-horizontal", "sliderthumb-vertical", "slow",
+     "small", "small-caps", "small-caption", "smaller", "soft-light", "solid", "somali",
+     "source-atop", "source-in", "source-out", "source-over", "space", "space-around", "space-between", "space-evenly", "spell-out", "square",
+-    "square-button", "start", "static", "status-bar", "stretch", "stroke", "sub",
+-    "subpixel-antialiased", "super", "sw-resize", "symbolic", "symbols", "system-ui", "table",
++    "square-button", "start", "static", "status-bar", "stretch", "stroke", "stroke-box", "sub",
++    "subpixel-antialiased", "svg_masks", "super", "sw-resize", "symbolic", "symbols", "system-ui", "table",
+     "table-caption", "table-cell", "table-column", "table-column-group",
+     "table-footer-group", "table-header-group", "table-row", "table-row-group",
+     "tamil",
+@@ -706,10 +710,10 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
+     "tigrinya-er-abegede", "tigrinya-et", "tigrinya-et-abegede", "to", "top",
+     "trad-chinese-formal", "trad-chinese-informal", "transform",
+     "translate", "translate3d", "translateX", "translateY", "translateZ",
+-    "transparent", "ultra-condensed", "ultra-expanded", "underline", "unset", "up",
++    "transparent", "ultra-condensed", "ultra-expanded", "underline", "unidirectional-pan", "unset", "up",
+     "upper-alpha", "upper-armenian", "upper-greek", "upper-hexadecimal",
+     "upper-latin", "upper-norwegian", "upper-roman", "uppercase", "urdu", "url",
+-    "var", "vertical", "vertical-text", "visible", "visibleFill", "visiblePainted",
++    "var", "vertical", "vertical-text", "view-box", "visible", "visibleFill", "visiblePainted",
+     "visibleStroke", "visual", "w-resize", "wait", "wave", "wider",
+     "window", "windowframe", "windowtext", "words", "wrap", "wrap-reverse", "x-large", "x-small", "xor",
+     "xx-large", "xx-small"
+diff --git a/node_modules/codemirror/mode/javascript/javascript.js b/node_modules/codemirror/mode/javascript/javascript.js
+index 9c751d23..63eaa241 100644
+--- a/node_modules/codemirror/mode/javascript/javascript.js
++++ b/node_modules/codemirror/mode/javascript/javascript.js
+@@ -111,7 +111,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
+       if (ch != ">" || !state.lexical || state.lexical.type != ">") {
+         if (stream.eat("=")) {
+           if (ch == "!" || ch == "=") stream.eat("=")
+-        } else if (/[<>*+\-]/.test(ch)) {
++        } else if (/[<>*+\-|&?]/.test(ch)) {
+           stream.eat(ch)
+           if (ch == ">") stream.eat(ch)
+         }
+@@ -126,7 +126,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
+           var kw = keywords[word]
+           return ret(kw.type, kw.style, word)
+         }
+-        if (word == "async" && stream.match(/^(\s|\/\*.*?\*\/)*[\[\(\w]/, false))
++        if (word == "async" && stream.match(/^(\s|\/\*([^*]|\*(?!\/))*?\*\/)*[\[\(\w]/, false))
+           return ret("async", "keyword", word)
+       }
+       return ret("variable", "variable", word)
+@@ -868,7 +868,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
+     },
+ 
+     indent: function(state, textAfter) {
+-      if (state.tokenize == tokenComment) return CodeMirror.Pass;
++      if (state.tokenize == tokenComment || state.tokenize == tokenQuasi) return CodeMirror.Pass;
+       if (state.tokenize != tokenBase) return 0;
+       var firstChar = textAfter && textAfter.charAt(0), lexical = state.lexical, top
+       // Kludge to prevent 'maybelse' from blocking lexical scope pops
+diff --git a/node_modules/codemirror/mode/julia/julia.js b/node_modules/codemirror/mode/julia/julia.js
+index 2aadf367..39424920 100644
+--- a/node_modules/codemirror/mode/julia/julia.js
++++ b/node_modules/codemirror/mode/julia/julia.js
+@@ -255,41 +255,43 @@ CodeMirror.defineMode("julia", function(config, parserConf) {
+   }
+ 
+   function tokenCallOrDef(stream, state) {
+-    var match = stream.match(/^(\(\s*)/);
+-    if (match) {
+-      if (state.firstParenPos < 0)
+-        state.firstParenPos = state.scopes.length;
+-      state.scopes.push('(');
+-      state.charsAdvanced += match[1].length;
+-    }
+-    if (currentScope(state) == '(' && stream.match(/^\)/)) {
+-      state.scopes.pop();
+-      state.charsAdvanced += 1;
+-      if (state.scopes.length <= state.firstParenPos) {
+-        var isDefinition = stream.match(/^(\s*where\s+[^\s=]+)*\s*?=(?!=)/, false);
+-        stream.backUp(state.charsAdvanced);
++    for (;;) {
++      var match = stream.match(/^(\(\s*)/), charsAdvanced = 0;
++      if (match) {
++        if (state.firstParenPos < 0)
++          state.firstParenPos = state.scopes.length;
++        state.scopes.push('(');
++        charsAdvanced += match[1].length;
++      }
++      if (currentScope(state) == '(' && stream.match(/^\)/)) {
++        state.scopes.pop();
++        charsAdvanced += 1;
++        if (state.scopes.length <= state.firstParenPos) {
++          var isDefinition = stream.match(/^(\s*where\s+[^\s=]+)*\s*?=(?!=)/, false);
++          stream.backUp(charsAdvanced);
++          state.firstParenPos = -1;
++          state.tokenize = tokenBase;
++          if (isDefinition)
++            return "def";
++          return "builtin";
++        }
++      }
++      // Unfortunately javascript does not support multiline strings, so we have
++      // to undo anything done upto here if a function call or definition splits
++      // over two or more lines.
++      if (stream.match(/^$/g, false)) {
++        stream.backUp(charsAdvanced);
++        while (state.scopes.length > state.firstParenPos)
++          state.scopes.pop();
+         state.firstParenPos = -1;
+-        state.charsAdvanced = 0;
+         state.tokenize = tokenBase;
+-        if (isDefinition)
+-          return "def";
+         return "builtin";
+       }
++      if (!stream.match(/^[^()]+/)) {
++        stream.next()
++        return null
++      }
+     }
+-    // Unfortunately javascript does not support multiline strings, so we have
+-    // to undo anything done upto here if a function call or definition splits
+-    // over two or more lines.
+-    if (stream.match(/^$/g, false)) {
+-      stream.backUp(state.charsAdvanced);
+-      while (state.scopes.length > state.firstParenPos)
+-        state.scopes.pop();
+-      state.firstParenPos = -1;
+-      state.charsAdvanced = 0;
+-      state.tokenize = tokenBase;
+-      return "builtin";
+-    }
+-    state.charsAdvanced += stream.match(/^([^()]*)/)[1].length;
+-    return state.tokenize(stream, state);
+   }
+ 
+   function tokenAnnotation(stream, state) {
+@@ -383,7 +385,6 @@ CodeMirror.defineMode("julia", function(config, parserConf) {
+         nestedComments: 0,
+         nestedGenerators: 0,
+         nestedParameters: 0,
+-        charsAdvanced: 0,
+         firstParenPos: -1
+       };
+     },
+@@ -401,8 +402,8 @@ CodeMirror.defineMode("julia", function(config, parserConf) {
+ 
+     indent: function(state, textAfter) {
+       var delta = 0;
+-      if ( textAfter === ']' || textAfter === ')' || /^end/.test(textAfter) ||
+-           /^else/.test(textAfter) || /^catch/.test(textAfter) || /^elseif/.test(textAfter) ||
++      if ( textAfter === ']' || textAfter === ')' || /^end\b/.test(textAfter) ||
++           /^else/.test(textAfter) || /^catch\b/.test(textAfter) || /^elseif\b/.test(textAfter) ||
+            /^finally/.test(textAfter) ) {
+         delta = -1;
+       }
+diff --git a/node_modules/codemirror/mode/meta.js b/node_modules/codemirror/mode/meta.js
+index 9f64f410..c7738a51 100644
+--- a/node_modules/codemirror/mode/meta.js
++++ b/node_modules/codemirror/mode/meta.js
+@@ -24,7 +24,7 @@
+     {name: "Clojure", mime: "text/x-clojure", mode: "clojure", ext: ["clj", "cljc", "cljx"]},
+     {name: "ClojureScript", mime: "text/x-clojurescript", mode: "clojure", ext: ["cljs"]},
+     {name: "Closure Stylesheets (GSS)", mime: "text/x-gss", mode: "css", ext: ["gss"]},
+-    {name: "CMake", mime: "text/x-cmake", mode: "cmake", ext: ["cmake", "cmake.in"], file: /^CMakeLists.txt$/},
++    {name: "CMake", mime: "text/x-cmake", mode: "cmake", ext: ["cmake", "cmake.in"], file: /^CMakeLists\.txt$/},
+     {name: "CoffeeScript", mimes: ["application/vnd.coffeescript", "text/coffeescript", "text/x-coffeescript"], mode: "coffeescript", ext: ["coffee"], alias: ["coffee", "coffee-script"]},
+     {name: "Common Lisp", mime: "text/x-common-lisp", mode: "commonlisp", ext: ["cl", "lisp", "el"], alias: ["lisp"]},
+     {name: "Cypher", mime: "application/x-cypher-query", mode: "cypher", ext: ["cyp", "cypher"]},
+@@ -55,7 +55,7 @@
+     {name: "F#", mime: "text/x-fsharp", mode: "mllike", ext: ["fs"], alias: ["fsharp"]},
+     {name: "Gas", mime: "text/x-gas", mode: "gas", ext: ["s"]},
+     {name: "Gherkin", mime: "text/x-feature", mode: "gherkin", ext: ["feature"]},
+-    {name: "GitHub Flavored Markdown", mime: "text/x-gfm", mode: "gfm", file: /^(readme|contributing|history).md$/i},
++    {name: "GitHub Flavored Markdown", mime: "text/x-gfm", mode: "gfm", file: /^(readme|contributing|history)\.md$/i},
+     {name: "Go", mime: "text/x-go", mode: "go", ext: ["go"]},
+     {name: "Groovy", mime: "text/x-groovy", mode: "groovy", ext: ["groovy", "gradle"], file: /^Jenkinsfile$/},
+     {name: "HAML", mime: "text/x-haml", mode: "haml", ext: ["haml"]},
+@@ -169,7 +169,8 @@
+     {name: "Z80", mime: "text/x-z80", mode: "z80", ext: ["z80"]},
+     {name: "mscgen", mime: "text/x-mscgen", mode: "mscgen", ext: ["mscgen", "mscin", "msc"]},
+     {name: "xu", mime: "text/x-xu", mode: "mscgen", ext: ["xu"]},
+-    {name: "msgenny", mime: "text/x-msgenny", mode: "mscgen", ext: ["msgenny"]}
++    {name: "msgenny", mime: "text/x-msgenny", mode: "mscgen", ext: ["msgenny"]},
++    {name: "WebAssembly", mime: "text/webassembly", mode: "wast", ext: ["wat", "wast"]},
+   ];
+   // Ensure all modes have a mime property for backwards compatibility
+   for (var i = 0; i < CodeMirror.modeInfo.length; i++) {
+diff --git a/node_modules/codemirror/mode/nsis/nsis.js b/node_modules/codemirror/mode/nsis/nsis.js
+index 10816608..636940f5 100644
+--- a/node_modules/codemirror/mode/nsis/nsis.js
++++ b/node_modules/codemirror/mode/nsis/nsis.js
+@@ -31,7 +31,7 @@ CodeMirror.defineSimpleMode("nsis",{
+     {regex: /^\s*(?:\!(else|endif|macroend))\b/, token: "keyword", dedent: true},
+ 
+     // Runtime Commands
+-    {regex: /^\s*(?:Abort|AddBrandingImage|AddSize|AllowRootDirInstall|AllowSkipFiles|AutoCloseWindow|BGFont|BGGradient|BrandingText|BringToFront|Call|CallInstDLL|Caption|ChangeUI|CheckBitmap|ClearErrors|CompletedText|ComponentText|CopyFiles|CRCCheck|CreateDirectory|CreateFont|CreateShortCut|Delete|DeleteINISec|DeleteINIStr|DeleteRegKey|DeleteRegValue|DetailPrint|DetailsButtonText|DirText|DirVar|DirVerify|EnableWindow|EnumRegKey|EnumRegValue|Exch|Exec|ExecShell|ExecShellWait|ExecWait|ExpandEnvStrings|File|FileBufSize|FileClose|FileErrorText|FileOpen|FileRead|FileReadByte|FileReadUTF16LE|FileReadWord|FileWriteUTF16LE|FileSeek|FileWrite|FileWriteByte|FileWriteWord|FindClose|FindFirst|FindNext|FindWindow|FlushINI|GetCurInstType|GetCurrentAddress|GetDlgItem|GetDLLVersion|GetDLLVersionLocal|GetErrorLevel|GetFileTime|GetFileTimeLocal|GetFullPathName|GetFunctionAddress|GetInstDirError|GetLabelAddress|GetTempFileName|Goto|HideWindow|Icon|IfAbort|IfErrors|IfFileExists|IfRebootFlag|IfSilent|InitPluginsDir|InstallButtonText|InstallColors|InstallDir|InstallDirRegKey|InstProgressFlags|InstType|InstTypeGetText|InstTypeSetText|Int64Cmp|Int64CmpU|Int64Fmt|IntCmp|IntCmpU|IntFmt|IntOp|IntPtrCmp|IntPtrCmpU|IntPtrOp|IsWindow|LangString|LicenseBkColor|LicenseData|LicenseForceSelection|LicenseLangString|LicenseText|LoadAndSetImage|LoadLanguageFile|LockWindow|LogSet|LogText|ManifestDPIAware|ManifestLongPathAware|ManifestMaxVersionTested|ManifestSupportedOS|MessageBox|MiscButtonText|Name|Nop|OutFile|Page|PageCallbacks|PEAddResource|PEDllCharacteristics|PERemoveResource|PESubsysVer|Pop|Push|Quit|ReadEnvStr|ReadINIStr|ReadRegDWORD|ReadRegStr|Reboot|RegDLL|Rename|RequestExecutionLevel|ReserveFile|Return|RMDir|SearchPath|SectionGetFlags|SectionGetInstTypes|SectionGetSize|SectionGetText|SectionIn|SectionSetFlags|SectionSetInstTypes|SectionSetSize|SectionSetText|SendMessage|SetAutoClose|SetBrandingImage|SetCompress|SetCompressor|SetCompressorDictSize|SetCtlColors|SetCurInstType|SetDatablockOptimize|SetDateSave|SetDetailsPrint|SetDetailsView|SetErrorLevel|SetErrors|SetFileAttributes|SetFont|SetOutPath|SetOverwrite|SetRebootFlag|SetRegView|SetShellVarContext|SetSilent|ShowInstDetails|ShowUninstDetails|ShowWindow|SilentInstall|SilentUnInstall|Sleep|SpaceTexts|StrCmp|StrCmpS|StrCpy|StrLen|SubCaption|Unicode|UninstallButtonText|UninstallCaption|UninstallIcon|UninstallSubCaption|UninstallText|UninstPage|UnRegDLL|Var|VIAddVersionKey|VIFileVersion|VIProductVersion|WindowIcon|WriteINIStr|WriteRegBin|WriteRegDWORD|WriteRegExpandStr|WriteRegMultiStr|WriteRegNone|WriteRegStr|WriteUninstaller|XPStyle)\b/, token: "keyword"},
++    {regex: /^\s*(?:Abort|AddBrandingImage|AddSize|AllowRootDirInstall|AllowSkipFiles|AutoCloseWindow|BGFont|BGGradient|BrandingText|BringToFront|Call|CallInstDLL|Caption|ChangeUI|CheckBitmap|ClearErrors|CompletedText|ComponentText|CopyFiles|CRCCheck|CreateDirectory|CreateFont|CreateShortCut|Delete|DeleteINISec|DeleteINIStr|DeleteRegKey|DeleteRegValue|DetailPrint|DetailsButtonText|DirText|DirVar|DirVerify|EnableWindow|EnumRegKey|EnumRegValue|Exch|Exec|ExecShell|ExecShellWait|ExecWait|ExpandEnvStrings|File|FileBufSize|FileClose|FileErrorText|FileOpen|FileRead|FileReadByte|FileReadUTF16LE|FileReadWord|FileWriteUTF16LE|FileSeek|FileWrite|FileWriteByte|FileWriteWord|FindClose|FindFirst|FindNext|FindWindow|FlushINI|GetCurInstType|GetCurrentAddress|GetDlgItem|GetDLLVersion|GetDLLVersionLocal|GetErrorLevel|GetFileTime|GetFileTimeLocal|GetFullPathName|GetFunctionAddress|GetInstDirError|GetKnownFolderPath|GetLabelAddress|GetTempFileName|Goto|HideWindow|Icon|IfAbort|IfErrors|IfFileExists|IfRebootFlag|IfRtlLanguage|IfShellVarContextAll|IfSilent|InitPluginsDir|InstallButtonText|InstallColors|InstallDir|InstallDirRegKey|InstProgressFlags|InstType|InstTypeGetText|InstTypeSetText|Int64Cmp|Int64CmpU|Int64Fmt|IntCmp|IntCmpU|IntFmt|IntOp|IntPtrCmp|IntPtrCmpU|IntPtrOp|IsWindow|LangString|LicenseBkColor|LicenseData|LicenseForceSelection|LicenseLangString|LicenseText|LoadAndSetImage|LoadLanguageFile|LockWindow|LogSet|LogText|ManifestDPIAware|ManifestLongPathAware|ManifestMaxVersionTested|ManifestSupportedOS|MessageBox|MiscButtonText|Name|Nop|OutFile|Page|PageCallbacks|PEAddResource|PEDllCharacteristics|PERemoveResource|PESubsysVer|Pop|Push|Quit|ReadEnvStr|ReadINIStr|ReadRegDWORD|ReadRegStr|Reboot|RegDLL|Rename|RequestExecutionLevel|ReserveFile|Return|RMDir|SearchPath|SectionGetFlags|SectionGetInstTypes|SectionGetSize|SectionGetText|SectionIn|SectionSetFlags|SectionSetInstTypes|SectionSetSize|SectionSetText|SendMessage|SetAutoClose|SetBrandingImage|SetCompress|SetCompressor|SetCompressorDictSize|SetCtlColors|SetCurInstType|SetDatablockOptimize|SetDateSave|SetDetailsPrint|SetDetailsView|SetErrorLevel|SetErrors|SetFileAttributes|SetFont|SetOutPath|SetOverwrite|SetRebootFlag|SetRegView|SetShellVarContext|SetSilent|ShowInstDetails|ShowUninstDetails|ShowWindow|SilentInstall|SilentUnInstall|Sleep|SpaceTexts|StrCmp|StrCmpS|StrCpy|StrLen|SubCaption|Unicode|UninstallButtonText|UninstallCaption|UninstallIcon|UninstallSubCaption|UninstallText|UninstPage|UnRegDLL|Var|VIAddVersionKey|VIFileVersion|VIProductVersion|WindowIcon|WriteINIStr|WriteRegBin|WriteRegDWORD|WriteRegExpandStr|WriteRegMultiStr|WriteRegNone|WriteRegStr|WriteUninstaller|XPStyle)\b/, token: "keyword"},
+     {regex: /^\s*(?:Function|PageEx|Section(?:Group)?)\b/, token: "keyword", indent: true},
+     {regex: /^\s*(?:(Function|PageEx|Section(?:Group)?)End)\b/, token: "keyword", dedent: true},
+ 
+diff --git a/node_modules/codemirror/mode/ruby/ruby.js b/node_modules/codemirror/mode/ruby/ruby.js
+index dd0e603e..85bbfc65 100644
+--- a/node_modules/codemirror/mode/ruby/ruby.js
++++ b/node_modules/codemirror/mode/ruby/ruby.js
+@@ -11,25 +11,28 @@
+ })(function(CodeMirror) {
+ "use strict";
+ 
++function wordObj(words) {
++  var o = {};
++  for (var i = 0, e = words.length; i < e; ++i) o[words[i]] = true;
++  return o;
++}
++
++var keywordList = [
++  "alias", "and", "BEGIN", "begin", "break", "case", "class", "def", "defined?", "do", "else",
++  "elsif", "END", "end", "ensure", "false", "for", "if", "in", "module", "next", "not", "or",
++  "redo", "rescue", "retry", "return", "self", "super", "then", "true", "undef", "unless",
++  "until", "when", "while", "yield", "nil", "raise", "throw", "catch", "fail", "loop", "callcc",
++  "caller", "lambda", "proc", "public", "protected", "private", "require", "load",
++  "require_relative", "extend", "autoload", "__END__", "__FILE__", "__LINE__", "__dir__"
++], keywords = wordObj(keywordList);
++
++var indentWords = wordObj(["def", "class", "case", "for", "while", "until", "module", "then",
++                           "catch", "loop", "proc", "begin"]);
++var dedentWords = wordObj(["end", "until"]);
++var opening = {"[": "]", "{": "}", "(": ")"};
++var closing = {"]": "[", "}": "{", ")": "("};
++
+ CodeMirror.defineMode("ruby", function(config) {
+-  function wordObj(words) {
+-    var o = {};
+-    for (var i = 0, e = words.length; i < e; ++i) o[words[i]] = true;
+-    return o;
+-  }
+-  var keywords = wordObj([
+-    "alias", "and", "BEGIN", "begin", "break", "case", "class", "def", "defined?", "do", "else",
+-    "elsif", "END", "end", "ensure", "false", "for", "if", "in", "module", "next", "not", "or",
+-    "redo", "rescue", "retry", "return", "self", "super", "then", "true", "undef", "unless",
+-    "until", "when", "while", "yield", "nil", "raise", "throw", "catch", "fail", "loop", "callcc",
+-    "caller", "lambda", "proc", "public", "protected", "private", "require", "load",
+-    "require_relative", "extend", "autoload", "__END__", "__FILE__", "__LINE__", "__dir__"
+-  ]);
+-  var indentWords = wordObj(["def", "class", "case", "for", "while", "until", "module", "then",
+-                             "catch", "loop", "proc", "begin"]);
+-  var dedentWords = wordObj(["end", "until"]);
+-  var opening = {"[": "]", "{": "}", "(": ")"};
+-  var closing = {"]": "[", "}": "{", ")": "("};
+   var curPunc;
+ 
+   function chain(newtok, stream, state) {
+@@ -295,4 +298,6 @@ CodeMirror.defineMode("ruby", function(config) {
+ 
+ CodeMirror.defineMIME("text/x-ruby", "ruby");
+ 
++CodeMirror.registerHelper("hintWords", "ruby", keywordList);
++
+ });
+diff --git a/node_modules/codemirror/mode/sas/sas.js b/node_modules/codemirror/mode/sas/sas.js
+index c6f528e0..49b96b66 100755
+--- a/node_modules/codemirror/mode/sas/sas.js
++++ b/node_modules/codemirror/mode/sas/sas.js
+@@ -88,7 +88,7 @@
+     define('def', 'source2 nosource2 page pageno pagesize', ['ALL']);
+ 
+     //proc and datastep
+-    define('def', '_all_ _character_ _cmd_ _freq_ _i_ _infile_ _last_ _msg_ _null_ _numeric_ _temporary_ _type_ abort abs addr adjrsq airy alpha alter altlog altprint and arcos array arsin as atan attrc attrib attrn authserver autoexec awscontrol awsdef awsmenu awsmenumerge awstitle backward band base betainv between blocksize blshift bnot bor brshift bufno bufsize bxor by byerr byline byte calculated call cards cards4 catcache cbufno cdf ceil center cexist change chisq cinv class cleanup close cnonct cntllev coalesce codegen col collate collin column comamid comaux1 comaux2 comdef compbl compound compress config continue convert cos cosh cpuid create cross crosstab css curobs cv daccdb daccdbsl daccsl daccsyd dacctab dairy datalines datalines4 datejul datepart datetime day dbcslang dbcstype dclose ddm delete delimiter depdb depdbsl depsl depsyd deptab dequote descending descript design= device dflang dhms dif digamma dim dinfo display distinct dkricond dkrocond dlm dnum do dopen doptname doptnum dread drop dropnote dsname dsnferr echo else emaildlg emailid emailpw emailserver emailsys encrypt end endsas engine eof eov erf erfc error errorcheck errors exist exp fappend fclose fcol fdelete feedback fetch fetchobs fexist fget file fileclose fileexist filefmt filename fileref  fmterr fmtsearch fnonct fnote font fontalias  fopen foptname foptnum force formatted formchar formdelim formdlim forward fpoint fpos fput fread frewind frlen from fsep fuzz fwrite gaminv gamma getoption getvarc getvarn go goto group gwindow hbar hbound helpenv helploc hms honorappearance hosthelp hostprint hour hpct html hvar ibessel ibr id if index indexc indexw initcmd initstmt inner input inputc inputn inr insert int intck intnx into intrr invaliddata irr is jbessel join juldate keep kentb kurtosis label lag last lbound leave left length levels lgamma lib  library libref line linesize link list log log10 log2 logpdf logpmf logsdf lostcard lowcase lrecl ls macro macrogen maps mautosource max maxdec maxr mdy mean measures median memtype merge merror min minute missing missover mlogic mod mode model modify month mopen mort mprint mrecall msglevel msymtabmax mvarsize myy n nest netpv new news nmiss no nobatch nobs nocaps nocardimage nocenter nocharcode nocmdmac nocol nocum nodate nodbcs nodetails nodmr nodms nodmsbatch nodup nodupkey noduplicates noechoauto noequals noerrorabend noexitwindows nofullstimer noicon noimplmac noint nolist noloadlist nomiss nomlogic nomprint nomrecall nomsgcase nomstored nomultenvappl nonotes nonumber noobs noovp nopad nopercent noprint noprintinit normal norow norsasuser nosetinit  nosplash nosymbolgen note notes notitle notitles notsorted noverbose noxsync noxwait npv null number numkeys nummousekeys nway obs  on open     order ordinal otherwise out outer outp= output over ovp p(1 5 10 25 50 75 90 95 99) pad pad2  paired parm parmcards path pathdll pathname pdf peek peekc pfkey pmf point poisson poke position printer probbeta probbnml probchi probf probgam probhypr probit probnegb probnorm probsig probt procleave prt ps  pw pwreq qtr quote r ranbin rancau ranexp rangam range ranks rannor ranpoi rantbl rantri ranuni read recfm register regr remote remove rename repeat replace resolve retain return reuse reverse rewind right round rsquare rtf rtrace rtraceloc s s2 samploc sasautos sascontrol sasfrscr sasmsg sasmstore sasscript sasuser saving scan sdf second select selection separated seq serror set setcomm setot sign simple sin sinh siteinfo skewness skip sle sls sortedby sortpgm sortseq sortsize soundex  spedis splashlocation split spool sqrt start std stderr stdin stfips stimer stname stnamel stop stopover subgroup subpopn substr sum sumwgt symbol symbolgen symget symput sysget sysin sysleave sysmsg sysparm sysprint sysprintfont sysprod sysrc system t table tables tan tanh tapeclose tbufsize terminal test then timepart tinv  tnonct to today tol tooldef totper transformout translate trantab tranwrd trigamma trim trimn trunc truncover type unformatted uniform union until upcase update user usericon uss validate value var  weight when where while wincharset window work workinit workterm write wsum xsync xwait yearcutoff yes yyq  min max', ['inDataStep', 'inProc']);
++    define('def', '_all_ _character_ _cmd_ _freq_ _i_ _infile_ _last_ _msg_ _null_ _numeric_ _temporary_ _type_ abort abs addr adjrsq airy alpha alter altlog altprint and arcos array arsin as atan attrc attrib attrn authserver autoexec awscontrol awsdef awsmenu awsmenumerge awstitle backward band base betainv between blocksize blshift bnot bor brshift bufno bufsize bxor by byerr byline byte calculated call cards cards4 catcache cbufno cdf ceil center cexist change chisq cinv class cleanup close cnonct cntllev coalesce codegen col collate collin column comamid comaux1 comaux2 comdef compbl compound compress config continue convert cos cosh cpuid create cross crosstab css curobs cv daccdb daccdbsl daccsl daccsyd dacctab dairy datalines datalines4 datejul datepart datetime day dbcslang dbcstype dclose ddfm ddm delete delimiter depdb depdbsl depsl depsyd deptab dequote descending descript design= device dflang dhms dif digamma dim dinfo display distinct dkricond dkrocond dlm dnum do dopen doptname doptnum dread drop dropnote dsname dsnferr echo else emaildlg emailid emailpw emailserver emailsys encrypt end endsas engine eof eov erf erfc error errorcheck errors exist exp fappend fclose fcol fdelete feedback fetch fetchobs fexist fget file fileclose fileexist filefmt filename fileref  fmterr fmtsearch fnonct fnote font fontalias  fopen foptname foptnum force formatted formchar formdelim formdlim forward fpoint fpos fput fread frewind frlen from fsep fuzz fwrite gaminv gamma getoption getvarc getvarn go goto group gwindow hbar hbound helpenv helploc hms honorappearance hosthelp hostprint hour hpct html hvar ibessel ibr id if index indexc indexw initcmd initstmt inner input inputc inputn inr insert int intck intnx into intrr invaliddata irr is jbessel join juldate keep kentb kurtosis label lag last lbound leave left length levels lgamma lib  library libref line linesize link list log log10 log2 logpdf logpmf logsdf lostcard lowcase lrecl ls macro macrogen maps mautosource max maxdec maxr mdy mean measures median memtype merge merror min minute missing missover mlogic mod mode model modify month mopen mort mprint mrecall msglevel msymtabmax mvarsize myy n nest netpv new news nmiss no nobatch nobs nocaps nocardimage nocenter nocharcode nocmdmac nocol nocum nodate nodbcs nodetails nodmr nodms nodmsbatch nodup nodupkey noduplicates noechoauto noequals noerrorabend noexitwindows nofullstimer noicon noimplmac noint nolist noloadlist nomiss nomlogic nomprint nomrecall nomsgcase nomstored nomultenvappl nonotes nonumber noobs noovp nopad nopercent noprint noprintinit normal norow norsasuser nosetinit  nosplash nosymbolgen note notes notitle notitles notsorted noverbose noxsync noxwait npv null number numkeys nummousekeys nway obs  on open     order ordinal otherwise out outer outp= output over ovp p(1 5 10 25 50 75 90 95 99) pad pad2  paired parm parmcards path pathdll pathname pdf peek peekc pfkey pmf point poisson poke position printer probbeta probbnml probchi probf probgam probhypr probit probnegb probnorm probsig probt procleave prt ps  pw pwreq qtr quote r ranbin rancau random ranexp rangam range ranks rannor ranpoi rantbl rantri ranuni rcorr read recfm register regr remote remove rename repeat repeated replace resolve retain return reuse reverse rewind right round rsquare rtf rtrace rtraceloc s s2 samploc sasautos sascontrol sasfrscr sasmsg sasmstore sasscript sasuser saving scan sdf second select selection separated seq serror set setcomm setot sign simple sin sinh siteinfo skewness skip sle sls sortedby sortpgm sortseq sortsize soundex  spedis splashlocation split spool sqrt start std stderr stdin stfips stimer stname stnamel stop stopover sub subgroup subpopn substr sum sumwgt symbol symbolgen symget symput sysget sysin sysleave sysmsg sysparm sysprint sysprintfont sysprod sysrc system t table tables tan tanh tapeclose tbufsize terminal test then timepart tinv  tnonct to today tol tooldef totper transformout translate trantab tranwrd trigamma trim trimn trunc truncover type unformatted uniform union until upcase update user usericon uss validate value var  weight when where while wincharset window work workinit workterm write wsum xsync xwait yearcutoff yes yyq  min max', ['inDataStep', 'inProc']);
+     define('operator', 'and not ', ['inDataStep', 'inProc']);
+ 
+     // Main function
+diff --git a/node_modules/codemirror/mode/soy/soy.js b/node_modules/codemirror/mode/soy/soy.js
+index 1b19923d..d31c947e 100644
+--- a/node_modules/codemirror/mode/soy/soy.js
++++ b/node_modules/codemirror/mode/soy/soy.js
+@@ -34,9 +34,9 @@
+     "switch": {},
+     "case": { noEndTag: true, reduceIndent: true},
+     "default": { noEndTag: true, reduceIndent: true},
+-    "foreach": { variableScope: true, soyState: "var-def" },
++    "foreach": { variableScope: true, soyState: "for-loop" },
+     "ifempty": { noEndTag: true, reduceIndent: true},
+-    "for": { variableScope: true, soyState: "var-def" },
++    "for": { variableScope: true, soyState: "for-loop" },
+     "call": { soyState: "templ-ref" },
+     "param": { soyState: "param-ref"},
+     "print": { noEndTag: true },
+@@ -129,6 +129,7 @@
+       var match;
+       if (stream.match(/[[]/)) {
+         state.soyState.push("list-literal");
++        state.context = new Context(state.context, "list-literal", state.variables);
+         state.lookupVariables = false;
+         return null;
+       } else if (stream.match(/map\b/)) {
+@@ -256,6 +257,11 @@
+               // Otherwise
+               return "variable";
+             }
++            if (match = stream.match(/^\$([\w]+)/)) {
++              state.soyState.pop();
++              return ref(state.variables, match[1], !state.lookupVariables);
++            }
++
+             stream.next();
+             return null;
+ 
+@@ -300,6 +306,9 @@
+             } else if (peekChar == "[") {
+               state.soyState.push('param-type-record');
+               return null;
++            } else if (peekChar == "(") {
++              state.soyState.push('param-type-template');
++              return null;
+             } else if (peekChar == "<") {
+               state.soyState.push('param-type-parameter');
+               return null;
+@@ -334,6 +343,19 @@
+             stream.next();
+             return null;
+ 
++          case "param-type-template":
++            if (stream.match(/[>]/)) {
++              state.soyState.pop();
++              state.soyState.push('param-type');
++              return null;
++            }
++            if (stream.match(/^\w+/)) {
++              state.soyState.push('param-type');
++              return "def";
++            }
++            stream.next();
++            return null;
++
+           case "var-def":
+             if (match = stream.match(/^\$([\w]+)/)) {
+               state.variables = prepend(state.variables, match[1]);
+@@ -343,6 +365,18 @@
+             stream.next();
+             return null;
+ 
++          case "for-loop":
++            if (stream.match(/\bin\b/)) {
++              state.soyState.pop();
++              return "keyword";
++            }
++            if (stream.peek() == "$") {
++              state.soyState.push('var-def');
++              return null;
++            }
++            stream.next();
++            return null;
++
+           case "record-literal":
+             if (stream.match(/^[)]/)) {
+               state.soyState.pop();
+@@ -373,13 +407,12 @@
+             if (stream.match(/\]/)) {
+               state.soyState.pop();
+               state.lookupVariables = true;
++              popcontext(state);
+               return null;
+             }
+-            if (stream.match(/for\b/)) {
+-              state.soyState.push("var-def")
+-              return "keyword";
+-            } else if (stream.match(/in\b/)) {
++            if (stream.match(/\bfor\b/)) {
+               state.lookupVariables = true;
++              state.soyState.push('for-loop');
+               return "keyword";
+             }
+             return expression(stream, state);
+@@ -402,6 +435,26 @@
+             }
+             return expression(stream, state);
+ 
++          case "import":
++            if (stream.eat(";")) {
++              state.soyState.pop();
++              state.indent -= 2 * config.indentUnit;
++              return null;
++            }
++            if (stream.match(/\w+(?=\s+as)/)) {
++              return "variable";
++            }
++            if (match = stream.match(/\w+/)) {
++              return /(from|as)/.test(match[0]) ? "keyword" : "def";
++            }
++            if (match = stream.match(/^["']/)) {
++              state.soyState.push("string");
++              state.quoteKind = match[0];
++              return "string";
++            }
++            stream.next();
++            return null;
++
+           case "tag":
+             var endTag = state.tag[0] == "/";
+             var tagName = endTag ? state.tag.substring(1) : state.tag;
+@@ -499,6 +552,10 @@
+           state.indent += 2 * config.indentUnit;
+           state.soyState.push("tag");
+           return "keyword";
++        } else if (!state.context && stream.match(/\bimport\b/)) {
++          state.soyState.push("import");
++          state.indent += 2 * config.indentUnit;
++          return "keyword";
+         }
+ 
+         return tokenUntil(stream, state, /\{|\s+\/\/|\/\*/);
+diff --git a/node_modules/codemirror/mode/sparql/sparql.js b/node_modules/codemirror/mode/sparql/sparql.js
+index bb79abff..73997c66 100644
+--- a/node_modules/codemirror/mode/sparql/sparql.js
++++ b/node_modules/codemirror/mode/sparql/sparql.js
+@@ -60,12 +60,18 @@ CodeMirror.defineMode("sparql", function(config) {
+       stream.skipToEnd();
+       return "comment";
+     }
++    else if (ch === "^") {
++      ch = stream.peek();
++      if (ch === "^") stream.eat("^");
++      else stream.eatWhile(operatorChars);
++      return "operator";
++    }
+     else if (operatorChars.test(ch)) {
+       stream.eatWhile(operatorChars);
+       return "operator";
+     }
+     else if (ch == ":") {
+-      stream.eatWhile(/[\w\d\._\-]/);
++      eatPnLocal(stream);
+       return "atom";
+     }
+     else if (ch == "@") {
+@@ -75,7 +81,7 @@ CodeMirror.defineMode("sparql", function(config) {
+     else {
+       stream.eatWhile(/[_\w\d]/);
+       if (stream.eat(":")) {
+-        stream.eatWhile(/[\w\d_\-]/);
++        eatPnLocal(stream);
+         return "atom";
+       }
+       var word = stream.current();
+@@ -88,6 +94,10 @@ CodeMirror.defineMode("sparql", function(config) {
+     }
+   }
+ 
++  function eatPnLocal(stream) {
++    while (stream.match(/([:\w\d._-]|\\[-\\_~.!$&'()*+,;=/?#@%]|%[a-fA-F0-9][a-fA-F0-9])/));
++  }
++
+   function tokenLiteral(quote) {
+     return function(stream, state) {
+       var escaped = false, ch;
+diff --git a/node_modules/codemirror/mode/stylus/stylus.js b/node_modules/codemirror/mode/stylus/stylus.js
+index 653958e8..281118ef 100644
+--- a/node_modules/codemirror/mode/stylus/stylus.js
++++ b/node_modules/codemirror/mode/stylus/stylus.js
+@@ -731,7 +731,8 @@
+   var tagKeywords_ = ["a","abbr","address","area","article","aside","audio", "b", "base","bdi", "bdo","bgsound","blockquote","body","br","button","canvas","caption","cite", "code","col","colgroup","data","datalist","dd","del","details","dfn","div", "dl","dt","em","embed","fieldset","figcaption","figure","footer","form","h1", "h2","h3","h4","h5","h6","head","header","hgroup","hr","html","i","iframe", "img","input","ins","kbd","keygen","label","legend","li","link","main","map", "mark","marquee","menu","menuitem","meta","meter","nav","nobr","noframes", "noscript","object","ol","optgroup","option","output","p","param","pre", "progress","q","rp","rt","ruby","s","samp","script","section","select", "small","source","span","strong","style","sub","summary","sup","table","tbody","td","textarea","tfoot","th","thead","time","tr","track", "u","ul","var","video"];
+ 
+   // github.com/codemirror/CodeMirror/blob/master/mode/css/css.js
+-  var documentTypes_ = ["domain", "regexp", "url", "url-prefix"];
++  // Note, "url-prefix" should precede "url" in order to match correctly in documentTypesRegexp
++  var documentTypes_ = ["domain", "regexp", "url-prefix", "url"];
+   var mediaTypes_ = ["all","aural","braille","handheld","print","projection","screen","tty","tv","embossed"];
+   var mediaFeatures_ = ["width","min-width","max-width","height","min-height","max-height","device-width","min-device-width","max-device-width","device-height","min-device-height","max-device-height","aspect-ratio","min-aspect-ratio","max-aspect-ratio","device-aspect-ratio","min-device-aspect-ratio","max-device-aspect-ratio","color","min-color","max-color","color-index","min-color-index","max-color-index","monochrome","min-monochrome","max-monochrome","resolution","min-resolution","max-resolution","scan","grid"];
+   var propertyKeywords_ = ["align-content","align-items","align-self","alignment-adjust","alignment-baseline","anchor-point","animation","animation-delay","animation-direction","animation-duration","animation-fill-mode","animation-iteration-count","animation-name","animation-play-state","animation-timing-function","appearance","azimuth","backface-visibility","background","background-attachment","background-clip","background-color","background-image","background-origin","background-position","background-repeat","background-size","baseline-shift","binding","bleed","bookmark-label","bookmark-level","bookmark-state","bookmark-target","border","border-bottom","border-bottom-color","border-bottom-left-radius","border-bottom-right-radius","border-bottom-style","border-bottom-width","border-collapse","border-color","border-image","border-image-outset","border-image-repeat","border-image-slice","border-image-source","border-image-width","border-left","border-left-color","border-left-style","border-left-width","border-radius","border-right","border-right-color","border-right-style","border-right-width","border-spacing","border-style","border-top","border-top-color","border-top-left-radius","border-top-right-radius","border-top-style","border-top-width","border-width","bottom","box-decoration-break","box-shadow","box-sizing","break-after","break-before","break-inside","caption-side","clear","clip","color","color-profile","column-count","column-fill","column-gap","column-rule","column-rule-color","column-rule-style","column-rule-width","column-span","column-width","columns","content","counter-increment","counter-reset","crop","cue","cue-after","cue-before","cursor","direction","display","dominant-baseline","drop-initial-after-adjust","drop-initial-after-align","drop-initial-before-adjust","drop-initial-before-align","drop-initial-size","drop-initial-value","elevation","empty-cells","fit","fit-position","flex","flex-basis","flex-direction","flex-flow","flex-grow","flex-shrink","flex-wrap","float","float-offset","flow-from","flow-into","font","font-feature-settings","font-family","font-kerning","font-language-override","font-size","font-size-adjust","font-stretch","font-style","font-synthesis","font-variant","font-variant-alternates","font-variant-caps","font-variant-east-asian","font-variant-ligatures","font-variant-numeric","font-variant-position","font-weight","grid","grid-area","grid-auto-columns","grid-auto-flow","grid-auto-position","grid-auto-rows","grid-column","grid-column-end","grid-column-start","grid-row","grid-row-end","grid-row-start","grid-template","grid-template-areas","grid-template-columns","grid-template-rows","hanging-punctuation","height","hyphens","icon","image-orientation","image-rendering","image-resolution","inline-box-align","justify-content","left","letter-spacing","line-break","line-height","line-stacking","line-stacking-ruby","line-stacking-shift","line-stacking-strategy","list-style","list-style-image","list-style-position","list-style-type","margin","margin-bottom","margin-left","margin-right","margin-top","marker-offset","marks","marquee-direction","marquee-loop","marquee-play-count","marquee-speed","marquee-style","max-height","max-width","min-height","min-width","move-to","nav-down","nav-index","nav-left","nav-right","nav-up","object-fit","object-position","opacity","order","orphans","outline","outline-color","outline-offset","outline-style","outline-width","overflow","overflow-style","overflow-wrap","overflow-x","overflow-y","padding","padding-bottom","padding-left","padding-right","padding-top","page","page-break-after","page-break-before","page-break-inside","page-policy","pause","pause-after","pause-before","perspective","perspective-origin","pitch","pitch-range","play-during","position","presentation-level","punctuation-trim","quotes","region-break-after","region-break-before","region-break-inside","region-fragment","rendering-intent","resize","rest","rest-after","rest-before","richness","right","rotation","rotation-point","ruby-align","ruby-overhang","ruby-position","ruby-span","shape-image-threshold","shape-inside","shape-margin","shape-outside","size","speak","speak-as","speak-header","speak-numeral","speak-punctuation","speech-rate","stress","string-set","tab-size","table-layout","target","target-name","target-new","target-position","text-align","text-align-last","text-decoration","text-decoration-color","text-decoration-line","text-decoration-skip","text-decoration-style","text-emphasis","text-emphasis-color","text-emphasis-position","text-emphasis-style","text-height","text-indent","text-justify","text-outline","text-overflow","text-shadow","text-size-adjust","text-space-collapse","text-transform","text-underline-position","text-wrap","top","transform","transform-origin","transform-style","transition","transition-delay","transition-duration","transition-property","transition-timing-function","unicode-bidi","vertical-align","visibility","voice-balance","voice-duration","voice-family","voice-pitch","voice-range","voice-rate","voice-stress","voice-volume","volume","white-space","widows","width","will-change","word-break","word-spacing","word-wrap","z-index","clip-path","clip-rule","mask","enable-background","filter","flood-color","flood-opacity","lighting-color","stop-color","stop-opacity","pointer-events","color-interpolation","color-interpolation-filters","color-rendering","fill","fill-opacity","fill-rule","image-rendering","marker","marker-end","marker-mid","marker-start","shape-rendering","stroke","stroke-dasharray","stroke-dashoffset","stroke-linecap","stroke-linejoin","stroke-miterlimit","stroke-opacity","stroke-width","text-rendering","baseline-shift","dominant-baseline","glyph-orientation-horizontal","glyph-orientation-vertical","text-anchor","writing-mode","font-smoothing","osx-font-smoothing"];
+diff --git a/node_modules/codemirror/mode/wast/wast.js b/node_modules/codemirror/mode/wast/wast.js
+index 8c517a49..9348ad3e 100644
+--- a/node_modules/codemirror/mode/wast/wast.js
++++ b/node_modules/codemirror/mode/wast/wast.js
+@@ -14,7 +14,7 @@
+ CodeMirror.defineSimpleMode('wast', {
+   start: [
+     {regex: /[+\-]?(?:nan(?::0x[0-9a-fA-F]+)?|infinity|inf|0x[0-9a-fA-F]+\.?[0-9a-fA-F]*p[+\/-]?\d+|\d+(?:\.\d*)?[eE][+\-]?\d*|\d+\.\d*|0x[0-9a-fA-F]+|\d+)/, token: "number"},
+-    {regex: /mut|nop|block|if|then|else|loop|br_if|br_table|br|call(_indirect)?|drop|end|return(_call(_indirect)?)?|local\.(get|set|tee)|global\.(get|set)|i(32|64)\.(store(8|16)|(load(8|16)_[su]))|i64\.(load32_[su]|store32)|[fi](32|64)\.(const|load|store)|f(32|64)\.(abs|add|ceil|copysign|div|eq|floor|[gl][et]|max|min|mul|nearest|neg?|sqrt|sub|trunc)|i(32|64)\.(a[dn]d|c[lt]z|(div|rem)_[su]|eqz?|[gl][te]_[su]|mul|ne|popcnt|rot[lr]|sh(l|r_[su])|sub|x?or)|i64\.extend_[su]_i32|i32\.wrap_i64|i(32|64)\.trunc_f(32|64)_[su]|f(32|64)\.convert_i(32|64)_[su]|f64\.promote_f32|f32\.demote_f64|f32\.reinterpret_i32|i32\.reinterpret_f32|f64\.reinterpret_i64|i64\.reinterpret_f64|select|unreachable|current_memory|memory\.(size|grow)|type|func|param|result|local|global|module|table|memory|start|elem|data|align|offset|import|export|atomic\.notify|i64\.atomic\.(load32_u|store32|rmw32\.(a[dn]d|sub|x?or|(cmp)?xchg)_u)|i(32|64)\.atomic\.(wait|load((8|16)_u)?|store(8|16)?|rmw(\.(a[dn]d|sub|x?or|(cmp)?xchg)|(8|16)\.(a[dn]d|sub|x?or|(cmp)?xchg)_u))/, token: "keyword"},
++    {regex: /mut|nop|block|if|then|else|loop|br_if|br_table|br|call(_indirect)?|drop|end|return(_call(_indirect)?)?|local\.(get|set|tee)|global\.(get|set)|i(32|64)\.(store(8|16)|(load(8|16)_[su]))|i64\.(load32_[su]|store32)|[fi](32|64)\.(const|load|store)|f(32|64)\.(abs|add|ceil|copysign|div|eq|floor|[gl][et]|max|min|mul|nearest|neg?|sqrt|sub|trunc)|i(32|64)\.(a[dn]d|c[lt]z|(div|rem)_[su]|eqz?|[gl][te]_[su]|mul|ne|popcnt|rot[lr]|sh(l|r_[su])|sub|x?or)|i64\.extend_[su]_i32|i32\.wrap_i64|i(32|64)\.trunc_f(32|64)_[su]|f(32|64)\.convert_i(32|64)_[su]|f64\.promote_f32|f32\.demote_f64|f32\.reinterpret_i32|i32\.reinterpret_f32|f64\.reinterpret_i64|i64\.reinterpret_f64|select|unreachable|current_memory|memory(\.((atomic\.(notify|wait(32|64)))|grow|size))?|type|func|param|result|local|global|module|table|start|elem|data|align|offset|import|export|i64\.atomic\.(load32_u|store32|rmw32\.(a[dn]d|sub|x?or|(cmp)?xchg)_u)|i(32|64)\.atomic\.(load((8|16)_u)?|store(8|16)?|rmw(\.(a[dn]d|sub|x?or|(cmp)?xchg)|(8|16)\.(a[dn]d|sub|x?or|(cmp)?xchg)_u))|v128\.(load|store|const|not|andnot|and|or|xor|bitselect)|i(8x16|16x8|32x4|64x2)\.(shl|shr_[su])|i(8x16|16x8)\.(extract_lane_[su]|((add|sub)_saturate_[su])|avgr_u)|(i(8x16|16x8|32x4|64x2)|f(32x4|64x2))\.(splat|replace_lane|neg|add|sub)|i(8x16|16x8|32x4)\.(eq|ne|([lg][te]_[su])|abs|any_true|all_true|bitmask|((min|max)_[su]))|f(32x4|64x2)\.(eq|ne|[lg][te]|abs|sqrt|mul|div|min|max)|[fi](32x4|64x2)\.extract_lane|v8x16\.(shuffle|swizzle)|i16x8\.(load8x8_[su]|narrow_i32x4_[su]|widen_(low|high)_i8x16_[su]|mul)|i32x4\.(load16x4_[su]|widen_(low|high)_i16x8_[su]|mul|trunc_sat_f32x4_[su])|i64x2\.(load32x2_[su]|mul)|(v(8x16|16x8|32x4|64x2)\.load_splat)|i8x16\.narrow_i16x8_[su]|f32x4\.convert_i32x4_[su]/, token: "keyword"},
+     {regex: /\b(anyfunc|[fi](32|64))\b/, token: "atom"},
+     {regex: /\$([a-zA-Z0-9_`\+\-\*\/\\\^~=<>!\?@#$%&|:\.]+)/, token: "variable-2"},
+     {regex: /"(?:[^"\\\x00-\x1f\x7f]|\\[nt\\'"]|\\[0-9a-fA-F][0-9a-fA-F])*"/, token: "string"},
+diff --git a/node_modules/codemirror/package.json b/node_modules/codemirror/package.json
+index dcffa6d9..2103e1c3 100644
+--- a/node_modules/codemirror/package.json
++++ b/node_modules/codemirror/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "codemirror",
+-  "version": "5.55.0",
++  "version": "5.58.2",
+   "main": "lib/codemirror.js",
+   "style": "lib/codemirror.css",
+   "author": {
+diff --git a/node_modules/codemirror/src/display/scrolling.js b/node_modules/codemirror/src/display/scrolling.js
+index 6d97247d..75d6fc7e 100644
+--- a/node_modules/codemirror/src/display/scrolling.js
++++ b/node_modules/codemirror/src/display/scrolling.js
+@@ -91,14 +91,15 @@ function calculateScrollPos(cm, rect) {
+     if (newTop != screentop) result.scrollTop = newTop
+   }
+ 
+-  let screenleft = cm.curOp && cm.curOp.scrollLeft != null ? cm.curOp.scrollLeft : display.scroller.scrollLeft
+-  let screenw = displayWidth(cm) - (cm.options.fixedGutter ? display.gutters.offsetWidth : 0)
++  let gutterSpace = cm.options.fixedGutter ? 0 : display.gutters.offsetWidth
++  let screenleft = cm.curOp && cm.curOp.scrollLeft != null ? cm.curOp.scrollLeft : display.scroller.scrollLeft - gutterSpace
++  let screenw = displayWidth(cm) - display.gutters.offsetWidth
+   let tooWide = rect.right - rect.left > screenw
+   if (tooWide) rect.right = rect.left + screenw
+   if (rect.left < 10)
+     result.scrollLeft = 0
+   else if (rect.left < screenleft)
+-    result.scrollLeft = Math.max(0, rect.left - (tooWide ? 0 : 10))
++    result.scrollLeft = Math.max(0, rect.left + gutterSpace - (tooWide ? 0 : 10))
+   else if (rect.right > screenw + screenleft - 3)
+     result.scrollLeft = rect.right + (tooWide ? 0 : 10) - screenw
+   return result
+diff --git a/node_modules/codemirror/src/display/selection.js b/node_modules/codemirror/src/display/selection.js
+index c658c0a2..d377a9f4 100644
+--- a/node_modules/codemirror/src/display/selection.js
++++ b/node_modules/codemirror/src/display/selection.js
+@@ -4,6 +4,7 @@ import { getLine } from "../line/utils_line.js"
+ import { charCoords, cursorCoords, displayWidth, paddingH, wrappedLineExtentChar } from "../measurement/position_measurement.js"
+ import { getOrder, iterateBidiSections } from "../util/bidi.js"
+ import { elt } from "../util/dom.js"
++import { onBlur } from "./focus.js"
+ 
+ export function updateSelection(cm) {
+   cm.display.input.showSelection(cm.display.input.prepareSelection())
+@@ -151,8 +152,10 @@ export function restartBlink(cm) {
+   let on = true
+   display.cursorDiv.style.visibility = ""
+   if (cm.options.cursorBlinkRate > 0)
+-    display.blinker = setInterval(() => display.cursorDiv.style.visibility = (on = !on) ? "" : "hidden",
+-      cm.options.cursorBlinkRate)
++    display.blinker = setInterval(() => {
++      if (!cm.hasFocus()) onBlur(cm)
++      display.cursorDiv.style.visibility = (on = !on) ? "" : "hidden"
++    }, cm.options.cursorBlinkRate)
+   else if (cm.options.cursorBlinkRate < 0)
+     display.cursorDiv.style.visibility = "hidden"
+ }
+diff --git a/node_modules/codemirror/src/edit/CodeMirror.js b/node_modules/codemirror/src/edit/CodeMirror.js
+index 3429da1e..dc016113 100644
+--- a/node_modules/codemirror/src/edit/CodeMirror.js
++++ b/node_modules/codemirror/src/edit/CodeMirror.js
+@@ -14,7 +14,7 @@ import { Range } from "../model/selection.js"
+ import { extendSelection } from "../model/selection_updates.js"
+ import { ie, ie_version, mobile, webkit } from "../util/browser.js"
+ import { e_preventDefault, e_stop, on, signal, signalDOMEvent } from "../util/event.js"
+-import { bind, copyObj, Delayed } from "../util/misc.js"
++import { copyObj, Delayed } from "../util/misc.js"
+ 
+ import { clearDragCursor, onDragOver, onDragStart, onDrop } from "./drop_events.js"
+ import { ensureGlobalHandlers } from "./global_events.js"
+@@ -76,7 +76,9 @@ export function CodeMirror(place, options) {
+   attachDoc(this, doc)
+ 
+   if ((options.autofocus && !mobile) || this.hasFocus())
+-    setTimeout(bind(onFocus, this), 20)
++    setTimeout(() => {
++      if (this.hasFocus() && !this.state.focused) onFocus(this)
++    }, 20)
+   else
+     onBlur(this)
+ 
+diff --git a/node_modules/codemirror/src/edit/commands.js b/node_modules/codemirror/src/edit/commands.js
+index 079379fc..4c4cc4cd 100644
+--- a/node_modules/codemirror/src/edit/commands.js
++++ b/node_modules/codemirror/src/edit/commands.js
+@@ -84,7 +84,7 @@ export let commands = {
+   goGroupRight: cm => cm.moveH(1, "group"),
+   goGroupLeft: cm => cm.moveH(-1, "group"),
+   goWordRight: cm => cm.moveH(1, "word"),
+-  delCharBefore: cm => cm.deleteH(-1, "char"),
++  delCharBefore: cm => cm.deleteH(-1, "codepoint"),
+   delCharAfter: cm => cm.deleteH(1, "char"),
+   delWordBefore: cm => cm.deleteH(-1, "word"),
+   delWordAfter: cm => cm.deleteH(1, "word"),
+diff --git a/node_modules/codemirror/src/edit/main.js b/node_modules/codemirror/src/edit/main.js
+index 04efb815..800ee766 100644
+--- a/node_modules/codemirror/src/edit/main.js
++++ b/node_modules/codemirror/src/edit/main.js
+@@ -66,4 +66,4 @@ import { addLegacyProps } from "./legacy.js"
+ 
+ addLegacyProps(CodeMirror)
+ 
+-CodeMirror.version = "5.55.0"
++CodeMirror.version = "5.58.2"
+diff --git a/node_modules/codemirror/src/edit/methods.js b/node_modules/codemirror/src/edit/methods.js
+index acf90d1c..a5e2afc3 100644
+--- a/node_modules/codemirror/src/edit/methods.js
++++ b/node_modules/codemirror/src/edit/methods.js
+@@ -457,14 +457,14 @@ export default function(CodeMirror) {
+ }
+ 
+ // Used for horizontal relative motion. Dir is -1 or 1 (left or
+-// right), unit can be "char", "column" (like char, but doesn't
+-// cross line boundaries), "word" (across next word), or "group" (to
+-// the start of next group of word or non-word-non-whitespace
+-// chars). The visually param controls whether, in right-to-left
+-// text, direction 1 means to move towards the next index in the
+-// string, or towards the character to the right of the current
+-// position. The resulting position will have a hitSide=true
+-// property if it reached the end of the document.
++// right), unit can be "codepoint", "char", "column" (like char, but
++// doesn't cross line boundaries), "word" (across next word), or
++// "group" (to the start of next group of word or
++// non-word-non-whitespace chars). The visually param controls
++// whether, in right-to-left text, direction 1 means to move towards
++// the next index in the string, or towards the character to the right
++// of the current position. The resulting position will have a
++// hitSide=true property if it reached the end of the document.
+ function findPosH(doc, pos, dir, unit, visually) {
+   let oldPos = pos
+   let origDir = dir
+@@ -478,7 +478,12 @@ function findPosH(doc, pos, dir, unit, visually) {
+   }
+   function moveOnce(boundToLine) {
+     let next
+-    if (visually) {
++    if (unit == "codepoint") {
++      let ch = lineObj.text.charCodeAt(pos.ch + (unit > 0 ? 0 : -1))
++      if (isNaN(ch)) next = null
++      else next = new Pos(pos.line, Math.max(0, Math.min(lineObj.text.length, pos.ch + dir * (ch >= 0xD800 && ch < 0xDC00 ? 2 : 1))),
++                          -dir)
++    } else if (visually) {
+       next = moveVisually(doc.cm, lineObj, pos, dir)
+     } else {
+       next = moveLogically(lineObj, pos, dir)
+@@ -494,7 +499,7 @@ function findPosH(doc, pos, dir, unit, visually) {
+     return true
+   }
+ 
+-  if (unit == "char") {
++  if (unit == "char" || unit == "codepoint") {
+     moveOnce()
+   } else if (unit == "column") {
+     moveOnce(true)
+diff --git a/node_modules/codemirror/src/input/TextareaInput.js b/node_modules/codemirror/src/input/TextareaInput.js
+index 8fe14bb4..977eb227 100644
+--- a/node_modules/codemirror/src/input/TextareaInput.js
++++ b/node_modules/codemirror/src/input/TextareaInput.js
+@@ -366,6 +366,7 @@ export default class TextareaInput {
+   readOnlyChanged(val) {
+     if (!val) this.reset()
+     this.textarea.disabled = val == "nocursor"
++    this.textarea.readOnly = !!val
+   }
+ 
+   setUneditable() {}
+diff --git a/node_modules/codemirror/src/input/input.js b/node_modules/codemirror/src/input/input.js
+index 8519ecfb..32adbf9b 100644
+--- a/node_modules/codemirror/src/input/input.js
++++ b/node_modules/codemirror/src/input/input.js
+@@ -51,7 +51,7 @@ export function applyTextInput(cm, inserted, deleted, sel, origin) {
+         from = Pos(from.line, from.ch - deleted)
+       else if (cm.state.overwrite && !paste) // Handle overwrite
+         to = Pos(to.line, Math.min(getLine(doc, to.line).text.length, to.ch + lst(textLines).length))
+-      else if (paste && lastCopied && lastCopied.lineWise && lastCopied.text.join("\n") == inserted)
++      else if (paste && lastCopied && lastCopied.lineWise && lastCopied.text.join("\n") == textLines.join("\n"))
+         from = to = Pos(from.line, 0)
+     }
+     let changeEvent = {from: from, to: to, text: multiPaste ? multiPaste[i % multiPaste.length] : textLines,
+@@ -132,4 +132,4 @@ export function hiddenTextarea() {
+   if (ios) te.style.border = "1px solid black"
+   disableBrowserMagic(te)
+   return div
+-}
+\ No newline at end of file
++}
+diff --git a/node_modules/codemirror/src/input/keymap.js b/node_modules/codemirror/src/input/keymap.js
+index 046b3505..f29f2bb1 100644
+--- a/node_modules/codemirror/src/input/keymap.js
++++ b/node_modules/codemirror/src/input/keymap.js
+@@ -127,7 +127,7 @@ export function addModifierNames(name, event, noShift) {
+   let base = name
+   if (event.altKey && base != "Alt") name = "Alt-" + name
+   if ((flipCtrlCmd ? event.metaKey : event.ctrlKey) && base != "Ctrl") name = "Ctrl-" + name
+-  if ((flipCtrlCmd ? event.ctrlKey : event.metaKey) && base != "Cmd") name = "Cmd-" + name
++  if ((flipCtrlCmd ? event.ctrlKey : event.metaKey) && base != "Mod") name = "Cmd-" + name
+   if (!noShift && event.shiftKey && base != "Shift") name = "Shift-" + name
+   return name
+ }
+diff --git a/node_modules/codemirror/src/input/keynames.js b/node_modules/codemirror/src/input/keynames.js
+index d3339038..eb09ca17 100644
+--- a/node_modules/codemirror/src/input/keynames.js
++++ b/node_modules/codemirror/src/input/keynames.js
+@@ -5,7 +5,7 @@ export let keyNames = {
+   46: "Delete", 59: ";", 61: "=", 91: "Mod", 92: "Mod", 93: "Mod",
+   106: "*", 107: "=", 109: "-", 110: ".", 111: "/", 145: "ScrollLock",
+   173: "-", 186: ";", 187: "=", 188: ",", 189: "-", 190: ".", 191: "/", 192: "`", 219: "[", 220: "\\",
+-  221: "]", 222: "'", 63232: "Up", 63233: "Down", 63234: "Left", 63235: "Right", 63272: "Delete",
++  221: "]", 222: "'", 224: "Mod", 63232: "Up", 63233: "Down", 63234: "Left", 63235: "Right", 63272: "Delete",
+   63273: "Home", 63275: "End", 63276: "PageUp", 63277: "PageDown", 63302: "Insert"
+ }
+ 
+diff --git a/node_modules/codemirror/src/line/line_data.js b/node_modules/codemirror/src/line/line_data.js
+index 20dd4328..e650b3e3 100644
+--- a/node_modules/codemirror/src/line/line_data.js
++++ b/node_modules/codemirror/src/line/line_data.js
+@@ -178,7 +178,7 @@ function buildToken(builder, text, style, startStyle, endStyle, css, attributes)
+     }
+   }
+   builder.trailingSpace = displayText.charCodeAt(text.length - 1) == 32
+-  if (style || startStyle || endStyle || mustWrap || css) {
++  if (style || startStyle || endStyle || mustWrap || css || attributes) {
+     let fullStyle = style || ""
+     if (startStyle) fullStyle += startStyle
+     if (endStyle) fullStyle += endStyle

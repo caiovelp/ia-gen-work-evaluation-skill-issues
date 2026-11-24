@@ -1,0 +1,1 @@
+{"justificativa": "The candidate patch makes the same code change as the official fix and puts :scholarship back in config.subform.columns, which restores both the field in the subform and the acceptance of the attribute on save. The only difference is the explanatory comment.", "veredito": "resolve"}

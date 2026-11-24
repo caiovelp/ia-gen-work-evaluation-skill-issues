@@ -1,0 +1,42 @@
+diff --git a/sympy/printing/pretty/pretty.py b/sympy/printing/pretty/pretty.py
+index 7a3de3352..a4f9de296 100755
+--- a/sympy/printing/pretty/pretty.py
++++ b/sympy/printing/pretty/pretty.py
+@@ -590,6 +590,7 @@ def adjust(s, wid=None, how='<^>'):
+         first = True
+         max_upper = 0
+         sign_height = 0
++        F_row = None
+ 
+         for lim in expr.limits:
+             if len(lim) == 3:
+@@ -617,9 +618,12 @@ def adjust(s, wid=None, how='<^>'):
+             prettySign = prettyForm(*prettySign.below(prettyLower))
+ 
+             if first:
++                # remember the summand's own baseline
++                F_base = prettyF.baseline
+                 # change F baseline so it centers on the sign
+                 prettyF.baseline -= d - (prettyF.height()//2 -
+                                          prettyF.baseline) - adjustment
++                F_shift = F_base - prettyF.baseline
+                 first = False
+ 
+             # put padding to the right
+@@ -627,9 +631,15 @@ def adjust(s, wid=None, how='<^>'):
+             pad = prettyForm(*pad.stack(*[' ']*h))
+             prettySign = prettyForm(*prettySign.right(pad))
+             # put the present prettyF to the right
++            old_baseline = prettyF.baseline
+             prettyF = prettyForm(*prettySign.right(prettyF))
++            # keep track of the row holding the summand's baseline
++            if F_row is None:
++                F_row = prettyF.baseline + F_shift
++            else:
++                F_row += prettyF.baseline - old_baseline
+ 
+-        prettyF.baseline = max_upper + sign_height//2
++        prettyF.baseline = F_row
+         prettyF.binding = prettyForm.MUL
+         return prettyF
+ 

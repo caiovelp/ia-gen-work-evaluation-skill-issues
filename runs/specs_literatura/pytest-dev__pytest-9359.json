@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 17458,
+ "stop_reason": "end_turn",
+ "session_id": "e621c0bf-069c-4bbe-8579-3e6ea770acc2",
+ "total_cost_usd": 0.0582223,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2121,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2050,
+  "output_tokens_details": {
+   "thinking_tokens": 234
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2121,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2050,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2121,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2121
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2328,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002463,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2050,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2121,
+   "webSearchRequests": 0,
+   "costUSD": 0.057976,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 234,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nOn Python 3.9, when an `assert` fails, pytest's failure report shows an extra source line after the failing assertion. The extra line is the decorator line (`@t`) of a nested decorated function defined after the assertion. On Python 3.7 the same test shows only the failing `assert` line. The reporter asks whether the statement line number is being calculated incorrectly.\n\n## Steps to reproduce\n\n1. Create `test_statement.py` with the contents shown under **Test case**.\n2. Run the test with pytest 6.2.5 on Python 3.9 (the reporter used 3.9.6 on Windows 10).\n3. Look at the failure details for `test_right_statement`, which fails at its first assertion.\n4. For comparison, run the same test with pytest 6.2.5 on Python 3.7 (the reporter used 3.7.10).\n\n## Observed behavior\n\nOn Python 3.9.6 the failure excerpt includes an extra blank line and the `@t` decorator line from the nested function that follows the failing assertion. The `E` error lines appear after that decorator line:\n\n```\n    def test_right_statement(foo):\n>       assert foo == (3 + 2) * (6 + 9)\n    \n        @t\nE       assert 1 == 75\n```\n\n## Expected behavior\n\nThe failure excerpt should end at the failing `assert` statement, with no following code. This is what happens on Python 3.7.10:\n\n```\n    def test_right_statement(foo):\n>       assert foo == (3 + 2) * (6 + 9)\nE       assert 1 == 75\n```\n\n## Stack trace / error output\n\nPython 3.9.6 (incorrect output):\n\n```\n============================= test session starts =============================\nplatform win32 -- Python 3.9.6, pytest-6.2.5, py-1.10.0, pluggy-0.13.1 -- \ncachedir: .pytest_cache\nrootdir: \nplugins: allure-pytest-2.9.45\ncollecting ... collected 1 item\n\ntest_statement.py::test_right_statement FAILED                           [100%]\n\n================================== FAILURES ===================================\n____________________________ test_right_statement _____________________________\n\nfoo = 1\n\n    def test_right_statement(foo):\n>       assert foo == (3 + 2) * (6 + 9)\n    \n        @t\nE       assert 1 == 75\nE         +1\nE         -75\n\ntest_statement.py:14: AssertionError\n=========================== short test summary info ===========================\nFAILED test_statement.py::test_right_statement - assert 1 == 75\n============================== 1 failed in 0.12s ==============================\n```\n\nPython 3.7.10 (correct output):\n\n```\n============================= test session starts =============================\nplatform win32 -- Python 3.7.10, pytest-6.2.5, py-1.11.0, pluggy-1.0.0 -- \ncachedir: .pytest_cache\nrootdir: \ncollecting ... collected 1 item\n\ntest_statement.py::test_right_statement FAILED                           [100%]\n\n================================== FAILURES ===================================\n____________________________ test_right_statement _____________________________\n\nfoo = 1\n\n    def test_right_statement(foo):\n>       assert foo == (3 + 2) * (6 + 9)\nE       assert 1 == 75\nE         +1\nE         -75\n\ntest_statement.py:14: AssertionError\n=========================== short test summary info ===========================\nFAILED test_statement.py::test_right_statement - assert 1 == 75\n============================== 1 failed in 0.03s ==============================\n```\n\n## Test case\n\n`test_statement.py`, as given in the original report:\n\n```python\nfrom pytest import fixture\n\n\ndef t(foo):\n    return foo\n\n\n@fixture\ndef foo():\n    return 1\n\n\ndef test_right_statement(foo):\n    assert foo == (3 + 2) * (6 + 9)\n\n    @t\n    def inner():\n        return 2\n\n    assert 2 == inner\n\n\n@t\ndef outer():\n    return 2\n```\n\nExpected result: the failure report for `test_right_statement` shows only the `assert foo == (3 + 2) * (6 + 9)` line as context, without the following `@t` line.\n\n## Code example\n\nThe relevant pattern is a failing `assert` followed by a decorated nested function in the same test function (excerpt from the test case above):\n\n```python\ndef test_right_statement(foo):\n    assert foo == (3 + 2) * (6 + 9)\n\n    @t\n    def inner():\n        return 2\n```\n\n## Version and environment\n\n- OS: Windows 10 (`platform win32`)\n- pytest: 6.2.5\n- **Affected:** Python 3.9.6, with py 1.10.0, pluggy 0.13.1, and plugin allure-pytest 2.9.45 (from the session header)\n- **Not affected:** Python 3.7.10, with py 1.11.0, pluggy 1.0.0, and no plugins listed (from the session header)\n- `pip list` from the reporter's virtual environment (the report does not say which Python version it belongs to; its py and pluggy versions match the 3.7.10 session):\n\n```\natomicwrites       1.4.0\nattrs              21.2.0\ncolorama           0.4.4\nimportlib-metadata 4.8.2\niniconfig          1.1.1\npackaging          21.3\npip                21.3.1\npluggy             1.0.0\npy                 1.11.0\npyparsing          3.0.6\npytest             6.2.5\nsetuptools         59.4.0\ntoml               0.10.2\ntyping_extensions  4.0.0\nzipp               3.6.0\n```",
+ "ttft_ms": 3714,
+ "type": "result",
+ "duration_ms": 16881,
+ "uuid": "87a6a0b5-196a-499a-817f-dab9beb4d331",
+ "ttft_stream_ms": 1420,
+ "time_to_request_ms": 302,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 44,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 319,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "nested_memory",
+  "slowest_producer_ms": 19,
+  "cpu_ms": 63,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1420,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,23 @@
+diff --git a/sympy/physics/vector/point.py b/sympy/physics/vector/point.py
+index d4e3cfcc90..918dbc25e1 100755
+--- a/sympy/physics/vector/point.py
++++ b/sympy/physics/vector/point.py
+@@ -519,6 +519,18 @@ def vel(self, frame):
+ 
+         _check_frame(frame)
+         if not (frame in self._vel_dict):
++            visited = [self]
++            queue = [self]
++            while queue:
++                node = queue.pop(0)
++                for neighbor in node._pos_dict:
++                    if neighbor in visited:
++                        continue
++                    if frame in neighbor._vel_dict:
++                        return (self.pos_from(neighbor).dt(frame) +
++                                neighbor._vel_dict[frame])
++                    visited.append(neighbor)
++                    queue.append(neighbor)
+             raise ValueError('Velocity of point ' + self.name + ' has not been'
+                              ' defined in ReferenceFrame ' + frame.name)
+         return self._vel_dict[frame]

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 20463,
+ "stop_reason": "end_turn",
+ "session_id": "3431fbd6-1bab-4c28-aa39-d036979f2588",
+ "total_cost_usd": 0.0435124,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 717,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 1838,
+  "output_tokens_details": {
+   "thinking_tokens": 125
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 717,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1838,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 717,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 717
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1306,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014560000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1838,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 717,
+   "webSearchRequests": 0,
+   "costUSD": 0.0433668,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 125,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Remove `for` attribute from the label of `ReadOnlyPasswordHashWidget`\n\n## Assumptions\n\n1. The project is Django, and `ReadOnlyPasswordHashWidget` is the read-only password hash display used on the admin user change form. *Unverified: I have no repository access.*\n2. The widget renders only text, such as the hash algorithm and a summary of the hash. It renders no `<input>`, `<select>`, `<textarea>` or other labelable element. This is stated in the issue.\n3. The `for` attribute comes from the general rule for labels: a field's label gets `for=\"<id>\"` whenever the widget reports a non-empty id for its label. The fix belongs at the widget or field level, not in admin templates. *Unverified.*\n4. The `<label>` element itself should still render with its visible text. Only the `for` attribute should go away.\n5. No other widgets are in scope.\n6. This is a bug fix. No deprecation period or release note beyond normal practice is needed. *Unverified.*\n\n## Objective\n\nIn the Django admin, the label for a field that uses `ReadOnlyPasswordHashWidget` has a `for` attribute. That attribute points to an id that is either missing or on a non-labelable element, because the widget renders only text. This is invalid HTML and an accessibility defect: assistive technology cannot follow the label to a control.\n\n**Goal:** when a form field uses `ReadOnlyPasswordHashWidget`, its label renders without a `for` attribute. Everything else about the widget and the label stays the same.\n\n**Users affected:**\n- Admin users, especially those using screen readers or other assistive technology.\n- Developers who render forms with this widget.\n\n**Acceptance criteria:**\n- Rendering the label of a bound field that uses `ReadOnlyPasswordHashWidget` produces `<label>` with no `for` attribute.\n- The label text and any label suffix are unchanged.\n- The widget's own output (the hash summary text) is unchanged.\n- Labels for all other widgets keep their `for` attributes as before.\n\n## Tech Stack\n\n- Python / Django. Exact versions are **unknown**.\n\n## Commands\n\nAll commands are **unknown** because the repository is not visible. Placeholders:\n\n```\nTest: <unknown \u2014 Django test runner invocation, e.g. targeting auth forms tests>\nLint: <unknown>\nBuild: n/a (library)\n```\n\n## Project Structure\n\n**Unknown.** These locations are expected but not verified:\n\n- The widget definition is presumably in the auth forms module of `django.contrib.auth`.\n- Tests for auth forms are presumably in the auth tests directory.\n- The generic label/`for` logic is presumably in Django's forms core (bound field / widget `id_for_label`).\n\n## Code Style\n\n**Unknown.** Follow the existing Django style in the files touched. No example code is provided, because none is visible.\n\n## Testing Strategy\n\n- Add a regression test that renders the label of a field using `ReadOnlyPasswordHashWidget` and asserts that the output has no `for` attribute.\n- Add or keep a test that the widget's rendered output is unchanged.\n- Rely on existing form and admin test suites to show that labels for other widgets still include `for`.\n- Optionally, check the admin user change page HTML for the password field label.\n- Framework and test file locations are **unknown**. Use the existing auth forms and admin test modules.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test.\n  - Keep the label element and its text.\n  - Keep the change limited to this widget's labeling behavior.\n  - Run the full forms, auth and admin test suites.\n- **Ask first:**\n  - Changing the generic label-rendering logic in forms core, beyond relying on existing extension points.\n  - Changing admin templates.\n  - Changing the widget's rendered markup.\n  - Applying the same treatment to other non-labelable widgets.\n- **Never:**\n  - Remove the label entirely.\n  - Change how password hashes are summarized or displayed.\n  - Alter labels of other widgets.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. The label for a field using `ReadOnlyPasswordHashWidget` renders with no `for` attribute, both via the bound field's label tag and on the admin user change form.\n2. The label text is unchanged.\n3. The widget's rendered output is unchanged.\n4. A new regression test fails before the fix and passes after it.\n5. Existing forms, auth and admin tests all pass.\n\n## Open Questions\n\n1. Should the label stay a `<label>` element without `for`, or should it become different markup, such as plain text or a `<span>`?\n2. Should the widget's rendered container keep any `id` attribute? Could removing it break custom CSS or JS that targets it?\n3. Are there other read-only or text-only widgets, in admin or elsewhere, that should get the same fix? Or is scope strictly this widget?\n4. Should the fix be general, so any widget can declare itself non-labelable, or specific to this widget?\n5. Is a release note required, given that the rendered HTML changes slightly?\n6. Which Django versions or branches should receive the fix?",
+ "ttft_ms": 2698,
+ "type": "result",
+ "duration_ms": 19862,
+ "uuid": "c4dbaa6a-41b6-4e4a-b5a9-015a517be54c",
+ "ttft_stream_ms": 1482,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 211,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 184,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1483,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

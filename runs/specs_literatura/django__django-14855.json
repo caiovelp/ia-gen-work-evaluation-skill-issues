@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 7816,
+ "stop_reason": "end_turn",
+ "session_id": "0d2fff40-618e-4f8f-8172-74712bdfc12a",
+ "total_cost_usd": 0.0246887,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1314,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 700,
+  "output_tokens_details": {
+   "thinking_tokens": 134
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1314,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 700,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1314,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1314
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1522,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001687,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 700,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1314,
+   "webSearchRequests": 0,
+   "costUSD": 0.02452,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 134,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn a custom Admin Site, the link that `get_admin_url` (in `django.contrib.admin.helpers`) generates for a ForeignKey field listed in `readonly_fields` points to `/admin/...` instead of the custom site's URL prefix (e.g. `/custom-admin/...`).\n\n## Steps to reproduce\n\n1. Define a model that contains a ForeignKey field.\n2. Create a custom Admin Site, mounted for example at `/custom-admin/`.\n3. Register the model with the custom Admin Site using a `ModelAdmin` that lists the ForeignKey field in `readonly_fields`.\n4. Open an instance of the model in the custom Admin Site, either to view or to edit it.\n5. Look at the URL of the link rendered for the read-only ForeignKey field.\n\n## Observed behavior\n\nThe link for the read-only ForeignKey field points to the default admin site (`/admin/...`).\n\n## Expected behavior\n\nThe link should point to the custom Admin Site in use (`/custom-admin/...`). Other parts of the admin already do this by passing the `current_app` keyword parameter to identify the current Admin Site. The reporter cites `django.contrib.admin.options.ModelAdmin.response_add` as one example.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nThe reporter identifies this line in `get_admin_url` in `django.contrib.admin.helpers` as the apparent cause. The call to `reverse()` does not pass `current_app`:\n\n```python\nurl = reverse(url_name, args=[quote(remote_obj.pk)])\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 2621,
+ "type": "result",
+ "duration_ms": 6887,
+ "uuid": "f99d5bc7-ff8c-4290-a5dd-33be5904dcce",
+ "ttft_stream_ms": 1299,
+ "time_to_request_ms": 228,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 201,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 166,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1299,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

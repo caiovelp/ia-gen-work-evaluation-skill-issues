@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9988,
+ "stop_reason": "end_turn",
+ "session_id": "83cc5d06-8199-419d-a31d-ce5133b350d8",
+ "total_cost_usd": 0.0336819,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1541,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1058,
+  "output_tokens_details": {
+   "thinking_tokens": 95
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1541,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1058,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1541,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1541
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1774,
+   "outputTokens": 17,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001859,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1058,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1541,
+   "webSearchRequests": 0,
+   "costUSD": 0.033496,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 95,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nCustomizable management command formatters: allow a management command to control how its help text is formatted.\n\n## Description\nWhen a management command defines a multi-line `help` string, the `help` output collapses the line breaks and indentation into one wrapped paragraph.\n\nExample command:\n\n```python\nclass Command(BaseCommand):\n\thelp = '''\n\tImport a contract from tzkt.\n\tExample usage:\n\t\t./manage.py tzkt_import 'Tezos Mainnet' KT1HTDtMBRCKoNHjfWEEvXneGQpCfPAt6BRe\n\t'''\n```\n\n**Actual output:**\n\n```\n$ ./manage.py help tzkt_import\nusage: manage.py tzkt_import [-h] [--api API] [--version] [-v {0,1,2,3}] [--settings SETTINGS]\n\t\t\t\t\t\t\t [--pythonpath PYTHONPATH] [--traceback] [--no-color] [--force-color]\n\t\t\t\t\t\t\t [--skip-checks]\n\t\t\t\t\t\t\t blockchain target\nImport a contract from tzkt Example usage: ./manage.py tzkt_import 'Tezos Mainnet'\nKT1HTDtMBRCKoNHjfWEEvXneGQpCfPAt6BRe\npositional arguments:\n blockchain\t\t\tName of the blockchain to import into\n target\t\t\t\tId of the contract to import\n```\n\n**Expected output:**\n\n```\n$ ./manage.py help tzkt_import\nusage: manage.py tzkt_import [-h] [--api API] [--version] [-v {0,1,2,3}] [--settings SETTINGS]\n\t\t\t\t\t\t\t [--pythonpath PYTHONPATH] [--traceback] [--no-color] [--force-color]\n\t\t\t\t\t\t\t [--skip-checks]\n\t\t\t\t\t\t\t blockchain target\nImport a contract from tzkt \nExample usage: \n\t./manage.py tzkt_import 'Tezos Mainnet' KT1HTDtMBRCKoNHjfWEEvXneGQpCfPAt6BRe\npositional arguments:\n blockchain\t\t\tName of the blockchain to import into\n target\t\t\t\tId of the contract to import\n```\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nThe help output does not keep the layout the command author wrote. Line breaks and indentation are lost, so structured content such as an \"Example usage\" section runs into the description and becomes hard to read. The example command is also split across two lines.\n\n## Use case or scenario\nA developer writes a custom management command (here, `tzkt_import`, which imports a contract from tzkt). The developer adds a help text with a short description and an indented example invocation. Users who run `./manage.py help tzkt_import` should see the description, the \"Example usage:\" label and the indented example command on separate lines, as written.\n\n## Possible solution\nThe title suggests making the formatter used by management commands customizable. A command could then choose a formatter that keeps the line breaks and indentation of its `help` text. The original request gives no further detail.",
+ "ttft_ms": 2093,
+ "type": "result",
+ "duration_ms": 9438,
+ "uuid": "e8b4232b-3dc1-4889-93e5-5605d2a8d588",
+ "ttft_stream_ms": 1085,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 8,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 18,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 217,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 22,
+ "time_to_request_cpu_ms": 299,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1085,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

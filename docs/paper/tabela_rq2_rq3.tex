@@ -1,0 +1,23 @@
+% RQ2 e RQ3: medianas por execução do resolvedor (Sonnet 5.5); mesmas issues nos três grupos.
+% Fonte: tabela_swebench.tex e tabela_sapos.tex (paper_tabelas.py) + patches vazios contados em runs/
+\begin{table}[t]
+\caption{Efficiency (RQ2) and patch quality (RQ3). Medians per resolution run; the rewriting step is not included.}
+\label{tab:rq2rq3}
+\small
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{SWE-bench Lite (269)} & \multicolumn{3}{c}{SAPOS strict (20)} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+ & A & B & C & A & B & C \\
+\midrule
+Input tokens (thousands) & 104 & 74 & 78 & 117 & 105 & 113 \\
+Cost (US\$) & 0.067 & 0.049 & 0.052 & 0.099 & 0.080 & 0.069 \\
+Time (s) & 17 & 14 & 14 & 23 & 20 & 17 \\
+\midrule
+Same files as the fix & 84\% & 93\% & 93\% & 25\% & 25\% & 40\% \\
+Breaks a passing test & 5\% & 4\% & 3\% & 10\% & 10\% & 10\% \\
+Empty patch & 0.4\% & 0\% & 0\% & 10\% & 10\% & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 22787,
+ "stop_reason": "end_turn",
+ "session_id": "c315ea0e-4ef6-4c6e-ac1f-7bf266b3b6f1",
+ "total_cost_usd": 0.0765151,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2619,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2763,
+  "output_tokens_details": {
+   "thinking_tokens": 208
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2619,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2763,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2619,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2619
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2821,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002951,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2763,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2619,
+   "webSearchRequests": 0,
+   "costUSD": 0.07622,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 208,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nOn a model with a self-referencing foreign key and a default `Meta.ordering`, ordering a related queryset by the relation's `_id` field (`order_by(\"record__root_id\")`) produces incorrect SQL:\n\n- The model's default ordering (`\"-id\"`) is applied instead of the requested ordering, so the sort direction comes out inverted.\n- An unnecessary extra `LEFT OUTER JOIN` is added.\n\n`order_by(\"record__root\")` produces the same incorrect SQL. `order_by(\"record__root__id\")` produces correct SQL. The problem does not occur when `root` points to a third, different model.\n\n## Steps to reproduce\n\n1. Define these models in an app. The SQL output shows the app label `orion`.\n   ```python\n   class OneModel(models.Model):\n       class Meta:\n           ordering = (\"-id\",)\n       id = models.BigAutoField(primary_key=True)\n       root = models.ForeignKey(\"OneModel\", on_delete=models.CASCADE, null=True)\n       oneval = models.BigIntegerField(null=True)\n\n   class TwoModel(models.Model):\n       id = models.BigAutoField(primary_key=True)\n       record = models.ForeignKey(OneModel, on_delete=models.CASCADE)\n       twoval = models.BigIntegerField(null=True)\n   ```\n2. Build a queryset that orders by the self-referencing FK's `_id` field through a relation:\n   ```python\n   qs = TwoModel.objects.filter(record__oneval__in=[1, 2, 3])\n   qs = qs.order_by(\"record__root_id\")\n   print(qs.query)\n   ```\n3. Look at the generated SQL.\n4. Repeat with `order_by(\"record__root\")` and with `order_by(\"-record__root_id\")`.\n5. For comparison, repeat with `order_by(\"record__root__id\")`.\n\n## Observed behavior\n\n**`order_by(\"record__root_id\")`**\n\n- The query sorts `DESC` even though ascending order was requested. The direction appears to come from `OneModel.Meta.ordering = (\"-id\",)`.\n- The query has two joins: an `INNER JOIN` to `orion_onemodel` and an unnecessary `LEFT OUTER JOIN` to `orion_onemodel` aliased as `T3`.\n- It orders by `T3.\"id\"` instead of `\"orion_onemodel\".\"root_id\"`.\n\n**`order_by(\"record__root\")`**\n\n- Produces exactly the same SQL as `order_by(\"record__root_id\")`.\n\n**`order_by(\"-record__root_id\")`**\n\n- Produces the same two-join query but with an `ASC` sort.\n- The requested descending order is inverted relative to the model's default ordering. The reporter notes this inversion does not happen in a simple (non-self-referencing) case.\n\n**Cases that work**\n\n- `order_by(\"record__root__id\")` produces the expected SQL: a single `INNER JOIN` and `ORDER BY \"orion_onemodel\".\"root_id\" ASC`.\n- A foreign key from `root` to a third model does not show the problem.\n\n## Expected behavior\n\nThe explicit `order_by()` should take precedence over the related model's default `Meta.ordering`:\n\n- `order_by(\"record__root_id\")` should sort ascending.\n- `order_by(\"-record__root_id\")` should sort descending.\n- Neither should add the extra self-join.\n- Both should behave like `order_by(\"record__root__id\")`: a single `INNER JOIN` and `ORDER BY \"orion_onemodel\".\"root_id\"` in the requested direction.\n\n## Stack trace / error output\n\nNo exception is raised. The generated SQL, as given in the original report, is below.\n\n**`order_by(\"record__root_id\")` (incorrect; `order_by(\"record__root\")` gives the same SQL):**\n```sql\nSELECT \"orion_twomodel\".\"id\", \"orion_twomodel\".\"record_id\", \"orion_twomodel\".\"twoval\" FROM \"orion_twomodel\" INNER JOIN \"orion_onemodel\" ON (\"orion_twomodel\".\"record_id\" = \"orion_onemodel\".\"id\") LEFT OUTER JOIN \"orion_onemodel\" T3 ON (\"orion_onemodel\".\"root_id\" = T3.\"id\") WHERE \"orion_onemodel\".\"oneval\" IN (1, 2, 3) ORDER BY T3.\"id\" DESC\n```\n\n**`order_by(\"-record__root_id\")` (incorrect):**\n```sql\nSELECT \"orion_twomodel\".\"id\", \"orion_twomodel\".\"record_id\", \"orion_twomodel\".\"twoval\" FROM \"orion_twomodel\" INNER JOIN \"orion_onemodel\" ON (\"orion_twomodel\".\"record_id\" = \"orion_onemodel\".\"id\") LEFT OUTER JOIN \"orion_onemodel\" T3 ON (\"orion_onemodel\".\"root_id\" = T3.\"id\") WHERE \"orion_onemodel\".\"oneval\" IN (1, 2, 3) ORDER BY T3.\"id\" ASC\n```\n\n**`order_by(\"record__root__id\")` (correct):**\n```sql\nSELECT \"orion_twomodel\".\"id\", \"orion_twomodel\".\"record_id\", \"orion_twomodel\".\"twoval\" FROM \"orion_twomodel\" INNER JOIN \"orion_onemodel\" ON (\"orion_twomodel\".\"record_id\" = \"orion_onemodel\".\"id\") WHERE \"orion_onemodel\".\"oneval\" IN (1, 2, 3) ORDER BY \"orion_onemodel\".\"root_id\" ASC\n```\n\n**Workaround with `annotate(root_id=F(\"record__root_id\")).order_by(\"root_id\")` (correct):**\n```sql\nSELECT \"orion_twomodel\".\"id\", \"orion_twomodel\".\"record_id\", \"orion_twomodel\".\"twoval\" FROM \"orion_twomodel\" INNER JOIN \"orion_onemodel\" ON (\"orion_twomodel\".\"record_id\" = \"orion_onemodel\".\"id\") WHERE \"orion_onemodel\".\"oneval\" IN (1, 2, 3) ORDER BY \"orion_onemodel\".\"zero_id\" ASC\n```\nThe column name `zero_id` is reproduced as written in the original report.\n\n## Test case\n\nThis is a minimal check derived from the reported reproduction. It uses the models from \"Steps to reproduce\" and assumes the expected behavior described above.\n\n```python\nqs = TwoModel.objects.filter(record__oneval__in=[1, 2, 3])\n\n# Expected: ordering by the _id attname matches ordering by root__id\n# (single INNER JOIN, ORDER BY \"orion_onemodel\".\"root_id\" ASC).\nassert str(qs.order_by(\"record__root_id\").query) == str(qs.order_by(\"record__root__id\").query)\n\n# Expected: descending order is honored and not inverted by OneModel.Meta.ordering.\nassert str(qs.order_by(\"-record__root_id\").query) == str(qs.order_by(\"-record__root__id\").query)\n```\n\n## Code example\n\nWorkaround from the report. It produces a single `INNER JOIN` with an `ASC` sort:\n\n```python\nfrom django.db.models import F\n\nqs = TwoModel.objects.filter(record__oneval__in=[1, 2, 3])\nqs = qs.annotate(root_id=F(\"record__root_id\"))\nqs = qs.order_by(\"root_id\")\nprint(qs.query)\n```\n\nUsing `order_by(\"record__root__id\")` also gives correct SQL.\n\n## Version and environment\n\n- Django 2.2.10: issue first observed.\n- Django 3.0.6: issue verified to still occur.\n- Database backend, Python version and OS: Not provided in the original report.",
+ "ttft_ms": 3503,
+ "type": "result",
+ "duration_ms": 22338,
+ "uuid": "2cf5b6f2-5592-43d3-89f1-23120be74c74",
+ "ttft_stream_ms": 1359,
+ "time_to_request_ms": 254,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 202,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 162,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1360,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

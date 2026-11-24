@@ -1,0 +1,55 @@
+diff --git a/app/controllers/dismissals_controller.rb b/app/controllers/dismissals_controller.rb
+index 34bc22a1..18c3299f 100644
+--- a/app/controllers/dismissals_controller.rb
++++ b/app/controllers/dismissals_controller.rb
+@@ -6,10 +6,21 @@
+ class DismissalsController < ApplicationController
+   authorize_resource
+ 
++  include EnrollmentSearchConcern
++
+   active_scaffold :dismissal do |config|
+     # Enables advanced search A.K.A FieldSearch
+     config.actions.swap :search, :field_search
+-    config.field_search.columns = [:enrollment]
++    config.columns.add :enrollment_level, :year
++    config.field_search.columns = [
++      :enrollment, :enrollment_level, :dismissal_reason, :year
++    ]
++    add_enrollment_level_search_column(config)
++    config.columns[:enrollment_level].includes = [:enrollment]
++    config.columns[:dismissal_reason].search_sql = "dismissals.dismissal_reason_id"
++    config.columns[:dismissal_reason].search_ui = :select
++    config.columns[:year].search_sql = ""
++    config.columns[:year].search_ui = :text
+     config.columns[:enrollment].search_ui = :text
+     config.columns[:enrollment].search_sql = "enrollments.enrollment_number"
+     config.columns[:date].search_sql = "dismissals.date"
+@@ -26,4 +37,14 @@ class DismissalsController < ApplicationController
+ 
+     config.actions.exclude :deleted_records
+   end
++
++  def self.condition_for_year_column(column, value, like_pattern)
++    return "" if value.blank?
++    year = value.to_i
++    return "1 = 2" if year <= 0
++    [
++      "dismissals.date >= ? AND dismissals.date < ?",
++      Date.new(year, 1, 1), Date.new(year + 1, 1, 1)
++    ]
++  end
+ end
+diff --git a/config/locales/dismissal.pt-BR.yml b/config/locales/dismissal.pt-BR.yml
+index 1b7bbbd9..9cffc70b 100644
+--- a/config/locales/dismissal.pt-BR.yml
++++ b/config/locales/dismissal.pt-BR.yml
+@@ -8,6 +8,8 @@ pt-BR:
+         date: "Data"
+         dismissal_reason: "Motivo do Desligamento"
+         enrollment: "Matrícula"
++        enrollment_level: "Nível"
++        year: "Ano"
+         obs: "Observação"
+ 
+     errors:

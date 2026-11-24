@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 19513,
+ "stop_reason": "end_turn",
+ "session_id": "e579827f-64d6-4025-8c5b-51b52ef703d2",
+ "total_cost_usd": 0.05515849999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1771,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2034,
+  "output_tokens_details": {
+   "thinking_tokens": 344
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1771,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2034,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1771,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1771
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1980,
+   "outputTokens": 209,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00030250000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 186,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2034,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1771,
+   "webSearchRequests": 0,
+   "costUSD": 0.054855999999999995,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 344,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nPretty printing a `MatAdd` whose operands include a `MatrixSymbol` with a name such as `'y*'` raises `SympifyError`. In `_print_MatAdd` in `sympy/printing/pretty/pretty.py`, the printer calls `S(item.args[0])` to check whether each term is negative. For a `MatrixSymbol`, `args[0]` is the name string, so the printer tries to parse `'y*'` as an expression, which fails.\n\nThe reporter also questions this sign check. When a term is considered negative, the printer omits the `+`. This assumes the arguments of `MatAdd` have a particular form and always print a particular way when negative.\n\n## Steps to reproduce\n\n1. Open a Python session in a SymPy checkout and import `pprint` and `MatrixSymbol`. The report does not show the imports or how `n` is defined; it is used as the matrix dimension.\n2. Create two matrix symbols, one with a name that is not a valid expression:\n   `MatrixSymbol('x', n, n)` and `MatrixSymbol('y*', n, n)`.\n3. Add them and pretty print the result:\n   ```py\n   >>> pprint(MatrixSymbol('x', n, n) + MatrixSymbol('y*', n, n))\n   ```\n\n## Observed behavior\n\n`pprint` raises `sympy.core.sympify.SympifyError` instead of printing the expression. The error comes from `_print_MatAdd`, which calls `S(item.args[0]).is_negative`. For the `MatrixSymbol` `y*`, this tries to sympify the string `'y*'`. Parsing fails with `SyntaxError: unexpected EOF while parsing`, and that is re-raised as `SympifyError`.\n\n## Expected behavior\n\nThe sum `x + y*` of the two matrix symbols should pretty print without an error. The printer should not treat a `MatrixSymbol`'s name string as an expression to parse.\n\nThe decision about whether to print or omit the `+` between terms should not rely on assumptions about the form of `MatAdd`'s arguments.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"./sympy/core/sympify.py\", line 368, in sympify\n    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)\n  File \"./sympy/parsing/sympy_parser.py\", line 950, in parse_expr\n    return eval_expr(code, local_dict, global_dict)\n  File \"./sympy/parsing/sympy_parser.py\", line 863, in eval_expr\n    code, global_dict, local_dict)  # take local objects in preference\n  File \"<string>\", line 1\n    Symbol ('y' )*\n                 ^\nSyntaxError: unexpected EOF while parsing\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"./sympy/printing/pretty/pretty.py\", line 2371, in pretty_print\n    use_unicode_sqrt_char=use_unicode_sqrt_char))\n  File \"./sympy/printing/pretty/pretty.py\", line 2331, in pretty\n    return pp.doprint(expr)\n  File \"./sympy/printing/pretty/pretty.py\", line 62, in doprint\n    return self._print(expr).render(**self._settings)\n  File \"./sympy/printing/printer.py\", line 274, in _print\n    return getattr(self, printmethod)(expr, *args, **kwargs)\n  File \"./sympy/printing/pretty/pretty.py\", line 828, in _print_MatAdd\n    if S(item.args[0]).is_negative:\n  File \"./sympy/core/sympify.py\", line 370, in sympify\n    raise SympifyError('could not parse %r' % a, exc)\nsympy.core.sympify.SympifyError: Sympify of expression 'could not parse 'y*'' failed, because of exception being raised:\nSyntaxError: unexpected EOF while parsing (<string>, line 1)\n```\n\n## Test case\n\nThis minimal test case is derived from the reproduction snippet. The definition of `n` and the import locations are not given in the original report. The expected rendered output is also not given, so the test only checks that printing does not raise.\n\n```py\n# n: matrix dimension, as used in the original report\ndef test_pretty_MatAdd_with_non_parsable_MatrixSymbol_name():\n    expr = MatrixSymbol('x', n, n) + MatrixSymbol('y*', n, n)\n    pprint(expr)  # currently raises SympifyError\n```\n\n## Code example\n\nThe line in `_print_MatAdd` (`sympy/printing/pretty/pretty.py`, line 828) where the failure occurs, as shown in the traceback:\n\n```py\nif S(item.args[0]).is_negative:\n```\n\n## Version and environment\n\nNot provided in the original report. The traceback shows the code was run from a local SymPy source tree (paths like `./sympy/...`) in an interactive Python session.",
+ "ttft_ms": 5566,
+ "type": "result",
+ "duration_ms": 18391,
+ "uuid": "c6d189f1-b0ac-45a2-b6c6-f7869666c40e",
+ "ttft_stream_ms": 1549,
+ "time_to_request_ms": 268,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 230,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 221,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1550,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

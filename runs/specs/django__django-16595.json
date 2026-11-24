@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32202,
+ "stop_reason": "end_turn",
+ "session_id": "f6f6c73e-58c1-4b1e-8e5a-5ed124767dae",
+ "total_cost_usd": 0.07270120000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1153,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3121,
+  "output_tokens_details": {
+   "thinking_tokens": 476
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1153,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3121,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1153,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1153
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1734,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001864,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3121,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1153,
+   "webSearchRequests": 0,
+   "costUSD": 0.0725148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 476,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Migration optimizer reduces consecutive `AlterField` operations on the same field\n\n## Objective\n\nWhen the migration optimizer is given consecutive `AlterField` operations that target the same field on the same model, it should collapse them into a single `AlterField` carrying the final field definition.\n\n**Current behaviour, as reported in the issue:**\n\n- `AddField` followed by several `AlterField` on the same field optimizes down to a single `AddField`. This already works.\n- Several `AlterField` on the same field with no preceding `AddField` are not reduced at all. For example, `optimizer.optimize(operations[1:], \"books\")` returns all three `AlterField` operations unchanged.\n- This happens in real use when the `AddField` sits in another migration, such as a non-elidable migration or a migration that was not squashed.\n\n**Root cause, as stated in the reporter's analysis:** `AlterField.reduce` has no case for an incoming operation that is also an `AlterField`.\n\n**Who benefits:** Django users who squash or optimize migrations. Fewer redundant operations mean shorter squashed migrations and fewer schema-alter steps.\n\n**User stories**\n\n- As a developer squashing migrations, I want repeated alterations of one field merged into one, so the squashed migration is minimal.\n- As a maintainer, I want the reduction to be semantically safe, so the optimized migration has the same end state and runs without failing where the original would have succeeded.\n\n**Proposed approach (from the issue; not yet validated):** add this case to `AlterField.reduce`:\n\n```python\nif isinstance(operation, AlterField) and self.is_same_field_operation(\n    operation\n):\n    return [operation]\n```\n\nThe issue also asks a second question: if the current behaviour is intentional, should it be documented instead? See Open Questions.\n\n## Assumptions\n\n1. This is a change to Django's migration optimizer (`MigrationOptimizer.optimize`) and the `AlterField` operation's `reduce` method. The exact file paths are not shown in the issue and are unknown here.\n2. `is_same_field_operation` already exists on field operations and compares model name and field name the same way other field reductions do. Its exact semantics, such as case-insensitivity, are not shown and are assumed rather than verified.\n3. The final `AlterField` fully describes the target field state. So, for the in-memory project state, the earlier `AlterField` operations are redundant.\n4. The existing `AddField` + `AlterField` reductions and `AlterField` + `RemoveField` reductions stay unchanged.\n5. The optimizer's existing rules for reducing across intervening operations (\"optimize through\") are unchanged. The new case only defines what happens when two same-field `AlterField` operations meet.\n6. A behaviour change is the preferred resolution, rather than only documenting the current behaviour. This is pending confirmation (see Open Questions).\n\n## Tech Stack\n\n- Python and Django. Versions are unknown; the target branch is not stated in the issue.\n- Components involved: the migration optimizer, `AlterField`, and its `reduce` and `is_same_field_operation` methods.\n\n## Commands\n\n- Build: unknown (not given in the issue)\n- Test: unknown (not given in the issue). The relevant tests are the migration optimizer tests, but their location and runner command are not visible.\n- Lint: unknown\n\n## Project Structure\n\nUnknown; not visible from the issue. The following are expected to exist, but their paths are unconfirmed:\n\n- the module that defines field operations (`AddField`, `AlterField`, `RemoveField`, `RenameField`)\n- the module that defines `MigrationOptimizer`\n- the optimizer test suite\n\n## Code Style\n\n- Follow the existing conventions of the surrounding `reduce` implementations. These are not visible here, beyond the snippet in the issue.\n- The new reduction should have the same shape as the sibling cases: an `isinstance` check combined with `self.is_same_field_operation(operation)`, returning a list of operations.\n\n## Testing Strategy\n\n- **Level:** unit tests of the optimizer, using the existing optimizer test suite and its helpers (location unknown).\n- **Required cases:**\n  1. Two or more consecutive `AlterField` operations on the same model and field reduce to the single last `AlterField`. This uses the issue's example with `operations[1:]`.\n  2. `AlterField` operations on different fields of the same model are not merged.\n  3. `AlterField` operations on the same field name but different models are not merged.\n  4. The existing `AddField` + multiple `AlterField` \u2192 single `AddField` behaviour is unchanged.\n  5. `AlterField` followed by `RemoveField` on the same field behaves as it does today.\n  6. Merging across unrelated intervening operations follows the existing optimize-through rules.\n  7. Cases involving `preserve_default=False`, with whatever behaviour is decided under Open Question 2.\n- **Regression:** the full existing optimizer test suite passes unchanged, except for tests that intentionally encode the old non-reducing behaviour (see Open Question 4).\n\n## Boundaries\n\n**Always:**\n- Keep the reduction semantically safe. Applying the optimized operations must give the same final project state as the originals.\n- Add tests for every new reduction path.\n- Leave existing reductions untouched.\n\n**Ask first:**\n- Changing how `preserve_default` is handled during reduction.\n- Changing `is_same_field_operation`.\n- Adding documentation or release notes for the behaviour change.\n- Altering any existing test expectations.\n\n**Never:**\n- Reduce operations that target different models or fields.\n- Drop an operation whose side effects are not reproduced by the remaining operation.\n- Change the optimizer's general optimize-through algorithm as part of this fix.\n\n## Success Criteria\n\n- [ ] `optimize([AlterField(book.title, A), AlterField(book.title, B), AlterField(book.title, C)], \"books\")` returns exactly `[AlterField(book.title, C)]`, with the field definition equal to the last one.\n- [ ] `AlterField` operations on different fields or different models are not reduced into each other.\n- [ ] `AddField` + `AlterField`* still reduces to a single `AddField` with the final definition.\n- [ ] `preserve_default` cases behave as decided in Open Question 2, with tests that cover them.\n- [ ] All existing optimizer tests pass, or any changes to them are explicitly justified.\n- [ ] Documentation or release notes are updated if that is decided under Open Question 3.\n\n## Open Questions\n\n1. **Intended or not?** Is the lack of `AlterField` + `AlterField` reduction deliberate? If yes, the deliverable becomes documentation rather than code. Confirmation from maintainers is needed.\n2. **`preserve_default=False` safety.** An earlier `AlterField` with `preserve_default=False` may supply a one-off default used to backfill existing rows, for example when changing a column from null to not-null. If the merge returns only the later operation, that backfill could be lost. Questions to settle:\n   - Should a merge be refused when the earlier operation has `preserve_default=False`?\n   - Or should the surviving operation carry over that default somehow?\n   - What should happen when the later operation has `preserve_default=False`?\n3. **Documentation.** Should the new reduction be mentioned in release notes or in the migrations / squashing documentation?\n4. **Existing tests.** Do any existing tests assert that consecutive `AlterField` operations are not reduced? If so, can they be updated?\n5. **Other operations.** Should the same pattern apply to other same-target operation pairs that currently do not reduce? This spec assumes the scope is limited to `AlterField` + `AlterField` only.\n6. **Commands and paths.** What are the exact commands to run the optimizer tests, and where do the relevant source and test files live? Neither is visible from the issue.\n7. **Target branch.** Which Django version or branch should receive this change?",
+ "ttft_ms": 6637,
+ "type": "result",
+ "duration_ms": 31686,
+ "uuid": "8147bb34-93df-4ab1-b020-7b0d595f7baf",
+ "ttft_stream_ms": 1383,
+ "time_to_request_ms": 292,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 18,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 14,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 39,
+ "time_to_request_cpu_ms": 270,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1383,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

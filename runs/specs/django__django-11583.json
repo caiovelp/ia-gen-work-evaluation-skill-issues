@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29788,
+ "stop_reason": "end_turn",
+ "session_id": "f7ce2c51-9c8b-44fb-9af3-20ce27fc0e94",
+ "total_cost_usd": 0.0764559,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2629,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2711,
+  "output_tokens_details": {
+   "thinking_tokens": 112
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2629,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2711,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2629,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2629
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3211,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003331,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2711,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2629,
+   "webSearchRequests": 0,
+   "costUSD": 0.07612279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 112,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: StatReloader resilience to \"ValueError: embedded null byte\" during path resolution\n\n## Objective\n\nWhen running `manage.py runserver` with the auto-reloader (`StatReloader`), the development server very intermittently crashes with `ValueError: embedded null byte`. The traceback shows the error raised from `pathlib.Path.resolve()` \u2192 `os.readlink()`, called from `iter_modules_and_files` in `django/utils/autoreload.py` (line 132 in the reporter's version: `results.add(path.resolve().absolute())`).\n\nThe reporter cannot reproduce it on demand. They suspect a non-deterministic filesystem condition, possibly a Samba mountpoint under `/Users` that is not yet connected. They note that `pathlib` was not used in this code path before Django 2.2, so this is a regression in user-visible behavior.\n\n**Users:** Developers running the Django development server with auto-reload enabled.\n\n**What we're building:** A change in behavior so that a single module path that cannot be resolved (here, because of `ValueError: embedded null byte`) does not crash the reloader loop. The reloader keeps watching all other files.\n\n**Success looks like:** The dev server never terminates because one watched path raises `ValueError` during resolution. All other watched files still trigger reloads as before.\n\n### Acceptance criteria / user stories\n\n- As a developer, when one module's path raises `ValueError` (\"embedded null byte\") during resolution, the reloader skips that path and keeps running.\n- As a developer, every other module and extra file that resolves correctly is still watched and still triggers reloads.\n- As a maintainer, existing handling of missing files (paths that do not exist) is unchanged.\n\n## Assumptions\n\n1. The fix targets Django's `django/utils/autoreload.py`, specifically the path-resolution step in `iter_modules_and_files`. This is the only file and function named in the traceback.\n2. The root cause is an environment or OS condition outside Django's control. Candidates include a transient null byte returned by `os.readlink` on a network mount, or a CPython/pathlib quirk on Python 3.6 / OS X 10.11. Django should tolerate it, not diagnose it.\n3. Skipping a path that cannot be resolved is acceptable. It is a single path, and the error comes from a symlink lookup on a parent directory (`/Users`) rather than from a user source file. Losing the ability to watch that path is better than crashing.\n4. The scope does **not** include replacing `pathlib` with `os.path` across the autoreloader. The reporter raised this, citing performance, but it is a separate change with a different objective.\n5. The skip is silent, or at most logged at debug level. A crash is not acceptable.\n6. Other code in the reloader that calls `resolve()` (for example on directories or extra files) may be exposed to the same error. Whether to cover those sites is an open question. The baseline scope is the call site in the traceback.\n7. The supported Python versions are those supported by the targeted Django branch. These are unknown from the issue. The report itself uses Python 3.6.2.\n\n## Tech Stack\n\n- Python (the reporter uses 3.6.2 via pyenv). The supported range for the target branch is unknown.\n- Django 2.2+. The exact target branch or version is unknown.\n- Standard library: `pathlib`, `os`.\n- Platform in the report: macOS (OS X 10.11). The issue does not say whether the error occurs on other platforms.\n\n## Commands\n\nAll commands are unknown because the repository is not visible. To be filled in:\n\n- Test (full suite): unknown\n- Test (autoreload tests only): unknown\n- Lint: unknown\n- Reproduction (manual): `python manage.py runserver` with auto-reload enabled. This is not deterministically reproducible.\n\n## Project Structure\n\nKnown from the traceback:\n\n- `django/utils/autoreload.py` \u2192 reloader implementation (`iter_all_python_module_files`, `iter_modules_and_files`, `StatReloader.snapshot_files`, `watched_files`, `run_loop`, `tick`)\n- `django/core/management/commands/runserver.py` \u2192 invokes `autoreload.run_with_reloader`\n\nUnknown:\n\n- Location of the existing autoreload tests.\n\n## Code Style\n\nThe issue contains no style example. Follow the existing conventions in `django/utils/autoreload.py`, which are not visible here. The change should be minimal and local to the resolution step, consistent with how the module already handles paths that cannot be resolved, such as missing files.\n\n## Testing Strategy\n\n- **Framework / location:** Use Django's existing test framework and the existing autoreload test module. The exact path and runner command are unknown.\n- **Unit test (required):** Simulate `Path.resolve()` raising `ValueError(\"embedded null byte\")` for one module path, for example via mocking. Assert all three of the following:\n  - `iter_modules_and_files` does not raise.\n  - The offending path is excluded from the results.\n  - Other paths are still included.\n- **Regression:** The existing tests for missing or nonexistent module files must still pass.\n- **Manual:** None feasible, because the bug is not reproducible on demand. The mocked unit test is the primary verification.\n- **Coverage:** Every new branch (the skip path) must be covered by a test.\n\n## Boundaries\n\n- **Always:**\n  - Keep the change scoped to path-resolution error handling.\n  - Add a regression test that simulates the `ValueError`.\n  - Run the autoreload test suite before submitting.\n- **Ask first:**\n  - Extending the same handling to other `resolve()` call sites in the reloader.\n  - Adding logging or warnings for skipped paths.\n  - Catching exception types broader than `ValueError`.\n  - Backporting to older release branches.\n- **Never:**\n  - Replace `pathlib` with `os.path` throughout the module as part of this fix.\n  - Swallow exceptions so broadly that real bugs are hidden, for example a bare `except`.\n  - Change reloader behavior for paths that resolve correctly.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. When `Path.resolve()` raises `ValueError` for any one module path, `iter_modules_and_files` completes without raising and returns all other resolvable paths.\n2. `StatReloader`'s loop (`run_loop` \u2192 `tick` \u2192 `snapshot_files`) continues across ticks when such an error occurs.\n3. The new unit test reproduces the original failure on unpatched code and passes after the fix.\n4. All existing autoreload tests pass unchanged.\n5. No change in watched-file results for environments where the error does not occur.\n\n## Open Questions\n\n1. **Root cause:** Should we investigate further, for example the Samba mount hypothesis or a CPython pathlib/readlink bug on 3.6 or macOS? Or is tolerating the error the agreed resolution?\n2. **Scope of handling:** Should only the `iter_modules_and_files` call site be protected, or every `resolve()` call in the autoreloader (watched directories, extra files, `sys.path` entries)?\n3. **Visibility:** Should skipped paths be logged? If so, at what level?\n4. **Exception breadth:** Should we catch only `ValueError`, or also related `OSError` variants that a disconnected network mount could raise?\n5. **pathlib performance:** The reporter claims `pathlib` is slow and should be removed. Should this be tracked as a separate issue?\n6. **Target branches:** Which Django versions should receive the fix (main only, or backports to 2.2.x)?\n7. **Commands:** What are the exact test, lint, and runner commands and the test file locations in the repository? These are unknown from the issue.\n8. **Platform:** Has this been observed outside macOS or on Python versions newer than 3.6.2?",
+ "ttft_ms": 2745,
+ "type": "result",
+ "duration_ms": 27936,
+ "uuid": "477eff1b-8aa5-4eef-81ae-a88631072faf",
+ "ttft_stream_ms": 1634,
+ "time_to_request_ms": 227,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 107,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1634,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

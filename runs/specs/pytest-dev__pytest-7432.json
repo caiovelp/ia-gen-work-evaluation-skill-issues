@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 24739,
+ "stop_reason": "end_turn",
+ "session_id": "adb86eb4-5956-49d9-b52a-86464400a558",
+ "total_cost_usd": 0.05438369999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 882,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2315,
+  "output_tokens_details": {
+   "thinking_tokens": 71
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 882,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2315,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 882,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 882
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1469,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2315,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 882,
+   "webSearchRequests": 0,
+   "costUSD": 0.05422679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 71,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Skip location reporting is correct under `--runxfail`\n\n## Objective\n\nWhen `--runxfail` is passed, pytest reports the wrong location for tests skipped via `@pytest.mark.skip` or `@pytest.mark.skipif`.\n\nThe reported location should point at the test item. With `--runxfail`, it points at pytest's own internals instead.\n\n**Expected (`pytest -rs`):**\n```\nSKIPPED [1] test_it.py:3: unconditional skip\n```\n\n**Actual (`pytest -rs --runxfail`):**\n```\nSKIPPED [1] src/_pytest/skipping.py:238: unconditional skip\n```\n\n`--runxfail` exists only to make xfail-marked tests run and report as if they were not marked. It must have no effect on how skip/skipif marks are reported.\n\n**Users:** pytest users who combine `-rs` (or other skip reporting) with `--runxfail`, such as CI pipelines that audit xfails while still relying on skip summaries.\n\n**Acceptance criteria:**\n- With `--runxfail`, a test skipped by `@pytest.mark.skip` reports its location as the test item's file and line, not a line in `src/_pytest/skipping.py`.\n- The same holds for `@pytest.mark.skipif` with a true condition.\n- Skip location reporting without `--runxfail` is unchanged.\n- `--runxfail` behavior for xfail-marked tests is unchanged:\n  - xfail tests still run.\n  - Their outcomes are reported as if they were unmarked.\n\n**Affected versions (per issue):** pytest 5.4.x and current master.\n\n## Assumptions\n\n1. The fault is in the `pytest_runtest_makereport` hook in `src/_pytest/skipping.py`, as the hint says. The `--runxfail` branch probably bypasses or short-circuits the logic that rewrites the skip location from pytest's internal raise site to the item's location.\n2. The location rewrite applies only to skips that originate from skip/skipif *marks*. Imperative `pytest.skip()` calls inside a test body keep reporting their own call site, regardless of `--runxfail`.\n3. \"Location of the item\" means the same value already reported when `--runxfail` is absent, i.e. the test definition's file and line as shown in the issue (`test_it.py:3`).\n4. Line 238 in the issue reflects the version that was tested. The exact line number is not significant.\n5. No change to public API, CLI options, or the report output format is intended.\n6. The fix should be small and local to `src/_pytest/skipping.py`. No new dependencies.\n\n## Tech Stack\n\n- Python, pytest's own codebase (`src/_pytest/`).\n- Supported Python versions, dependency versions: **unknown** (not visible from the issue).\n\n## Commands\n\nAll unknown; the repository is not visible.\n\n```\nBuild: unknown\nTest:  unknown (pytest's own test suite; exact invocation/tox env not visible)\nLint:  unknown\nDev:   n/a\n```\n\nReproduction, taken from the issue:\n```\npytest -rs test_it.py              # expected location: test_it.py:3\npytest -rs --runxfail test_it.py   # currently wrong: src/_pytest/skipping.py:<line>\n```\n\n## Project Structure\n\n- `src/_pytest/skipping.py`: implements skip/skipif/xfail marks and the `pytest_runtest_makereport` hook. This is where the bug lives.\n- Test location for skipping behavior: **unknown**. A dedicated skipping test module likely exists under the repo's test directory, but its path has not been confirmed.\n- Changelog/news fragment conventions: **unknown**.\n\n## Code Style\n\nUnknown. Not visible from the issue. Follow the existing conventions in `src/_pytest/skipping.py` and the existing skipping tests.\n\n## Testing Strategy\n\n- **Level:** integration-style tests that run an inner pytest session on a generated test file and assert on the `-rs` summary output. This assumes the repo's existing test-harness fixture for this (exact fixture name unknown; likely the one used by existing skipping tests).\n- **New regression cases:**\n  1. `@pytest.mark.skip` with `-rs --runxfail`: the summary line contains the test file and the test's line number, and does not contain `skipping.py`.\n  2. `@pytest.mark.skipif(True, reason=...)` with `-rs --runxfail`: same assertion.\n  3. Optionally, parametrize both cases over with and without `--runxfail` to lock in that the output is identical either way.\n- **Regression guard:** the existing skipping and xfail tests, especially any that cover `--runxfail`, must still pass.\n- **Coverage requirement:** unknown. At minimum, the new tests must fail before the fix and pass after it.\n\n## Boundaries\n\n- **Always:**\n  - Keep the change confined to the skip-location handling in `pytest_runtest_makereport`.\n  - Add regression tests that fail before the fix.\n  - Run the existing skipping/xfail test suite.\n- **Ask first:**\n  - Changing `--runxfail` semantics for xfail tests.\n  - Changing the report output format.\n  - Touching files other than `src/_pytest/skipping.py` and its tests (and a changelog entry, if the project requires one).\n- **Never:**\n  - Alter location reporting for imperative `pytest.skip()` calls.\n  - Remove or weaken existing tests.\n  - Add dependencies.\n\n## Success Criteria\n\n- [ ] `pytest -rs --runxfail` on the issue's example prints `SKIPPED [1] test_it.py:3: unconditional skip`.\n- [ ] Equivalent correct location for `skipif` under `--runxfail`.\n- [ ] Output for skip/skipif with and without `--runxfail` is identical.\n- [ ] Existing skipping, xfail, and `--runxfail` tests pass unchanged.\n- [ ] New regression tests for skip and skipif under `--runxfail` are added and pass.\n\n## Open Questions\n\n1. Should `pytest.skip()` called from within a fixture or setup (not a mark) be covered here? Assumption: no, and its behavior stays as-is.\n2. Does the project require a changelog/news fragment for bug fixes, and what is the naming convention?\n3. What is the exact test command and environment (e.g. tox env) for running pytest's own skipping tests?\n4. Should this fix be backported to the 5.4.x maintenance line, or land on master only?\n5. Are there other `--runxfail` interactions (e.g. `xfail(strict=True)`, `xfail(run=False)`) that should be audited in the same change, or kept strictly out of scope?",
+ "ttft_ms": 1545,
+ "type": "result",
+ "duration_ms": 22177,
+ "uuid": "098b8303-48cd-4a6d-959c-e45a2861f221",
+ "ttft_stream_ms": 949,
+ "time_to_request_ms": 241,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 16,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 194,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 201,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 10,
+  "cpu_ms": 28,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 949,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,37 @@
+diff --git a/sympy/functions/elementary/complexes.py b/sympy/functions/elementary/complexes.py
+index 66a96335eb..c3ddb09053 100755
+--- a/sympy/functions/elementary/complexes.py
++++ b/sympy/functions/elementary/complexes.py
+@@ -607,6 +607,11 @@ def eval(cls, arg):
+             arg2 = -S.ImaginaryUnit * arg
+             if arg2.is_extended_nonnegative:
+                 return arg2
++        if arg.is_extended_real:
++            # nothing more can be done; the conjugate of a real expression
++            # is itself, but signsimp(evaluate=False) can make it look
++            # different and lead to infinite recursion via sqrt(arg**2)
++            return
+         # reject result if all new conjugates are just wrappers around
+         # an expression that was already in the arg
+         conj = signsimp(arg.conjugate(), evaluate=False)
+diff --git a/sympy/functions/elementary/tests/test_hyperbolic.py b/sympy/functions/elementary/tests/test_hyperbolic.py
+index 24c2fae25d..403327abaf 100755
+--- a/sympy/functions/elementary/tests/test_hyperbolic.py
++++ b/sympy/functions/elementary/tests/test_hyperbolic.py
+@@ -1,3 +1,4 @@
++from sympy.core.sympify import sympify
+ from sympy import (symbols, Symbol, sinh, nan, oo, zoo, pi, asinh, acosh, log,
+     sqrt, coth, I, cot, E, tanh, tan, cosh, cos, S, sin, Rational, atanh, acoth,
+     Integer, O, exp, sech, sec, csch, asech, acsch, acos, asin, expand_mul,
+@@ -1151,3 +1152,11 @@ def test_sign_assumptions():
+     assert sech(p).is_positive is True
+     assert coth(n).is_negative is True
+     assert coth(p).is_positive is True
++
++
++def test_cosh_acos_acosh_recursion():
++    # no RecursionError in assumptions queries (Abs of real im(...))
++    e = sympify("cosh(acos(-i + acosh(-g + i)))")
++    assert e.is_zero is None
++    assert e.is_real is None
++    assert e.is_positive is None

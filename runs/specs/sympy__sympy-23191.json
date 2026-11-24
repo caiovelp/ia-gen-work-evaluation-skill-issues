@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34577,
+ "stop_reason": "end_turn",
+ "session_id": "1dd854d8-9233-47e4-af15-fbbef5c87519",
+ "total_cost_usd": 0.079756,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1515,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3327,
+  "output_tokens_details": {
+   "thinking_tokens": 424
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1515,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3327,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1515,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1515
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2102,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00022520000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3327,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1515,
+   "webSearchRequests": 0,
+   "costUSD": 0.0795308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 424,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct pretty-printing of `sympy.vector` expressions with multi-line coefficients\n\n## Objective\n\n`pprint` (and `init_printing()` terminal output) garbles `sympy.vector` expressions whose scalar coefficient renders over more than one line, such as fractions, integrals, or nested functions with exponents.\n\nThe issue shows three symptoms:\n\n1. **Basis vector inserted inside the coefficient.** In `pprint(vecB)`, `i_C` appears in the middle of the numerator (`2\u22c5sin\u239c\u2500\u2500\u2500\u239f i_C\u22c5cos\u239d10 \u22c5t\u23a0`). This displaces the following text and breaks the right-hand parenthesis column.\n2. **Basis vector at the wrong row.** In `pprint(vecE)`, `k_C` sits on the second line of a tall integral expression. It is not at the expression's baseline or centre.\n3. **Basis vector inside the enclosing parentheses.** In `pprint(vecE.doit())`, `k_C` is printed inside the coefficient's parentheses (`... k_C \u239f`). The parenthesis column is misaligned on the remaining rows.\n\n**Users:** SymPy users who work with `sympy.vector` (`CoordSys3D`, `Del`, basis vectors `i/j/k`) and view results in a terminal through `pprint` or `init_printing()`. The problem appears both with and without Unicode box-drawing characters.\n\n**Desired outcome:** The pretty form of a vector term is a well-formed 2D block in three parts:\n\n- the coefficient, rendered intact and parenthesized if needed;\n- the basis-vector symbol, placed outside and after the coefficient;\n- vertical alignment consistent with how SymPy aligns other binary products (baseline alignment).\n\nMulti-term vectors (`a*i + b*j + c*k`) must keep each basis vector attached to its own coefficient. The `+` separators must align on a common baseline.\n\n### User stories\n\n- As a user, when I `pprint` a vector with a fractional coefficient, I see the full fraction followed by the basis vector, and no characters are interleaved into the fraction.\n- As a user, when I `pprint` an unevaluated `Integral` times a basis vector, the basis vector appears once, beside the integral expression, at the baseline.\n- As a user, when I `pprint` a multi-component vector with multi-line coefficients, each component is readable and the columns stay aligned.\n\n## Tech Stack\n\n- Python and SymPy. The affected version is **unknown**; the issue does not state it.\n- Components involved: the SymPy pretty printer (`pprint`, `init_printing`) and the `sympy.vector` module (`CoordSys3D`, `Del`, vector `Integral`/`doit`).\n- Exact source files or functions: **unknown**. They are not visible from the issue.\n\n## Commands\n\nAll of the following are **unknown**, because the issue gives no repository access:\n\n- Build: unknown\n- Test: unknown. A pytest-based suite is expected, but the exact command is unverified.\n- Lint: unknown\n- Reproduce: run the script from the issue with `python` (exact invocation unknown).\n\n## Project Structure\n\n**Unknown.** The locations of the pretty-printer source, the vector module, and their tests are not visible in the issue.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the surrounding pretty-printer and vector code. No snippet is available from the issue.\n\n## Testing Strategy\n\nThe framework and test locations are **unknown**. The intended levels are:\n\n- **Unit tests (pretty printer)**: assert exact string output of `pretty(...)` for vector expressions in both Unicode and ASCII modes. Cover:\n  - a single basis vector with a multi-line fraction coefficient containing a function call. This is the `vecB` case: `2*10**-4*cos(10**5*t)*sin(10**-3*y) * i`.\n  - a basis vector times an unevaluated `Integral` coefficient (the `vecE` case).\n  - a basis vector with a negative fraction coefficient containing several function factors (the `vecE.doit()` case).\n  - a multi-component vector where each component has a multi-line coefficient.\n  - regression cases: single-line coefficients (`3*i`, `x*i + y*j`), a coefficient of `1` or `-1`, and the zero vector. These must render exactly as they do today.\n- **Regression**: existing pretty-printing tests for vectors and dyadics must still pass. Dyadics are an open question; see below.\n- Expected output strings should be agreed (see Open Questions) before they are hard-coded.\n\n## Boundaries\n\n- **Always:**\n  - Keep single-line vector output byte-identical to current behaviour unless agreed otherwise.\n  - Test both Unicode and ASCII pretty modes.\n  - Include the issue's reproduction as a test.\n- **Ask first:**\n  - Changing the visual format of vector output, for example parenthesization rules or basis-vector position, beyond fixing the corruption.\n  - Changing how other printers (LaTeX, str, MathML) render vectors.\n  - Changing shared 2D layout utilities used by non-vector printing.\n- **Never:**\n  - Alter the mathematical value or structure of vector objects to work around printing.\n  - Remove or weaken existing printing tests.\n  - Change printing of non-vector expressions as a side effect.\n\n## Success Criteria\n\n1. `pprint(vecB)` from the issue produces a block where:\n   - the fraction numerator reads contiguously as `2\u22c5sin(y_C/10\u00b3)\u22c5cos(10\u2075\u22c5t)` in 2D form, with no `i_C` inside it;\n   - `i_C` appears exactly once, to the right of the closing parenthesis;\n   - every row of the parenthesized coefficient has its right parenthesis in the same column.\n2. `pprint(vecE)` shows `k_C` exactly once, to the right of the full parenthesized integral expression, on the baseline row (the fraction-bar row). It must not be on row 2.\n3. `pprint(vecE.doit())` shows `k_C` exactly once, outside the closing parenthesis. The parenthesis column is consistent on all rows.\n4. For every line of output, line widths are consistent: there is no trailing ragged characters between parenthesis segments.\n5. The same three cases render correctly with `use_unicode=False`.\n6. Multi-component vectors with multi-line coefficients render each basis vector after its own coefficient, with `+` aligned on the baseline.\n7. All pre-existing vector pretty-printing tests pass unchanged, or any intentional changes are explicitly approved.\n\n## Assumptions\n\n1. The intended layout is `(<coefficient>) <basis>`. The basis vector is placed to the right of the parenthesized coefficient and aligned on the coefficient's baseline, consistent with how SymPy aligns other products.\n2. The bug is in the pretty printer's rendering of vector (basis-dependent) expressions. It is not in the `sympy.vector` arithmetic: the expressions themselves are mathematically correct, and only display is affected.\n3. The defect is triggered by coefficients whose pretty form spans multiple lines, especially when they contain function applications with parentheses. Single-line coefficients are currently correct.\n4. The same layout logic may also be used for dyadics or other basis-dependent objects, so they may share the bug.\n5. `symbols(\"10\", positive=True)` is just a user trick to keep `10` unevaluated. It is not part of the bug.\n6. Terminal width is sufficient. Line-wrapping is out of scope.\n\n## Open Questions\n\n1. **Placement:** Should the basis vector be aligned on the baseline (fraction-bar row), the vertical centre, or the bottom row of the coefficient?\n2. **Parenthesization:** Should multi-line coefficients always be wrapped in parentheses, as today? Or should parentheses be dropped when the coefficient is a single fraction?\n3. **Dyadics and other types:** Are dyadics and other basis-dependent types in scope for this fix? Should they get the same tests?\n4. **Affected versions:** Which SymPy version(s) exhibit the bug? Is the fix to be backported?\n5. **Output changes:** Is any change to existing approved test output acceptable, for example if the current tests encode the buggy layout?\n6. **Other printers:** Should the LaTeX, string, and Jupyter rich display be checked for analogous problems, or is this strictly limited to the 2D terminal pretty printer?\n7. **Repository details:** What are the exact test command, test file location, and pretty-printer source location? All are unknown from the issue.",
+ "ttft_ms": 5837,
+ "type": "result",
+ "duration_ms": 33920,
+ "uuid": "194ce2ea-bdc3-48ef-bf19-3b8c009508ab",
+ "ttft_stream_ms": 1425,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 20,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 236,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1425,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

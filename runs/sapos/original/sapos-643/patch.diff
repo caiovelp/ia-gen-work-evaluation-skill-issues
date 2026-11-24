@@ -1,0 +1,37 @@
+diff --git a/spec/models/admissions/letter_request_spec.rb b/spec/models/admissions/letter_request_spec.rb
+index 3511ce92..1b16e42a 100644
+--- a/spec/models/admissions/letter_request_spec.rb
++++ b/spec/models/admissions/letter_request_spec.rb
+@@ -17,8 +17,10 @@ RSpec.describe Admissions::LetterRequest, type: :model do
+     @destroy_later = []
+   end
+   after(:all) do
++    admission_process = @admission_application.admission_process
+     @admission_application.delete
+     @filled_form.delete
++    admission_process&.delete
+   end
+   after(:each) do
+     @destroy_later.each(&:delete)
+diff --git a/spec/rails_helper.rb b/spec/rails_helper.rb
+index 87740c8f..60b40e43 100644
+--- a/spec/rails_helper.rb
++++ b/spec/rails_helper.rb
+@@ -167,6 +167,7 @@ RSpec.configure do |config|
+   end
+ 
+   config.after(:suite) do
++    Rails.application.eager_load!
+     models = ApplicationRecord.descendants
+     leaked = models.filter_map do |model|
+       "#{model}: #{model.count}" if model.count > 0
+@@ -174,6 +175,9 @@ RSpec.configure do |config|
+     if leaked.count > 0
+       puts "Leaked objects -- Please, try to find and delete them to avoid one test interfering with the other"
+       puts "  #{leaked.join("\n  ")}"
++      if ENV["LEAK_CHECK"] == "strict"
++        raise "Leaked objects detected (LEAK_CHECK=strict)"
++      end
+     end
+   end
+ end

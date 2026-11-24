@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23369,
+ "stop_reason": "end_turn",
+ "session_id": "21c340cf-7b1b-447f-8ac8-4df599f0e300",
+ "total_cost_usd": 0.048949,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 754,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2087,
+  "output_tokens_details": {
+   "thinking_tokens": 268
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 754,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2087,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 754,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 754
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1342,
+   "outputTokens": 344,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003062,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 321,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2087,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 754,
+   "webSearchRequests": 0,
+   "costUSD": 0.0486428,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 268,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Hide \"Save as new\" in the Django admin when the user lacks add permission\n\n## Objective\n\nOn a Django admin change form, the \"Save as new\" button is shown whenever these conditions hold:\n\n- the form is not a popup\n- the user has change permission\n- this is an existing object (`change`)\n- `ModelAdmin.save_as` is enabled\n\n\"Save as new\" creates a new object, so it is an add operation. A user with change permission but no add permission still sees the button. Clicking it either fails or attempts something the user is not allowed to do.\n\n**Goal:** Show \"Save as new\" only when the user also has **add** permission for the model.\n\n**Users affected:** Admin staff who have change permission but not add permission on a model whose `ModelAdmin` sets `save_as = True`.\n\n**Acceptance criteria:**\n- The button appears only when all of these are true:\n  - `not is_popup`\n  - `has_add_permission`\n  - `has_change_permission`\n  - `change`\n  - `save_as`\n- If any condition is false, the button does not appear.\n- No other submit-row buttons change behaviour, including:\n  - \"Save\"\n  - \"Save and continue editing\"\n  - \"Save and add another\"\n  - \"Delete\"\n\n## Assumptions\n\n1. The fix belongs in the `show_save_as_new` expression inside `submit_row` in `django/contrib/admin/templatetags/admin_modify.py`. The issue cites this location as line 102; I have not seen the file.\n2. The context passed to `submit_row` already contains `has_add_permission`. The reporter's patch uses it without adding it, which suggests this.\n3. Server-side handling of `_saveasnew` in `ModelAdmin` (changeform view) already checks add permission. If so, this change is a UI/consistency fix, not a security fix. **I have not verified this** (see Open Questions).\n4. The issue covers the button's visibility only. Any change to permission enforcement on POST is out of scope unless the open question below shows a gap.\n5. The fix targets the current development branch. Whether it gets backported is a maintainer decision.\n\n## Tech Stack\n\n- Python and Django, specifically `django.contrib.admin`.\n- Versions: unknown.\n\n## Commands\n\n- Build: unknown (not stated in the issue)\n- Test: unknown (not stated in the issue)\n- Lint: unknown (not stated in the issue)\n\n## Project Structure\n\n- `django/contrib/admin/templatetags/admin_modify.py` is the `submit_row` template tag that computes `show_save_as_new`. The path comes from the issue.\n- Location of the relevant admin tests: unknown (not visible).\n\n## Code Style\n\nThe issue's snippet shows the target expression style: a boolean expression chained with `and`, one condition per line.\n\n```python\n\"show_save_as_new\": not is_popup\nand has_add_permission\nand has_change_permission\nand change\nand save_as,\n```\n\n- Formatting and lint conventions beyond this snippet: unknown.\n- The reporter's inline comment (`# This line that I put!!!`) should not be carried into the fix.\n\n## Testing Strategy\n\n- Framework and test locations: unknown.\n- Required coverage:\n  - **Template-tag/context test:** For a change view with `save_as=True`, a user with change permission and **no** add permission gets `show_save_as_new` as `False`.\n  - **Regression test:** A user with both add and change permission still gets `show_save_as_new` as `True`.\n  - **Optional view-level test:** The rendered change form for a change-only user does not contain the \"Save as new\" button.\n\n## Boundaries\n\n- **Always:**\n  - Keep the change minimal and limited to the `show_save_as_new` condition.\n  - Add regression tests.\n  - Run the admin test suite before committing.\n- **Ask first:**\n  - Changing server-side permission enforcement for `_saveasnew`.\n  - Changing other submit-row flags.\n  - Backporting to stable branches.\n- **Never:**\n  - Remove or weaken existing permission checks.\n  - Change the public `save_as` API.\n  - Alter unrelated admin templates.\n\n## Success Criteria\n\n- [ ] `show_save_as_new` is `False` when `has_add_permission` is `False`, all else being equal.\n- [ ] `show_save_as_new` is unchanged, and `True`, for users with both add and change permission, outside popups, on change views, with `save_as=True`.\n- [ ] New tests fail before the fix and pass after it.\n- [ ] The existing admin test suite passes.\n- [ ] A release note is added, if Django's contribution process requires one for this change.\n\n## Open Questions\n\n1. Does the server-side `_saveasnew` POST path in `ModelAdmin` already reject users without add permission?\n   - If it does not, this is a permission-bypass bug.\n   - In that case it needs a server-side fix and possibly handling as a security issue, not only a UI tweak.\n2. Is `has_add_permission` definitely present in the context `submit_row` receives, including for custom `ModelAdmin` subclasses and third-party templates that call the tag?\n3. Should this be treated as a bug fix eligible for backport, or only applied to the development branch?\n4. Does this change need a release note or documentation update?\n5. Should other flags that imply object creation get a similar review? The main candidate is `show_save_and_add_another`, which already depends on add permission. Or is the scope strictly `show_save_as_new`?\n6. What are the exact commands for running the admin tests and linters in this repository?",
+ "ttft_ms": 4177,
+ "type": "result",
+ "duration_ms": 21307,
+ "uuid": "cf28a365-5275-49fd-b631-251a183de717",
+ "ttft_stream_ms": 1258,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 0,
+  "resume_other": 1,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 211,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 147,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1258,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

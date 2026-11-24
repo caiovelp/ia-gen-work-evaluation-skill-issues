@@ -1,0 +1,13 @@
+diff --git a/lib/tasks/maintenance.rake b/lib/tasks/maintenance.rake
+index a21d186d..8298aba0 100644
+--- a/lib/tasks/maintenance.rake
++++ b/lib/tasks/maintenance.rake
+@@ -89,7 +89,7 @@ namespace :maintenance do
+         if attachments[:grades_report_pdf]
+           enrollment = Enrollment.find(message[:enrollments_id])
+           attachments[:grades_report_pdf][:file_contents] =
+-            renderer.render_enrollments_grades_report_pdf(enrollment)
++            renderer.render_enrollments_grades_report_pdf(enrollment, "grades_report.pdf", 0, watermark: true)
+         end
+       end
+       notification_result

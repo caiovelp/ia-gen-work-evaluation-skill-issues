@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14710,
+ "stop_reason": "end_turn",
+ "session_id": "204c464e-6e3a-4324-b541-4501b64975e7",
+ "total_cost_usd": 0.041938199999999995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1558,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1464,
+  "output_tokens_details": {
+   "thinking_tokens": 262
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1558,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1464,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1558,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1558
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1767,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018620000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1464,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1558,
+   "webSearchRequests": 0,
+   "costUSD": 0.041752,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 262,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`makemigrations` generates a migration file that does not import `models`, even though the file references `models.Model` in the `bases` of a `CreateModel` operation. Loading the migration then fails with `NameError: name 'models' is not defined`. This happens for a model that inherits from a plain Python mixin and an abstract base model, and that uses a custom field as its primary key. The reporter suspects the problem is in `django.db.migrations.writer` but is not sure.\n\n## Steps to reproduce\n\n1. In a Django 3.2.4 project, create an app named `app`.\n2. Put the following in `app/models.py`:\n   ```python\n   from django.db import models\n\n   class MyField(models.TextField):\n       pass\n\n   class MyBaseModel(models.Model):\n       class Meta:\n           abstract = True\n\n   class MyMixin:\n       pass\n\n   class MyModel(MyMixin, MyBaseModel):\n       name = MyField(primary_key=True)\n   ```\n3. Run `makemigrations`. This generates `app/migrations/0001_initial.py` (contents shown under \"Code example\").\n4. Use the generated migration so that the file is loaded. The original report does not say which command was run at this step.\n\n## Observed behavior\n\n- The generated migration contains `import app.models` and `from django.db import migrations`, but it has no import that provides the name `models`.\n- The operation for `MyModel` contains `bases=(app.models.MyMixin, models.Model)`.\n- Loading the migration file raises `NameError: name 'models' is not defined` (traceback below).\n\n## Expected behavior\n\nDjango generates a migration file that is valid Python. Every name the file uses, including `models` in `models.Model`, is imported.\n\n## Stack trace / error output\n\n```\n File \"/home/jj/django_example/app/migrations/0001_initial.py\", line 7, in <module>\n    class Migration(migrations.Migration):\n File \"/home/jj/django_example/app/migrations/0001_initial.py\", line 23, in Migration\n    bases=(app.models.MyMixin, models.Model),\nNameError: name 'models' is not defined\n```\n\n## Test case\n\nMinimal test case based on the report's reproduction:\n\n1. Define the models from \"Steps to reproduce\" (`MyField`, abstract `MyBaseModel`, plain `MyMixin`, and `MyModel(MyMixin, MyBaseModel)` with `MyField(primary_key=True)`).\n2. Run `makemigrations` for the app.\n3. Import or execute the generated migration file.\n4. **Pass condition:** the migration loads without raising `NameError`. In particular, `models` is defined wherever `models.Model` appears in the file.\n\n## Code example\n\nMigration file generated by `makemigrations` (`app/migrations/0001_initial.py`), as given in the report:\n\n```python\n# Generated by Django 3.2.4 on 2021-06-30 19:13\nimport app.models\nfrom django.db import migrations\n\nclass Migration(migrations.Migration):\n\n    initial = True\n\n    dependencies = [\n    ]\n\n    operations = [\n        migrations.CreateModel(\n            name='MyModel',\n            fields=[\n                ('name', app.models.MyField(primary_key=True, serialize=False)),\n            ],\n            options={\n                'abstract': False,\n            },\n            bases=(app.models.MyMixin, models.Model),\n        ),\n    ]\n```\n\n## Version and environment\n\n- Django 3.2.4, described in the report as the latest release at the time.\n- The project path in the traceback (`/home/jj/django_example/...`) suggests a Unix-like system.\n- Python version, OS and database backend: Not provided in the original report.",
+ "ttft_ms": 4674,
+ "type": "result",
+ "duration_ms": 14305,
+ "uuid": "0520d46c-ee18-438b-a0b4-d4a29abe038f",
+ "ttft_stream_ms": 1562,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 19,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 256,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1562,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

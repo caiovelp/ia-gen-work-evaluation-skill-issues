@@ -1,0 +1,26 @@
+diff --git a/django/db/models/sql/compiler.py b/django/db/models/sql/compiler.py
+index 7c433b3f06..7bef716814 100755
+--- a/django/db/models/sql/compiler.py
++++ b/django/db/models/sql/compiler.py
+@@ -1274,6 +1274,11 @@ class SQLCompiler:
+                 if from_obj:
+                     final_field.remote_field.set_cached_value(from_obj, obj)
+ 
++            def no_local_setter(obj, from_obj):
++                # Multi-level filtered relations don't map to a single
++                # reverse relation of from_obj.
++                pass
++
+             def remote_setter(name, obj, from_obj):
+                 setattr(from_obj, name, obj)
+ 
+@@ -1295,8 +1300,7 @@ class SQLCompiler:
+                         "model": model,
+                         "field": final_field,
+                         "reverse": True,
+-                        "local_setter": partial(local_setter, final_field),
+-                        "remote_setter": partial(remote_setter, name),
++        X: partial(remote_setter, name),
+                         "from_parent": from_parent,
+                     }
+                     related_klass_infos.append(klass_info)

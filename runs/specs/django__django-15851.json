@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 24834,
+ "stop_reason": "end_turn",
+ "session_id": "989184be-8969-4c01-9cf6-0b0c313c31f4",
+ "total_cost_usd": 0.0531577,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 792,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2290,
+  "output_tokens_details": {
+   "thinking_tokens": 70
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 792,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2290,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 792,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 792
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1379,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001509,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2290,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 792,
+   "webSearchRequests": 0,
+   "costUSD": 0.0530068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 70,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: PostgreSQL `dbshell` \u2014 pass extra parameters before the database name\n\n## Objective\n\nRunning `./manage.py dbshell -- <extra args>` against a PostgreSQL database currently builds a `psql` command line where the database name comes **before** the user-supplied extra arguments. `psql` expects all options to come before the database name. It treats anything after the database name as extra positional arguments and ignores them with warnings:\n\n```\n$ ./manage.py dbshell -- -c \"select * from some_table;\"\npsql: warning: extra command-line argument \"-c\" ignored\npsql: warning: extra command-line argument \"select * from some_table;\" ignored\npsql (10.21)\nType \"help\" for help.\nsome_database=>\n```\n\n**Goal:** On PostgreSQL, build the `psql` argument list so that user-supplied extra parameters come before the database name, and the database name is the last argument. Options such as `-c \"<sql>\"` will then take effect.\n\n**Users:** Developers and operators who run `manage.py dbshell` with extra `psql` arguments, for example to run one-off queries non-interactively or in scripts.\n\n**User story:** As a developer, when I run `./manage.py dbshell -- -c \"select 1;\"` against PostgreSQL, the query runs, and `psql` does not warn that my arguments were ignored.\n\n## Assumptions\n\n1. The project is Django. The issue uses `manage.py dbshell` and the `--` passthrough of extra parameters.\n2. The bug is limited to the PostgreSQL backend. Other backends (MySQL, SQLite, Oracle) are out of scope unless they turn out to have the same ordering problem (see Open Questions).\n3. The PostgreSQL backend's database client builds the args list as roughly `[executable, <connection options>..., dbname, <extra parameters>...]`. The fix changes the order to `[executable, <connection options>..., <extra parameters>..., dbname]`. I have not seen the exact code or file path; this is inferred from the issue text.\n4. Connection options derived from settings (for example user, host and port) can stay before the extra parameters. Only the relative position of the database name and the extra parameters must change.\n5. When no database name is configured, the database name is simply left out and the extra parameters are still passed through unchanged.\n6. Environment-based settings (for example a password or SSL options passed via environment variables) are not affected by this change.\n7. Existing unit tests for the PostgreSQL client's argument construction exist and should be updated or extended. Their exact location is unknown.\n\n## Tech Stack\n\n- Language: Python (version unknown)\n- Framework: Django (version and branch unknown)\n- External tool: `psql`. The reporter uses 10.21. The ordering requirement applies to `psql` in general.\n\n## Commands\n\nUnknown. They are not visible in the issue. To be confirmed:\n\n- Test: unknown (for example the project's test runner for the PostgreSQL dbshell tests)\n- Lint: unknown\n- Manual reproduction (from the issue): `./manage.py dbshell -- -c \"select * from some_table;\"`\n\n## Project Structure\n\nUnknown. They are not visible in the issue. Expected, but unconfirmed, areas:\n\n- The PostgreSQL database backend's client module, which builds the `psql` argument list. Path unknown.\n- Tests for the PostgreSQL dbshell / client argument construction. Path unknown.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the surrounding module and the project's linters. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Unit tests (primary).** Test the function or method that builds the PostgreSQL client args and environment directly, without launching `psql`. Cover these cases:\n  - With database name and extra parameters: the extra parameters appear before the database name, and the database name is the final element.\n  - With database name and no extra parameters: the output is unchanged from current behavior.\n  - With extra parameters and no database name: the extra parameters are present and no stray empty argument is added.\n  - With connection options (user/host/port) and extra parameters: the connection options are preserved, and the database name is still last.\n- **Existing tests.** Update any existing assertions that encode the old order, where the database name came before the parameters.\n- **Manual check (optional, needs a real PostgreSQL).** Run `./manage.py dbshell -- -c \"select 1;\"`. It should run the query without the \"extra command-line argument ... ignored\" warnings.\n- Coverage expectation: unknown. At minimum, every case listed above is asserted.\n\n## Boundaries\n\n- **Always:**\n  - Keep the database name as the last argument when it is present.\n  - Preserve the existing pass-through semantics of extra parameters: same values, same relative order.\n  - Run the relevant backend tests before committing.\n- **Ask first:**\n  - Changing argument ordering for any non-PostgreSQL backend.\n  - Changing how the database name is passed, for example switching to `-d dbname` instead of a positional argument.\n  - Changing the public signature of the client argument-building API.\n- **Never:**\n  - Silently drop or reorder user-supplied parameters among themselves.\n  - Remove or weaken existing tests without approval.\n  - Change environment or password handling as part of this fix.\n\n## Success Criteria\n\n1. On PostgreSQL, the generated command line has the form `psql [connection options] [extra parameters] [dbname]`, with `dbname` last whenever it is set.\n2. `./manage.py dbshell -- -c \"select * from some_table;\"` runs the query, and `psql` emits no \"extra command-line argument ... ignored\" warnings.\n3. With no extra parameters, the generated command line is identical to current behavior.\n4. With no database name configured, the extra parameters are still passed and no empty or placeholder argument is added.\n5. Unit tests assert the cases above and pass. Existing tests updated for the new order pass.\n6. Behavior of other database backends is unchanged.\n\n## Open Questions\n\n1. What are the exact file paths for the PostgreSQL client implementation and its tests, and what is the test command?\n2. Should the database name stay a positional argument, or switch to `-d`/`--dbname`, which works regardless of position? The positional approach is assumed.\n3. Do any other backends (MySQL, SQLite, Oracle) have the same ordering problem? Should they be fixed in this change or tracked separately?\n4. Does this change need a release note or a documentation update for `dbshell`?\n5. Which Django branch or versions should receive the fix (main only, or backports)?\n6. Could the current order be intentional for some users, for example passing extra positional args such as a username after the dbname? Does that count as a backward-compatibility concern?",
+ "ttft_ms": 2503,
+ "type": "result",
+ "duration_ms": 23970,
+ "uuid": "79497767-5d0c-4d39-a6b7-4931de25145b",
+ "ttft_stream_ms": 1619,
+ "time_to_request_ms": 316,
+ "time_to_request_phases_ms": {
+  "other": 22,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 14,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 12,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 228,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 13,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 340,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 21,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1620,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

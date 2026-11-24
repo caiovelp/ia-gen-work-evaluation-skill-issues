@@ -1,0 +1,1 @@
+{"justificativa": "The candidate applies the `(link.prop(\"search\") || \"\")` guard in all three partials, which removes the reported `.replace` TypeError. It omits the official fix's `queryStringToHash(p) || {}` fallback, so with an empty query string `params` may be undefined and the loop that follows can fail with a new TypeError.", "veredito": "parcial"}

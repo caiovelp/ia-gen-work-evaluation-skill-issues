@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 17383,
+ "stop_reason": "end_turn",
+ "session_id": "90f7e031-9614-43f1-8b5f-a22949e522ee",
+ "total_cost_usd": 0.0536474,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1818,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1944,
+  "output_tokens_details": {
+   "thinking_tokens": 163
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1818,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1944,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1818,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1818
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2029,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002154,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1944,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1818,
+   "webSearchRequests": 0,
+   "costUSD": 0.053432,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 163,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nPassing `domain='RR[y,z]'` explicitly to `Poly` raises `OptionError`. Yet when no domain is given, `Poly` infers `RR[y,z]` for the same expression, so the domain is valid. The reporter also says the wording of the error message could be improved.\n\n## Steps to reproduce\n\n1. Start an interactive SymPy session (the report uses IPython). Define symbols `x`, `y` and `z`. The report does not show how they were defined.\n2. Run `Poly(1.2*x*y*z, x)` without a domain. This works, and the result shows `domain='RR[y,z]'`.\n3. Run `Poly(1.2*x*y*z, x, domain='RR[y,z]')`, passing the domain that step 2 inferred.\n4. An `OptionError` is raised.\n\n## Observed behavior\n\nWithout an explicit domain, construction works and infers `RR[y,z]`:\n\n```py\nIn [14]: Poly(1.2*x*y*z, x)\nOut[14]: Poly(1.2*y*z*x, x, domain='RR[y,z]')\n```\n\nWith `domain='RR[y,z]'` given explicitly, construction fails:\n\n```\nOptionError: expected a valid domain specification, got RR[y,z]\n```\n\nThe error comes from the domain preprocessing step in `sympy/polys/polyoptions.py`, which does not accept the string `'RR[y,z]'`.\n\n## Expected behavior\n\n`Poly(1.2*x*y*z, x, domain='RR[y,z]')` should succeed. It should create a polynomial over `RR[y,z]`, the same domain `Poly` infers automatically for this expression, as in `Out[14]`.\n\nThe reporter also says the wording of the `OptionError` message (\"expected a valid domain specification, got ...\") could be improved. The report gives no specific alternative wording.\n\n## Stack trace / error output\n\n```\n---------------------------------------------------------------------------\nOptionError                               Traceback (most recent call last)\n<ipython-input-15-d83389519ae1> in <module>()\n----> 1 Poly(1.2*x*y*z, x, domain='RR[y,z]')\n\n/Users/aaronmeurer/Documents/Python/sympy/sympy-scratch/sympy/polys/polytools.py in __new__(cls, rep, *gens, **args)\n     69     def __new__(cls, rep, *gens, **args):\n     70         \"\"\"Create a new polynomial instance out of something useful. \"\"\"\n---> 71         opt = options.build_options(gens, args)\n     72\n     73         if 'order' in opt:\n\n/Users/aaronmeurer/Documents/Python/sympy/sympy-scratch/sympy/polys/polyoptions.py in build_options(gens, args)\n    718\n    719     if len(args) != 1 or 'opt' not in args or gens:\n--> 720         return Options(gens, args)\n    721     else:\n    722         return args['opt']\n\n/Users/aaronmeurer/Documents/Python/sympy/sympy-scratch/sympy/polys/polyoptions.py in __init__(self, gens, args, flags, strict)\n    151                     self[option] = cls.preprocess(value)\n    152\n--> 153         preprocess_options(args)\n    154\n    155         for key, value in dict(defaults).items():\n\n/Users/aaronmeurer/Documents/Python/sympy/sympy-scratch/sympy/polys/polyoptions.py in preprocess_options(args)\n    149\n    150                 if value is not None:\n--> 151                     self[option] = cls.preprocess(value)\n    152\n    153         preprocess_options(args)\n\n/Users/aaronmeurer/Documents/Python/sympy/sympy-scratch/sympy/polys/polyoptions.py in preprocess(cls, domain)\n    480                 return sympy.polys.domains.QQ.algebraic_field(*gens)\n    481\n--> 482         raise OptionError('expected a valid domain specification, got %s' % domain)\n    483\n    484     @classmethod\n\nOptionError: expected a valid domain specification, got RR[y,z]\n```\n\n## Test case\n\nThis minimal test is derived from the report's snippet. It checks that an explicit `RR[y,z]` domain is accepted and matches the inferred one:\n\n```py\nfrom sympy import Poly, symbols\n\nx, y, z = symbols('x y z')\n\ndef test_poly_explicit_RR_polynomial_ring_domain():\n    inferred = Poly(1.2*x*y*z, x)            # works; domain shown as RR[y,z]\n    explicit = Poly(1.2*x*y*z, x, domain='RR[y,z]')  # currently raises OptionError\n    assert explicit == inferred\n```\n\n## Code example\n\n```py\nPoly(1.2*x*y*z, x)                    # OK -> Poly(1.2*y*z*x, x, domain='RR[y,z]')\nPoly(1.2*x*y*z, x, domain='RR[y,z]')  # OptionError: expected a valid domain specification, got RR[y,z]\n```\n\n## Version and environment\n\n- SymPy run from a local source checkout (`.../sympy/sympy-scratch/`). The report gives no version number or commit.\n- The session is IPython. The file paths (`/Users/...`) suggest macOS.\n- Python version: Not provided in the original report.",
+ "ttft_ms": 3384,
+ "type": "result",
+ "duration_ms": 16524,
+ "uuid": "ea630ee7-c265-420a-aa6b-a0fc91ad7ff2",
+ "ttft_stream_ms": 1384,
+ "time_to_request_ms": 236,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 12,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 202,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 167,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1384,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

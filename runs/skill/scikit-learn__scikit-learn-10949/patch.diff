@@ -1,0 +1,30 @@
+diff --git a/sklearn/utils/validation.py b/sklearn/utils/validation.py
+index fe1f7236e..8fe6c071b 100755
+--- a/sklearn/utils/validation.py
++++ b/sklearn/utils/validation.py
+@@ -466,6 +466,12 @@ def check_array(array, accept_sparse=False, accept_large_sparse=True,
+         # not a data type (e.g. a column named dtype in a pandas DataFrame)
+         dtype_orig = None
+ 
++    dtypes_orig = None
++    if dtype_orig is None and hasattr(array, "dtypes") \
++            and hasattr(array, "__array__"):
++        # pandas DataFrame
++        dtypes_orig = list(array.dtypes)
++
+     if dtype_numeric:
+         if dtype_orig is not None and dtype_orig.kind == "O":
+             # if input is object, convert to float.
+@@ -573,6 +579,12 @@ def check_array(array, accept_sparse=False, accept_large_sparse=True,
+                              % (n_features, shape_repr, ensure_min_features,
+                                 context))
+ 
++    if dtypes_orig is not None and len(dtypes_orig) > 0:
++        try:
++            dtype_orig = np.result_type(*dtypes_orig)
++        except Exception:
++            dtype_orig = None
++
+     if warn_on_dtype and dtype_orig is not None and array.dtype != dtype_orig:
+         msg = ("Data with input dtype %s was converted to %s%s."
+                % (dtype_orig, array.dtype, context))

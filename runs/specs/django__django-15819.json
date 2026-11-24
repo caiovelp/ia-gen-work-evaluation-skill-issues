@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33881,
+ "stop_reason": "end_turn",
+ "session_id": "607be38a-21ff-47bb-89ce-6651298eb213",
+ "total_cost_usd": 0.0689351,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 762,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3087,
+  "output_tokens_details": {
+   "thinking_tokens": 329
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 762,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3087,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 762,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 762
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1353,
+   "outputTokens": 186,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00022830000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 161,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3087,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 762,
+   "webSearchRequests": 0,
+   "costUSD": 0.0687068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 329,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `inspectdb` generates `related_name` when one table has several relations to the same model\n\n## Objective\n\n`inspectdb` reads an existing database and writes Django model source code. If one table has two or more foreign-key columns that point to the same table, the generated model has several `ForeignKey`/`OneToOneField` fields that target the same model. Django then gives each of them the same default reverse accessor (`<model>_set`). The system check reports:\n\n```\nmodule.Model.field1: (fields.E304) Reverse accessor for 'module.Model.field1' clashes with reverse accessor for 'module.Model.field2'.\nHINT: Add or change a related_name argument to the definition for 'module.Model.field1' or 'module.Model.field2'.\n```\n\nThe generated models therefore fail system checks until a developer adds `related_name` to each field by hand.\n\n**User:** a developer running `inspectdb` against a legacy database to bootstrap Django models.\n\n**Goal:** when a generated model has more than one relation field targeting the same model, `inspectdb` adds a `related_name` to those fields automatically. Each generated reverse accessor must be unique, so the output passes these checks without manual edits.\n\n**User stories / acceptance**\n- As a developer, when my table `message` has `sender_id \u2192 user.id` and `recipient_id \u2192 user.id`, the generated `Message` model has two `ForeignKey(User, ...)` fields with distinct `related_name` values. `fields.E304` and `fields.E305` are not raised for them.\n- As a developer, when a table has only one relation to a given target, the generated code for that field looks exactly as it does today, with no `related_name` added.\n- As a developer, when a table has several foreign keys to itself, the self-referential fields also get distinct `related_name` values.\n\n## Assumptions\n\n1. This is the Django project, and the change is in the `inspectdb` management command. The exact source file path is **unknown** because the repository was not visible. It is probably the command module under Django's core management commands.\n2. \"Same relation target\" is decided per generated model. It means two or more relation fields (`ForeignKey` or `OneToOneField`) in one table whose referenced table maps to the same model class name, including `'self'`.\n3. `related_name` is added **only** to relation fields that share a target with another field in the same model. Fields whose target is unique keep today's output, so existing output changes as little as possible.\n4. The generated `related_name` is derived from the attribute (field) name. It must be unique across all models that point at the target, not only within the source model. For that reason, the naming scheme probably needs the source model name as well as the attribute name (for example `<model>_<attname>_set`). The issue's literal suggestion, `related_name='attribute_name'`, could clash across models and with real fields on the target model. The final format is an open question.\n5. This fixes only the reverse-accessor and reverse-query-name clashes (E304/E305) that come from several relations to the same target. Other clashes are out of scope. One example is a reverse accessor that collides with an existing field name on the target model (E302/E303).\n6. The behaviour applies to tables and to views and partitions if those are introspected. It applies on every database backend, since it depends only on introspected relations and not on backend-specific SQL.\n7. There is no new command-line flag. The behaviour is always on.\n8. The change ships with tests in Django's existing `inspectdb` test suite, with test models that create the multi-FK situation. The test location and models are **unknown** and need confirming.\n\n## Tech Stack\n\n- Python and Django. The versions are **unknown**, so target the current development branch.\n- Database introspection goes through each backend's introspection API, specifically the relations and constraints information that `inspectdb` already uses.\n\n## Commands\n\nAll commands are **unknown** because the repo was not visible. Expected shape, to be confirmed:\n\n```\nBuild: n/a (pure Python)\nTest:  <Django test runner> inspectdb       # exact invocation unknown\nLint:  unknown (project linters/formatters to be confirmed)\nDev:   python manage.py inspectdb            # manual verification in a sample project\n```\n\n## Project Structure\n\n**Unknown.** Two locations need confirming:\n- `inspectdb` command source: unknown path\n- `inspectdb` tests and their test models: unknown path\n\n## Code Style\n\nFollow the existing style of the `inspectdb` command:\n- Generated field kwargs are emitted the same way the command already emits them, for example as an extra-params mapping rendered into the field call.\n- Use the same quoting and ordering conventions as the existing generated output.\n\nNo code snippet is given, because the source is not visible.\n\nIllustrative **expected generated output** (exact `related_name` format to be confirmed):\n\n```python\nclass Message(models.Model):\n    sender = models.ForeignKey('User', models.DO_NOTHING, related_name='<unique name derived from \"sender\">')\n    recipient = models.ForeignKey('User', models.DO_NOTHING, related_name='<unique name derived from \"recipient\">')\n```\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner invocation is unknown.\n- **Level:** integration tests for `inspectdb`. They introspect real test tables and assert on the generated source text.\n- **Cases:**\n  1. A table with two FKs to the same other table. Both fields contain `related_name=...` and the values differ.\n  2. A table with two FKs to itself (`'self'`). Both fields contain distinct `related_name` values.\n  3. A table with a single FK to a target. No `related_name` in the output (regression guard).\n  4. A table with one FK to target A and two FKs to target B. Only the two B fields get `related_name`.\n  5. Optional but preferred: generated models load and pass `check()` with no E304/E305. This might be done by executing the generated code, but feasibility in the suite is unknown.\n- **Coverage:** every new branch in the related-name generation logic is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep output identical for relation fields whose target is unique within the model.\n  - Produce valid Python identifiers for `related_name`.\n  - Add tests covering both the multi-FK case and the self-referential case.\n- **Ask first:**\n  - Choosing the `related_name` naming format.\n  - Applying `related_name` to *all* relation fields, not only duplicates.\n  - Adding a command-line option to toggle the behaviour.\n  - Adding `related_query_name`.\n  - Changing test models or schema shared with other tests.\n  - Adding release notes or docs changes.\n- **Never:**\n  - Change how non-relation fields are generated.\n  - Alter introspection backends' public APIs.\n  - Silence the system check instead of generating unique names.\n  - Remove or weaken existing `inspectdb` tests.\n\n## Success Criteria\n\n- [ ] For any introspected table with \u22652 relation fields to the same target model (including self), every such field in the generated output has a `related_name`.\n- [ ] All generated `related_name` values pointing at a given target are unique across all generated models, so no E304/E305 clash is introduced between them.\n- [ ] Relation fields with a unique target in their model are generated exactly as before.\n- [ ] The new tests pass, and the existing `inspectdb` tests pass unchanged.\n- [ ] Each `related_name` is a valid Python identifier.\n\n## Open Questions\n\n1. **Naming format:** should it be the attribute name only, as the issue suggests? Or something like `<model_lower>_<attname>_set`, which is unique across models? The attribute name alone can clash when two different models both have, for example, a `created_by` FK to `User`.\n2. **Scope of application:** should `related_name` go only on duplicated targets, as assumed? Or on every relation field, as the issue's \"to all fields in model\" might suggest?\n3. Should `related_query_name` also be set? Without it, the default query name, which is based on the model name, could still clash (E305).\n4. Should reverse-accessor clashes with existing field names on the target model (E302/E303) be handled here or left out of scope?\n5. Does this need a release note or a documentation update for `inspectdb`?\n6. What are the exact source path, test path, and test-runner command? (Unknown.)\n7. If the target table is not introspected (the target model is generated as a string reference or is missing), should duplicate detection still use the referenced table name?",
+ "ttft_ms": 5120,
+ "type": "result",
+ "duration_ms": 32917,
+ "uuid": "c53afa98-39a2-4721-b8e5-646bb40beb5c",
+ "ttft_stream_ms": 1266,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 169,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1267,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

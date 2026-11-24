@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25135,
+ "stop_reason": "end_turn",
+ "session_id": "f93e648d-77b3-423c-8dd2-1db553c4d421",
+ "total_cost_usd": 0.0547246,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 862,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2340,
+  "output_tokens_details": {
+   "thinking_tokens": 220
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 862,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2340,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 862,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 862
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1453,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015780000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2340,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 862,
+   "webSearchRequests": 0,
+   "costUSD": 0.0545668,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 220,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Short Command-Line Alias for `--collect-only`\n\n## Assumptions\n\n1. The request concerns the `pytest` CLI option `--collect-only`. Its current behavior (collect tests and report them without executing) stays the same. Only a shorter way to invoke it is being added.\n2. The shortcut is an **alias**. `--collect-only` itself stays fully supported, so existing scripts, CI configs and docs keep working.\n3. The issue asks for a \"one char\" option. It also says the requester is open to community input on which character. The spec therefore treats the exact spelling as undecided: a single-dash one-character flag (`-X`) or a short double-dash alias (`--co`).\n4. The alias must not collide with any existing short or long option. That includes options registered by pytest's built-in plugins.\n5. Collisions with third-party plugins that register the same flag are a risk to assess. pytest cannot fully guarantee against them.\n6. The issue asks for community voting before implementation. This spec assumes the maintainers decide to proceed. Whether to proceed at all is still open.\n7. The option is registered through pytest's existing option-registration mechanism (argparse-based). The exact file and function are unknown.\n\n## Objective\n\nUsers who often run `pytest --collect-only` find the flag long to type. The goal is a short alias that triggers exactly the same behavior.\n\n**Users:** pytest users who inspect test collection interactively, for example to check which tests a `-k` or `-m` expression selects, or to debug collection errors.\n\n**User story:**\nAs a pytest user, I want to type a short option instead of `--collect-only`, so that I can inspect collected tests quickly from the terminal.\n\n**Acceptance criteria:**\n- Invoking pytest with the new alias produces the same output and exit code as `--collect-only` for the same arguments.\n- The alias combines with other options in the same way as `--collect-only` (e.g. `-q`, `-k`, `-m`, path arguments).\n- If it is a single-dash one-char flag, it can be clustered with other single-char flags where argparse allows (e.g. `-qX`). Whether this is required is an open question.\n- `pytest --help` lists the alias next to `--collect-only`.\n- `--collect-only` continues to work unchanged.\n\n## Tech Stack\n\n- Python, pytest itself (repository of `pytest-dev/pytest`).\n- CLI parsing: pytest's own option layer over `argparse`. Exact module and version are unknown, since the repository is not visible.\n\n## Commands\n\nNot visible in the issue; **unknown**.\n- Build: unknown\n- Test: unknown (likely runs pytest's own test suite, possibly via tox; not confirmed)\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\nUnknown from the issue. Relevant locations to be identified:\n- Where `--collect-only` is registered: unknown.\n- Tests for CLI option parsing and collect-only behavior: unknown.\n- CLI reference / usage documentation: unknown.\n- Changelog mechanism (e.g. changelog fragments): unknown.\n\n## Code Style\n\nUnknown. Follow the existing conventions used where `--collect-only` and its sibling options are registered. Do not invent a new pattern.\n\n## Testing Strategy\n\n- **Framework:** pytest's own test suite (pytest testing itself). Exact helpers and fixtures are unknown.\n- **Levels:**\n  - Functional/acceptance tests that run pytest in a temporary project and compare the alias with `--collect-only`: same collected items in the output, same exit code.\n  - Tests for combination with `-q` and with a selection option (`-k` or `-m`).\n  - A test confirming `--help` output mentions the alias.\n  - A regression check that `--collect-only` still works.\n- **Coverage:** new code paths must be exercised. The project-specific coverage threshold is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep `--collect-only` working and documented.\n  - Verify the chosen alias does not collide with any built-in option.\n  - Add a changelog entry and update the CLI docs/help text.\n  - Run the full test suite before submitting.\n- **Ask first:**\n  - The final choice of alias spelling and character.\n  - Any change to the semantics of `--collect-only`.\n  - Changing or reassigning any existing short option.\n  - Adding dependencies.\n- **Never:**\n  - Remove or rename `--collect-only`.\n  - Repurpose an existing short flag.\n  - Silently shadow an option of a widely used plugin without maintainer sign-off.\n\n## Success Criteria\n\n1. Running pytest with the alias on a sample project lists the same collected items, with the same exit code, as `pytest --collect-only` on that project.\n2. `pytest <alias> -q` and `pytest <alias> -k <expr>` behave identically to the `--collect-only` equivalents.\n3. `pytest --help` shows the alias alongside `--collect-only`.\n4. No existing pytest option's behavior changes. The existing test suite passes.\n5. A changelog entry and documentation update exist for the new alias.\n\n## Open Questions\n\n1. **Go/no-go:** Did the community vote or maintainer review approve adding a shortcut at all?\n2. **Spelling:** Should this be a true single-character flag (`-X`) or a short long-form alias such as `--co`? A single char is a scarce resource in the pytest/plugin ecosystem. A short long-form alias carries less collision risk.\n3. **Which character:** If single-char, which letters are still unused by pytest core? Which are commonly taken by popular plugins (e.g. `pytest-xdist`'s `-n`)? The full list of taken short options is not visible in the issue.\n4. **Existing abbreviation:** Does pytest's argument parser already accept prefix abbreviations of long options (e.g. `--collect`)? If so, is that enough to resolve the request, or is it intentionally disabled or unreliable?\n5. **Clustering:** If a single-char flag is chosen, must it support clustering with other short flags (e.g. `-qX`)?\n6. **Plugin conflicts:** How should pytest behave if a third-party plugin already registers the chosen flag, and is that acceptable?\n7. **Docs/changelog conventions:** Which documentation pages and changelog format must be updated? Unknown from the issue.",
+ "ttft_ms": 3809,
+ "type": "result",
+ "duration_ms": 24431,
+ "uuid": "7252d956-36a3-4524-9d07-6f206948675c",
+ "ttft_stream_ms": 1051,
+ "time_to_request_ms": 238,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 202,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 193,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1051,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

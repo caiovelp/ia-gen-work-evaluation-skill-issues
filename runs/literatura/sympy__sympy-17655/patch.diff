@@ -1,0 +1,16 @@
+diff --git a/sympy/geometry/point.py b/sympy/geometry/point.py
+index 7c978c47be..f73ce4397f 100755
+--- a/sympy/geometry/point.py
++++ b/sympy/geometry/point.py
+@@ -213,6 +213,11 @@ def __add__(self, other):
+         sympy.geometry.point.Point.translate
+ 
+         """
++        if isinstance(other, Expr) and other.is_Mul:
++            pts = [a for a in other.args if isinstance(a, Point)]
++            if len(pts) == 1:
++                rest = [a for a in other.args if a is not pts[0]]
++                other = pts[0] * other.func(*rest)
+         try:
+             s, o = Point._normalize_dimension(self, Point(other, evaluate=False))
+         except TypeError:

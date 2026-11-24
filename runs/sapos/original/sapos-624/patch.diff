@@ -1,0 +1,39 @@
+diff --git a/app/views/assertions/_params_form.html.erb b/app/views/assertions/_params_form.html.erb
+index 11bf2c6b..2d6dc3f4 100644
+--- a/app/views/assertions/_params_form.html.erb
++++ b/app/views/assertions/_params_form.html.erb
+@@ -59,7 +59,7 @@
+ 
+       $("._onchange_param_field").change(function () {
+           var link = $($(this).data("link-target"));
+-          var p = link.prop("search").replace(/^\?/, "");
++          var p = (link.prop("search") || "").replace(/^\?/, "");
+           var params = queryStringToHash(p);
+           var params_elements = $("._onchange_param_field");
+           for (var i = 0, len = params_elements.length; i < len; i++) {
+diff --git a/app/views/notifications/_params_form.html.erb b/app/views/notifications/_params_form.html.erb
+index 8722b2df..44be24ef 100644
+--- a/app/views/notifications/_params_form.html.erb
++++ b/app/views/notifications/_params_form.html.erb
+@@ -76,7 +76,7 @@
+ 
+       $("._onchange_param_field").change(function () {
+           var link = $($(this).data("link-target"));
+-          var p = link.prop("search").replace(/^\?/, "");
++          var p = (link.prop("search") || "").replace(/^\?/, "");
+           var params = queryStringToHash(p);
+           var params_elements = $("._onchange_param_field");
+           for (var i = 0, len = params_elements.length; i < len; i++) {
+diff --git a/app/views/queries/_params_form.html.erb b/app/views/queries/_params_form.html.erb
+index b026ec53..28da8cf6 100644
+--- a/app/views/queries/_params_form.html.erb
++++ b/app/views/queries/_params_form.html.erb
+@@ -67,7 +67,7 @@
+ 
+     $("._onchange_param_field").change(function () {
+       var link = $($(this).data("link-target"));
+-      var p = link.prop("search").replace(/^\?/, "");
++      var p = (link.prop("search") || "").replace(/^\?/, "");
+       var params = queryStringToHash(p);
+       var params_elements = $("._onchange_param_field");
+       for (var i = 0, len = params_elements.length; i < len; i++) {

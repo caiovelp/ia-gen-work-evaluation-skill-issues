@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25209,
+ "stop_reason": "end_turn",
+ "session_id": "720c422d-6c0a-4de8-a59c-bdd9815fa9f9",
+ "total_cost_usd": 0.056552099999999994,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 974,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2386,
+  "output_tokens_details": {
+   "thinking_tokens": 90
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 974,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2386,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 974,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 974
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1558,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001693,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2386,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 974,
+   "webSearchRequests": 0,
+   "costUSD": 0.0563828,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 90,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `--notes` must match note tags made entirely of punctuation (fixme / W0511)\n\n## Objective\n\nWhen a user passes a note tag through `--notes` that contains only punctuation characters (e.g. `???`), pylint should report a `fixme` warning (W0511) for comments that start with that tag. It should behave the same way it already does for alphanumeric tags such as `YES`.\n\n**User:** a developer who uses pylint to flag marker comments. Some teams mark comments with symbols such as `???` or `!!!` instead of words.\n\n**Observed (pylint 2.12.2, astroid 2.9.0, Python 3.10.2, macOS 11.6.1):**\n\nGiven `test.py`:\n```python\n# YES: yes\n# ???: no\n```\n`pylint test.py --notes=\"YES,???\"` outputs:\n```\n************* Module test\ntest.py:1:1: W0511: YES: yes (fixme)\n```\n\n**Expected:**\n```\n************* Module test\ntest.py:1:1: W0511: YES: yes (fixme)\ntest.py:2:1: W0511: ???: no (fixme)\n```\n\n**User stories / acceptance criteria:**\n- As a user, when I list a punctuation-only tag in `--notes`, comments starting with that tag are reported as W0511.\n- As a user, existing alphanumeric tags (defaults and custom) still behave exactly as before. No new false positives or negatives.\n- As a user, mixing alphanumeric and punctuation-only tags in one `--notes` value works for both kinds.\n\n## Assumptions\n\n1. The bug lives in the checker that emits W0511 (`fixme`). The fix should be limited to how note tags are matched against comment text, without changing the message format.\n2. The likely cause is that the matching pattern relies on word boundaries or word-character semantics. Those never match around non-word characters such as `?`. This is a hypothesis only; the code has not been inspected.\n3. Tags from `--notes` are treated as literal strings. Regex metacharacters (`?`, `*`, `+`, `.`, `(`, etc.) must not be interpreted as regex syntax.\n4. The tag must still be \"delimited\" in a sensible way. `# ???: no` matches `???`. Assumed but unconfirmed: `# ????: no` should not match `???`, mirroring how `# YESNO` presumably does not match `YES`.\n5. Matching rules for case-sensitivity and for the text following the tag (colon, space, end of comment) stay the same as for alphanumeric tags today.\n6. Any related option that supplies a note regex (if one exists) is out of scope unless it shares the broken code path.\n7. The expected output's column (`2:1`) matches the existing column convention for line 1. No change to column reporting is intended.\n\n## Tech Stack\n\n- Python (issue reproduced on 3.10.2; the full supported version range is unknown)\n- pylint 2.12.2 (reported version); astroid 2.9.0\n- Test framework: **unknown** (not visible in the issue)\n\n## Commands\n\n- Reproduce: `pylint test.py --notes=\"YES,???\"` (from the issue)\n- Build: **unknown**\n- Test: **unknown**\n- Lint: **unknown**\n\n## Project Structure\n\n**Unknown.** No repository access. These locations need to be identified:\n- the module implementing the `fixme` / W0511 checker and the `--notes` option\n- the existing tests for that checker\n- the functional test fixtures, if the project uses them\n- the changelog / release-notes location\n\n## Code Style\n\n**Unknown.** Follow the conventions of the existing checker module and its tests. No snippet is available from the issue.\n\n## Testing Strategy\n\nThe framework and locations are unknown. The tests must cover:\n- **Regression test (required):** with `notes=[\"YES\", \"???\"]`, both `# YES: yes` and `# ???: no` emit W0511 with the messages shown in Expected.\n- **Literal handling:** tags containing regex metacharacters (e.g. `???`, `.*`, `+++`) are matched literally. They must not raise a regex error and must not over-match.\n- **Mixed tags:** a tag combining letters and punctuation (e.g. `TODO!`) behaves consistently. Its expected semantics are an open question.\n- **No regressions:** existing tests for default tags (e.g. FIXME/XXX/TODO, if those are the defaults) and custom alphanumeric tags still pass unchanged.\n- **Negative cases:** a comment without any configured tag emits nothing. A tag that appears only as a substring of a longer token follows whatever boundary rule is agreed (see Open Questions).\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after.\n  - Escape user-provided tags before using them in any pattern.\n  - Keep the W0511 message text and format unchanged.\n  - Run the full existing test suite.\n- **Ask first:**\n  - Changing matching semantics for alphanumeric tags (boundaries, case-sensitivity).\n  - Changing the `--notes` option's parsing or defaults.\n  - Touching other note-related options.\n  - Adding dependencies.\n- **Never:**\n  - Remove or loosen existing fixme tests to make the change pass.\n  - Interpret `--notes` values as raw regex.\n  - Change unrelated checkers.\n\n## Success Criteria\n\n1. `pylint test.py --notes=\"YES,???\"` on the issue's `test.py` produces exactly the Expected output (two W0511 messages, lines 1 and 2).\n2. Punctuation-only tags containing regex metacharacters never cause an exception and only match the literal tag.\n3. All pre-existing fixme/W0511 tests pass without modification.\n4. A new automated regression test covering the issue's scenario exists and passes.\n5. A changelog entry is added, if the project requires one (location unknown).\n\n## Open Questions\n\n1. **Boundary semantics:** for punctuation-only tags, what counts as the end of the tag?\n   - Should `# ????: x` match tag `???`?\n   - Should `# ???x` match it?\n   - Should alphanumeric tags keep their current boundary behavior exactly?\n2. **Mixed tags** such as `TODO!` or `!TODO`: what is the expected matching rule? Do they currently work?\n3. **Leading context:** must the tag be at the start of the comment (after `#` and whitespace), or can it appear anywhere in the comment? Punctuation-only tags should follow whatever the current rule is.\n4. **Related options:** is there a separate regex-based notes option, and does it share the affected code path?\n5. **Versions:** which Python and pylint versions or branches should receive the fix? Should it be backported to the 2.12.x line?\n6. **Changelog:** where is it and what format does it use?\n7. **Test conventions:** which test commands, and which unit vs. functional test layout, should the regression test use?",
+ "ttft_ms": 2344,
+ "type": "result",
+ "duration_ms": 24501,
+ "uuid": "99bf39d6-6ea1-47ab-8635-f2e177420d99",
+ "ttft_stream_ms": 1373,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 203,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 128,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1373,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

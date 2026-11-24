@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14271,
+ "stop_reason": "end_turn",
+ "session_id": "ac57448a-0738-4b57-ab65-e06be30088fe",
+ "total_cost_usd": 0.045062200000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1400,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1684,
+  "output_tokens_details": {
+   "thinking_tokens": 118
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1400,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1684,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1400,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1400
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1612,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001742,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1684,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1400,
+   "webSearchRequests": 0,
+   "costUSD": 0.044888000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 118,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`astropy.modeling.separable.separability_matrix` returns an incorrect separability matrix when a CompoundModel is nested inside another CompoundModel. For a flat compound model `Pix2Sky_TAN() & Linear1D(10) & Linear1D(5)`, the matrix correctly shows the two `Linear1D` models as separable and independent. When the same two `Linear1D` models are first combined into a compound model `cm` and then combined as `Pix2Sky_TAN() & cm`, the matrix reports the outputs of the two `Linear1D` models as depending on each other's inputs. The reporter considers this a likely bug.\n\n## Steps to reproduce\n\n1. Import the models and the separability function:\n   ```python\n   from astropy.modeling import models as m\n   from astropy.modeling.separable import separability_matrix\n   ```\n2. Create a simple compound model and compute its separability matrix:\n   ```python\n   cm = m.Linear1D(10) & m.Linear1D(5)\n   separability_matrix(cm)\n   ```\n   The result is diagonal, as expected.\n3. Compute the separability matrix of a flat (non-nested) compound model:\n   ```python\n   separability_matrix(m.Pix2Sky_TAN() & m.Linear1D(10) & m.Linear1D(5))\n   ```\n   The result is correct.\n4. Compute the separability matrix of the equivalent nested compound model:\n   ```python\n   separability_matrix(m.Pix2Sky_TAN() & cm)\n   ```\n5. Compare the result of step 4 with the result of step 3.\n\n## Observed behavior\n\nStep 2 (`cm` alone) returns the expected diagonal matrix:\n\n```python\narray([[ True, False],\n       [False,  True]])\n```\n\nStep 3 (flat compound model) returns the expected matrix:\n\n```python\narray([[ True,  True, False, False],\n       [ True,  True, False, False],\n       [False, False,  True, False],\n       [False, False, False,  True]])\n```\n\nStep 4 (nested compound model `m.Pix2Sky_TAN() & cm`) returns:\n\n```python\narray([[ True,  True, False, False],\n       [ True,  True, False, False],\n       [False, False,  True,  True],\n       [False, False,  True,  True]])\n```\n\nThe bottom-right 2\u00d72 block is all `True`. This means the outputs of the two `Linear1D` models are reported as not separable, even though they are separable both in `cm` alone and in the flat model.\n\n## Expected behavior\n\nNesting should not change separability. `separability_matrix(m.Pix2Sky_TAN() & cm)` should return the same matrix as the flat model `m.Pix2Sky_TAN() & m.Linear1D(10) & m.Linear1D(5)`:\n\n```python\narray([[ True,  True, False, False],\n       [ True,  True, False, False],\n       [False, False,  True, False],\n       [False, False, False,  True]])\n```\n\nThe inputs and outputs of the two `Linear1D` models should remain separable and independent of each other.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the function returns an incorrect result.\n\n## Test case\n\nA minimal test derived from the report's snippets:\n\n```python\nimport numpy as np\nfrom astropy.modeling import models as m\nfrom astropy.modeling.separable import separability_matrix\n\n\ndef test_nested_compound_model_separability():\n    cm = m.Linear1D(10) & m.Linear1D(5)\n\n    flat = separability_matrix(m.Pix2Sky_TAN() & m.Linear1D(10) & m.Linear1D(5))\n    nested = separability_matrix(m.Pix2Sky_TAN() & cm)\n\n    expected = np.array([[ True,  True, False, False],\n                         [ True,  True, False, False],\n                         [False, False,  True, False],\n                         [False, False, False,  True]])\n\n    np.testing.assert_array_equal(flat, expected)    # passes per the report\n    np.testing.assert_array_equal(nested, expected)  # fails per the report\n```\n\n## Code example\n\n```python\nfrom astropy.modeling import models as m\nfrom astropy.modeling.separable import separability_matrix\n\ncm = m.Linear1D(10) & m.Linear1D(5)\n\nseparability_matrix(cm)                                              # correct (diagonal)\nseparability_matrix(m.Pix2Sky_TAN() & m.Linear1D(10) & m.Linear1D(5))  # correct\nseparability_matrix(m.Pix2Sky_TAN() & cm)                            # incorrect\n```\n\n## Version and environment\n\nNot provided in the original report. The report does not give an astropy, Python, NumPy or OS version.",
+ "ttft_ms": 2296,
+ "type": "result",
+ "duration_ms": 13764,
+ "uuid": "6d776b87-a76a-4fe5-89e0-99a9e3f2789c",
+ "ttft_stream_ms": 1040,
+ "time_to_request_ms": 282,
+ "time_to_request_phases_ms": {
+  "other": 21,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 19,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 298,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1040,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

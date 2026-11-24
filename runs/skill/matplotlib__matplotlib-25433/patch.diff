@@ -1,0 +1,14 @@
+diff --git a/lib/matplotlib/figure.py b/lib/matplotlib/figure.py
+index d2568fddbf..e1a397b220 100755
+--- a/lib/matplotlib/figure.py
++++ b/lib/matplotlib/figure.py
+@@ -930,6 +930,9 @@ default: %(va)s
+         self._axstack.remove(ax)
+         self._axobservers.process("_axes_change_event", self)
+         self.stale = True
++        canvas = getattr(self, 'canvas', None)
++        if canvas is not None and getattr(canvas, 'mouse_grabber', None) is ax:
++            canvas.release_mouse(ax)
+         self._localaxes.remove(ax)
+ 
+         # Break link between any shared axes

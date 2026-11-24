@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15081,
+ "stop_reason": "end_turn",
+ "session_id": "e3a7b2bf-7918-4477-bb83-443bd5bb2fc9",
+ "total_cost_usd": 0.048602599999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1704,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1738,
+  "output_tokens_details": {
+   "thinking_tokens": 284
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1704,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1738,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1704,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1704
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1911,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020260000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1738,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1704,
+   "webSearchRequests": 0,
+   "costUSD": 0.0484,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 284,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen `rst_prolog` is set in `conf.py`, a document whose first (top-level) heading contains a domain role (e.g. ``:mod:`mypackage2` ``) does not render that heading correctly, and the heading is not included in the toctree. The heading renders correctly if it is plain text (e.g. `mypackage2`) or if `rst_prolog` is not set. The reporter can also reproduce this in Sphinx v4.0.0, so it has been present for some time.\n\n## Steps to reproduce\n\n1. Create a new project:\n   ```bash\n   sphinx-quickstart --no-sep --project mypackage --author me -v 0.1.0 --release 0.1.0 --language en docs\n   ```\n2. Write `docs/index.rst`:\n   ```bash\n   echo -e 'Welcome\\n=======\\n\\n.. toctree::\\n\\n   mypackage\\n' > docs/index.rst\n   ```\n3. Write `docs/mypackage.rst`, whose top-level heading uses the `:mod:` role:\n   ```bash\n   echo -e ':mod:`mypackage2`\\n=================\\n\\nContent\\n\\nSubheading\\n----------\\n' > docs/mypackage.rst\n   ```\n4. Add an `rst_prolog` to `docs/conf.py`:\n   ```bash\n   echo -e 'rst_prolog = \"\"\"\\n.. |psf| replace:: Python Software Foundation\\n\"\"\"\\n' >> docs/conf.py\n   ```\n5. Build the HTML output:\n   ```bash\n   sphinx-build -b html . _build\n   ```\n6. Check whether the heading appears in the generated index page:\n   ```bash\n   grep 'mypackage2' docs/_build/index.html\n   ```\n\nNote: The commands are given exactly as in the original report. The build command in step 5 uses `.` and `_build`, while step 6 reads `docs/_build/index.html`. This implies that the build is run from inside `docs/`.\n\n## Observed behavior\n\n- The top-level heading ``:mod:`mypackage2` `` in `mypackage.rst` does not render correctly.\n- The heading is not included in the toctree. `grep 'mypackage2'` on the built `index.html` does not find it.\n\n## Expected behavior\n\nThe heading ``:mod:`mypackage2` `` should render correctly and appear in the toctree of `index.html`. This is what happens when:\n- the heading is plain text (`mypackage2` instead of ``:mod:`mypackage2` ``), or\n- `rst_prolog` is not set.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nA minimal test case derived from the reproduction:\n\n- `conf.py`:\n  ```python\n  rst_prolog = \"\"\"\n  .. |psf| replace:: Python Software Foundation\n  \"\"\"\n  ```\n- `index.rst`:\n  ```rst\n  Welcome\n  =======\n\n  .. toctree::\n\n     mypackage\n  ```\n- `mypackage.rst`:\n  ```rst\n  :mod:`mypackage2`\n  =================\n\n  Content\n\n  Subheading\n  ----------\n  ```\n- Build with the `html` builder and check that `_build/index.html` contains `mypackage2`.\n  - **Expected:** the string is present.\n  - **Currently:** the string is absent.\n\n## Code example\n\n`docs/index.rst`:\n\n```rst\nWelcome\n=======\n\n.. toctree::\n\n   mypackage\n```\n\n`docs/mypackage.rst`:\n\n```rst\n:mod:`mypackage2`\n=================\n\nContent\n\nSubheading\n----------\n```\n\nAddition to `docs/conf.py`:\n\n```python\nrst_prolog = \"\"\"\n.. |psf| replace:: Python Software Foundation\n\"\"\"\n```\n\n## Version and environment\n\n```text\nPlatform:              linux; (Linux-6.3.2-arch1-1-x86_64-with-glibc2.37)\nPython version:        3.11.3 (main, Apr  5 2023, 15:52:25) [GCC 12.2.1 20230201])\nPython implementation: CPython\nSphinx version:        7.1.0+/d3c91f951\nDocutils version:      0.20.1\nJinja2 version:        3.1.2\nPygments version:      2.15.1\n```\n\n- Sphinx extensions: none (`[]`)\n- Also reproducible in Sphinx v4.0.0, according to the reporter.",
+ "ttft_ms": 4294,
+ "type": "result",
+ "duration_ms": 14546,
+ "uuid": "40c40c0f-308f-473f-8221-90c4f9022ea0",
+ "ttft_stream_ms": 1377,
+ "time_to_request_ms": 271,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 7,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 217,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 38,
+ "time_to_request_cpu_ms": 245,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1377,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

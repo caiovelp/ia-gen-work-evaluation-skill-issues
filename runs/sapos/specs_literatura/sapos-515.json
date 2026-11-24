@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 7146,
+ "stop_reason": "end_turn",
+ "session_id": "7602dcb3-ca16-450f-8cb8-a0895ea09ea5",
+ "total_cost_usd": 0.023949300000000003,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1239,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 694,
+  "output_tokens_details": {
+   "thinking_tokens": 173
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1239,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 694,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1239,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1239
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1383,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001493,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 694,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1239,
+   "webSearchRequests": 0,
+   "costUSD": 0.0238,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 173,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1239,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\n\nAo avaliar condi\u00e7\u00f5es com `form_condition`, os valores de campos de consolida\u00e7\u00e3o s\u00e3o tratados como string em vez de n\u00famero. Por isso, compara\u00e7\u00f5es num\u00e9ricas retornam resultados incorretos.\n\n## Passos para reproduzir\n\n1. Crie um campo de consolida\u00e7\u00e3o que calcule a \"Nota final\" e que, para os dados informados, resulte no valor `10`.\n2. Defina um `form_condition` com a condi\u00e7\u00e3o `Nota final > 6`.\n3. Fa\u00e7a o sistema avaliar a condi\u00e7\u00e3o.\n\n## Comportamento observado\n\nO sistema compara os valores como strings (`\"10\" > \"6\"`). A condi\u00e7\u00e3o retorna **falso**.\n\n## Comportamento esperado\n\nO valor da consolida\u00e7\u00e3o deve ser tratado como n\u00famero (`10 > 6`). A condi\u00e7\u00e3o deve retornar **verdadeiro**.\n\n## Stack trace / sa\u00edda de erro\n\nN\u00e3o informado na issue original.\n\n## Caso de teste\n\nCaso de teste m\u00ednimo derivado do exemplo da issue:\n\n- **Dado** um campo de consolida\u00e7\u00e3o \"Nota final\" cujo valor calculado \u00e9 `10`\n- **E** um `form_condition` com a condi\u00e7\u00e3o `Nota final > 6`\n- **Quando** a condi\u00e7\u00e3o \u00e9 avaliada\n- **Ent\u00e3o** o resultado deve ser verdadeiro (atualmente \u00e9 falso)\n\n## Exemplo de c\u00f3digo\n\nCondi\u00e7\u00e3o usada no exemplo da issue:\n\n```\nNota final > 6\n```\n\nCompara\u00e7\u00e3o efetivamente realizada pelo sistema, segundo a issue:\n\n```\n\"10\" > \"6\"\n```\n\n## Vers\u00e3o e ambiente\n\nN\u00e3o informado na issue original.",
+ "ttft_ms": 2666,
+ "type": "result",
+ "duration_ms": 6874,
+ "uuid": "a9df9dee-717b-4a38-af01-36bfdc9a648d",
+ "ttft_stream_ms": 887,
+ "time_to_request_ms": 386,
+ "time_to_request_phases_ms": {
+  "other": 6,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 15,
+  "input_hooks": 4,
+  "conversation_append": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "init_frame_send": 6,
+  "engine_pickup": 3,
+  "loop_entry": 6,
+  "message_prep": 1,
+  "model_config_wait": 298,
+  "autocompact": 3,
+  "request_announcements": 8,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 442,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 19,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 4,
+  "render_ms": 2,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 1,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 1,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 1,
+  "cache_break_record_ms": 1,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 1
+ },
+ "first_content_frame_ms": 888,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13335,
+ "stop_reason": "end_turn",
+ "session_id": "4be9fcbd-4d8e-43e2-b5fe-76c3c200bb28",
+ "total_cost_usd": 0.0375813,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1320,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1337,
+  "output_tokens_details": {
+   "thinking_tokens": 202
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1320,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1337,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1320,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1320
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1528,
+   "outputTokens": 241,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00027330000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 214,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1337,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1320,
+   "webSearchRequests": 0,
+   "costUSD": 0.037308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 202,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`sympify(...).simplify()` on an expression containing `ceiling` gives different results depending on whether `sympify` is called with `evaluate=False` or `evaluate=True`. In SymPy 1.5.1 both calls return `4*ceiling(x/4 - 3/4)`. In SymPy 1.6.2, the `evaluate=False` call returns `4*ceiling(x/4) - 3`, while the `evaluate=True` call still returns `4*ceiling(x/4 - 3/4)`.\n\n## Steps to reproduce\n\n1. Install SymPy 1.6.2.\n2. In a Python/IPython session, run `sympy.sympify('4*ceiling(x/4 - 3/4)', evaluate=False).simplify()`.\n3. Run `sympy.sympify('4*ceiling(x/4 - 3/4)', evaluate=True).simplify()`.\n4. Compare the two results.\n5. Optionally, repeat steps 2\u20134 with SymPy 1.5.1, where both results are the same.\n\n## Observed behavior\n\nIn SymPy 1.6.2:\n- With `evaluate=False`: `4*ceiling(x/4) - 3`\n- With `evaluate=True`: `4*ceiling(x/4 - 3/4)`\n\nThe two results differ.\n\nIn SymPy 1.5.1, both calls return `4*ceiling(x/4 - 3/4)`.\n\n## Expected behavior\n\n`simplify()` should return the same result whether the expression was parsed with `evaluate=False` or `evaluate=True`. In SymPy 1.5.1, both calls returned `4*ceiling(x/4 - 3/4)`.\n\nThe reporter asks whether there is a way to keep the behavior consistent when `evaluate=False` is used during parsing.\n\n## Stack trace / error output\n\nNo exception is raised. The output from the report, for SymPy 1.6.2:\n\n```\nIn [16]: sympy.sympify('4*ceiling(x/4 - 3/4)', evaluate=False).simplify()\nOut[16]: 4*ceiling(x/4) - 3\n\nIn [17]: sympy.sympify('4*ceiling(x/4 - 3/4)', evaluate=True).simplify()\nOut[17]: 4*ceiling(x/4 - 3/4)\n```\n\n## Test case\n\nThis test is built from the snippet in the report. It fails on SymPy 1.6.2 and passes on SymPy 1.5.1, based on the outputs shown in the report.\n\n```python\nimport sympy\n\ndef test_sympify_simplify_ceiling_consistent_with_evaluate():\n    s = '4*ceiling(x/4 - 3/4)'\n    unevaluated = sympy.sympify(s, evaluate=False).simplify()\n    evaluated = sympy.sympify(s, evaluate=True).simplify()\n    assert unevaluated == evaluated\n```\n\n## Code example\n\n```python\nimport sympy\n\nsympy.sympify('4*ceiling(x/4 - 3/4)', evaluate=False).simplify()\nsympy.sympify('4*ceiling(x/4 - 3/4)', evaluate=True).simplify()\n```\n\n## Version and environment\n\n- SymPy 1.6.2: the results are inconsistent.\n- SymPy 1.5.1: the results are consistent.\n- The report was run in an IPython session.\n- The Python version and operating system are not provided in the original report.",
+ "ttft_ms": 3484,
+ "type": "result",
+ "duration_ms": 11778,
+ "uuid": "c932ba24-da23-4157-90ab-c483d2c9a403",
+ "ttft_stream_ms": 1322,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 37,
+ "time_to_request_cpu_ms": 247,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1322,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

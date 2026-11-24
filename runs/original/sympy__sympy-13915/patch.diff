@@ -1,0 +1,17 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index d4ca323e0..ef64ce602 100755
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1009,6 +1009,12 @@ def fallback(self, old, new):
+                     args[i] = arg
+             if hit:
+                 rv = self.func(*args)
++                if (self.is_Mul or self.is_Pow) and not rv.has(
++                        S.NaN, S.ComplexInfinity) and any(
++                        a.has(S.NaN, S.ComplexInfinity) for a in args):
++                    # an undefined subexpression (e.g. zoo/zoo) must not
++                    # be silently cancelled
++                    return S.NaN
+                 hack2 = hints.get('hack2', False)
+                 if hack2 and self.is_Mul and not rv.is_Mul:  # 2-arg hack
+                     coeff = S.One

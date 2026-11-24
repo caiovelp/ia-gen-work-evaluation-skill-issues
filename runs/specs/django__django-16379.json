@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29779,
+ "stop_reason": "end_turn",
+ "session_id": "7b3ad479-5b14-44d3-956c-84904d45d244",
+ "total_cost_usd": 0.0672127,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 999,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2909,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 999,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2909,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 999,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 999
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1589,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001699,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2909,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 999,
+   "webSearchRequests": 0,
+   "costUSD": 0.0670428,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: FileBasedCache `has_key` Race-Condition Fix\n\n## Objective\n\n`django.core.cache.backends.filebased.FileBasedCache.has_key()` checks `os.path.exists(fname)` and then calls `open(fname, \"rb\")`. This is a time-of-check/time-of-use (TOCTOU) race. Another thread or process can delete the cache file between the two calls. Deletion can come from:\n\n- the `_is_expired()` method of a concurrent reader, which deletes expired files;\n- `delete()`;\n- culling;\n- `clear()`.\n\nWhen the race hits, `has_key()` raises `FileNotFoundError` instead of returning `False`. The error also reaches callers built on `has_key()`, such as `add()` and therefore `get_or_set()`.\n\nThe reported traceback is:\n\n```\nFile \"django/core/cache/backends/base.py\", line 229, in get_or_set\n    self.add(key, default, timeout=timeout, version=version)\nFile \"django/core/cache/backends/filebased.py\", line 26, in add\n    if self.has_key(key, version):\nFile \"django/core/cache/backends/filebased.py\", line 94, in has_key\n    with open(fname, \"rb\") as f:\nFileNotFoundError: [Errno 2] No such file or directory: '/app/var/cache/<hash>.djcache'\n```\n\nThe race is most likely when many threads or processes read the same expired key at once.\n\n**Users:** Django applications that use the file-based cache backend under concurrency, such as multi-threaded or multi-process WSGI/ASGI servers.\n\n**Desired behavior:**\n\n- If the cache file disappears at any point before or during the check, `has_key()` returns `False`.\n- `has_key()` never raises `FileNotFoundError` in this situation.\n- Callers like `add()` and `get_or_set()` keep working normally and see a \"key absent\" outcome.\n\n### User stories / acceptance criteria\n\n- As a developer using `FileBasedCache` under concurrent load, I want `cache.has_key(k)` to return `False` instead of raising when the entry file is deleted concurrently.\n- As a developer calling `cache.get_or_set(k, default)` on an expired key from many threads, I want no `FileNotFoundError` to surface.\n- Existing semantics stay the same:\n  - `has_key()` returns `True` for a present, non-expired entry.\n  - `has_key()` returns `False` for a missing or expired entry.\n  - Expired entries are still deleted when they are detected.\n\n## Assumptions\n\n1. The fix lives in `django/core/cache/backends/filebased.py`, the path shown in the traceback. Exact line numbers in the current codebase are unknown and may differ from the report.\n2. The desired semantics follow the pattern other `FileBasedCache` read paths are assumed to use: attempt `open()` directly and treat `FileNotFoundError` as \"key not present\". This is not verified because the repository is not visible.\n3. Only `FileNotFoundError` gets the \"key absent\" treatment. Other `OSError`s keep propagating as they do today:\n   - `PermissionError`;\n   - `IsADirectoryError`;\n   - disk/I/O errors.\n4. `_is_expired()` behavior (reads the expiry and deletes the file if it has expired) is out of scope. Its own deletion step is assumed to already tolerate a missing file. If not, that is an open question (see below).\n5. The public API stays unchanged: signature `has_key(self, key, version=None)` and a boolean return value.\n6. No new dependencies, no settings changes, and no change to the on-disk cache format.\n7. A deterministic test is preferred over a real multi-threaded stress test. One way is to simulate deletion between the existence check and `open()`, for example by mocking `os.path.exists` or `open`.\n\n## Tech Stack\n\n- Python, within the Django codebase. Supported Python and Django versions: **unknown** (not stated in the issue).\n- Component: Django cache framework, `FileBasedCache` backend (`django/core/cache/backends/filebased.py`), with `django/core/cache/backends/base.py` (`get_or_set`) as an indirect caller.\n\n## Commands\n\nThe issue does not provide these, and they cannot be confirmed without repository access.\n\n```\nBuild: unknown (pure-Python change; likely none required)\nTest:  unknown \u2014 Django's test runner invocation for the cache test suite must be confirmed\nLint:  unknown \u2014 project linters/formatters must be confirmed\nDev:   not applicable\n```\n\n## Project Structure\n\nOnly these paths are known, from the traceback:\n\n```\ndjango/core/cache/backends/filebased.py \u2192 FileBasedCache (has_key, add, _is_expired)\ndjango/core/cache/backends/base.py      \u2192 BaseCache (get_or_set \u2192 add)\n```\n\nThe location of the cache backend tests is **unknown**, though a cache test module presumably exists. Release notes and docs locations are also **unknown**.\n\n## Code Style\n\nUse the existing style of `filebased.py`. The only verbatim snippet available is the current (buggy) code from the issue:\n\n```python\ndef has_key(self, key, version=None):\n    fname = self._key_to_file(key, version)\n    if os.path.exists(fname):\n        with open(fname, \"rb\") as f:\n            return not self._is_expired(f)\n    return False\n```\n\nConventions to follow:\n\n- Keep the method small.\n- Use context managers for file handles.\n- Catch the narrowest exception possible.\n- Match naming and formatting of neighboring methods. The formatter and line-length rules are unknown and must be confirmed.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The exact runner command and test module are unknown.\n- **Regression test (required):** a unit test that deterministically reproduces the race. The file must exist at the check and be gone at `open()`. Example approach: create the cache entry, then patch so the file is removed just before opening. The test asserts that `has_key()` returns `False` and does not raise.\n- **Caller-level test (recommended):** with the same simulated race, `add()` (and so `get_or_set()`) completes without raising `FileNotFoundError`.\n- **Existing behavior tests:** the existing cache test suite for the file-based backend must still pass, covering:\n  - a present key returns `True`;\n  - a missing key returns `False`;\n  - an expired key returns `False` and its file is removed.\n- **Non-goal:** no flaky timing-based multi-threaded stress tests in the suite.\n\n## Boundaries\n\n**Always:**\n\n- Keep `has_key()`'s public signature and boolean contract.\n- Catch only `FileNotFoundError` for the \"absent\" path.\n- Add a regression test that fails before the fix and passes after it.\n- Run the full file-based cache test suite before submitting.\n\n**Ask first:**\n\n- Changing `_is_expired()`, `delete()`, culling, or `clear()` behavior.\n- Broadening exception handling to `OSError`.\n- Adding file locking.\n- Adding a release note or backporting to stable branches.\n- Refactoring other `FileBasedCache` methods that may share the exists-then-open pattern.\n\n**Never:**\n\n- Swallow unrelated exceptions such as permission or I/O errors.\n- Change the on-disk cache format.\n- Add dependencies.\n- Introduce timing-dependent or flaky tests.\n- Remove or weaken existing tests.\n\n## Success Criteria\n\n1. When the cache file is removed between the existence check and the open, or at any point before the open, `FileBasedCache.has_key()` returns `False` and raises no exception.\n2. `add()` and `get_or_set()` do not raise `FileNotFoundError` under the same simulated race.\n3. For present, missing, and expired entries, `has_key()` returns the same results as before the change. Expired entries are still removed.\n4. A new deterministic regression test covers the race and passes. The full existing cache test suite passes.\n5. Exceptions other than `FileNotFoundError` from `open()` still propagate unchanged.\n\n## Open Questions\n\n1. Do other `FileBasedCache` methods have the same exists-then-open TOCTOU pattern, and should they be fixed in this change or tracked separately? Candidates include `get`, `touch`, and `_is_expired`'s own delete step.\n2. Does `_is_expired()` (or `_delete()`) already tolerate the file being deleted by another thread during its own removal step? If not, is that in scope?\n3. Should the fix be backported to supported stable branches? Does it need a release note?\n4. What are the exact test command, test module location, and lint/format tooling for this repository?\n5. Which Django and Python versions does this fix target? The report's line numbers (e.g. `base.py` line 229) may not match the current main branch.",
+ "ttft_ms": 29411,
+ "type": "result",
+ "duration_ms": 29446,
+ "uuid": "fd36371b-5902-4f33-b0f6-e91a492e4771",
+ "ttft_stream_ms": 2263,
+ "time_to_request_ms": 532,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 490,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 196,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2265,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

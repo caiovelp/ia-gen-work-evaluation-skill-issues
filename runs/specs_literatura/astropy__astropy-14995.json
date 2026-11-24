@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21538,
+ "stop_reason": "end_turn",
+ "session_id": "6c589272-7ad9-4d2c-9ac8-f882b94abe55",
+ "total_cost_usd": 0.069331,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2048,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2635,
+  "output_tokens_details": {
+   "thinking_tokens": 199
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2048,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2635,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2048,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2048
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2255,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000239,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2635,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2048,
+   "webSearchRequests": 0,
+   "costUSD": 0.069092,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 199,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn astropy v5.3, `NDDataRef` arithmetic with `handle_mask=np.bitwise_or` raises a `TypeError` when one operand has a mask and the other does not. This happens whether the unmasked operand is a scalar constant or an `NDDataRef` without a mask. The same operations work without error in v5.2, so this is a regression.\n\nThe reporter suspects, from the error message, that the operand without a mask is treated as a mask of `None` values. `np.bitwise_or` then tries to combine an `int` with `None` and fails.\n\n## Steps to reproduce\n\n1. Install astropy v5.3.\n2. Create a data array and an integer bitmask:\n   ```python\n   import numpy as np\n   from astropy.nddata import NDDataRef\n\n   array = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])\n   mask = np.array([[0, 1, 64], [8, 0, 1], [2, 1, 0]])\n   ```\n3. Create one `NDDataRef` without a mask and one with a mask:\n   ```python\n   nref_nomask = NDDataRef(array)\n   nref_mask = NDDataRef(array, mask=mask)\n   ```\n4. Multiply the masked `NDDataRef` by a constant, using `handle_mask=np.bitwise_or`:\n   ```python\n   nref_mask.multiply(1., handle_mask=np.bitwise_or).mask\n   ```\n5. Multiply the masked `NDDataRef` by the unmasked one, using `handle_mask=np.bitwise_or`:\n   ```python\n   nref_mask.multiply(nref_nomask, handle_mask=np.bitwise_or).mask\n   ```\n\n## Observed behavior\n\nThe results of each combination in v5.3:\n\n| Operation | Operands | Result |\n|---|---|---|\n| `nref_nomask.multiply(1., handle_mask=np.bitwise_or)` | no mask \u00d7 constant | No mask returned (OK) |\n| `nref_nomask.multiply(nref_nomask, handle_mask=np.bitwise_or)` | no mask \u00d7 no mask | No mask returned (OK) |\n| `nref_mask.multiply(nref_mask, handle_mask=np.bitwise_or)` | mask \u00d7 mask | Returns the mask as expected (OK) |\n| `nref_mask.multiply(1., handle_mask=np.bitwise_or)` | mask \u00d7 constant | **`TypeError`** |\n| `nref_mask.multiply(nref_nomask, handle_mask=np.bitwise_or)` | mask \u00d7 no mask | **`TypeError`** |\n\nIn v5.2, none of these operations raise an error.\n\n## Expected behavior\n\nWhen only one operand has a mask, the existing mask should be copied to the output, as in v5.2. For both failing cases, the expected resulting mask is:\n\n```\narray([[ 0,  1, 64],\n       [ 8,  0,  1],\n       [ 2,  1,  0]])\n```\n\n## Stack trace / error output\n\nThe full traceback was not included in the original report (it was elided with `...`). Both failing cases end with this error:\n\n```\nTypeError: unsupported operand type(s) for |: 'int' and 'NoneType'\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction in the report. It passes on v5.2 and fails on v5.3, according to the report.\n\n```python\nimport numpy as np\nfrom astropy.nddata import NDDataRef\n\n\ndef test_bitwise_or_mask_propagation_with_one_unmasked_operand():\n    array = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])\n    mask = np.array([[0, 1, 64], [8, 0, 1], [2, 1, 0]])\n\n    nref_nomask = NDDataRef(array)\n    nref_mask = NDDataRef(array, mask=mask)\n\n    # no mask * constant -> no mask (works in v5.3)\n    assert nref_nomask.multiply(1., handle_mask=np.bitwise_or).mask is None\n\n    # no mask * no mask -> no mask (works in v5.3)\n    assert nref_nomask.multiply(nref_nomask, handle_mask=np.bitwise_or).mask is None\n\n    # mask * mask -> mask (works in v5.3)\n    np.testing.assert_array_equal(\n        nref_mask.multiply(nref_mask, handle_mask=np.bitwise_or).mask, mask\n    )\n\n    # mask * constant -> existing mask copied (raises TypeError in v5.3)\n    np.testing.assert_array_equal(\n        nref_mask.multiply(1., handle_mask=np.bitwise_or).mask, mask\n    )\n\n    # mask * no mask -> existing mask copied (raises TypeError in v5.3)\n    np.testing.assert_array_equal(\n        nref_mask.multiply(nref_nomask, handle_mask=np.bitwise_or).mask, mask\n    )\n```\n\n## Code example\n\nThe original interactive session from the report:\n\n```python\n>>> import numpy as np\n>>> from astropy.nddata import NDDataRef\n\n>>> array = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 0]])\n>>> mask = np.array([[0, 1, 64], [8, 0, 1], [2, 1, 0]])\n\n>>> nref_nomask = NDDataRef(array)\n>>> nref_mask = NDDataRef(array, mask=mask)\n\n# multiply no mask by constant (no mask * no mask)\n>>> nref_nomask.multiply(1., handle_mask=np.bitwise_or).mask   # returns nothing, no mask,  OK\n\n# multiply no mask by itself (no mask * no mask)\n>>> nref_nomask.multiply(nref_nomask, handle_mask=np.bitwise_or).mask # return nothing, no mask, OK\n\n# multiply mask by constant (mask * no mask)\n>>> nref_mask.multiply(1., handle_mask=np.bitwise_or).mask\n...\nTypeError: unsupported operand type(s) for |: 'int' and 'NoneType'\n\n# multiply mask by itself (mask * mask)\n>>> nref_mask.multiply(nref_mask, handle_mask=np.bitwise_or).mask\narray([[ 0,  1, 64],\n       [ 8,  0,  1],\n       [ 2,  1,  0]])\n\n# multiply mask by no mask (mask * no mask)\n>>> nref_mask.multiply(nref_nomask, handle_mask=np.bitwise_or).mask\n...\nTypeError: unsupported operand type(s) for |: 'int' and 'NoneType'\n```\n\n## Version and environment\n\n- **astropy:** 5.3 (affected); 5.2 reported as not affected\n- **Python:** 3.10.11 | packaged by conda-forge | (main, May 10 2023, 19:07:22) [Clang 14.0.6]\n- **NumPy:** 1.24.3\n- **pyerfa:** 2.0.0.3\n- **SciPy:** 1.10.1\n- **Matplotlib:** 3.7.1\n- **Operating system:** Not provided in the original report (the compiler string suggests a conda-forge build using Clang).",
+ "ttft_ms": 3887,
+ "type": "result",
+ "duration_ms": 20977,
+ "uuid": "5a44b8c1-cdca-4565-b347-55ac01dd314a",
+ "ttft_stream_ms": 1842,
+ "time_to_request_ms": 308,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 15,
+  "input_hooks": 5,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 234,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 15,
+ "time_to_request_cpu_ms": 319,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 10,
+  "cpu_ms": 29,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1842,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

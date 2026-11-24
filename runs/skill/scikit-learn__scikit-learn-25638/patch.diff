@@ -1,0 +1,22 @@
+diff --git a/sklearn/utils/multiclass.py b/sklearn/utils/multiclass.py
+index 5eaef2fde..35169bdba 100755
+--- a/sklearn/utils/multiclass.py
++++ b/sklearn/utils/multiclass.py
+@@ -295,6 +295,17 @@ def type_of_target(y, input_name=""):
+     if sparse_pandas:
+         raise ValueError("y cannot be class 'SparseSeries' or 'SparseArray'")
+ 
++    # Nullable pandas dtypes become object arrays; convert to numpy equivalents
++    pd_dtype = getattr(y, "dtype", None)
++    if (
++        hasattr(y, "iloc")
++        and getattr(pd_dtype, "name", None) in ("Int64", "Float64", "boolean")
++        and not y.isna().any()
++    ):
++        y = y.to_numpy(dtype={"Int64": "int64", "Float64": "float64"}.get(
++            pd_dtype.name, "bool"
++        ))
++
+     if is_multilabel(y):
+         return "multilabel-indicator"
+ 

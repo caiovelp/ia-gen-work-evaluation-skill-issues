@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 6091,
+ "stop_reason": "end_turn",
+ "session_id": "5559b1ac-3e48-4b67-b607-a28d02ba4fbe",
+ "total_cost_usd": 0.018666799999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1171,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 457,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1171,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 457,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1171,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1171
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1403,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001508,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 457,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1171,
+   "webSearchRequests": 0,
+   "costUSD": 0.018515999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAllow lists of hook functions as values in the `hooks` argument of `Request`\n\n## Description\nThe `Request` class has a `.register_hook()` method, but the dictionary passed through its `hooks` argument is parsed in a way that allows only one hook function per hook.\n\nIf a list of hook functions is passed for a hook, the code in `Request.__init__()` wraps that list in another list. This fails when the hooks are consumed, because a list is not callable.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\n- The current behavior prevents using multiple hooks from a session, which the reporter calls especially annoying.\n- Right now, the only way to register multiple hooks for a single hook is a workaround:\n  1. Create the request object without sending it.\n  2. Call `.register_hook()` multiple times.\n  3. Call `.send()`.\n- Accepting lists directly in the `hooks` argument would make this much easier.\n\n## Use case or scenario\nA user wants to attach several hook functions to the same hook. They want to do this either from a session or by passing them directly to the `Request` constructor as a list in the `hooks` dictionary. Currently this fails because the list is wrapped in another list and is not callable.\n\n## Possible solution\nChange how `Request.__init__()` parses the `hooks` parameter so that it accepts lists of hook functions as dictionary values, in addition to single hook functions.",
+ "ttft_ms": 5362,
+ "type": "result",
+ "duration_ms": 5373,
+ "uuid": "de0336d6-4220-4388-9d3f-dd1f63535b20",
+ "ttft_stream_ms": 1451,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 12,
+  "input_attachments": 10,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 192,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 178,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 41,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1452,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

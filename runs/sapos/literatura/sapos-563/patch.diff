@@ -1,0 +1,12 @@
+diff --git a/app/controllers/dismissals_controller.rb b/app/controllers/dismissals_controller.rb
+index 88c29235..5e7e1883 100644
+--- a/app/controllers/dismissals_controller.rb
++++ b/app/controllers/dismissals_controller.rb
+@@ -17,6 +17,7 @@ class DismissalsController < ApplicationController
+     config.columns[:enrollment_level].search_sql = "enrollments.level"
+ 
+     config.list.columns = [:enrollment, :dismissal_reason, :date, :obs]
++    config.show.columns = [:enrollment, :date, :dismissal_reason, :obs]
+     config.create.label = :create_dismissal_label
+     config.columns[:dismissal_reason].form_ui = :select
+     config.columns[:enrollment].form_ui = :record_select

@@ -1,0 +1,30 @@
+diff --git a/sympy/functions/elementary/complexes.py b/sympy/functions/elementary/complexes.py
+index 66a96335eb..9d1049158e 100755
+--- a/sympy/functions/elementary/complexes.py
++++ b/sympy/functions/elementary/complexes.py
+@@ -607,6 +607,9 @@ def eval(cls, arg):
+             arg2 = -S.ImaginaryUnit * arg
+             if arg2.is_extended_nonnegative:
+                 return arg2
++        if arg.is_extended_real:
++            # sign unknown; sqrt(arg**2) would recurse back into Abs
++            return
+         # reject result if all new conjugates are just wrappers around
+         # an expression that was already in the arg
+         conj = signsimp(arg.conjugate(), evaluate=False)
+diff --git a/sympy/functions/elementary/hyperbolic.py b/sympy/functions/elementary/hyperbolic.py
+index 892e19cabb..f5694744e2 100755
+--- a/sympy/functions/elementary/hyperbolic.py
++++ b/sympy/functions/elementary/hyperbolic.py
+@@ -437,6 +437,11 @@ def _eval_is_real(self):
+         re, im = arg.as_real_imag()
+         return (im%pi).is_zero
+ 
++    def _eval_is_zero(self):
++        arg = self.args[0]
++        if arg.is_zero:
++            return False
++
+     def _eval_is_positive(self):
+         # cosh(x+I*y) = cos(y)*cosh(x) + I*sin(y)*sinh(x)
+         # cosh(z) is positive iff it is real and the real part is positive.

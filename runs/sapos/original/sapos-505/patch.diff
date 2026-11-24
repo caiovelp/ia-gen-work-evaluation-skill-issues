@@ -1,0 +1,283 @@
+diff --git a/app/controllers/articles_controller.rb b/app/controllers/articles_controller.rb
+new file mode 100644
+index 00000000..0fa0b992
+--- /dev/null
++++ b/app/controllers/articles_controller.rb
+@@ -0,0 +1,30 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class ArticlesController < ApplicationController
++  authorize_resource
++
++  active_scaffold :article do |config|
++    config.create.label = :create_article_label
++    config.columns = [:title, :journal, :year, :qualis, :issn, :doi, :authors, :professor]
++    config.actions.swap :search, :field_search
++    config.columns[:professor].form_ui = :record_select
++    config.columns[:qualis].form_ui = :select
++    config.columns[:qualis].options = {
++      options: Article::QUALIS,
++      include_blank: I18n.t("active_scaffold._select_")
++    }
++    config.columns[:year].options[:format] = "%d"
++    config.actions.exclude :deleted_records
++  end
++
++  protected
++  def do_new
++    super
++    unless current_user.professor.blank?
++      @record.professor = current_user.professor
++    end
++  end
++end
+diff --git a/app/helpers/articles_helper.rb b/app/helpers/articles_helper.rb
+new file mode 100644
+index 00000000..ec73a058
+--- /dev/null
++++ b/app/helpers/articles_helper.rb
+@@ -0,0 +1,17 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++module ArticlesHelper
++  def professor_form_column(record, options)
++    if can?(:edit_professor, record)
++      record_select_field :professor, record.professor || Professor.new, options
++    else
++      options[:value] = record.professor_id
++      label(
++        :record_value_1_params, record.id, record.professor.name
++      ) + hidden_field(:record, :professor, options)
++    end
++  end
++end
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index 95d66b3c..3cc016ac 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -16,7 +16,7 @@ class Ability
+   PROFESSOR_MODELS = [
+     Professor, Advisement, AdvisementAuthorization,
+     ThesisDefenseCommitteeParticipation,
+-    ProfessorResearchArea, Grant
++    ProfessorResearchArea, Grant, Article
+   ]
+ 
+   SCHOLARSHIP_MODELS = [
+@@ -146,6 +146,9 @@ class Ability
+     if roles[Role::ROLE_PROFESSOR]
+       can :read, Ability::PROFESSOR_MODELS
+       cannot :edit_professor, Grant
++      cannot :edit_professor, Article
++      can :create, Article
++      can :update, Article, professor: user.professor
+       can :create, Grant
+       can :update, Grant, professor: user.professor
+     end
+diff --git a/app/models/article.rb b/app/models/article.rb
+new file mode 100644
+index 00000000..ccdbb865
+--- /dev/null
++++ b/app/models/article.rb
+@@ -0,0 +1,37 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class Article < ApplicationRecord
++  has_paper_trail
++  belongs_to :professor, optional: false
++
++  QUALIS = ["A1", "A2", "A3", "A4", "B1", "B2", "B3", "B4"]
++
++  validates :title, presence: true
++  validates :journal, presence: true
++  validates :year, presence: true, numericality: { only_integer: true }
++  validates :qualis, presence: true, inclusion: { in: QUALIS }
++  validates :professor, presence: true
++  validate :that_professor_cannot_edit_other_articles, if: -> { cannot?(:edit_professor, self) }
++
++  def that_professor_cannot_edit_other_articles
++    current_professor = current_user&.professor
++    return if current_professor.nil?
++    if self.changes[:professor_id].present? && self.changes[:professor_id] != [nil, current_professor.id]
++      self.errors.add(:professor, :cannot_edit_other_articles)
++    end
++  end
++
++  def to_label
++    "[#{self.year}] #{self.title}"
++  end
++
++  private
++    delegate :can?, :cannot?, to: :ability
++
++    def ability
++      @ability ||= Ability.new(current_user)
++    end
++end
+diff --git a/config/locales/article.pt-BR.yml b/config/locales/article.pt-BR.yml
+new file mode 100644
+index 00000000..b180ef24
+--- /dev/null
++++ b/config/locales/article.pt-BR.yml
+@@ -0,0 +1,26 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++pt-BR:
++  activerecord:
++    attributes:
++      article:
++        title: "Título"
++        journal: "Periódico"
++        year: "Ano"
++        qualis: "Qualis"
++        issn: "ISSN"
++        doi: "DOI"
++        authors: "Autores"
++        professor: "Docente"
++    errors:
++      models:
++        article:
++          cannot_edit_other_articles: "não pode ser editado por este usuário"
++    models:
++      article:
++        one: "Artigo"
++        other: "Artigos"
++
++  active_scaffold:
++    create_article_label: "Adicionar Artigo"
+diff --git a/config/locales/navigation.pt-BR.yml b/config/locales/navigation.pt-BR.yml
+index a8809e2c..4e70efc0 100644
+--- a/config/locales/navigation.pt-BR.yml
++++ b/config/locales/navigation.pt-BR.yml
+@@ -22,6 +22,7 @@ pt-BR:
+       advisement_authorization: Credenciamentos
+       thesis_defense_committee_participation: Bancas
+       grant: Coordenações de Projetos
++      article: Artigos
+ 
+     scholarships:
+       label: Bolsas
+diff --git a/config/navigation.rb b/config/navigation.rb
+index 640a3206..ff5c0116 100644
+--- a/config/navigation.rb
++++ b/config/navigation.rb
+@@ -150,6 +150,7 @@ SimpleNavigation::Configuration.run do |navigation|
+       submenu.modelitem AdvisementAuthorization
+       submenu.modelitem ThesisDefenseCommitteeParticipation
+       submenu.modelitem Grant
++      submenu.modelitem Article
+     end
+ 
+     scholar_models = [Scholarship, ScholarshipType, ScholarshipDuration]
+diff --git a/config/routes.rb b/config/routes.rb
+index 0ef13e69..331a2a5d 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -538,4 +538,8 @@ Rails.application.routes.draw do
+     concerns :active_scaffold
+   end
+ 
++  resources :articles do
++    concerns :active_scaffold
++  end
++
+ end
+diff --git a/db/migrate/20241201000000_create_articles.rb b/db/migrate/20241201000000_create_articles.rb
+new file mode 100644
+index 00000000..d289255f
+--- /dev/null
++++ b/db/migrate/20241201000000_create_articles.rb
+@@ -0,0 +1,21 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class CreateArticles < ActiveRecord::Migration[7.0]
++  def change
++    create_table :articles do |t|
++      t.string :title
++      t.string :journal
++      t.integer :year
++      t.string :issn
++      t.string :doi
++      t.string :qualis
++      t.text :authors
++      t.references :professor, null: false, foreign_key: true
++
++      t.timestamps
++    end
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 2d4d0379..9932c19b 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_11_29_022042) do
++ActiveRecord::Schema[7.0].define(version: 2024_12_01_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -278,6 +278,20 @@ ActiveRecord::Schema[7.0].define(version: 2024_11_29_022042) do
+     t.index ["course_class_id"], name: "index_allocations_on_course_class_id"
+   end
+ 
++  create_table "articles", force: :cascade do |t|
++    t.string "title"
++    t.string "journal"
++    t.integer "year"
++    t.string "issn"
++    t.string "doi"
++    t.string "qualis"
++    t.text "authors"
++    t.integer "professor_id", null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["professor_id"], name: "index_articles_on_professor_id"
++  end
++
+   create_table "carrier_wave_files", force: :cascade do |t|
+     t.string "medium_hash", limit: 255
+     t.binary "binary"
+@@ -1043,6 +1057,7 @@ ActiveRecord::Schema[7.0].define(version: 2024_11_29_022042) do
+     t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
+   end
+ 
++  add_foreign_key "articles", "professors"
+   add_foreign_key "grants", "professors"
+   add_foreign_key "reports", "carrier_wave_files", column: "carrierwave_file_id"
+   add_foreign_key "reports", "users", column: "generated_by_id"
+diff --git a/spec/factories/factory_article.rb b/spec/factories/factory_article.rb
+new file mode 100644
+index 00000000..4fd3600e
+--- /dev/null
++++ b/spec/factories/factory_article.rb
+@@ -0,0 +1,14 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++FactoryBot.define do
++  factory :article do
++    title { "Artigo" }
++    journal { "Periódico" }
++    year { 2024 }
++    qualis { "A1" }
++    professor
++  end
++end

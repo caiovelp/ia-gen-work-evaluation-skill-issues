@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10489,
+ "stop_reason": "end_turn",
+ "session_id": "6380cd41-28e8-4057-8561-30580f302704",
+ "total_cost_usd": 0.036116600000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1656,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1133,
+  "output_tokens_details": {
+   "thinking_tokens": 259
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1656,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1133,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1656,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1656
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1871,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020060000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1133,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1656,
+   "webSearchRequests": 0,
+   "costUSD": 0.035916000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 259,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`sklearn.utils.validation.check_array` emits no warning when `warn_on_dtype=True` and the input is a pandas `DataFrame` whose dtype is converted (for example, `object` to `float64`). The `warn_on_dtype` option appears to have no effect for `DataFrame` input.\n\n## Steps to reproduce\n\n1. Import `check_array` from `sklearn.utils.validation` and import `pandas`.\n2. Create a `DataFrame` with `dtype=object`: `pd.DataFrame([[1, 2, 3], [2, 3, 4]], dtype=object)`.\n3. Call `check_array(df, warn_on_dtype=True)`.\n4. Check whether a `DataConversionWarning` is emitted.\n\n## Observed behavior\n\nNo warning is emitted.\n\n## Expected behavior\n\nA `DataConversionWarning` should be emitted because the input dtype `object` is converted to `float64`:\n\n```\nDataConversionWarning: Data with input dtype object was converted to float64.\n```\n\n## Stack trace / error output\n\nNot provided in the original report. No error occurs. The issue is that the expected warning is missing.\n\n## Test case\n\nThis minimal test is derived from the reproduction snippet in the report:\n\n```python\nimport warnings\n\nimport pandas as pd\nfrom sklearn.utils.validation import check_array\n\n\ndef test_warn_on_dtype_with_dataframe():\n    df = pd.DataFrame([[1, 2, 3], [2, 3, 4]], dtype=object)\n    with warnings.catch_warnings(record=True) as record:\n        warnings.simplefilter(\"always\")\n        check_array(df, warn_on_dtype=True)\n    messages = [str(w.message) for w in record\n                if w.category.__name__ == \"DataConversionWarning\"]\n    assert any(\"Data with input dtype object was converted to float64\" in m\n               for m in messages)\n```\n\n## Code example\n\n```python\nfrom sklearn.utils.validation import check_array\nimport pandas as pd\ndf = pd.DataFrame([[1, 2, 3], [2, 3, 4]], dtype=object)\nchecked = check_array(df, warn_on_dtype=True)\n```\n\n## Version and environment\n\n- Platform: Linux-4.4.0-116-generic-x86_64-with-debian-stretch-sid\n- Python: 3.6.3 | Anaconda, Inc. | (default, Nov 3 2017, 19:19:16) [GCC 7.2.0]\n- NumPy: 1.13.1\n- SciPy: 0.19.1\n- Scikit-Learn: 0.20.dev0\n- Pandas: 0.21.0",
+ "ttft_ms": 3577,
+ "type": "result",
+ "duration_ms": 9866,
+ "uuid": "040895b3-23cd-409f-a054-8146d3a3b3a1",
+ "ttft_stream_ms": 1251,
+ "time_to_request_ms": 242,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 2,
+  "message_prep": 0,
+  "model_config_wait": 199,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 137,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1252,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

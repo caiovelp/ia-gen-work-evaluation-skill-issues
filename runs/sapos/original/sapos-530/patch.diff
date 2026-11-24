@@ -1,0 +1,54 @@
+diff --git a/app/helpers/reports_helper.rb b/app/helpers/reports_helper.rb
+index c7749c70..1c75e913 100644
+--- a/app/helpers/reports_helper.rb
++++ b/app/helpers/reports_helper.rb
+@@ -18,13 +18,47 @@ module ReportsHelper
+         pdf.fill_color "000000"
+         pdf.move_down 30
+ 
+-        pdf.text document_body, align: :justify
++        report_body_segments(document_body.to_s).each do |align, text|
++          next if text.strip.empty?
++          pdf.text text, align: align || :justify, inline_format: true
++        end
+       end
+     end
+   end
+ 
++  ALIGN_TAGS = { "center" => :center, "justify" => :justify, "left" => :left, "right" => :right }.freeze
++
++  # Splits the body into [alignment, text] segments using <center>, <justify>,
++  # <left> and <right> tags. Text outside any tag has nil alignment (justified).
++  def report_body_segments(body)
++    segments = []
++    pos = 0
++    body.scan(/<(center|justify|left|right)>(.*?)<\/\1>/mi) do |tag, text|
++      m = Regexp.last_match
++      segments << [nil, body[pos...m.begin(0)]] if m.begin(0) > pos
++      segments << [ALIGN_TAGS[tag.downcase], text.strip]
++      pos = m.end(0)
++    end
++    segments << [nil, body[pos..]] if pos < body.length
++    segments
++  end
++
+   def document_body_form_column(record, options)
+-    text_area :record, :document_body, options.merge!(rows: 20, cols: 80)
++    id = options[:id] || "record_document_body"
++    buttons = [
++      ["<b>", "</b>", "fa-bold", "Negrito"],
++      ["<i>", "</i>", "fa-italic", "Itálico"],
++      ["<u>", "</u>", "fa-underline", "Sublinhado"],
++      ["<center>", "</center>", "fa-align-center", "Centralizar"],
++      ["<justify>", "</justify>", "fa-align-justify", "Justificar"]
++    ].map do |open, close, icon, title|
++      content_tag(:button, content_tag(:i, "", class: "fa #{icon}"), type: "button", title: title,
++        onclick: "var t=document.getElementById('#{id}');var a=t.selectionStart,b=t.selectionEnd;" \
++                 "t.value=t.value.slice(0,a)+'#{open}'+t.value.slice(a,b)+'#{close}'+t.value.slice(b);" \
++                 "t.focus();t.selectionStart=a+#{open.length};t.selectionEnd=b+#{open.length};return false;")
++    end.join.html_safe
++    content_tag(:div, buttons, class: "text-format-toolbar") +
++      text_area(:record, :document_body, options.merge(rows: 20, cols: 80))
+   end
+ 
+   def document_title_form_column(record, options)

@@ -1,0 +1,1 @@
+{"justificativa": "The letter-template validation (problem 2) is handled sensibly. For the tie bug (problem 1), the candidate only splits the vacancy readjustment conditions and never removes the process from the list when its vacancies run out, which is the fix the maintainers applied, so the group-vacancy problem likely remains.", "veredito": "parcial"}

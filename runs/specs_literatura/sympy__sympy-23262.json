@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11744,
+ "stop_reason": "end_turn",
+ "session_id": "20b4af6f-681b-4d03-921d-d5526dbac3e8",
+ "total_cost_usd": 0.0359977,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1343,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1254,
+  "output_tokens_details": {
+   "thinking_tokens": 200
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1343,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1254,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1343,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1343
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1557,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016570000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1254,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1343,
+   "webSearchRequests": 0,
+   "costUSD": 0.035832,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 200,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nIn SymPy 1.10, the Python code printer used by `lambdify` drops the trailing comma when printing a tuple with one element. The generated function returns `(1)`, which is the integer `1`, instead of the tuple `(1,)`. SymPy 1.9 and earlier generate `(1,)`. Tuples with two or more elements are printed correctly. The reporter is unsure whether this is a regression. It breaks code that assumes the generated function always returns a tuple.\n\n## Steps to reproduce\n1. Install SymPy 1.10.\n2. Run:\n   ```python\n   import inspect\n   from sympy import lambdify\n\n   inspect.getsource(lambdify([], tuple([1])))\n   ```\n3. Inspect the generated source and compare it with the output from SymPy 1.9.\n4. For comparison, run the same with a two-element tuple:\n   ```python\n   inspect.getsource(lambdify([], tuple([1, 2])))\n   ```\n\n## Observed behavior\nIn SymPy 1.10, the one-element tuple case generates:\n```\n'def _lambdifygenerated():\\n    return (1)\\n'\n```\nThe trailing comma after `1` is missing, so the generated function returns an integer instead of a tuple.\n\nThe two-element tuple case is correct:\n```\n'def _lambdifygenerated():\\n    return (1, 2)\\n'\n```\n\n## Expected behavior\nThe one-element tuple should be printed with a trailing comma, as in SymPy 1.9 and earlier:\n```\n'def _lambdifygenerated():\\n    return (1,)\\n'\n```\nThe generated function should return the tuple `(1,)`.\n\n## Stack trace / error output\nNot provided in the original report. No exception is raised; the problem is the incorrect generated source shown above.\n\n## Test case\nMinimal test derived from the reproduction in the report:\n```python\nimport inspect\nfrom sympy import lambdify\n\ndef test_lambdify_single_element_tuple():\n    f = lambdify([], tuple([1]))\n    assert inspect.getsource(f) == 'def _lambdifygenerated():\\n    return (1,)\\n'\n    assert f() == (1,)\n\ndef test_lambdify_two_element_tuple():\n    f = lambdify([], tuple([1, 2]))\n    assert inspect.getsource(f) == 'def _lambdifygenerated():\\n    return (1, 2)\\n'\n```\nThe first test fails on SymPy 1.10 and passes on SymPy 1.9 and earlier, per the report. The second test passes on SymPy 1.10 and earlier.\n\n## Code example\n```python\nimport inspect\nfrom sympy import lambdify\n\ninspect.getsource(lambdify([], tuple([1])))     # 1.10: 'def _lambdifygenerated():\\n    return (1)\\n'\ninspect.getsource(lambdify([], tuple([1, 2])))  # 'def _lambdifygenerated():\\n    return (1, 2)\\n'\n```\n\n## Version and environment\n- SymPy 1.10: affected.\n- SymPy 1.9 and earlier: correct output (`(1,)`).\n- Python version, operating system and other environment details: Not provided in the original report.",
+ "ttft_ms": 3555,
+ "type": "result",
+ "duration_ms": 11238,
+ "uuid": "0c590028-6ce4-417c-a6a1-ca0ae26d2f7d",
+ "ttft_stream_ms": 1440,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 17,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 153,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1440,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

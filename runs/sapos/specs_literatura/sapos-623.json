@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 10480,
+ "stop_reason": "end_turn",
+ "session_id": "15b3e09c-1a45-4319-9eab-d71cb8ad8e09",
+ "total_cost_usd": 0.0370254,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1638,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1186,
+  "output_tokens_details": {
+   "thinking_tokens": 247
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1638,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1186,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1638,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1638
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1784,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001934,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1186,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1638,
+   "webSearchRequests": 0,
+   "costUSD": 0.036832,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 247,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1638,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\n\n`Admissions::FormAutocompletesController#form_field` repassa `params[:term]` sem valida\u00e7\u00e3o para `Admissions::FormField.full_search_name`. Quando a requisi\u00e7\u00e3o n\u00e3o traz o par\u00e2metro `term`, `field` fica `nil` e a busca por substring executa `name.include?(nil)`. Isso levanta `TypeError`, e a requisi\u00e7\u00e3o termina em HTTP 500 com envio de notifica\u00e7\u00e3o de exce\u00e7\u00e3o por e-mail.\n\n## Passos para reproduzir\n\n1. Autentique-se na aplica\u00e7\u00e3o.\n2. Fa\u00e7a a requisi\u00e7\u00e3o abaixo sem o par\u00e2metro `term`:\n   ```\n   GET /form_autocompletes/form_field\n   ```\n3. Observe a resposta e as notifica\u00e7\u00f5es de exce\u00e7\u00e3o.\n\n## Comportamento observado\n\n- A requisi\u00e7\u00e3o retorna HTTP 500.\n- \u00c9 levantado `TypeError` (`no implicit conversion of nil into String`) em `app/models/admissions/form_field.rb:276`.\n- \u00c9 enviada uma notifica\u00e7\u00e3o de exce\u00e7\u00e3o por e-mail.\n\n## Comportamento esperado\n\nA aus\u00eancia do par\u00e2metro `term` n\u00e3o deve causar erro interno. A resposta deve ser uma lista vazia ou um erro de requisi\u00e7\u00e3o inv\u00e1lida, e nenhuma notifica\u00e7\u00e3o de exce\u00e7\u00e3o deve ser enviada.\n\n## Stack trace / sa\u00edda de erro\n\n```\nA TypeError occurred in form_autocompletes#form_field:\n  no implicit conversion of nil into String\n  app/models/admissions/form_field.rb:276:in `include?'\n```\n\n## Caso de teste\n\nCaso m\u00ednimo, derivado da chamada feita pelo controller com `params[:term]` ausente:\n\n```ruby\nAdmissions::FormField.full_search_name(\n  field: nil,\n  in_letter: false,\n  substring: true,\n  limit: 10\n)\n# Observado: TypeError (no implicit conversion of nil into String)\n```\n\nNo n\u00edvel da requisi\u00e7\u00e3o: um `GET /form_autocompletes/form_field` autenticado e sem `term` n\u00e3o deve retornar HTTP 500.\n\n## Exemplo de c\u00f3digo\n\n`app/controllers/admissions/form_autocompletes_controller.rb`:\n\n```ruby\n@form_fields = Admissions::FormField.full_search_name(\n  field: params[:term],\n  in_letter: params[:in_letter] || false,\n  substring: true,\n  limit: 10\n)\n```\n\n`app/models/admissions/form_field.rb:276`:\n\n```ruby\nresult << name if name.include?(field)\n```\n\n## Vers\u00e3o e ambiente\n\n- Encontrado durante uma varredura de rotas no ambiente de homologa\u00e7\u00e3o.\n- O comportamento \u00e9 id\u00eantico no Rails 7.1 e no Rails 7.2, portanto n\u00e3o se trata de regress\u00e3o causada pelo upgrade.\n- Vers\u00f5es de Ruby e de outras depend\u00eancias: n\u00e3o informadas na issue original.",
+ "ttft_ms": 3221,
+ "type": "result",
+ "duration_ms": 9977,
+ "uuid": "17a68cd6-3fe6-42cc-9efc-f8abb7273ed3",
+ "ttft_stream_ms": 874,
+ "time_to_request_ms": 317,
+ "time_to_request_phases_ms": {
+  "other": 2,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 11,
+  "input_hooks": 1,
+  "conversation_append": 1,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "init_frame_send": 2,
+  "engine_pickup": 1,
+  "loop_entry": 2,
+  "message_prep": 0,
+  "model_config_wait": 281,
+  "autocompact": 1,
+  "request_announcements": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 168,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 6,
+  "ambient_start_ms": 1,
+  "ambient_wait_ms": 2,
+  "render_ms": 0,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 0,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 0,
+  "headers_ms": 1,
+  "cache_break_record_ms": 0,
+  "plans_ms": 0,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 874,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

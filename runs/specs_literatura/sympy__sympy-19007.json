@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 9866,
+ "stop_reason": "end_turn",
+ "session_id": "150e2312-7b42-4bce-8443-9a9d230e9f75",
+ "total_cost_usd": 0.029316300000000003,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1209,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 974,
+  "output_tokens_details": {
+   "thinking_tokens": 76
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1209,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 974,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1209,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1209
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1418,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001563,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 974,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1209,
+   "webSearchRequests": 0,
+   "costUSD": 0.029160000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 76,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIndexing a `BlockMatrix` with a symbolic row index returns an element of the wrong block. For `C = BlockMatrix([[A], [B]])`, where `A` is a 1\u00d71 `MatrixSymbol` and `B` is an n\u00d71 `MatrixSymbol`, `C[i, 0]` with symbolic integer `i` evaluates to `(A)[i, 0]`. Depending on the value of `i`, that element may come from either `A` or `B`, so it should not be reduced to an element of `A`.\n\n## Steps to reproduce\n\n1. Define integer symbols `n` and `i`.\n2. Create a 1\u00d71 matrix symbol `A` and an n\u00d71 matrix symbol `B`.\n3. Stack them vertically into a block matrix: `C = BlockMatrix([[A], [B]])`.\n4. Pretty-print `C`, then pretty-print `C[i, 0]`.\n\n## Observed behavior\n\n`C` prints as expected, but `C[i, 0]` is simplified to `(A)[i, 0]`, an element of block `A`:\n\n```\nC is\n\u23a1A\u23a4\n\u23a2 \u23a5\n\u23a3B\u23a6\nC[i, 0] is\n(A)[i, 0]\n```\n\n## Expected behavior\n\n`C[i, 0]` should not be simplified to an element of `A`. Because `i` is symbolic, the element may come from either `A` or `B`, so the result should not commit to a single block.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised. The problem is an incorrect result, shown under \"Observed behavior\".\n\n## Test case\n\nMinimal test derived from the reproduction snippet in the report:\n\n```python\nfrom sympy import symbols, MatrixSymbol, BlockMatrix\n\ndef test_blockmatrix_symbolic_index_not_resolved_to_first_block():\n    n, i = symbols('n, i', integer=True)\n    A = MatrixSymbol('A', 1, 1)\n    B = MatrixSymbol('B', n, 1)\n    C = BlockMatrix([[A], [B]])\n    # The element may come from either A or B, so it must not be A[i, 0]\n    assert C[i, 0] != A[i, 0]\n```\n\n## Code example\n\nOriginal snippet from the report:\n\n```python\nfrom sympy import *\nn, i = symbols('n, i', integer=True)\nA = MatrixSymbol('A', 1, 1)\nB = MatrixSymbol('B', n, 1)\nC = BlockMatrix([[A], [B]])\nprint('C is')\npprint(C)\nprint('C[i, 0] is')\npprint(C[i, 0])\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 2389,
+ "type": "result",
+ "duration_ms": 9386,
+ "uuid": "1dade479-a34c-42d9-becc-fd2812c5d372",
+ "ttft_stream_ms": 1482,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 199,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 153,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1482,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

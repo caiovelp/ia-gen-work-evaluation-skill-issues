@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 18440,
+ "stop_reason": "end_turn",
+ "session_id": "863ba606-f5ac-4ff1-ab4c-637b64a49677",
+ "total_cost_usd": 0.0528152,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1981,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1824,
+  "output_tokens_details": {
+   "thinking_tokens": 258
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1981,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1824,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1981,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1981
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2127,
+   "outputTokens": 533,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00047920000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 511,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1824,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1981,
+   "webSearchRequests": 0,
+   "costUSD": 0.052336,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 258,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1981,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\n\nNa tela de edi\u00e7\u00e3o de uma candidatura com arquivos j\u00e1 enviados, o bot\u00e3o de salvar n\u00e3o responde quando existe um campo de arquivo obrigat\u00f3rio j\u00e1 preenchido. N\u00e3o aparece mensagem de erro e nenhuma requisi\u00e7\u00e3o \u00e9 enviada ao servidor. O problema ocorre mesmo quando todos os campos obrigat\u00f3rios est\u00e3o preenchidos, por exemplo numa candidatura aprovada.\n\nSegundo o relato, os parciais que montam os campos de arquivo marcam o input como `required` sempre que a configura\u00e7\u00e3o do campo o define como obrigat\u00f3rio, mesmo que o arquivo j\u00e1 esteja gravado. O navegador nunca pr\u00e9-preenche inputs de arquivo, ent\u00e3o para a valida\u00e7\u00e3o HTML5 o campo continua vazio e o formul\u00e1rio inteiro \u00e9 bloqueado. Quando j\u00e1 existe arquivo, o input fica escondido (`display: none`). Por isso o navegador n\u00e3o consegue foc\u00e1-lo para mostrar o bal\u00e3o de valida\u00e7\u00e3o, e a recusa acontece sem nenhum aviso.\n\n**Alcance:** praticamente toda candidatura j\u00e1 submetida que tenha campo de arquivo obrigat\u00f3rio preenchido. Afeta a tela do candidato e a edi\u00e7\u00e3o administrativa.\n\n**Issues relacionadas, mas distintas:**\n- #605: caso oposto. O formul\u00e1rio passa pela valida\u00e7\u00e3o do cliente e o servidor recusa.\n- #604: perda dos arquivos selecionados quando h\u00e1 erro de valida\u00e7\u00e3o.\n\n## Passos para reproduzir\n\n1. Abra a tela de edi\u00e7\u00e3o de uma candidatura que tenha pelo menos um campo de arquivo obrigat\u00f3rio com arquivo j\u00e1 gravado. Uma candidatura aprovada serve como exemplo. O teste pode ser feito pela tela do candidato ou pela edi\u00e7\u00e3o administrativa.\n2. Opcionalmente, altere algum outro campo do formul\u00e1rio.\n3. Clique em salvar.\n4. Observe a p\u00e1gina e o console do navegador (Chrome).\n\n## Comportamento observado\n\n- Clicar em salvar n\u00e3o tem efeito: a p\u00e1gina fica parada, sem mensagem de erro e sem requisi\u00e7\u00e3o ao servidor.\n- O input do campo de arquivo obrigat\u00f3rio j\u00e1 preenchido \u00e9 renderizado com `required=\"required\"` e `style=\"display: none\"`.\n- Num registro real de homologa\u00e7\u00e3o com seis anexos, `checkValidity()` do formul\u00e1rio retornou `false`, com cinco campos de arquivo inv\u00e1lidos. Todos esses campos tinham arquivo gravado.\n- O Chrome recusa o envio e registra apenas um aviso no console (ver se\u00e7\u00e3o abaixo).\n\n## Comportamento esperado\n\nO formul\u00e1rio deve ser submetido normalmente quando os campos de arquivo obrigat\u00f3rios j\u00e1 t\u00eam arquivo gravado, permitindo salvar altera\u00e7\u00f5es em outros campos. A obrigatoriedade desses campos continua sendo verificada no servidor (`validate_file_field`), que \u00e9 onde o arquivo gravado pode ser conferido.\n\n## Stack trace / sa\u00edda de erro\n\nMensagem registrada no console do Chrome (reproduzida de forma abreviada no relato original):\n\n```\nAn invalid form control ... is not focusable\n```\n\nAtributos medidos no input renderizado:\n\n```\ninput required = \"required\"\ninput style    = \"display: none\"\n```\n\nResultado da valida\u00e7\u00e3o do formul\u00e1rio no registro de homologa\u00e7\u00e3o: `checkValidity() == false`, com cinco campos de arquivo inv\u00e1lidos.\n\n## Caso de teste\n\nCaso de teste m\u00ednimo, descrito a partir das medi\u00e7\u00f5es do relato:\n\n- **Pr\u00e9-condi\u00e7\u00e3o:** candidatura com um campo de arquivo configurado como obrigat\u00f3rio (`configuration[\"required\"]` verdadeiro) e com arquivo j\u00e1 gravado.\n- **A\u00e7\u00e3o:** renderizar a tela de edi\u00e7\u00e3o dessa candidatura.\n- **Verifica\u00e7\u00e3o:** inspecionar o input de arquivo correspondente.\n  - Hoje ele sai com `required=\"required\"` e `display: none`.\n  - No navegador, `checkValidity()` do formul\u00e1rio retorna `false` e o envio \u00e9 bloqueado.\n\nO relato n\u00e3o traz c\u00f3digo de teste.\n\n## Exemplo de c\u00f3digo\n\nTrecho presente nos dois parciais que montam campo de arquivo do candidato:\n\n```erb\noptions[:required] = configuration[\"required\"] ? true : false\n```\n\nArquivos citados:\n- `app/views/admissions/filled_form/edit/_generic_file_field.html.erb`\n- `app/views/admissions/filled_form/edit/_as_student_photo.html.erb`\n\n## Vers\u00e3o e ambiente\n\n- Navegador: Chrome (vers\u00e3o n\u00e3o informada).\n- O problema foi observado num registro real do ambiente de homologa\u00e7\u00e3o.\n- Vers\u00e3o da aplica\u00e7\u00e3o, sistema operacional e demais detalhes: N\u00e3o informado na issue original.",
+ "ttft_ms": 3898,
+ "type": "result",
+ "duration_ms": 15816,
+ "uuid": "5c058e0b-f69c-46a8-b51c-c36c94434858",
+ "ttft_stream_ms": 1088,
+ "time_to_request_ms": 578,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 2,
+  "resume_other": 1,
+  "process_user_input": 6,
+  "input_attachments": 19,
+  "input_hooks": 6,
+  "conversation_append": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 25,
+  "init_frame_send": 8,
+  "engine_pickup": 4,
+  "loop_entry": 8,
+  "message_prep": 3,
+  "model_config_wait": 445,
+  "autocompact": 3,
+  "request_announcements": 11,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 8,
+  "request_build": 11
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 97,
+ "time_to_request_cpu_ms": 866,
+ "time_to_request_major_faults": 8,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 28,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 6,
+  "render_ms": 3,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 3,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 3,
+  "headers_ms": 1,
+  "cache_break_record_ms": 2,
+  "plans_ms": 2,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 3,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1088,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

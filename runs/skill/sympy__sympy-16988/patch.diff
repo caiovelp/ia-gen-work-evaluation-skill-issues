@@ -1,0 +1,22 @@
+diff --git a/sympy/sets/sets.py b/sympy/sets/sets.py
+index 03cf57a30..85e4ef93d 100755
+--- a/sympy/sets/sets.py
++++ b/sympy/sets/sets.py
+@@ -1264,7 +1264,7 @@ def __new__(cls, *args, **kwargs):
+ 
+         # Reduce sets using known rules
+         if evaluate:
+-            args = list(cls._new_args_filter(args))
++            args = list(ordered(set(cls._new_args_filter(args)), Set._infimum_key))
+             return simplify_intersection(args)
+ 
+         args = list(ordered(args, Set._infimum_key))
+@@ -1361,7 +1361,7 @@ def _handle_finite_sets(args):
+                     # and add this as a new arg
+                     contained = [x for x in symbolic_s_list
+                         if sympify(v.contains(x)) is S.true]
+-                    if contained != symbolic_s_list:
++                    if contained != symbolic_s_list or not contained:
+                         other.append(
+                             v - FiniteSet(
+                             *contained, evaluate=False))

@@ -1,0 +1,232 @@
+diff --git a/Gemfile.lock b/Gemfile.lock
+index 392dec3b..fb52e9e7 100644
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -564,7 +564,7 @@ DEPENDENCIES
+   web-console
+ 
+ RUBY VERSION
+-   ruby 3.2.2p53
++   ruby 3.2.5p208
+ 
+ BUNDLED WITH
+    2.4.19
+diff --git a/app/controllers/professor_projects_controller.rb b/app/controllers/professor_projects_controller.rb
+new file mode 100644
+index 00000000..96a28100
+--- /dev/null
++++ b/app/controllers/professor_projects_controller.rb
+@@ -0,0 +1,26 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class ProfessorProjectsController < ApplicationController
++  authorize_resource
++
++  active_scaffold :professor_project do |config|
++    columns = [
++      :professor, :title, :year, :financing_type, :financier, :total_amount
++    ]
++    config.list.columns = columns
++    config.create.columns = columns
++    config.update.columns = columns
++    config.show.columns = columns
++    config.list.sorting = { year: "DESC" }
++    config.columns[:professor].form_ui = :record_select
++    config.columns[:financing_type].form_ui = :select
++    config.columns[:financing_type].options = {
++      options: ProfessorProject::FINANCING_TYPES
++    }
++    config.create.label = :create_professor_project_label
++    config.actions.exclude :deleted_records
++  end
++end
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index 591dd693..bbca9efe 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -16,7 +16,7 @@ class Ability
+   PROFESSOR_MODELS = [
+     Professor, Advisement, AdvisementAuthorization,
+     ThesisDefenseCommitteeParticipation,
+-    ProfessorResearchArea,
++    ProfessorResearchArea, ProfessorProject,
+   ]
+ 
+   SCHOLARSHIP_MODELS = [
+diff --git a/app/models/professor.rb b/app/models/professor.rb
+index de52ea61..f5ab30cc 100644
+--- a/app/models/professor.rb
++++ b/app/models/professor.rb
+@@ -13,6 +13,7 @@ class Professor < ApplicationRecord
+   has_many :advisement_authorizations, dependent: :restrict_with_exception
+   has_many :professor_research_areas, dependent: :destroy
+   has_many :research_areas, through: :professor_research_areas
++  has_many :professor_projects, dependent: :destroy
+   has_many :course_classes, dependent: :restrict_with_exception
+   has_many :thesis_defense_committee_participations,
+     dependent: :restrict_with_exception
+diff --git a/app/models/professor_project.rb b/app/models/professor_project.rb
+new file mode 100644
+index 00000000..f4796a09
+--- /dev/null
++++ b/app/models/professor_project.rb
+@@ -0,0 +1,28 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# Represents a project coordinated by a Professor
++class ProfessorProject < ApplicationRecord
++  has_paper_trail
++
++  PUBLIC = "Público"
++  PRIVATE = "Privado"
++  FINANCING_TYPES = [PUBLIC, PRIVATE].freeze
++
++  belongs_to :professor, optional: false
++
++  validates :professor, presence: true
++  validates :title, presence: true
++  validates :year, presence: true,
++    numericality: { only_integer: true, greater_than: 0 }
++  validates :financing_type, presence: true, inclusion: { in: FINANCING_TYPES }
++  validates :financier, presence: true
++  validates :total_amount, presence: true,
++    numericality: { greater_than_or_equal_to: 0 }
++
++  def to_label
++    "#{self.title} (#{self.year})"
++  end
++end
+diff --git a/config/locales/professor.pt-BR.yml b/config/locales/professor.pt-BR.yml
+index 7707c445..ede18d99 100644
+--- a/config/locales/professor.pt-BR.yml
++++ b/config/locales/professor.pt-BR.yml
+@@ -25,6 +25,7 @@ pt-BR:
+         name: "Nome"
+         neighborhood: "Bairro"
+         professor_research_areas: "Áreas de Pesquisa"
++        professor_projects: "Projetos"
+         research_areas: "Áreas de Pesquisa"
+         scholarships: "Bolsas"
+         sex: "Sexo"
+diff --git a/config/locales/professor_project.pt-BR.yml b/config/locales/professor_project.pt-BR.yml
+new file mode 100644
+index 00000000..2e03db4a
+--- /dev/null
++++ b/config/locales/professor_project.pt-BR.yml
+@@ -0,0 +1,21 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++pt-BR:
++  activerecord:
++    attributes:
++      professor_project:
++        professor: "Professor"
++        title: "Título"
++        year: "Ano"
++        financing_type: "Tipo de financiamento"
++        financier: "Financiador"
++        total_amount: "Valor total"
++
++    models:
++      professor_project:
++        one: "Projeto do Professor"
++        other: "Projetos dos Professores"
++
++  active_scaffold:
++    create_professor_project_label: "Adicionar Projeto do Professor"
+diff --git a/config/navigation.rb b/config/navigation.rb
+index d2505ce8..849d1aa6 100644
+--- a/config/navigation.rb
++++ b/config/navigation.rb
+@@ -143,11 +143,14 @@ SimpleNavigation::Configuration.run do |navigation|
+       submenu.modelitem EnrollmentStatus
+     end
+ 
+-    professors_models = [Professor, Advisement, AdvisementAuthorization]
++    professors_models = [
++      Professor, Advisement, AdvisementAuthorization, ProfessorProject
++    ]
+     mainhelper.listitem :professors, professors_models do |submenu|
+       submenu.modelitem Professor
+       submenu.modelitem Advisement
+       submenu.modelitem AdvisementAuthorization
++      submenu.modelitem ProfessorProject
+       submenu.modelitem ThesisDefenseCommitteeParticipation
+     end
+ 
+diff --git a/config/routes.rb b/config/routes.rb
+index 8eaf23eb..dc7f4a7b 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -41,6 +41,11 @@ Rails.application.routes.draw do
+     concerns :active_scaffold
+   end
+ 
++  resources :professor_projects do
++    concerns :active_scaffold
++    record_select_routes
++  end
++
+   resources :professor_research_areas do
+     concerns :active_scaffold
+     record_select_routes
+diff --git a/db/migrate/20241101000000_create_professor_projects.rb b/db/migrate/20241101000000_create_professor_projects.rb
+new file mode 100644
+index 00000000..78b80967
+--- /dev/null
++++ b/db/migrate/20241101000000_create_professor_projects.rb
+@@ -0,0 +1,15 @@
++# frozen_string_literal: true
++
++class CreateProfessorProjects < ActiveRecord::Migration[7.0]
++  def change
++    create_table :professor_projects do |t|
++      t.references :professor, null: false, index: true
++      t.string :title, null: false
++      t.integer :year, null: false
++      t.string :financing_type, null: false
++      t.string :financier, null: false
++      t.decimal :total_amount, precision: 14, scale: 2, null: false
++      t.timestamps
++    end
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 5bc81fc6..a21fb9b2 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_09_12_113419) do
++ActiveRecord::Schema[7.0].define(version: 2024_11_01_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -674,6 +674,18 @@ ActiveRecord::Schema[7.0].define(version: 2024_09_12_113419) do
+     t.boolean "active", default: true, null: false
+   end
+ 
++  create_table "professor_projects", force: :cascade do |t|
++    t.bigint "professor_id", null: false
++    t.string "title", null: false
++    t.integer "year", null: false
++    t.string "financing_type", null: false
++    t.string "financier", null: false
++    t.decimal "total_amount", precision: 14, scale: 2, null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["professor_id"], name: "index_professor_projects_on_professor_id"
++  end
++
+   create_table "professor_research_areas", force: :cascade do |t|
+     t.integer "professor_id"
+     t.integer "research_area_id"

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12059,
+ "stop_reason": "end_turn",
+ "session_id": "509138f3-1109-4d93-87e2-83e1e59dcb4b",
+ "total_cost_usd": 0.028069200000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1132,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 943,
+  "output_tokens_details": {
+   "thinking_tokens": 357
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1132,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 943,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1132,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1132
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1342,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001452,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 943,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1132,
+   "webSearchRequests": 0,
+   "costUSD": 0.027924000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 357,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nOn the admin change form, the \"Save as new\" button (`show_save_as_new`) is shown to users who lack add permission for the model. \"Save as new\" creates a new object, so a user with change permission but no add permission can add objects.\n\n## Steps to reproduce\n\n1. Configure a `ModelAdmin` with `save_as = True`.\n2. Log in to the admin as a user who has **change** permission but **not add** permission for that model.\n3. Open the change form for an existing object, not in a popup.\n4. Look at the submit row and use \"Save as new\".\n\n## Observed behavior\n\nThe \"Save as new\" option is shown to the user, even though they lack add permission. Per the report's title, the user can add a new object through it.\n\n## Expected behavior\n\n\"Save as new\" is an add operation. It should not be available to users without add permission for the model.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report.\n\nA test derived from the reproduction steps above could:\n1. Create a user with change permission and without add permission for a model whose `ModelAdmin` has `save_as = True`.\n2. Request that object's change view in the admin.\n3. Assert that `show_save_as_new` is not enabled in the submit row context (no \"Save as new\" button).\n\n## Code example\n\nThe reporter points to the context value `\"show_save_as_new\"` in `django/contrib/admin/templatetags/admin_modify.py`, line 102. As described, the condition depends on:\n- the form not being a popup (`is_popup`)\n- `has_change_permission`\n- `change`\n- `save_as`\n\nIt does not consider `has_add_permission`.\n\n## Version and environment\n\nNot provided in the original report. The only reference is line 102 of `django/contrib/admin/templatetags/admin_modify.py`. No Django version is given.",
+ "ttft_ms": 6342,
+ "type": "result",
+ "duration_ms": 11603,
+ "uuid": "8ff4d45a-a74d-4074-887b-1eabf5f62a28",
+ "ttft_stream_ms": 1783,
+ "time_to_request_ms": 284,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 245,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 225,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1783,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

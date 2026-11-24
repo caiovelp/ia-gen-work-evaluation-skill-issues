@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23618,
+ "stop_reason": "end_turn",
+ "session_id": "0a9f9941-ef14-4abb-abb0-35d128a88116",
+ "total_cost_usd": 0.05928139999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1284,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2397,
+  "output_tokens_details": {
+   "thinking_tokens": 206
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1284,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2397,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1284,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1284
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1871,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019860000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2397,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1284,
+   "webSearchRequests": 0,
+   "costUSD": 0.05908279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 206,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `warn_on_dtype` should warn when a pandas DataFrame's dtype is converted in `check_array`\n\n## Assumptions\n\n1. The function in scope is `sklearn.utils.validation.check_array`, which the issue names directly. Other validators that call it, such as `check_X_y`, are affected only through `check_array`.\n2. `warn_on_dtype=True` already warns correctly for NumPy array inputs. The defect is specific to `pandas.DataFrame` inputs.\n3. The warning class and message should match the existing behaviour for NumPy inputs. The issue expects `DataConversionWarning: Data with input dtype object was converted to float64.`\n4. The default `dtype=\"numeric\"` converts object dtype to `float64`. That conversion is what should trigger the warning in the reproduction.\n5. The issue text appears twice. This is treated as one issue.\n6. The target is the development version the reporter used (scikit-learn 0.20.dev0) with pandas 0.21.0. Other supported pandas versions should behave the same way.\n7. No new public parameters or API changes are intended. This is a behavioural bug fix.\n8. Repository layout, test commands and code style are not visible to me. Everything marked \"unknown\" below must be confirmed.\n\n## Objective\n\nWhen a user passes a `pandas.DataFrame` to `check_array(..., warn_on_dtype=True)` and validation changes the data's dtype, a `DataConversionWarning` must be raised. NumPy array inputs already behave this way. Currently no warning is raised for DataFrames, so users who opted in to dtype-change notifications are silently not notified.\n\n**User:** scikit-learn users and internal estimators that rely on `warn_on_dtype` to detect implicit dtype conversion.\n\n**User story:** As a user validating a DataFrame with `warn_on_dtype=True`, I want to be warned when my data is converted to a different dtype, so I can detect unintended conversions. Example: an `object` DataFrame converted to `float64`.\n\n**Reproduction (from issue):**\n```python\nfrom sklearn.utils.validation import check_array\nimport pandas as pd\ndf = pd.DataFrame([[1, 2, 3], [2, 3, 4]], dtype=object)\nchecked = check_array(df, warn_on_dtype=True)\n```\n- Expected: `DataConversionWarning: Data with input dtype object was converted to float64.`\n- Actual: no warning.\n\n## Tech Stack\n\n- Python (issue environment: 3.6.3)\n- NumPy 1.13.1, SciPy 0.19.1, pandas 0.21.0, scikit-learn 0.20.dev0 (from issue)\n- Supported version ranges: unknown\n\n## Commands\n\n- Build: unknown\n- Test: unknown (presumably a pytest invocation; not confirmed)\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n\n- Module under change: `sklearn.utils.validation` (from the import in the issue). File path: unknown.\n- Test location for `check_array`: unknown.\n- Changelog / release-notes location: unknown.\n\n## Code Style\n\nUnknown. Follow the existing conventions in `sklearn.utils.validation` and its test module. The new warning must reuse the existing `DataConversionWarning` class and message format rather than introduce a new one.\n\n## Testing Strategy\n\n- **Framework:** unknown (assumed pytest-style tests in scikit-learn's existing test suite).\n- **Level:** unit tests on `check_array`.\n- **Required cases:**\n  1. Object-dtype DataFrame with `warn_on_dtype=True` emits `DataConversionWarning` with the expected message (the issue reproduction).\n  2. A DataFrame whose dtype already matches the requested dtype (e.g. `float64`) with `warn_on_dtype=True` emits no warning.\n  3. An object-dtype DataFrame with `warn_on_dtype=False` (default) emits no warning.\n  4. NumPy array inputs keep their current warning behaviour (regression guard).\n  5. A mixed-dtype DataFrame (e.g. int and float columns) is covered according to the decision in Open Questions.\n- Tests must skip cleanly if pandas is not installed. The mechanism for this in the repo is unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep the warning type and message identical to the NumPy-input path.\n  - Add regression tests reproducing the issue.\n  - Run the existing validation test suite before committing.\n- **Ask first:**\n  - Changing the warning message format.\n  - Changing behaviour for sparse inputs or other non-DataFrame array-likes.\n  - Adding pandas as a hard dependency.\n  - Changing the default value of `warn_on_dtype`.\n- **Never:**\n  - Make pandas a required import for `check_array`.\n  - Change the dtype-conversion result itself; only the warning behaviour is in scope.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. Running the issue's reproduction with warnings enabled emits exactly one `DataConversionWarning`. Its message states input dtype `object` and output dtype `float64`.\n2. No warning is emitted for a DataFrame when the output dtype equals the input dtype.\n3. No warning is emitted when `warn_on_dtype=False`.\n4. The returned array's values and dtype are unchanged from current behaviour.\n5. All existing `check_array` / validation tests pass.\n6. New regression tests cover cases 1\u20133 (and 5 once decided). They fail before the fix and pass after it.\n\n## Open Questions\n\n1. **Mixed-dtype DataFrames:** a DataFrame can have several column dtypes, so there may be no single \"input dtype\". Should the warning fire when any column's dtype differs from the output dtype? And what should the message report: all distinct dtypes, or a generic \"mixed\"?\n2. **Other pandas containers:** should `pandas.Series` inputs (where applicable) and DataFrames with extension or categorical dtypes get the same treatment, or are they out of scope?\n3. **Sparse DataFrames:** pandas 0.21 still had `SparseDataFrame`. Should this be considered, or excluded?\n4. **Changelog:** is a changelog / what's-new entry required, and where does it go?\n5. **Version support:** which pandas and NumPy versions must the fix and tests support?\n6. **Test and lint commands:** what are the exact commands, and what conventions (e.g. a skip-if-no-pandas helper) does the repo use?",
+ "ttft_ms": 3043,
+ "type": "result",
+ "duration_ms": 23064,
+ "uuid": "1b19b349-f730-4048-9665-7ab6905018ee",
+ "ttft_stream_ms": 1090,
+ "time_to_request_ms": 279,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 17,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 220,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 159,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1091,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

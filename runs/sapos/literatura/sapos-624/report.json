@@ -1,0 +1,1 @@
+{"resolved": false, "f2p_falhou": ["./spec/features/assertions_spec.rb[1:5:1]", "./spec/features/notifications_spec.rb[1:5:1]", "./spec/features/queries_spec.rb[1:5:1]"], "p2p_falhou": []}

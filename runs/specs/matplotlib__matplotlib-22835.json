@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30691,
+ "stop_reason": "end_turn",
+ "session_id": "97c856f6-1fb2-4440-ad8b-931385f5fa99",
+ "total_cost_usd": 0.0766118,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1411,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3212,
+  "output_tokens_details": {
+   "thinking_tokens": 340
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1411,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3212,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1411,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1411
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1995,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000213,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3212,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1411,
+   "webSearchRequests": 0,
+   "costUSD": 0.07639879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 340,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `format_cursor_data` must not crash for artists using `BoundaryNorm`\n\n## Objective\n\nIn Matplotlib 3.5.0 (and `main` at the time of the report), hovering the mouse over a `ScalarMappable` artist (e.g. an `AxesImage` from `imshow`) whose norm is a `matplotlib.colors.BoundaryNorm` raises an exception. Cursor-data formatting stops, and so does interactive feedback.\n\n**Root cause, as shown in the traceback:**\n\n- `Artist.format_cursor_data` (`lib/matplotlib/artist.py`, ~line 1282) calls `self.norm.inverse(...)` to find neighboring data values. It uses those neighbors to choose how many significant digits to display.\n- `BoundaryNorm.inverse` (`lib/matplotlib/colors.py`, ~line 1829) unconditionally raises `ValueError(\"BoundaryNorm is not invertible\")`.\n\n**Goal:** Hovering over a `BoundaryNorm`-normalized artist shows a sensible formatted data value in the status bar. No exception is raised and interaction continues.\n\n**Users:** Anyone using interactive backends with discrete or binned colormaps via `BoundaryNorm`. This includes `imshow`, `pcolormesh`, and similar artists that inherit `format_cursor_data`.\n\n**User story:** As a user hovering over a `BoundaryNorm`-colored image, I see the pixel's data value, formatted to a reasonable precision. Mouse interaction keeps working.\n\n**Reproduction (from the issue):**\n\n```python\nimport matplotlib.pyplot as plt\nimport numpy as np\nimport matplotlib as mpl\n\nfig, ax = plt.subplots()\nnorm = mpl.colors.BoundaryNorm(np.linspace(-4, 4, 5), 256)\nX = np.random.randn(10, 10)\npc = ax.imshow(X, cmap='RdBu_r', norm=norm)\n# mouse over the image -> ValueError: BoundaryNorm is not invertible\n```\n\n**Candidate approaches named in the issue.** These need a decision; see Open Questions.\n\n1. Special-case `BoundaryNorm` inside `format_cursor_data`.\n2. Wrap the `norm.inverse` call in a try/except and fall back to a default precision.\n3. Make `BoundaryNorm` approximately invertible.\n\n## Assumptions\n\n1. The crash happens for any `ScalarMappable` artist that relies on `Artist.format_cursor_data` with a `BoundaryNorm`, not only `AxesImage`.\n2. The neighbor/inverse computation exists only to determine display precision. The displayed value itself is the raw data value, which is always available without inverting the norm.\n3. The fix targets `main` and may be backported to the 3.5.x bugfix line.\n4. Other norms (`Normalize`, `LogNorm`, etc.) currently behave correctly. Their cursor output must not change.\n5. Other non-invertible norms, such as custom user norms whose `inverse` raises, may hit the same crash. A robust fix should ideally not crash for them either.\n6. A test can call `format_cursor_data` directly with a data value, without simulating real mouse events.\n7. The project uses pytest with tests under `lib/matplotlib/tests/`. This is inferred convention only; it is not confirmed by the issue.\n\n## Tech Stack\n\n- Python, NumPy, Matplotlib (affected version: 3.5.0 / `main`).\n- Exact supported Python and NumPy versions: **unknown**.\n\n## Commands\n\nAll unknown; none are given in the issue.\n\n- Build/install: **unknown**\n- Test: **unknown** (likely pytest, unconfirmed)\n- Lint: **unknown**\n- Docs build: **unknown**\n\n## Project Structure\n\nOnly these files are known from the traceback:\n\n```\nlib/matplotlib/artist.py   \u2192 Artist.format_cursor_data (calls norm.inverse, ~line 1282)\nlib/matplotlib/colors.py   \u2192 BoundaryNorm.inverse (raises ValueError, ~line 1829)\n```\n\n- Test file location for the regression test: **unknown** (possibly `lib/matplotlib/tests/test_artist.py` or `test_image.py`, unconfirmed).\n- Changelog / API-change note location: **unknown**.\n\n## Code Style\n\n**Unknown** from the issue; follow existing conventions in `artist.py` and `colors.py`. No code snippet is available beyond the reproduction above.\n\n## Testing Strategy\n\n- **Regression test:** Create an artist with `BoundaryNorm(np.linspace(-4, 4, 5), 256)`. Call `format_cursor_data` for several data values and assert that no exception is raised and a string is returned.\n- **Value correctness:** Assert the expected formatted strings for representative values, including:\n  - a value inside a bin\n  - a value exactly on a boundary\n  - values below the lowest and above the highest boundary\n  - values within the first and last bins\n  - The exact expected precision depends on the chosen approach (Open Question 1).\n- **`extend` variants:** Cover `BoundaryNorm` with `extend='neither' | 'min' | 'max' | 'both'` and with `ncolors` both equal to and greater than the number of bins.\n- **Masked/NaN data:** Cursor formatting of masked or NaN values still behaves as before (no crash).\n- **Non-regression:** Existing `format_cursor_data` tests for other norms still pass unchanged.\n- **Inverse behavior:** If `BoundaryNorm.inverse` changes, add direct unit tests for it. If it does not change, keep or confirm the test that it still raises `ValueError`.\n- Coverage requirement: **unknown**.\n\n## Boundaries\n\n**Always:**\n- Keep cursor output for all other norms identical to the current output.\n- Add a regression test that reproduces the issue scenario.\n- Run the existing test suite before committing.\n\n**Ask first:**\n- Changing the public behavior of `BoundaryNorm.inverse`, e.g. making it return values instead of raising. This is an API change.\n- Adding a generic try/except that silently swallows errors from arbitrary norms.\n- Changing the significant-digits algorithm for all norms.\n\n**Never:**\n- Change how `BoundaryNorm` maps data to colors (`__call__`).\n- Remove or weaken existing tests.\n- Let `format_cursor_data` propagate exceptions into the event loop for this scenario.\n\n## Success Criteria\n\n1. Running the reproduction and hovering over the image produces no exception, and the status bar shows a formatted data value.\n2. `format_cursor_data` returns a string for every data value tested with `BoundaryNorm`, across all `extend` modes and including values outside the boundaries.\n3. Displayed precision for `BoundaryNorm` is reasonable and deterministic. Expected outputs are fixed in tests once Open Question 1 is resolved.\n4. Cursor output for `Normalize`, `LogNorm`, and other existing norms is unchanged; existing tests pass.\n5. A regression test for this issue exists and fails on the unfixed code.\n6. Any public API change is documented. Whether one is needed is pending Open Question 2.\n\n## Open Questions\n\n1. **Which approach is preferred?**\n   - Special-case `BoundaryNorm`: for example, derive precision from the spacing of neighboring boundaries.\n   - A generic try/except fallback.\n   - Making `BoundaryNorm` approximately invertible.\n2. **Should `BoundaryNorm.inverse` remain raising?** Making it approximately invertible changes public API semantics, and callers may rely on the `ValueError`.\n3. **What precision should `BoundaryNorm` values get?** Options are a fixed default (e.g. 3 significant digits), precision based on bin width, or something else.\n4. **What precision applies outside the boundaries?** For data below `boundaries[0]` or above `boundaries[-1]`, especially with `extend`, there is no finite neighboring bin.\n5. **Should the fix also protect against any other non-invertible norm** (e.g. user-defined norms), or be scoped strictly to `BoundaryNorm`?\n6. **Should this be backported to the 3.5.x bugfix branch?**\n7. **Do other `format_cursor_data` overrides need the same fix?** Some subclasses may compute neighbors differently.\n8. **Where should the regression test live, and what are the exact test and lint commands?**",
+ "ttft_ms": 4381,
+ "type": "result",
+ "duration_ms": 30034,
+ "uuid": "29b40813-c887-41b4-95d0-ec820035fba1",
+ "ttft_stream_ms": 1169,
+ "time_to_request_ms": 322,
+ "time_to_request_phases_ms": {
+  "other": 31,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 6,
+  "input_attachments": 19,
+  "input_hooks": 6,
+  "tool_pool_refresh": 2,
+  "init_message": 13,
+  "engine_pickup": 4,
+  "message_prep": 2,
+  "model_config_wait": 220,
+  "autocompact": 5,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 212,
+ "time_to_request_major_faults": 934,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 16,
+  "major_faults": 110
+ },
+ "first_content_frame_ms": 1170,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

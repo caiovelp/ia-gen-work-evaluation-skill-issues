@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31456,
+ "stop_reason": "end_turn",
+ "session_id": "a9fe7058-5403-4f1c-88e2-246319606ab0",
+ "total_cost_usd": 0.0654394,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1101,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2779,
+  "output_tokens_details": {
+   "thinking_tokens": 353
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1101,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2779,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1101,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1101
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1686,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001806,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2779,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1101,
+   "webSearchRequests": 0,
+   "costUSD": 0.06525879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 353,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Serialize Enum Defaults in Migrations by Member Name, Not Value\n\n## Objective\n\n**Problem.** When an `Enum` member is used as a field argument, such as `default=Status.GOOD` on a `CharField`, the generated migration rebuilds it from its value: `Status('Good')`. If the value is a lazy translation (`gettext_lazy`), it resolves to a different string once the active language changes. The enum then has no member with the original value. Loading the old migration file raises:\n\n```\nValueError: 'Good' is not a valid Status\n```\n\nThis error breaks every management command that loads migrations whenever a non-default language is active.\n\n**Goal.** The migration writer should reference Enum members by their **name**, which is stable. It should not use the **value**, which may be translated, computed or later changed. For the example in the issue, the output should be:\n\n```python\n('status', models.CharField(default=Status['GOOD'], max_length=128))\n```\n\n**Users.** Django developers who use `Enum` members in model field arguments that end up in migrations, especially when the enum values are translatable strings.\n\n**Acceptance criteria / user stories:**\n- As a developer, when I run `makemigrations` on a model with `default=Status.GOOD`, the migration file references the member by name.\n- As a developer, when I activate another language and then load or apply migrations, I get no `ValueError` from enum lookup.\n- As a developer, when I rename an enum *value* but keep the *name*, migrations that are already generated still load.\n\n## Assumptions\n\n1. The bug is in how the migration writer serializes `enum.Enum` instances. It is not in model field logic or in translation machinery.\n2. The fix applies to all `enum.Enum` subclasses that the migration serializer handles. This includes Django's own choice enums (e.g. `TextChoices`/`IntegerChoices`), which are `Enum` subclasses.\n3. Lookup by name (`Cls['NAME']` or `Cls.NAME`) gives back the same member that the current value-based lookup gives back. The deserialized object is therefore identical, and `makemigrations` will not see a change for fields whose enum value has not changed.\n4. Migration files that already exist and contain `Status('Good')` will not be rewritten. They will keep failing under translation until the user regenerates or edits them by hand. This fix only affects newly generated migrations.\n5. Required imports in the generated migration (the module that defines the enum) stay the same as today.\n6. Enum aliases (two names with the same value) resolve to the canonical member. Serializing with the canonical member's `.name` is correct.\n\n## Tech Stack\n\n- Python, Django (migrations framework, `django.utils.translation`), standard-library `enum`.\n- Versions: **unknown** (not stated in the issue).\n\n## Commands\n\n- Build: **unknown** (not visible from the issue)\n- Test: **unknown** (presumably the project's standard test runner targeting migration-writer tests; exact command not available)\n- Lint: **unknown**\n- Dev/repro: `makemigrations` on the example app (exact invocation path **unknown**)\n\n## Project Structure\n\n- Location of the migration serializer/writer code: **unknown** (no repository access; assumed to be the migrations serialization module).\n- Location of the existing migration-writer tests: **unknown**.\n- Docs that describe what migrations can serialize: **unknown**, but they may need updating.\n\n## Code Style\n\n- Follow the existing conventions of the surrounding serializer code. These conventions are **unknown** because the code is not visible.\n- Expected generated-output style, as given in the issue:\n  ```python\n  default=Status['GOOD']\n  ```\n  The final form (`Status['GOOD']` vs `Status.GOOD`) is listed under Open Questions.\n\n## Testing Strategy\n\n- **Unit tests (migration writer/serializer):**\n  - Serializing a plain `Enum` member produces a name-based reference and the correct import set.\n  - Round trip: the serialized string, evaluated with its imports, returns the identical member (`is`).\n  - Enum whose values are `gettext_lazy` strings: the output contains the member name and no translated or untranslated value.\n  - Enums with non-string values (int, bytes, tuple) are serialized by name too.\n  - Django choice enums (`TextChoices`, `IntegerChoices`) produce name-based output.\n- **Regression test:** with the enum value changed or translated after serialization, the serialized string still evaluates to the correct member.\n- **Integration (if the existing suite supports it):** run `makemigrations` and load the migration under a non-default active language without error.\n- Coverage target: **unknown**. At minimum, every branch of the changed serialization path.\n\n## Boundaries\n\n- **Always:**\n  - Keep the deserialized object identical to the original member.\n  - Keep existing serializer tests passing, updating expected strings only where the format change requires it.\n  - Add regression tests for the translated-value scenario.\n- **Ask first:**\n  - Choose between output forms (`Cls['NAME']` vs `Cls.NAME`).\n  - Decide how to handle combined `Flag`/`IntFlag` values, which have no single name.\n  - Make any change that would cause `makemigrations` to detect changes in projects that are otherwise unchanged.\n  - Add any release-note or documentation change about the new serialization format.\n- **Never:**\n  - Rewrite or auto-migrate users' existing migration files.\n  - Change model field behaviour or translation behaviour to work around the issue.\n  - Remove or weaken existing serializer tests without approval.\n\n## Success Criteria\n\n1. Serializing `Status.GOOD` from the issue example produces a name-based reference (e.g. `Status['GOOD']`) and never `Status('Good')`.\n2. Evaluating the serialized output with its imports returns `Status.GOOD`, whatever language is active.\n3. A migration generated after the fix loads without `ValueError` after the enum's translated values change.\n4. Running `makemigrations` again on a project with no model changes produces no new migration after the fix.\n5. Existing serializer tests pass, with expected strings updated for the new format where needed. New tests cover the cases listed in the Testing Strategy.\n\n## Open Questions\n\n1. **Output form:** should it be `Status['GOOD']` (as the issue proposes) or `Status.GOOD`? Both are name-based. Attribute access is more readable but would break for names that are not valid identifiers, or for names that clash with methods or attributes.\n2. **Flag enums:** a combined `Flag` value (e.g. `Perm.READ | Perm.WRITE`) may have no single `.name`, depending on the Python version. Should we serialize it as an OR of member names, fall back to value-based serialization, or raise an error?\n3. **Backward compatibility:** do we need a documentation or release note telling users to regenerate or hand-edit old migrations that contain value-based references?\n4. **Scope:** should the same name-based approach apply everywhere the serializer meets an `Enum` (e.g. `choices`, validators, custom field kwargs), or only defaults? The assumption here is everywhere.\n5. **Supported Python/Django versions** for this change, and whether it should be backported. These are unknown.\n6. **Test command and file locations** in the repository are unknown and need confirming.",
+ "ttft_ms": 5750,
+ "type": "result",
+ "duration_ms": 30556,
+ "uuid": "4a347e44-893a-4213-a0f1-98c020a9e6ae",
+ "ttft_stream_ms": 1677,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 213,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 151,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1678,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

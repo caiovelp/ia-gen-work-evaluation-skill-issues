@@ -1,0 +1,14 @@
+diff --git a/sympy/simplify/fu.py b/sympy/simplify/fu.py
+index 9d939727c..39ff22b62 100755
+--- a/sympy/simplify/fu.py
++++ b/sympy/simplify/fu.py
+@@ -1297,6 +1297,9 @@ def f(rv):
+             b, e = c.as_base_exp()
+             if e.is_Integer and isinstance(b, cos):
+                 co, a = b.args[0].as_coeff_Mul()
++                if a is S.One and not co.is_Integer:  # non-integer rational
++                    other.append(c)
++                    continue
+                 args[a].append(co)
+                 coss[b] = e
+             else:

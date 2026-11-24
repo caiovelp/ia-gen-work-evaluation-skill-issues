@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12825,
+ "stop_reason": "end_turn",
+ "session_id": "e20a392f-7a33-4b29-9ffb-9d35809619ef",
+ "total_cost_usd": 0.044164100000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1731,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1505,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1731,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1505,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1731,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1731
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1941,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002081,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1505,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1731,
+   "webSearchRequests": 0,
+   "costUSD": 0.043956,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nCalling `matplotlib.get_backend()` removes all figures from `Gcf` (`plt._pylab_helpers.Gcf.figs`) if the *first* figure in `Gcf.figs` was created inside an `rc_context`. Afterward, operations that depend on `Gcf` stop working. For example, `plt.close(fig2)` has no effect because `Gcf.destroy_fig()` can't find the figure.\n\n## Steps to reproduce\n\n1. Make sure no figures exist yet. Do not create a figure before step 2, and do not call `plt.ion()`.\n2. Create a figure inside `with rc_context():` using `plt.figure()`.\n3. Record the `id()` of `plt._pylab_helpers.Gcf` and the contents of `Gcf.figs`.\n4. Call `matplotlib.get_backend()`.\n5. Record the `id()` of `Gcf` and the contents of `Gcf.figs` again, then compare them with step 3.\n\nThe reporter notes that the problem does **not** occur if either of these is done before the `rc_context` block:\n- a figure is created outside the `rc_context` first (`fig1 = plt.figure()`), or\n- `plt.ion()` is called.\n\n## Observed behavior\n\nThe `Gcf` object is the same (identical `id`). However, `Gcf.figs` changes from containing the figure (`OrderedDict([(1, <FigureManagerQT ...>)])`) to an empty `OrderedDict()` after `get_backend()` is called. The figure is no longer tracked by `Gcf`, so `plt.close(fig2)` doesn't work.\n\n## Expected behavior\n\nCalling `get_backend()` should not change `Gcf.figs`. The figure created under `rc_context` should remain registered in `Gcf`, and `plt.close(fig2)` should work.\n\n## Stack trace / error output\n\n```\n---------------------------------------------------------------------------\nAssertionError                            Traceback (most recent call last)\n<ipython-input-1-fa4d099aa289> in <cell line: 11>()\n      9 after = f'{id(plt._pylab_helpers.Gcf)} {plt._pylab_helpers.Gcf.figs!r}'\n     10 \n---> 11 assert before == after, '\\n' + before + '\\n' + after\n     12 \n\nAssertionError: \n94453354309744 OrderedDict([(1, <matplotlib.backends.backend_qt.FigureManagerQT object at 0x7fb33e26c220>)])\n94453354309744 OrderedDict()\n```\n\n## Test case\n\nMinimal test derived from the reproduction snippet in the report:\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib import get_backend, rc_context\n\n\ndef test_get_backend_keeps_figures_created_in_rc_context():\n    with rc_context():\n        fig2 = plt.figure()\n    before = f'{id(plt._pylab_helpers.Gcf)} {plt._pylab_helpers.Gcf.figs!r}'\n    get_backend()\n    after = f'{id(plt._pylab_helpers.Gcf)} {plt._pylab_helpers.Gcf.figs!r}'\n    assert before == after, '\\n' + before + '\\n' + after\n```\n\nThe test must run with no pre-existing figures and without `plt.ion()` being called beforehand.\n\n## Code example\n\nOriginal reproduction script from the report:\n\n```python\nimport matplotlib.pyplot as plt\nfrom matplotlib import get_backend, rc_context\n\n# fig1 = plt.figure()  # <- UNCOMMENT THIS LINE AND IT WILL WORK\n# plt.ion()            # <- ALTERNATIVELY, UNCOMMENT THIS LINE AND IT WILL ALSO WORK\nwith rc_context():\n    fig2 = plt.figure()\nbefore = f'{id(plt._pylab_helpers.Gcf)} {plt._pylab_helpers.Gcf.figs!r}'\nget_backend()\nafter = f'{id(plt._pylab_helpers.Gcf)} {plt._pylab_helpers.Gcf.figs!r}'\n\nassert before == after, '\\n' + before + '\\n' + after\n```\n\n## Version and environment\n\n- Matplotlib version: 3.5.2\n- Matplotlib backend: QtAgg\n- Python version: 3.10.4\n- Operating system: Xubuntu\n- Jupyter version: n/a (the traceback shows an IPython input cell)\n- Installation: conda",
+ "ttft_ms": 12235,
+ "type": "result",
+ "duration_ms": 12258,
+ "uuid": "50d8e3b1-6b1a-4458-bf91-5ab95f5bdfb8",
+ "ttft_stream_ms": 1601,
+ "time_to_request_ms": 261,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 220,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 156,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1601,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

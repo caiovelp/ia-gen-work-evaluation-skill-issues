@@ -1,0 +1,66 @@
+diff --git a/django/core/checks/model_checks.py b/django/core/checks/model_checks.py
+index 5c2266ca1d..27333767db 100755
+--- a/django/core/checks/model_checks.py
++++ b/django/core/checks/model_checks.py
+@@ -4,7 +4,8 @@ from collections import defaultdict
+ from itertools import chain
+ 
+ from django.apps import apps
+-from django.core.checks import Error, Tags, register
++from django.conf import settings
++from django.core.checks import Error, Tags, Warning, register
+ 
+ 
+ @register(Tags.models)
+@@ -37,12 +38,22 @@ def check_all_models(app_configs=None, **kwargs):
+             constraints[model_constraint.name].append(model._meta.label)
+     for db_table, model_labels in db_table_models.items():
+         if len(model_labels) != 1:
++            if settings.DATABASE_ROUTERS:
++                error_class, error_id = Warning, 'models.W035'
++                error_hint = (
++                    'You have configured settings.DATABASE_ROUTERS. Verify '
++                    'that %s are correctly routed to separate databases.'
++                ) % ', '.join(db_table_models[db_table])
++            else:
++                error_class, error_id = Error, 'models.E028'
++                error_hint = None
+             errors.append(
+-                Error(
++                error_class(
+                     "db_table '%s' is used by multiple models: %s."
+                     % (db_table, ', '.join(db_table_models[db_table])),
+                     obj=db_table,
+-                    id='models.E028',
++                    hint=error_hint,
++                    id=error_id,
+                 )
+             )
+     for index_name, model_labels in indexes.items():
+diff --git a/docs/ref/checks.txt b/docs/ref/checks.txt
+index 99f4e1d316..a0503741b8 100755
+--- a/docs/ref/checks.txt
++++ b/docs/ref/checks.txt
+@@ -317,6 +317,10 @@ Models
+   or a number.
+ * **models.E034**: The index name ``<index>`` cannot be longer than
+   ``<max_length>`` characters.
++* **models.W035**: ``db_table`` ``<db_table>`` is used by multiple models:
++  ``<model list>``. Shown instead of **models.E028** when
++  :setting:`DATABASE_ROUTERS` is configured; silence it with
++  :setting:`SILENCED_SYSTEM_CHECKS` if the models use different databases.
+ 
+ Security
+ --------
+diff --git a/docs/releases/2.2.5.txt b/docs/releases/2.2.5.txt
+index 178588327e..5f036324a0 100755
+--- a/docs/releases/2.2.5.txt
++++ b/docs/releases/2.2.5.txt
+@@ -9,4 +9,6 @@ Django 2.2.5 fixes several bugs in 2.2.4.
+ Bugfixes
+ ========
+ 
+-* ...
++* Relaxed the system check for duplicate ``db_table`` values to a warning
++  (``models.W035``) instead of an error (``models.E028``) when
++  ``DATABASE_ROUTERS`` is configured (:ticket:`30673`).

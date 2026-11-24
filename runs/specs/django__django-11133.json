@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26443,
+ "stop_reason": "end_turn",
+ "session_id": "415aae6b-82cc-4ddc-94ff-9a1d8a686214",
+ "total_cost_usd": 0.05877159999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 873,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2538,
+  "output_tokens_details": {
+   "thinking_tokens": 119
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 873,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2538,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 873,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 873
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1458,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015680000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2538,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 873,
+   "webSearchRequests": 0,
+   "costUSD": 0.058614799999999995,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 119,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: HttpResponse support for `memoryview` content\n\n## Assumptions\n\n1. The bug is in Django's `HttpResponse`, imported via `from django.http import HttpResponse` as shown in the issue. The source file and function that convert content to bytes are not visible in the issue and are **unknown**.\n2. A `memoryview` is currently treated as an unrecognized object and passed through `str()`. That produces `b'<memory at 0x...>'`. This is inferred from the observed output, not confirmed in source.\n3. The expected result for `HttpResponse(memoryview(b\"My Content\")).content` is `b\"My Content\"`. That means it should behave the same as passing the equivalent `bytes` object.\n4. The fix belongs in `HttpResponse` itself, not in the PostgreSQL backend or `BinaryField`. Having PostgreSQL return a `memoryview` for binary data is expected driver behavior.\n5. Code that is already correct must keep working unchanged:\n   - `str` content is encoded using the response charset.\n   - `bytes` content is passed through.\n   - Other objects are handled as they are today.\n6. A `memoryview` should be treated as a single bytes-like value. It should not be treated as an iterable of chunks, even though it is iterable and iterating it yields ints.\n7. The supported Python and Django versions for this change are **unknown**. The fix is assumed to target the current development branch.\n\n## Objective\n\n**Problem.** A developer reads a `BinaryField` from the database and writes the value into an `HttpResponse`.\n\n- With SQLite the value is `bytes`, and the response body is correct.\n- With PostgreSQL the value is a `memoryview`, and the response body becomes the object's repr, for example `b'<memory at 0x7fcc47ab2648>'`. This silently corrupts the output.\n\n**Goal.** `HttpResponse` must accept `memoryview` content and produce the underlying bytes. Application code should then behave the same whichever database backend is used.\n\n**Users.** Django application developers who serve binary data, such as files or images stored in a `BinaryField`, especially on PostgreSQL.\n\n**Acceptance criteria (user stories):**\n\n- When I pass a `memoryview` to the `HttpResponse` constructor, `response.content` equals `bytes(view)`.\n- When I assign a `memoryview` to `response.content` after construction, `response.content` equals `bytes(view)`.\n- When I pass `str` or `bytes`, the behavior is exactly as before.\n\n## Tech Stack\n\n- Language: Python. The supported versions are unknown.\n- Framework: Django, specifically the `django.http.HttpResponse` component.\n- Data source in the scenario: a PostgreSQL `BinaryField`, which yields `memoryview`. No specific database driver or version is given in the issue.\n\n## Commands\n\n- Build: unknown. Not stated in the issue.\n- Test: unknown. Not stated in the issue. Expected to be the project's standard test runner, scoped to HTTP response tests.\n- Lint: unknown.\n- Dev: not applicable.\n\n## Project Structure\n\n- Location of the `HttpResponse` implementation: unknown. It is not visible in the issue.\n- Location of the existing `HttpResponse` tests: unknown.\n- Release notes or documentation location: unknown.\n\n## Code Style\n\n- No source code from the project is visible in the issue, so no style snippet can be given.\n- Follow the existing conventions of the surrounding module. These are unknown here.\n- The only observable behavior contract, taken from the issue:\n\n```python\nfrom django.http import HttpResponse\n\nHttpResponse(\"My Content\").content              # b'My Content'  (correct today)\nHttpResponse(b\"My Content\").content             # b'My Content'  (correct today)\nHttpResponse(memoryview(b\"My Content\")).content # expected b'My Content'\n                                                # actual   b'<memory at 0x...>'\n```\n\n## Testing Strategy\n\n- **Level.** Unit tests on `HttpResponse`. No database is needed, because the bug reproduces with a plain `memoryview(b\"...\")`.\n- **Required cases:**\n  1. Constructor with `memoryview(b\"My Content\")` gives `content == b\"My Content\"`.\n  2. Setting `response.content = memoryview(b\"My Content\")` gives `content == b\"My Content\"`.\n  3. Regression check: `str` and `bytes` content keep their current results.\n  4. An empty `memoryview(b\"\")` gives `content == b\"\"`.\n  5. Non-ASCII or arbitrary binary bytes, such as `bytes(range(256))`, round-trip exactly with no charset encoding applied.\n- **Optional integration test.** Store a `BinaryField` value, read it back on PostgreSQL, and return it in an `HttpResponse`. Whether this is needed depends on the Open Questions below.\n- **Framework, test file location and coverage expectations:** unknown.\n\n## Boundaries\n\n**Always:**\n- Keep existing behavior for `str`, `bytes` and other already-supported content types.\n- Add regression tests that fail before the fix and pass after it.\n- Treat `memoryview` as raw bytes. Never encode it with the response charset.\n\n**Ask first:**\n- Extending the change to other response classes, such as streaming or file responses.\n- Extending it to other bytes-like types such as `bytearray`.\n- Changing how iterables of chunks are handled.\n- Any change to database backends or `BinaryField` conversion. That is out of scope by default.\n- Adding release notes or documentation changes, if the project's policy on this is unclear.\n\n**Never:**\n- Change the PostgreSQL backend so that it returns `bytes`, as a substitute for fixing `HttpResponse`.\n- Iterate the `memoryview` element by element. That yields ints and is incorrect.\n- Remove or weaken existing response tests.\n\n## Success Criteria\n\n- `HttpResponse(memoryview(b\"My Content\")).content == b\"My Content\"`.\n- `r = HttpResponse(); r.content = memoryview(b\"My Content\"); r.content == b\"My Content\"`.\n- `HttpResponse(\"My Content\").content == b\"My Content\"` and `HttpResponse(b\"My Content\").content == b\"My Content\"` still hold.\n- Arbitrary binary data in a `memoryview` round-trips byte-for-byte.\n- The full existing `HttpResponse` test suite passes with no regressions.\n\n## Open Questions\n\n1. Should other bytes-like types also be handled explicitly in the same change? Examples are `bytearray` and objects that support the buffer protocol. Is `bytearray` currently affected in the same way?\n2. Should the same handling apply to chunks yielded by streaming responses, such as an iterable of `memoryview` objects in a streaming response, and to `HttpResponse.write()`?\n3. Should this be treated as a bug fix and backported to stable release branches, or only fixed on the development branch?\n4. Is a PostgreSQL-specific integration test wanted, or is a unit test with a plain `memoryview` enough?\n5. Does this need a release note or documentation entry? If so, where do they live in the repository? That location is unknown.\n6. What are the exact test command and test module location for `HttpResponse`? Both are unknown from the issue.",
+ "ttft_ms": 2938,
+ "type": "result",
+ "duration_ms": 25282,
+ "uuid": "39d2e33b-80cf-4118-9725-1b39de044344",
+ "ttft_stream_ms": 1694,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 211,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 5,
+ "time_to_request_cpu_ms": 241,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1694,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

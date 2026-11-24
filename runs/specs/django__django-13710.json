@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30254,
+ "stop_reason": "end_turn",
+ "session_id": "3b9d0409-03d0-4137-91ea-d07283a5d9fd",
+ "total_cost_usd": 0.0680635,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 862,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3007,
+  "output_tokens_details": {
+   "thinking_tokens": 299
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 862,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3007,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 862,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 862
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1447,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001567,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3007,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 862,
+   "webSearchRequests": 0,
+   "costUSD": 0.0679068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 299,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Derive Admin Inline `verbose_name_plural` from Inline `verbose_name`\n\n## Assumptions\n\n1. This change targets the Django framework itself, specifically the admin `InlineModelAdmin` class and its subclasses (`TabularInline`, `StackedInline`). It does not target a project that uses Django.\n2. Today, when `verbose_name_plural` is not set on an inline, it falls back to the related model's `Meta.verbose_name_plural`. That value is either explicit or auto-derived from the model's `verbose_name`. The fallback ignores the inline's own `verbose_name`.\n3. The pluralization rule should match the one `Model._meta` uses when deriving `verbose_name_plural` from `verbose_name`. The issue describes that rule as \"automatically base the plural form on a specified verbose_name\". The exact mechanism, presumably appending \"s\" lazily, has not been checked against the source.\n4. `verbose_name` may be a lazy translation object. The derived plural must stay lazy and must not be forced to a string at class-definition time.\n5. An explicitly set inline `verbose_name_plural` always wins and stays unchanged.\n6. When the inline sets neither attribute, behaviour stays exactly as it is today.\n7. This is a user-visible behaviour change and needs a release note and documentation update. It is a new feature, not a bug fix.\n8. The reporter's patch, mentioned in the issue, is not available to me. This spec is written independently of it.\n\n## Objective\n\n**Problem:** A developer who overrides an inline's display name has to set both `verbose_name` and `verbose_name_plural`. If they set only `verbose_name`, the plural shown in the admin, such as the inline fieldset heading, still comes from the model's name. The result looks inconsistent. Model `Meta` does not behave this way: setting `verbose_name` there automatically produces a matching plural.\n\n**User:** Django developers who configure admin inlines.\n\n**Goal:** If an inline sets `verbose_name` but not `verbose_name_plural`, derive `verbose_name_plural` from the inline's `verbose_name`, using the same rule model `Meta` uses.\n\n**Behaviour matrix (proposed):**\n\n| Inline `verbose_name` | Inline `verbose_name_plural` | Resulting inline `verbose_name_plural` |\n|---|---|---|\n| not set | not set | Model `Meta.verbose_name_plural` (unchanged) |\n| not set | set | Inline's explicit value (unchanged) |\n| set | set | Inline's explicit value (unchanged) |\n| set | not set | **Derived from the inline's `verbose_name`** (new) |\n\nWhether the last row should apply when the model `Meta` defines an explicit `verbose_name_plural` is listed under Open Questions.\n\n## Tech Stack\n\n- Python and Django. The supported versions and the target release for this feature are unknown.\n- Component: `django.contrib.admin`, specifically `InlineModelAdmin`. The defining module is unknown from the issue and has not been verified.\n- Translation utilities for lazy strings. The specific helper is unknown and has not been verified.\n\n## Commands\n\nThe issue does not state any commands. All are unknown:\n\n- Build: unknown (likely none, since Django is a pure Python package)\n- Test: unknown (Django's own test runner invocation is not given in the issue)\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\nThe issue does not state any paths. All are unknown and need to be confirmed against the repository:\n\n- Implementation of `InlineModelAdmin`: unknown\n- Admin inline tests: unknown\n- Admin docs describing `InlineModelAdmin.verbose_name` and `InlineModelAdmin.verbose_name_plural`: unknown\n- Release notes for the target version: unknown\n\n## Code Style\n\n- Follow the existing Django coding style and the conventions of the surrounding admin code. No snippet is available from the issue.\n- Mirror the pluralization logic and the lazy-string handling that model `Options` already uses, rather than introducing a new rule.\n\n## Testing Strategy\n\n- Framework: Django's own test suite. The location and runner command are unknown.\n- Required test cases (one per row of the behaviour matrix, plus edge cases):\n  1. Inline sets only `verbose_name`: rendered and computed `verbose_name_plural` is derived from it.\n  2. Inline sets both: the explicit plural is used.\n  3. Inline sets only `verbose_name_plural`: the explicit plural is used.\n  4. Inline sets neither: the model `Meta` plural is used, as today.\n  5. Inline sets only `verbose_name` as a lazy translation: the derived plural is still lazy and translates under an active language.\n  6. Both tabular and stacked inlines render the derived plural in the admin change form (heading and any other place the plural appears).\n  7. The case from Open Question 1: the model has an explicit `Meta.verbose_name_plural` and the inline sets only `verbose_name`.\n- Levels: unit-level checks on the inline instance attributes, plus admin view or rendering tests confirming the heading text.\n\n## Boundaries\n\n- **Always:**\n  - Preserve explicit inline `verbose_name_plural` values.\n  - Keep lazy translations lazy.\n  - Add tests for every row of the behaviour matrix.\n  - Update the docs and add a release note.\n- **Ask first:**\n  - Changing the precedence between the model's explicit `Meta.verbose_name_plural` and the inline's `verbose_name`.\n  - Adding any deprecation path.\n  - Backporting the change to stable branches.\n  - Changing the pluralization rule.\n- **Never:**\n  - Change model `Meta` behaviour.\n  - Alter the inline `verbose_name` fallback.\n  - Force-evaluate lazy strings at import or class-definition time.\n  - Break existing inlines that set neither attribute.\n\n## Success Criteria\n\n- [ ] An inline with only `verbose_name = \"Foo\"` produces `verbose_name_plural` equal to what model `Meta` would derive from `\"Foo\"`, and the admin change form shows that plural.\n- [ ] Inlines that set `verbose_name_plural` explicitly behave exactly as before.\n- [ ] Inlines that set neither attribute behave exactly as before.\n- [ ] A lazy `verbose_name` produces a lazy plural that renders correctly translated.\n- [ ] Both `TabularInline` and `StackedInline` reflect the new behaviour.\n- [ ] Documentation for `InlineModelAdmin.verbose_name_plural` describes the new default.\n- [ ] A release note records the behaviour change.\n- [ ] The existing admin test suite passes.\n\n## Open Questions\n\n1. **Precedence with model `Meta`:** Suppose the related model defines an explicit `Meta.verbose_name_plural` and the inline sets only `verbose_name`. Should the plural come from the inline's `verbose_name` (new behaviour) or from the model's explicit plural (current behaviour)? The issue implies the former, but this needs confirmation.\n2. **Backwards compatibility:** Existing projects that set only an inline `verbose_name` will see different headings after upgrading. Is a release-note mention enough, or is a deprecation period or opt-in needed?\n3. **Target release:** Which Django version should receive this? Is it a feature for the next major release only?\n4. **Pluralization rule:** Should the derived plural use exactly the same mechanism as model `Meta`? Is that mechanism confirmed to be appending \"s\" via a lazy format?\n5. **Reporter's patch:** Should the existing patch from the issue author be reviewed and adopted as the basis for implementation?\n6. **Other plural usages:** Are there other places in the admin where the inline plural is computed or displayed (for example, \"Add another \u2026\" labels, JavaScript-side strings, or checks) that also need verifying?\n7. **Repository specifics:** What are the file paths, test locations, and test, lint, and docs commands? None of them appear in the issue.",
+ "ttft_ms": 4454,
+ "type": "result",
+ "duration_ms": 29271,
+ "uuid": "4c636010-14be-4fbc-9654-24e6d38badbe",
+ "ttft_stream_ms": 1478,
+ "time_to_request_ms": 240,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 13,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 194,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 149,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1478,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28032,
+ "stop_reason": "end_turn",
+ "session_id": "da9bc13b-d68f-4fde-a5bb-3fe03e71a94d",
+ "total_cost_usd": 0.0612313,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 872,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2661,
+  "output_tokens_details": {
+   "thinking_tokens": 208
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 872,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2661,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 872,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 872
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1455,
+   "outputTokens": 38,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001645,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2661,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 872,
+   "webSearchRequests": 0,
+   "costUSD": 0.061066800000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 208,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Dev server autoreload stops working when a project-root path is in `TEMPLATES[0]['DIRS']`\n\n## Objective\n\n**Problem.** In a freshly generated Django project, adding `BASE_DIR` to `TEMPLATES[0]['DIRS']` in `settings.py` stops `manage.py runserver` from restarting on file changes. This happens for edits to **any** file, not only `settings.py`. Removing `BASE_DIR` from `DIRS` and restarting the server manually brings autoreload back.\n\n**Who is affected.** Developers who run `manage.py runserver` and list a template directory that contains Python source. The project root is the most common case.\n\n**What success looks like.** The dev server's code autoreload keeps working no matter which directories are listed in template `DIRS`, including directories that contain Python source files such as the project root.\n\n**User story.**\n- As a developer, when I put `BASE_DIR` (or any ancestor of my source files) in `TEMPLATES[0]['DIRS']` and save a Python file, the dev server restarts. It behaves the same as when `DIRS` is empty.\n\n**Reported reproduction (from the issue).**\n1. `pip install -U django`\n2. `django-admin startproject <name>`\n3. In `settings.py`, set `TEMPLATES[0]['DIRS'] = [BASE_DIR]`.\n4. Run `./manage.py runserver`.\n5. Save any file. The server does **not** restart.\n6. Remove `BASE_DIR` from `DIRS`, restart the server manually, and save `settings.py`. The server restarts as expected.\n\n## Assumptions\n\n1. The Django version is the latest release at the time of the report. `pip install -U django` was used, and the exact version is not stated.\n2. The default `StatReloader` or `WatchmanReloader` behaviour is affected, and the user has not customized the reloader.\n3. The behaviour is deterministic and not specific to an IDE, OS or filesystem. The reporter used an IDE save; the OS is not stated.\n4. Template-directory watching in the autoreloader is the likely mechanism. This is unverified because the code is not visible here. The template-change handling may claim changes to files under template dirs, including `.py` files, and suppress the full process restart. Under that hypothesis, any template dir that contains Python source shows the bug, not only `BASE_DIR`.\n5. The expected behaviour is:\n   - Changes to Python source files always trigger a full restart, even if they sit inside a template directory.\n   - Template-change handling, such as resetting template loaders without a restart, still applies to actual template files.\n6. The fix belongs in Django itself. Telling users not to put `BASE_DIR` in `DIRS` is not the resolution, because it is a valid and documented-style configuration.\n7. Template `DIRS` entries may be `pathlib.Path` objects (as with `BASE_DIR` from `startproject`) or strings. Both must be handled.\n\n## Tech Stack\n\n- Python and Django. The exact versions are **unknown** (see Open Questions).\n- Components in scope:\n  - Django's development-server autoreloader\n  - The template engine configuration (`TEMPLATES` / `DIRS`)\n  - Any template-change hooks that the autoreloader consults\n- Exact module paths: **unknown**, because they are not visible in the issue.\n\n## Commands\n\nAll commands are **unknown** and must be confirmed against the repository:\n- Build: unknown (likely none for a pure-Python change)\n- Test: unknown (Django's test runner invocation for the relevant test modules)\n- Lint: unknown\n- Manual repro: `django-admin startproject <name>` then `./manage.py runserver`. These are taken from the issue.\n\n## Project Structure\n\n**Unknown.** These still need to be located in the repository:\n- The autoreloader implementation\n- The template autoreload / change-detection integration\n- Their existing test modules\n\n## Code Style\n\n**Unknown.** Follow existing Django conventions in the files touched. No snippet is available from the issue.\n\n## Testing Strategy\n\n**Regression test (required).** With a template backend whose `DIRS` contains a directory holding a `.py` file, a change to that `.py` file must not be treated as handled by the template-change logic. It must result in a full reload.\n\n**Preserve existing behaviour:**\n- A change to a non-Python file inside a template dir, such as an `.html` template, is still handled as a template change (for example, a loader reset) as it is today.\n- A change to a `.py` file outside any template dir still triggers a reload.\n\n**Edge cases to cover:**\n- `DIRS` given as `pathlib.Path` and as `str`.\n- A template dir that is an ancestor of the project's source tree (the `BASE_DIR` case).\n- An empty `DIRS`, where behaviour must be unchanged.\n- Multiple template backends and app-directory template loaders, if they participate in the same watching mechanism.\n\n**Test levels.** Unit tests on the change-detection logic are the primary level. A manual runserver repro serves as the final check.\n\n**Coverage expectation.** Unknown, so follow project norms.\n\n## Boundaries\n\n**Always:**\n- Add a regression test that fails before the fix and passes after it.\n- Keep template-only change handling working for template files.\n- Run the existing autoreload and template test suites.\n\n**Ask first:**\n- Changing which files or globs the autoreloader watches in general.\n- Changing any public settings or the documented behaviour of template autoreloading.\n- Adding dependencies.\n\n**Never:**\n- \"Fix\" the issue by documenting that `BASE_DIR` must not be in `DIRS`.\n- Disable template-change detection entirely.\n- Remove or weaken existing autoreload tests.\n\n## Success Criteria\n\n1. With `TEMPLATES[0]['DIRS'] = [BASE_DIR]` in a `startproject` project, saving any `.py` file under `BASE_DIR` causes `runserver` to restart. This includes `settings.py`, which must restart on every save.\n2. With the same config, editing a template file inside a template dir still behaves as template changes do today, with no regression.\n3. With an empty `DIRS`, autoreload behaviour is identical to before.\n4. The regression test reproduces the bug on the unfixed code and passes on the fixed code.\n5. The existing autoreload and template test suites pass.\n\n## Open Questions\n\n1. **Version.** Which Django version(s) exhibit this? Is it a regression introduced by template-directory watching, and which release branches should get the fix?\n2. **Reloader scope.** Does it reproduce with both `StatReloader` and `WatchmanReloader`?\n3. **Other file types.** Should only `.py` files be excluded from template-change handling? Or should it be restricted to known template files, or to files actually resolvable by a template loader? What about other non-template files under a template dir, such as `.txt`, `.json` or static files?\n4. **Watching itself.** Is it acceptable that listing `BASE_DIR` in `DIRS` makes the reloader watch the whole project tree for template changes? Watching a large tree could be a performance concern, and it may be worth a separate issue.\n5. **Locations.** Where do the autoreloader, the template-change hook and their tests live in the repository? Paths and commands are unknown.\n6. **Release notes.** Should the fix include a release note or documentation clarification?",
+ "ttft_ms": 3727,
+ "type": "result",
+ "duration_ms": 27599,
+ "uuid": "f8137857-f276-433c-bb76-33f55e6947ff",
+ "ttft_stream_ms": 1301,
+ "time_to_request_ms": 360,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 330,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 200,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1301,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

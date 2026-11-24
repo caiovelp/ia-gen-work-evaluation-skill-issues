@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27075,
+ "stop_reason": "end_turn",
+ "session_id": "6ebfb43b-79e5-46b0-a81a-8131f03f3315",
+ "total_cost_usd": 0.061651000000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 974,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2641,
+  "output_tokens_details": {
+   "thinking_tokens": 137
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 974,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2641,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 974,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 974
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1557,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016820000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2641,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 974,
+   "webSearchRequests": 0,
+   "costUSD": 0.061482800000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 137,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Preserve single-element tuples in `lambdify` generated Python code\n\n## Objective\n\nIn SymPy 1.10, `lambdify` drops the trailing comma when the expression is a one-element Python tuple. The generated function returns a scalar where it should return a tuple.\n\n**Reproduction (from the issue):**\n\n```python\nimport inspect\nfrom sympy import lambdify\n\ninspect.getsource(lambdify([], tuple([1])))\n```\n\n| Version | Generated source | Return type |\n|---|---|---|\n| SymPy \u2264 1.9 | `'def _lambdifygenerated():\\n    return (1,)\\n'` | `tuple` \u2705 |\n| SymPy 1.10 | `'def _lambdifygenerated():\\n    return (1)\\n'` | `int` \u274c |\n\nTuples with two or more elements generate correctly, for example `return (1, 2)`.\n\n**Who is affected:** users whose code depends on `lambdify` returning a tuple when the input expression is a tuple. The reporter's program assumes the return type is always a tuple.\n\n**What success looks like:** for any tuple input, including length 1, the generated code returns a Python `tuple` of the same length. The behaviour matches SymPy 1.9 for the cases shown.\n\n**Classification:** this appears to be a regression between 1.9 and 1.10. The reporter is unsure, but the before/after outputs show behaviour that previously worked has changed.\n\n## Assumptions\n\n1. The bug is in how `lambdify` turns a Python `tuple` expression into source text, not in the runtime evaluation. The emitted source text itself is wrong (`(1)` instead of `(1,)`).\n2. The same defect can appear wherever a one-element tuple is serialized:\n   - nested inside other containers, e.g. `[(1,)]` or `((1,), 2)`\n   - containing symbolic elements, e.g. `lambdify([x], (x,))`\n   - under printer modules other than the default (e.g. `math`, `numpy`, `mpmath`)\n\n   This has not been verified.\n3. The empty tuple `()` must still produce valid code that returns `()`.\n4. SymPy `Tuple` objects (as opposed to Python built-in `tuple`) might take a different printing path. Whether they are affected is unknown.\n5. The fix should not change generated code for tuples of length \u2265 2, nor for lists or other containers, beyond what correctness requires.\n6. The exact source location of the regression is not visible from the issue. It is unknown which file or function changed between 1.9 and 1.10.\n\n## Tech Stack\n\n- Python (supported versions for the target SymPy release: **unknown**)\n- SymPy, affected version 1.10; last known good version 1.9\n- Component: `sympy.lambdify` and the Python code printer it uses (exact module path: **unknown**)\n\n## Commands\n\nAll of the following are unknown, because the repository is not visible:\n\n```\nBuild: unknown (pure-Python package; build command not given)\nTest:  unknown (test runner and invocation not given in the issue)\nLint:  unknown\nDev:   unknown\n```\n\nThe only command shown in the issue is the reproduction snippet above, run in a Python interpreter.\n\n## Project Structure\n\nUnknown. The issue gives no file paths. The locations of the following still need to be confirmed:\n\n- the `lambdify` implementation\n- the code-printer module(s) used by `lambdify`\n- the corresponding test files\n\n## Code Style\n\nUnknown. No project code appears in the issue. Follow the existing conventions of the surrounding SymPy code once located.\n\n## Testing Strategy\n\n- **Framework:** unknown. Use the project's existing test framework.\n- **Regression tests (required).** Each case asserts both the generated source and the runtime return value:\n  - `lambdify([], tuple([1]))()` returns `(1,)` and `type(...) is tuple`\n  - `inspect.getsource(lambdify([], tuple([1])))` contains `(1,)`\n  - `lambdify([], tuple([1, 2]))()` returns `(1, 2)` (unchanged behaviour)\n- **Edge-case tests (recommended).** Exact expected outputs are subject to Open Questions:\n  - Empty tuple: `lambdify([], ())()` returns `()`\n  - Symbolic single element: `lambdify([x], (x,))(3)` returns `(3,)`\n  - Nested: `lambdify([], ((1,), 2))()` returns `((1,), 2)`\n  - Inside a list: `lambdify([], [(1,)])()` returns `[(1,)]`\n  - The same checks under each supported printer module\n- **Test location:** unknown. Place tests next to the existing `lambdify` tests.\n- **Coverage expectation:** every container-serialization branch touched by the fix is exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails on current 1.10 behaviour before the fix.\n  - Run the existing `lambdify` and printer test suites.\n  - Keep output for tuples of length \u2265 2 unchanged.\n- **Ask first:**\n  - Changing the public `lambdify` signature or adding new options.\n  - Altering generated code for non-tuple containers.\n  - Changing how SymPy `Tuple` (as opposed to built-in `tuple`) is printed.\n  - Backporting to a 1.10.x release.\n- **Never:**\n  - Remove or weaken existing tests.\n  - \"Fix\" this by post-processing the user's return value (e.g. wrapping in `tuple()` at call time) instead of emitting correct source.\n  - Change the generated function name or the overall source layout without approval.\n\n## Success Criteria\n\n1. `inspect.getsource(lambdify([], tuple([1])))` produces source that returns `(1,)`, e.g. `'def _lambdifygenerated():\\n    return (1,)\\n'`.\n2. `type(lambdify([], tuple([1]))()) is tuple` and the value equals `(1,)`.\n3. `lambdify([], tuple([1, 2]))` still generates `return (1, 2)` and returns `(1, 2)`.\n4. Single-element tuples nested inside tuples or lists also produce tuples at runtime.\n5. The empty tuple still produces valid code returning `()`.\n6. All pre-existing `lambdify` and printer tests pass.\n7. New regression tests covering criteria 1\u20135 are added and pass.\n\n## Open Questions\n\n1. Which change between 1.9 and 1.10 introduced the regression? Identifying it would confirm the root cause and show whether other container types were affected too.\n2. Is a SymPy `Tuple` with one element affected in the same way as a built-in `tuple`, and should the fix cover both?\n3. Which printer modules (`math`, `numpy`, `mpmath`, `scipy`, `tensorflow`, etc.) must be verified? Does any of them intentionally print tuples differently?\n4. Is a specific source formatting required, e.g. `(1,)` vs `(1, )`, or is any syntactically correct one-element tuple acceptable?\n5. Should the fix be backported to a 1.10.x patch release?\n6. The reporter asks for a workaround on the user side until a fix ships. Should the issue response suggest one, such as wrapping the result in `tuple(...)` or passing a list? This is outside the code fix and needs maintainer judgment.\n7. The test command, test file locations, and supported Python versions are unknown and must be confirmed from the repository.",
+ "ttft_ms": 3030,
+ "type": "result",
+ "duration_ms": 26242,
+ "uuid": "72d9e064-0daf-46f0-83c1-9461fa2fa216",
+ "ttft_stream_ms": 1530,
+ "time_to_request_ms": 259,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 8,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 222,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 142,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1530,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

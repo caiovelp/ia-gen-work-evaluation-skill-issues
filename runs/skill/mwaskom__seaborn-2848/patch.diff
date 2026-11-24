@@ -1,0 +1,15 @@
+diff --git a/seaborn/axisgrid.py b/seaborn/axisgrid.py
+index 8526f44..13cd76d 100755
+--- a/seaborn/axisgrid.py
++++ b/seaborn/axisgrid.py
+@@ -1270,6 +1270,10 @@ class PairGrid(Grid):
+             self.hue_vals = pd.Series(["_nolegend_"] * len(data),
+                                       index=data.index)
+         else:
++            if hue_order is not None:
++                # Drop observations whose hue level is not in hue_order
++                data = data[data[hue].isin(hue_order)]
++                self.data = data
+             # We need hue_order and hue_names because the former is used to control
+             # the order of drawing and the latter is used to control the order of
+             # the legend. hue_names can become string-typed while hue_order must

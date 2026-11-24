@@ -1,0 +1,27 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 901918674..59c1a835e 100755
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -1352,6 +1352,13 @@ def _print_Symbol(self, expr):
+         return self._deal_with_super_sub(expr.name) if \
+             '\\' not in expr.name else expr.name
+ 
++    def _print_Dummy(self, expr):
++        name = expr.name
++        if name.startswith('_') and expr not in self._settings['symbol_names']:
++            name = name.lstrip('_')
++            return self._deal_with_super_sub(name)
++        return self._print_Symbol(expr)
++
+     _print_RandomSymbol = _print_Symbol
+     _print_MatrixSymbol = _print_Symbol
+ 
+@@ -1438,7 +1445,7 @@ def _print_MatrixBase(self, expr):
+ 
+     def _print_MatrixElement(self, expr):
+         return self.parenthesize(expr.parent, PRECEDENCE["Atom"], strict=True) \
+-            + '_{%s, %s}' % (expr.i, expr.j)
++            + '_{%s, %s}' % (self._print(expr.i), self._print(expr.j))
+ 
+     def _print_MatrixSlice(self, expr):
+         def latexslice(x):

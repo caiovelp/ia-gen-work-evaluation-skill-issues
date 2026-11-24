@@ -1,0 +1,23 @@
+diff --git a/lib/matplotlib/offsetbox.py b/lib/matplotlib/offsetbox.py
+index 1dee8a23d9..10753d721f 100755
+--- a/lib/matplotlib/offsetbox.py
++++ b/lib/matplotlib/offsetbox.py
+@@ -1505,7 +1505,6 @@ class DraggableBase:
+         if not ref_artist.pickable():
+             ref_artist.set_picker(True)
+         self.got_artist = False
+-        self.canvas = self.ref_artist.figure.canvas
+         self._use_blit = use_blit and self.canvas.supports_blit
+         self.cids = [
+             self.canvas.callbacks._connect_picklable(
+@@ -1553,6 +1552,10 @@ class DraggableBase:
+             if self._use_blit:
+                 self.ref_artist.set_animated(False)
+ 
++    @property
++    def canvas(self):
++        return self.ref_artist.figure.canvas
++
+     def _check_still_parented(self):
+         if self.ref_artist.figure is None:
+             self.disconnect()

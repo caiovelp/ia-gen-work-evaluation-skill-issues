@@ -1,0 +1,35 @@
+diff --git a/sympy/polys/domains/polynomialring.py b/sympy/polys/domains/polynomialring.py
+index 6e60b5e4a..446bccf66 100755
+--- a/sympy/polys/domains/polynomialring.py
++++ b/sympy/polys/domains/polynomialring.py
+@@ -107,7 +107,12 @@ def from_FractionField(K1, a, K0):
+         denom = K0.denom(a)
+ 
+         if denom.is_ground:
+-            return K1.from_PolynomialRing(K0.numer(a)/denom, K0.field.ring.to_domain())
++            numer = K0.numer(a)
++            d = denom.LC
++            q = numer.quo_ground(d)
++            if q.mul_ground(d) != numer:
++                return None
++            return K1.from_PolynomialRing(q, K0.field.ring.to_domain())
+         else:
+             return None
+ 
+diff --git a/sympy/polys/tests/test_partfrac.py b/sympy/polys/tests/test_partfrac.py
+index 707fb4587..396f0d0f4 100755
+--- a/sympy/polys/tests/test_partfrac.py
++++ b/sympy/polys/tests/test_partfrac.py
+@@ -168,3 +168,12 @@ def test_issue_5798():
+     assert apart(
+         2*x/(x**2 + 1) - (x - 1)/(2*(x**2 + 1)) + 1/(2*(x + 1)) - 2/x) == \
+         (3*x + 1)/(x**2 + 1)/2 + 1/(x + 1)/2 - 2/x
++
++
++def test_issue_12208_symbolic_coeff():
++    from sympy import cancel, symbols
++    a, t = symbols('a t')
++    bug = a*(-t + (-t + 1)*(2*t - 1))/(2*t - 1)
++    r = apart(bug, t)
++    assert cancel(r - bug) == 0
++    assert r.subs(a, 1) == apart(bug.subs(a, 1), t)

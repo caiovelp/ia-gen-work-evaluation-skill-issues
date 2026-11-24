@@ -1,0 +1,16 @@
+diff --git a/app/controllers/users/confirmations_controller.rb b/app/controllers/users/confirmations_controller.rb
+index e283d161..b86d8722 100644
+--- a/app/controllers/users/confirmations_controller.rb
++++ b/app/controllers/users/confirmations_controller.rb
+@@ -14,9 +14,9 @@ class Users::ConfirmationsController < Devise::ConfirmationsController
+   # GET /resource/confirmation?confirmation_token=abcdef
+   def show
+     user = User.find_by(confirmation_token: params[:confirmation_token])
+-    email_before = user.email
++    email_before = user&.email
+     super do |user|
+-      if email_before != user.email && user.errors.empty?
++      if user.errors.empty? && !email_before.nil? && email_before != user.email
+         if student = user.student
+           student.email = user.email
+           student.save!

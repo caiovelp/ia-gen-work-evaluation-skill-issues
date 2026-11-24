@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 13391,
+ "stop_reason": "end_turn",
+ "session_id": "b651dec4-1c44-4d28-9d25-ff5069d401c4",
+ "total_cost_usd": 0.0434853,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1978,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1371,
+  "output_tokens_details": {
+   "thinking_tokens": 293
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1978,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1371,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1978,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1978
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2188,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002333,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1371,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1978,
+   "webSearchRequests": 0,
+   "costUSD": 0.043252,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 293,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWith `serialized_rollback = True` on a `TransactionTestCase`, restoring the serialized database contents can fail with integrity errors. `deserialize_db_from_string` saves objects one by one without wrapping them in a transaction. `serialize_db_to_string` does not guarantee that models referenced by foreign keys are serialized before the models that point to them. As a result, an instance with a foreign key can be saved before the instance it references.\n\n## Steps to reproduce\n\nThe reporter hit this in a complex project and did not write a minimal reproduction. Based on their description of the code path:\n\n1. Use a project where one model has a foreign key to another model, and the app registry orders them so the model holding the foreign key is serialized first. The reporter notes this order is deterministic because the app registry stores apps and models in an `OrderedDict`.\n2. Create a `TransactionTestCase` subclass with `serialized_rollback = True`.\n3. Run the tests. For each database:\n   - `BaseDatabaseCreation.create_test_db` effectively runs `connection._test_serialized_contents = connection.creation.serialize_db_to_string()`.\n   - `TransactionTestCase._fixture_setup` effectively runs `connection.creation.deserialize_db_from_string(connection._test_serialized_contents)`.\n4. During deserialization, an object holding a foreign key may be saved before the object it references.\n\n## Observed behavior\n\n- `serialize_db_to_string` orders models with `serializers.sort_dependencies`, which only handles natural keys. It does not place models referenced by foreign keys before models that contain those foreign keys. The reporter notes this is not possible in general because circular foreign keys are allowed.\n- `deserialize_db_from_string` deserializes and saves each object without a surrounding transaction.\n- Integrity errors can occur when an instance with a foreign key is saved before the instance it references, so the objects are not restored.\n\n## Expected behavior\n\nRollback emulation should restore all serialized objects without integrity errors, whatever order the models were serialized in. The reporter contrasts this with the `loaddata` management command, which does not have this problem because it loads all fixtures inside a single transaction.\n\n## Stack trace / error output\n\nNot provided in the original report. The reporter only mentions \"integrity errors\".\n\n## Test case\n\nNot provided in the original report. The reporter believes a deterministic test is possible, because `serialize_db_to_string` serializes models in the app registry's deterministic (`OrderedDict`) order.\n\n## Code example\n\nCurrent body of `BaseDatabaseCreation.deserialize_db_from_string` in `django/db/backends/base/creation.py`, as quoted in the report:\n\n```python\ndata = StringIO(data)\nfor obj in serializers.deserialize(\"json\", data, using=self.connection.alias):\n    obj.save()\n```\n\nFor comparison, the `loaddata` command's `handle` method, as quoted in the report:\n\n```python\ndef handle(self, *fixture_labels, **options):\n    # ...\n    with transaction.atomic(using=self.using):\n        self.loaddata(fixture_labels)\n    # ...\n```\n\n## Version and environment\n\nNot provided in the original report. The quoted code imports from `django.utils.six`, but no Django, Python, or database versions are given.",
+ "ttft_ms": 4397,
+ "type": "result",
+ "duration_ms": 12834,
+ "uuid": "0b82e464-2745-45bc-8a04-c402fe575aa4",
+ "ttft_stream_ms": 1400,
+ "time_to_request_ms": 278,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 22,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 221,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 229,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1400,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,28 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 737e16cc7..283bac37c 100755
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -6,7 +6,7 @@
+ 
+ import itertools
+ 
+-from sympy.core import S, Add, Symbol, Mod
++from sympy.core import S, Add, Mul, Symbol, Mod
+ from sympy.core.function import _coeff_isneg
+ from sympy.core.sympify import SympifyError
+ from sympy.core.alphabets import greeks
+@@ -1854,7 +1854,13 @@ def _print_PolynomialRingBase(self, expr):
+ 
+     def _print_Poly(self, poly):
+         cls = poly.__class__.__name__
+-        expr = self._print(poly.as_expr())
++        terms = [Mul(coeff, *[g**m for g, m in zip(poly.gens, monom)])
++                 for monom, coeff in poly.terms()]
++        old_order, self._settings['order'] = self._settings['order'], 'none'
++        try:
++            expr = self._print(Add(*terms, evaluate=False))
++        finally:
++            self._settings['order'] = old_order
+         gens = list(map(self._print, poly.gens))
+         domain = "domain=%s" % self._print(poly.get_domain())
+ 

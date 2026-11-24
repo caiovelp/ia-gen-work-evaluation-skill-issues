@@ -1,0 +1,1 @@
+{"justificativa": "O patch candidato faz exatamente a mesma mudança de código da correção oficial: recoloca :scholarship em config.subform.columns, o que restaura o campo no subform e faz o salvamento aceitar a coluna. A única diferença é que não inclui o comentário explicativo.", "veredito": "resolve"}

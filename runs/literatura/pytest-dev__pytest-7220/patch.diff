@@ -1,0 +1,49 @@
+diff --git a/src/_pytest/_code/code.py b/src/_pytest/_code/code.py
+index 7b17d7612..1cce7a55b 100755
+--- a/src/_pytest/_code/code.py
++++ b/src/_pytest/_code/code.py
+@@ -571,6 +571,7 @@ class ExceptionInfo(Generic[_E]):
+         showlocals: bool = False,
+         style: "_TracebackStyle" = "long",
+         abspath: bool = False,
++        startdir=None,
+         tbfilter: bool = True,
+         funcargs: bool = False,
+         truncate_locals: bool = True,
+@@ -618,6 +619,7 @@ class ExceptionInfo(Generic[_E]):
+             showlocals=showlocals,
+             style=style,
+             abspath=abspath,
++            startdir=startdir,
+             tbfilter=tbfilter,
+             funcargs=funcargs,
+             truncate_locals=truncate_locals,
+@@ -651,6 +653,7 @@ class FormattedExcinfo:
+     showlocals = attr.ib(type=bool, default=False)
+     style = attr.ib(type="_TracebackStyle", default="long")
+     abspath = attr.ib(type=bool, default=True)
++    startdir = attr.ib(default=None)
+     tbfilter = attr.ib(type=bool, default=True)
+     funcargs = attr.ib(type=bool, default=False)
+     truncate_locals = attr.ib(type=bool, default=True)
+@@ -791,7 +794,7 @@ class FormattedExcinfo:
+     def _makepath(self, path):
+         if not self.abspath:
+             try:
+-                np = py.path.local().bestrelpath(path)
++                np = (self.startdir or py.path.local()).bestrelpath(path)
+             except OSError:
+                 return path
+             if len(np) < len(str(path)):
+diff --git a/src/_pytest/nodes.py b/src/_pytest/nodes.py
+index 4a79bc861..5d95b3177 100755
+--- a/src/_pytest/nodes.py
++++ b/src/_pytest/nodes.py
+@@ -370,6 +370,7 @@ class Node(metaclass=NodeMeta):
+         return excinfo.getrepr(
+             funcargs=True,
+             abspath=abspath,
++            startdir=self.config.invocation_dir,
+             showlocals=self.config.getoption("showlocals", False),
+             style=style,
+             tbfilter=False,  # pruned already, or in --fulltrace mode.

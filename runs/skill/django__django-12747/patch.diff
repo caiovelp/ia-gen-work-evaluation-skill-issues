@@ -1,0 +1,12 @@
+diff --git a/django/db/models/deletion.py b/django/db/models/deletion.py
+index 16dff6a1cd..947171b343 100755
+--- a/django/db/models/deletion.py
++++ b/django/db/models/deletion.py
+@@ -442,4 +442,6 @@ class Collector:
+         for model, instances in self.data.items():
+             for instance in instances:
+                 setattr(instance, model._meta.pk.attname, None)
+-        return sum(deleted_counter.values()), dict(deleted_counter)
++        # Only report models for which at least one row was deleted.
++        deleted_counter = {label: count for label, count in deleted_counter.items() if count}
++        return sum(deleted_counter.values()), deleted_counter

@@ -1,0 +1,31 @@
+diff --git a/django/db/models/lookups.py b/django/db/models/lookups.py
+index 9344979c56..a6ebd716b7 100755
+--- a/django/db/models/lookups.py
++++ b/django/db/models/lookups.py
+@@ -462,6 +462,14 @@ class IsNull(BuiltinLookup):
+     lookup_name = 'isnull'
+     prepare_rhs = False
+ 
++    def get_prep_lookup(self):
++        if not isinstance(self.rhs, bool) and not (self.rhs is None and self.can_use_none_as_rhs):
++            raise ValueError(
++                'The QuerySet value for an isnull lookup must be True or '
++                'False.'
++            )
++        return super().get_prep_lookup()
++
+     def as_sql(self, compiler, connection):
+         sql, params = compiler.compile(self.lhs)
+         if self.rhs:
+diff --git a/docs/ref/models/querysets.txt b/docs/ref/models/querysets.txt
+index 219245576a..72c7f197fb 100755
+--- a/docs/ref/models/querysets.txt
++++ b/docs/ref/models/querysets.txt
+@@ -3270,6 +3270,7 @@ in the database <database-time-zone-definitions>`.
+ 
+ Takes either ``True`` or ``False``, which correspond to SQL queries of
+ ``IS NULL`` and ``IS NOT NULL``, respectively.
++Passing any other value raises a ``ValueError``.
+ 
+ Example::
+ 

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23201,
+ "stop_reason": "end_turn",
+ "session_id": "0d379a0c-9992-4821-bb02-cbcf515a18cf",
+ "total_cost_usd": 0.0559463,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 914,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2380,
+  "output_tokens_details": {
+   "thinking_tokens": 98
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 914,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2380,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 914,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 914
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1500,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016350000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2380,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 914,
+   "webSearchRequests": 0,
+   "costUSD": 0.0557828,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 98,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Async response support for `ASGIStaticFilesHandler`\n\n## Objective\n\nMake `ASGIStaticFilesHandler` serve static files when Django runs under an ASGI server.\n\n**The problem.** The issue reports that `StaticFilesHandlerMixin` provides no async counterpart to its response method. When a request reaches `ASGIStaticFilesHandler` (seen with daphne), the inherited `get_response_async` from `django/core/handlers/base.py` calls `self._middleware_chain(request)`. On this handler `_middleware_chain` is `None`, so the request fails:\n\n```\nFile \".../django/contrib/staticfiles/handlers.py\", line 86, in __call__\n    return await super().__call__(scope, receive, send)\nFile \".../django/core/handlers/asgi.py\", line 161, in __call__\n    response = await self.get_response_async(request)\nFile \".../django/core/handlers/base.py\", line 148, in get_response_async\n    response = await self._middleware_chain(request)\nTypeError: 'NoneType' object is not callable\n```\n\n**Who is affected.** Developers serving static files through `ASGIStaticFilesHandler`, for example when running under an ASGI server in development.\n\n**Acceptance criteria:**\n\n- A request for an existing static file through `ASGIStaticFilesHandler` returns a successful response with the file's contents, and no `TypeError` is raised.\n- A request for a missing static file under the static URL prefix behaves like the WSGI `StaticFilesHandler` in the same case (for example, a 404 response that includes debug information when `DEBUG` is on).\n- Requests outside the static URL prefix still go to the wrapped ASGI application, as they do now.\n- The synchronous WSGI `StaticFilesHandler` behaves exactly as before.\n\n## Assumptions\n\n1. The fix belongs in `StaticFilesHandlerMixin`, or in a closely related part of `django/contrib/staticfiles/handlers.py`, by adding an async response path (`get_response_async`) that mirrors the existing sync `get_response`.\n2. The error occurs because the static files handler never loads the middleware chain, which leaves `_middleware_chain` set to `None`. The base class's `get_response_async` therefore cannot be used as it is.\n3. Serving static files is synchronous work (file I/O through the existing serve logic). Calling it from async code through Django's usual sync-to-async bridge is acceptable.\n4. Exceptions such as `Http404` during static serving should be converted into responses the same way the sync path does.\n5. The Python version in the traceback (3.7) is only the reporter's environment. Supported versions follow whatever this Django branch supports.\n6. Behavior only needs to change for the ASGI handler. No public API changes are needed beyond the new method.\n\n## Tech Stack\n\n- Python (the reporter uses 3.7; supported versions for this branch are unknown)\n- Django: `django.contrib.staticfiles.handlers`, `django.core.handlers.asgi`, `django.core.handlers.base`\n- ASGI server in the report: daphne (only used to reproduce the bug, not a dependency of the fix)\n- Exact Django version or branch: **unknown**\n\n## Commands\n\n- Build: **unknown** (not stated in the issue)\n- Test: **unknown** (Django's test runner invocation is not given in the issue)\n- Lint: **unknown**\n- Dev/reproduce: run an ASGI server (e.g., daphne) against an app wrapped in `ASGIStaticFilesHandler` and request a static file. The exact command is **unknown**.\n\n## Project Structure\n\nOnly these paths appear in the issue:\n\n```\ndjango/contrib/staticfiles/handlers.py \u2192 StaticFilesHandlerMixin, StaticFilesHandler, ASGIStaticFilesHandler\ndjango/core/handlers/asgi.py           \u2192 ASGIHandler.__call__ (calls get_response_async)\ndjango/core/handlers/base.py           \u2192 BaseHandler.get_response_async (uses _middleware_chain)\n```\n\nTest locations for staticfiles handlers: **unknown**.\n\n## Code Style\n\n- Follow the existing conventions in `django/contrib/staticfiles/handlers.py`. Its contents are not visible here, so no snippet is given.\n- The new async method should mirror the structure and naming of the existing sync `get_response` in the mixin (`get_response` \u2192 `get_response_async`).\n\n## Testing Strategy\n\n- Framework: Django's own test suite (the exact runner command and test module location are **unknown**).\n- Required tests:\n  - **Regression test.** Send an ASGI request for an existing static file through `ASGIStaticFilesHandler` and assert a successful response with the expected body. This test must fail before the fix with `TypeError: 'NoneType' object is not callable`.\n  - **Not-found case.** Request a missing file under the static prefix and assert the response matches the sync handler's behavior.\n  - **Pass-through case.** Request a path outside the static prefix and assert it reaches the wrapped application.\n  - Existing tests for the sync `StaticFilesHandler` must keep passing without changes.\n\n## Boundaries\n\n- **Always:** keep the sync and async paths equivalent in behavior. Add a regression test that reproduces the traceback. Run the existing staticfiles and handlers tests.\n- **Ask first:** changing `BaseHandler` or `ASGIHandler` in `django/core/handlers/` rather than the staticfiles mixin. Changing how middleware is loaded for static file handlers. Adding any dependency.\n- **Never:** change the sync `StaticFilesHandler` behavior. Make static serving bypass existing path or security checks. Add an ASGI server such as daphne as a dependency.\n\n## Success Criteria\n\n- The traceback in the issue no longer occurs when a static file is requested through `ASGIStaticFilesHandler`.\n- The new tests for the static file hit, the missing file, and pass-through all pass under the ASGI handler.\n- The full existing test suite for staticfiles and core handlers passes with no regressions.\n\n## Open Questions\n\n1. Which Django branch or version should the fix target, and should it be backported?\n2. Should a missing static file under ASGI produce exactly the same response as WSGI, including the debug 404 page when `DEBUG=True`?\n3. Is calling the synchronous serve logic through a sync-to-async bridge acceptable, or is a natively async file-serving path expected?\n4. Should the fix stay in `StaticFilesHandlerMixin`? Or should `BaseHandler.get_response_async` be hardened against `_middleware_chain` being `None`, which could benefit other handlers that skip middleware loading?\n5. Where should the new tests live, and what command runs them in this repository?\n6. Is a release note or documentation update required for this bug fix?",
+ "ttft_ms": 2361,
+ "type": "result",
+ "duration_ms": 22473,
+ "uuid": "af6e9a97-31ac-4db8-83d5-785d6fa6596b",
+ "ttft_stream_ms": 1593,
+ "time_to_request_ms": 238,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 211,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 168,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 6,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1594,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

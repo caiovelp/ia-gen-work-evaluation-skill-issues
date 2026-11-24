@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 7761,
+ "stop_reason": "end_turn",
+ "session_id": "31fe4d14-9865-495f-b9bf-e9b228c793ae",
+ "total_cost_usd": 0.0232009,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1212,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 667,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1212,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 667,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1212,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1212
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1444,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 667,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1212,
+   "webSearchRequests": 0,
+   "costUSD": 0.023044,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n`SimpleLazyObject` does not implement `__radd__`\n\n## Description\n`SimpleLazyObject` is missing several magic methods that a complete proxy implementation provides. `wrapt.ObjectProxy` is an example of such a complete proxy. The missing method that causes problems for the reporter right now is `__radd__`. Because `SimpleLazyObject` does not define it, reflected addition does not work when the lazy object is the right-hand operand (`other + lazy_obj`).\n\nThe reporter notes that the simple approaches used for other proxied methods do not work here:\n- `__radd__ = new_method_proxy(operator.radd)` is not possible because `operator.radd` does not exist.\n- `__radd__ = new_method_proxy(operator.attrgetter(\"__radd__\"))` also fails. The wrapped type may not have a `__radd__` attribute, and `attrgetter` does not suppress the resulting exception correctly.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nWithout `__radd__`, a `SimpleLazyObject` cannot act as a transparent proxy for its wrapped object when it is the right-hand operand of `+`. The gap affects the reporter's code directly. It is also one example of the wider incompleteness of `SimpleLazyObject` compared to a full proxy implementation such as `wrapt.ObjectProxy`.\n\n## Use case or scenario\nA value wrapped in `SimpleLazyObject` is used as the right-hand operand of an addition, for example `other + lazy_obj`. The expected behaviour is that the wrapped object is evaluated and the addition works as if the wrapped value had been used directly.\n\n## Possible solution\nThe reporter suggests the following minimal implementation, which works for them. It sets up the wrapped object if needed and then performs the addition with the wrapped value as the right-hand operand:\n\n```python\ndef __radd__(self, other):\n    if self._wrapped is empty:\n        self._setup()\n    return other + self._wrapped\n```",
+ "ttft_ms": 7059,
+ "type": "result",
+ "duration_ms": 7076,
+ "uuid": "599d0ea6-b3be-4a09-b2f8-c5522ba755d3",
+ "ttft_stream_ms": 1435,
+ "time_to_request_ms": 310,
+ "time_to_request_phases_ms": {
+  "other": 24,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 6,
+  "input_attachments": 21,
+  "input_hooks": 4,
+  "tool_pool_refresh": 3,
+  "init_message": 34,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 41,
+ "time_to_request_cpu_ms": 380,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 12,
+  "cpu_ms": 28,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1435,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

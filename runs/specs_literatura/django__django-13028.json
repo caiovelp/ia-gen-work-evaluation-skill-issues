@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 24959,
+ "stop_reason": "end_turn",
+ "session_id": "d335227f-0c4e-48ba-8e9f-a5cdb5514e04",
+ "total_cost_usd": 0.0748829,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2158,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2868,
+  "output_tokens_details": {
+   "thinking_tokens": 560
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2158,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2868,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2158,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2158
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2364,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002509,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2868,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2158,
+   "webSearchRequests": 0,
+   "costUSD": 0.074632,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 560,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn Django 3.0.7, filtering a queryset raises `django.db.utils.NotSupportedError` when the value on the right-hand side of the filter is a model instance whose model has a field named `filterable`. In the report, `filterable` is a `BooleanField` and the instance has `filterable=False`. Django rejects the instance with \"`<Model> is disallowed in the filter clause`\", even though `filterable` is an ordinary user-defined model field.\n\nThe reporter found this while migrating an app to Django 3.0.7. Renaming the field from `filterable` to `filterable_test` made the error go away. The reporter asks for this behavior to be either documented or fixed.\n\n## Steps to reproduce\n\n1. Define a model `ProductMetaDataType` that has a `BooleanField` named `filterable` (default `False`). See \"Code example\" below.\n2. Define a model `ProductMetaData` with a `ForeignKey` named `metadata_type` pointing to `ProductMetaDataType`.\n3. Create or obtain a `ProductMetaDataType` instance whose `filterable` value is `False`. The report refers to it as `self.brand_metadata`.\n4. Filter `ProductMetaData` using that instance as the value of the foreign key lookup:\n   ```python\n   ProductMetaData.objects.filter(value=\"Dark Vador\", metadata_type=self.brand_metadata)\n   ```\n5. The filter call raises `NotSupportedError`.\n6. Optional check: rename the `filterable` field (for example to `filterable_test`) and repeat. The error no longer occurs.\n\n## Observed behavior\n\nThe `filter()` call raises:\n\n```\ndjango.db.utils.NotSupportedError: ProductMetaDataType is disallowed in the filter clause.\n```\n\nThe error comes from `Query.check_filterable()`, which `build_filter()` calls with the filter value, the `ProductMetaDataType` instance. The error goes away when the model field is no longer named `filterable`.\n\n## Expected behavior\n\nFiltering on a foreign key with a model instance should work regardless of the names of that model's fields. A user-defined field named `filterable` should not stop instances of the model from being used as filter values.\n\nIf this is a known limitation, the reporter expects it to be documented.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n File \"/backoffice/backoffice/adminpricing/tests/test_pw.py\", line 481, in test_checkpolicywarning_by_fields\n\tfor p in ProductMetaData.objects.filter(\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/manager.py\", line 82, in manager_method\n\treturn getattr(self.get_queryset(), name)(*args, **kwargs)\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/query.py\", line 904, in filter\n\treturn self._filter_or_exclude(False, *args, **kwargs)\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/query.py\", line 923, in _filter_or_exclude\n\tclone.query.add_q(Q(*args, **kwargs))\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/sql/query.py\", line 1351, in add_q\n\tclause, _ = self._add_q(q_object, self.used_aliases)\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/sql/query.py\", line 1378, in _add_q\n\tchild_clause, needed_inner = self.build_filter(\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/sql/query.py\", line 1264, in build_filter\n\tself.check_filterable(value)\n File \"/usr/local/lib/python3.8/site-packages/django/db/models/sql/query.py\", line 1131, in check_filterable\n\traise NotSupportedError(\ndjango.db.utils.NotSupportedError: ProductMetaDataType is disallowed in the filter clause.\n```\n\n## Test case\n\nThis minimal test case is derived from the report's snippet. The `label` value is a placeholder. The original test (`test_checkpolicywarning_by_fields`) used a pre-existing `self.brand_metadata` instance whose setup was not provided.\n\n```python\nfrom django.db.utils import NotSupportedError  # error currently raised\nfrom django.test import TestCase\n\nfrom adminpricing.models import ProductMetaData, ProductMetaDataType\n\n\nclass FilterableFieldNameTests(TestCase):\n    def test_filter_by_instance_with_filterable_field(self):\n        brand_metadata = ProductMetaDataType.objects.create(\n            label=\"brand\",  # placeholder value\n            filterable=False,\n        )\n        # Currently raises:\n        # NotSupportedError: ProductMetaDataType is disallowed in the filter clause.\n        list(\n            ProductMetaData.objects.filter(\n                value=\"Dark Vador\", metadata_type=brand_metadata\n            )\n        )\n```\n\n## Code example\n\nModels as given in the report. `Produit` and `Plateforme` are other models from the reporter's app; their definitions were not provided.\n\n```python\nclass ProductMetaDataType(models.Model):\n    label = models.CharField(max_length=255, unique=True, blank=False, null=False)\n    filterable = models.BooleanField(default=False, verbose_name=_(\"filterable\"))\n\n    class Meta:\n        app_label = \"adminpricing\"\n        verbose_name = _(\"product meta data type\")\n        verbose_name_plural = _(\"product meta data types\")\n\n    def __str__(self):\n        return self.label\n\n\nclass ProductMetaData(models.Model):\n    id = models.BigAutoField(primary_key=True)\n    product = models.ForeignKey(\n        Produit, null=False, blank=False, on_delete=models.CASCADE\n    )\n    value = models.TextField(null=False, blank=False)\n    marketplace = models.ForeignKey(\n        Plateforme, null=False, blank=False, on_delete=models.CASCADE\n    )\n    date_created = models.DateTimeField(null=True, default=timezone.now)\n    metadata_type = models.ForeignKey(\n        ProductMetaDataType, null=False, blank=False, on_delete=models.CASCADE\n    )\n\n    class Meta:\n        app_label = \"adminpricing\"\n        verbose_name = _(\"product meta data\")\n        verbose_name_plural = _(\"product meta datas\")\n```\n\nFailing query:\n\n```python\nProductMetaData.objects.filter(value=\"Dark Vador\", metadata_type=self.brand_metadata)\n```\n\n## Version and environment\n\n- Django: 3.0.7. The issue appeared while migrating to this version; the previous Django version was not stated.\n- Python: 3.8, according to the paths in the traceback (`/usr/local/lib/python3.8/site-packages/...`).\n- Database backend and operating system: Not provided in the original report.",
+ "ttft_ms": 7662,
+ "type": "result",
+ "duration_ms": 24583,
+ "uuid": "905fd947-2667-4da8-8aef-4221c929104f",
+ "ttft_stream_ms": 1471,
+ "time_to_request_ms": 332,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 11,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 25,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 258,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 42,
+ "time_to_request_cpu_ms": 286,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 19,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1471,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,18 @@
+diff --git a/app/assets/stylesheets/custom/tables.scss b/app/assets/stylesheets/custom/tables.scss
+index de671515..df389874 100644
+--- a/app/assets/stylesheets/custom/tables.scss
++++ b/app/assets/stylesheets/custom/tables.scss
+@@ -94,3 +94,13 @@ div.scrollable-table {
+     border-collapse: separate !important;
+     border-spacing: 0 !important;
+ }
++
++table.notification-results {
++  table-layout: fixed;
++  width: 100%;
++
++  td, th {
++    overflow-wrap: anywhere;
++    word-break: break-word;
++  }
++}

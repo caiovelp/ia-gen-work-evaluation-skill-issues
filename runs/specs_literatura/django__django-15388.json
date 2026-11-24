@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 12182,
+ "stop_reason": "end_turn",
+ "session_id": "ed1ee47a-10eb-4738-9398-79eb3d92e7e2",
+ "total_cost_usd": 0.0337405,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1251,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1178,
+  "output_tokens_details": {
+   "thinking_tokens": 242
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1251,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1178,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1251,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1251
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1455,
+   "outputTokens": 38,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001645,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1178,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1251,
+   "webSearchRequests": 0,
+   "costUSD": 0.033576,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 242,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe Django development server (`manage.py runserver`) stops auto-reloading on file changes when `BASE_DIR` is added to `TEMPLATES[0]['DIRS']` in `settings.py`. This affects edits to any file, not just `settings.py`. Removing `BASE_DIR` from `DIRS` and restarting the server manually brings auto-reloading back.\n\n## Steps to reproduce\n\n1. Install or upgrade Django:\n   ```\n   $ pip install -U django\n   ```\n2. Create a new project:\n   ```\n   $ django-admin startproject <name>\n   ```\n3. Open the generated `settings.py`. Copy the `BASE_DIR` variable (line 16) and paste it into the empty `DIRS` list in the `TEMPLATES` setting (line 57).\n4. Start the development server:\n   ```\n   $ ./manage.py runserver\n   ```\n5. In your IDE, save any file in the project.\n6. The development server does not restart.\n\nTo confirm the cause:\n\n7. In `settings.py`, remove `BASE_DIR` from the `TEMPLATES` `DIRS` list.\n8. Stop the development server with Ctrl-C. This is needed because it no longer restarts on its own.\n9. Start the development server again with `./manage.py runserver`.\n10. Save `settings.py` again.\n11. The development server detects the change and restarts.\n\n## Observed behavior\n\nWith `BASE_DIR` in `TEMPLATES[0]['DIRS']`, the development server does not detect file changes and does not restart. This happens no matter which file is edited, not only `settings.py`. The server has to be stopped and started by hand.\n\n## Expected behavior\n\nThe development server should detect file changes and restart automatically, whether or not `BASE_DIR` is listed in `TEMPLATES[0]['DIRS']`.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report. A minimal manual check based on the steps above:\n\n1. In a fresh project, set `TEMPLATES[0]['DIRS']` to contain `BASE_DIR`.\n2. Run `./manage.py runserver`.\n3. Save any project file.\n4. Check whether the server restarts. It should restart, but in the reported bug it does not.\n\n## Code example\n\nThe only change from the default `startproject` `settings.py` is adding `BASE_DIR` to the empty `DIRS` list:\n\n```python\nTEMPLATES = [\n    {\n        # ...\n        'DIRS': [BASE_DIR],\n        # ...\n    },\n]\n```\n\n## Version and environment\n\n- Django: the latest release installed via `pip install -U django` at the time of the report. No exact version number was given.\n- Project: newly created with `django-admin startproject`.\n- Python version, OS, and IDE: Not provided in the original report.",
+ "ttft_ms": 3767,
+ "type": "result",
+ "duration_ms": 11009,
+ "uuid": "ad212795-f235-47cd-8c51-ae678096e33c",
+ "ttft_stream_ms": 1345,
+ "time_to_request_ms": 238,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 201,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 6,
+ "time_to_request_cpu_ms": 132,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1346,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34022,
+ "stop_reason": "end_turn",
+ "session_id": "a0c60882-71d8-4f3e-9d63-17f6b2e2f495",
+ "total_cost_usd": 0.07156509999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 746,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3229,
+  "output_tokens_details": {
+   "thinking_tokens": 260
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 746,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3229,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 746,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 746
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1328,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001463,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3229,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 746,
+   "webSearchRequests": 0,
+   "costUSD": 0.07141879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 260,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct pretty printing of `sympy.vector` expressions (layout and baseline)\n\n## Objective\n\nPretty printing of `sympy.vector` expressions is broken when a basis vector is multiplied by a multi-line scalar coefficient.\n\nReported reproduction:\n\n```py\nIn [1]: from sympy.vector import *\nIn [2]: e = CoordSysCartesian('e')\nIn [3]: (x/y)**t*e.j\nOut[3]:\n\u239b   t\u239e e_j\n\u239c\u239bx\u239e e_j \u239f\n\u239c\u239c\u2500\u239f \u239f\n\u239d\u239dy\u23a0 \u23a0\n```\n\nObserved defects:\n\n1. **Corrupted layout.** The basis vector name `e_j` is placed inside the scalar's 2D picture. It appears once on the top line, outside the parentheses, and once on an inner line, inside the parentheses. The outer parentheses do not match their contents.\n2. **Wrong baseline.** The reporter says that even when the layout is correct, the baseline of a printed vector is wrong. A vector term should be vertically centered so it lines up correctly with surrounding expressions.\n\n**Goal:** Pretty printing (Unicode and ASCII) of vector expressions should produce well-formed 2D layouts:\n- The scalar coefficient is rendered intact.\n- The basis vector appears exactly once, outside and to the right of the coefficient.\n- The baseline is consistent with how SymPy centers other multi-line expressions.\n\n**Users:** SymPy users who display vector expressions with `pprint`, `pretty`, or interactive (IPython or Jupyter) output.\n\n**Scope:**\n- **In scope:** the pretty-printed form of vector expressions (basis vectors scaled by scalar coefficients, and sums of such terms) and their baseline.\n- **Out of scope:** `str`, LaTeX and MathML output, unless the same root cause is found to affect them. Changes to vector semantics are also out of scope.\n\n## Assumptions\n\n1. `x`, `y`, `t` in the reproduction are ordinary SymPy `Symbol`s (e.g. from `sympy.abc` or `symbols`); the issue does not show their definition.\n2. `CoordSysCartesian` is the coordinate-system class in the affected version. If the codebase has since renamed or replaced it (e.g. `CoordSys3D`), the fix applies to whichever class is current, and the old name is still covered if it remains supported.\n3. The defect is in how the vector's pretty form is assembled from the coefficient's 2D picture, not in the pretty printing of `(x/y)**t` itself. A plain scalar `(x/y)**t` is assumed to print correctly.\n4. The defect affects both Unicode and ASCII pretty printing.\n5. \"Centered baseline\" means the same vertical-centering convention SymPy's pretty printer already uses for other multi-line products and fractions. It does not mean a new convention.\n6. Expected rendering for the reported case looks roughly like the block below. The exact spacing follows existing pretty-printer conventions.\n   ```\n       t    \n   \u239bx\u239e     \n   \u239c\u2500\u239f  e_j\n   \u239dy\u23a0     \n   ```\n   The basis vector sits on the vertical center line of the coefficient, and the coefficient's internal structure is unchanged.\n7. Single-line coefficients (e.g. `3*e.i`, `x*e.j`) already print acceptably. They must not change except for baseline corrections.\n\n## Tech Stack\n\n- Python, SymPy. Exact SymPy and Python versions: **unknown** (not stated in the issue).\n- Relevant subsystems:\n  - the `sympy.vector` module;\n  - SymPy's pretty printer and 2D string-layout machinery.\n- Exact file locations: **unknown** (not visible in the issue).\n\n## Commands\n\n- Build: **unknown**. This is a pure-Python library; no build step is shown.\n- Test: **unknown**. The project's test runner and the invocation for vector and pretty-printing tests are not shown.\n- Lint: **unknown**.\n- Manual reproduction: run the snippet from the issue in IPython or a Python REPL after defining `x, y, t` as symbols.\n\n## Project Structure\n\n**Unknown.** The issue does not show the repository layout. To be determined:\n- where vector pretty-printing logic lives (a printer method versus a method on the vector classes);\n- where pretty-printing tests for vectors live.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the surrounding pretty-printer and `sympy.vector` code. No snippet is available from the issue.\n\n## Testing Strategy\n\n- **Framework / location:** unknown. Use the project's existing test framework and add tests next to the existing vector pretty-printing tests.\n- **Regression tests (required):**\n  - The reported case `(x/y)**t*e.j`, Unicode and ASCII, compared against exact expected strings.\n  - Other multi-line coefficients, for example:\n    - a plain fraction `x/y*e.i`;\n    - an integral or other tall expression times a basis vector;\n    - a nested power.\n  - Sums of vector terms where one or more terms has a multi-line coefficient, e.g. `(x/y)**t*e.j + e.i`.\n  - Baseline checks: a vector embedded in a larger pretty-printed expression (e.g. inside a sum or alongside a fraction) must align on the expected center line.\n  - Unchanged output for simple cases: `e.i`, `3*e.i`, `x*e.j`, the zero vector, and sums of simple terms. The only allowed difference is the intended baseline correction.\n- **Coverage expectation:** every code path that builds a vector's pretty form (single term, multi-term sum, possibly dyadics if they share the logic) is covered by at least one test with a multi-line coefficient.\n\n## Boundaries\n\n**Always:**\n- Add regression tests reproducing the exact issue before or with the fix.\n- Run the existing pretty-printing and vector test suites.\n- Preserve output for cases that currently render correctly, except for the intended baseline fix.\n\n**Ask first:**\n- Changing the expected output of existing tests.\n- Changing the general pretty-printer layout utilities, rather than vector-specific code, in ways that could affect non-vector output.\n- Extending the fix to dyadics or other vector-like objects if they need separate work.\n- Changing `str`, LaTeX or MathML output.\n\n**Never:**\n- Change vector semantics or arithmetic to fix a display issue.\n- Delete or weaken existing printing tests to make them pass.\n- Special-case only the exact expression from the issue.\n\n## Success Criteria\n\n1. `pretty((x/y)**t*e.j)`, in both Unicode and ASCII:\n   - renders the coefficient `(x/y)**t` exactly as it renders on its own (no injected text, matching parentheses);\n   - shows `e_j` exactly once, to the right of the coefficient.\n2. For any vector term whose coefficient's pretty form spans multiple lines:\n   - the basis vector appears exactly once;\n   - it never appears inside the coefficient's picture.\n3. Multi-term vector sums with multi-line coefficients render each term correctly, with `+` signs and terms aligned on a common baseline.\n4. The pretty form of a vector has its baseline at the vertical center, consistent with other multi-line SymPy expressions. A vector placed inside a larger pretty-printed expression aligns correctly.\n5. Pretty output for single-line-coefficient vectors is unchanged, apart from any intended baseline adjustment.\n6. All new regression tests pass, and existing pretty-printing and vector tests pass (or their changes are explicitly approved).\n\n## Open Questions\n\n1. Which SymPy version is affected? Is `CoordSysCartesian` still the current API, or should tests use its replacement (e.g. `CoordSys3D`)?\n2. What exact layout is expected for the reported case? Specifically:\n   - Should the basis vector be vertically centered on the coefficient, or aligned with the coefficient's baseline?\n   - What exact spacing should separate the coefficient and the basis vector?\n3. \"When it does print correctly, the baseline is wrong (it should be centered)\": which cases print correctly but with a wrong baseline? An example of current versus expected output would pin this down.\n4. Are dyadics (and any other `sympy.vector` objects with custom pretty printing) affected, and should they be fixed in the same change?\n5. Should ASCII mode (`use_unicode=False`) be held to the same expected layouts as Unicode?\n6. Is `str`, LaTeX or MathML output of vectors also affected? Should that be tracked in this issue or separately?\n7. Where do vector pretty-printing logic and tests live, and what commands run the relevant test suites?",
+ "ttft_ms": 4164,
+ "type": "result",
+ "duration_ms": 33378,
+ "uuid": "0fc38f52-8b8b-46e9-a574-23590e3ec981",
+ "ttft_stream_ms": 1536,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 202,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 145,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1537,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

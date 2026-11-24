@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 17949,
+ "stop_reason": "end_turn",
+ "session_id": "b305c838-d02f-4448-bc82-bde5e5c5efd1",
+ "total_cost_usd": 0.05015170000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1579,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1866,
+  "output_tokens_details": {
+   "thinking_tokens": 318
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1579,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1866,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1579,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1579
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1787,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001917,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1866,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1579,
+   "webSearchRequests": 0,
+   "costUSD": 0.049960000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 318,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen a `ForeignKey` points to a model whose primary key is a non-auto `CharField`, the parent object stores the wrong foreign key value in this case:\n\n1. An unsaved related instance with no primary key is assigned to the parent.\n2. The related instance's primary key is set afterwards.\n\nSaving the parent then stores an empty string (`\"\"`) as `product_id` instead of the related object's primary key. This causes data loss. Inside a transaction, the error only appears at commit time, as a `ForeignKeyViolation`. If the primary key is set before assignment, the value is stored correctly.\n\nThe reporter suspects the cause is how `Order.product_id` is handled at assignment time, combined with how primary keys are fetched from the related instance for auto vs. non-auto primary keys.\n\n## Steps to reproduce\n\n1. Define the following models:\n   ```python\n   class Product(models.Model):\n       sku = models.CharField(primary_key=True, max_length=50)\n\n   class Order(models.Model):\n       product = models.ForeignKey(Product, on_delete=models.CASCADE)\n   ```\n2. Inside `transaction.atomic()`, create an `Order` instance.\n3. Assign an empty, unsaved `Product()` with no `sku` to `order.product`.\n4. Set `order.product.sku = \"foo\"`.\n5. Save `order.product`, then save `order`.\n6. Query for `Order` objects by `product_id` and by `product`.\n7. Let the transaction commit.\n\n## Observed behavior\n\n- `order.product_id` is saved as an empty string (`\"\"`) instead of `\"foo\"`.\n- `Order.objects.filter(product_id=\"\").exists()` returns `True`.\n- `Order.objects.filter(product=order.product).exists()` returns `False`.\n- The foreign key constraint is deferred, so no error occurs inside the transaction. On commit, the transaction fails with a `ForeignKeyViolation` because no `Product` with primary key `\"\"` exists.\n\nFor comparison, if the `Product` is created with its primary key before assignment (`order.product = Product(sku=\"foo\")`), the order is saved correctly, the lookup by `product=order.product` succeeds, and the commit succeeds.\n\n## Expected behavior\n\n`order.product_id` should be populated with `order.product.sku` (`\"foo\"`) when `order` is saved, even if the primary key was set after the related instance was assigned.\n\n- `Order.objects.filter(product=order.product).exists()` should return `True`.\n- `Order.objects.filter(product_id=\"\").exists()` should return `False`.\n- The transaction should commit without a `ForeignKeyViolation`.\n\n## Stack trace / error output\n\nNo stack trace was provided. The report states only that the transaction fails on commit with a `ForeignKeyViolation`, because no product with an empty-string primary key exists.\n\n## Test case\n\nMinimal test derived from the reproduction in the report, using the `Product` and `Order` models above:\n\n```python\nfrom django.db import transaction\n\ndef test_fk_to_charfield_pk_set_after_assignment():\n    with transaction.atomic():\n        order = Order()\n        order.product = Product()\n        order.product.sku = \"foo\"\n        order.product.save()\n        order.save()\n        assert not Order.objects.filter(product_id=\"\").exists()  # currently fails (row with product_id=\"\" exists)\n        assert Order.objects.filter(product=order.product).exists()  # currently fails\n```\n\nWorking variant for comparison, where the primary key is set before assignment:\n\n```python\ndef test_fk_to_charfield_pk_set_before_assignment():\n    with transaction.atomic():\n        order = Order()\n        order.product = Product(sku=\"foo\")\n        order.product.save()\n        order.save()\n        assert Order.objects.filter(product=order.product).exists()  # succeeds\n```\n\n## Code example\n\nFailing case:\n\n```python\nwith transaction.atomic():\n    order = Order()\n    order.product = Product()\n    order.product.sku = \"foo\"\n    order.product.save()\n    order.save()\n    assert Order.objects.filter(product_id=\"\").exists()  # Succeeds, but shouldn't\n    assert Order.objects.filter(product=order.product).exists()  # Fails\n```\n\nWorking case:\n\n```python\nwith transaction.atomic():\n    order = Order()\n    order.product = Product(sku=\"foo\")\n    order.product.save()\n    order.save()\n    assert Order.objects.filter(product=order.product).exists()  # succeeds\n```\n\n## Version and environment\n\nNot provided in the original report. The report mentions only that the foreign key constraint is deferred until commit and that the database raises a `ForeignKeyViolation`. Django version, database backend and Python version are not stated.",
+ "ttft_ms": 5077,
+ "type": "result",
+ "duration_ms": 17261,
+ "uuid": "41bf7937-6d77-4a72-9399-57c25ad9aea9",
+ "ttft_stream_ms": 1406,
+ "time_to_request_ms": 266,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 229,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 10,
+ "time_to_request_cpu_ms": 214,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1406,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

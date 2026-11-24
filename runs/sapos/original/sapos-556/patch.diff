@@ -1,0 +1,27 @@
+diff --git a/config/locales/devise.pt-BR.yml b/config/locales/devise.pt-BR.yml
+index 51cb2e5c..ae1fcea6 100644
+--- a/config/locales/devise.pt-BR.yml
++++ b/config/locales/devise.pt-BR.yml
+@@ -21,11 +21,11 @@ pt-BR:
+       last_attemp: 'Você tem mais uma tentativa antes da sua conta ser bloqueada.'
+       unconfirmed: 'Você precisa confirmar a sua conta para continuar.'
+       locked: 'Sua conta está bloqueada.'
+-      invalid: 'Senha ou e-mail inválidos.'
++      invalid: 'Senha ou e-mail inválidos. Verifique se você está acessando o SAPOS do curso correto.'
+       invalid_token: 'Token de autenticação inválido.'
+       timeout: 'A sua sessão expirou, por favor faça login novamente para continuar.'
+       inactive: 'A sua conta ainda não foi ativada.'
+-      not_found_in_database: "Email ou senha inválida."
++      not_found_in_database: "Email ou senha inválida. Verifique se você está acessando o SAPOS do curso correto."
+     sessions:
+       signed_in: 'Login feito com sucesso.'
+       signed_out: 'Logout feito com sucesso.'
+@@ -35,7 +35,7 @@ pt-BR:
+       send_instructions: 'Dentro de minutos você receberá um e-mail com as instruções de reinicialização de sua senha.'
+       updated: 'Sua senha foi alterada com sucesso. Você está logado.'
+       updated_not_active: 'Sua senha foi alterada com sucesso.'
+-      send_paranoid_instructions: "Caso seu e-mail exista em nossa base, você receberá um e-mail com um link para recuperar a sua senha."
++      send_paranoid_instructions: "Caso seu e-mail exista em nossa base, você receberá um e-mail com um link para recuperar a sua senha. Caso não receba, verifique se você está acessando o SAPOS do curso correto."
+     confirmations:
+       send_instructions: 'Dentro de minutos você receberá um e-mail com instruções para confirmar a sua conta.'
+       send_paranoid_instructions: 'Caso seu e-mail exista em nossa base, dentro de minugos você receberá um e-mail com instruções para confirmar a sua conta.'

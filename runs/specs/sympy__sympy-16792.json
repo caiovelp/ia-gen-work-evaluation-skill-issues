@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29026,
+ "stop_reason": "end_turn",
+ "session_id": "1414c8b5-f0c2-4333-9e1e-cc68b0c76ac7",
+ "total_cost_usd": 0.06625459999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1256,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2757,
+  "output_tokens_details": {
+   "thinking_tokens": 84
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1256,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2757,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1256,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1256
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1838,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019580000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2757,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1256,
+   "webSearchRequests": 0,
+   "costUSD": 0.06605879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 84,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct C signatures for unused array arguments in `autowrap` (cython backend)\n\n## Objective\n\n`autowrap` with `backend='cython'` generates a wrong C function signature when an array argument (e.g. a `MatrixSymbol`) passed through `args=` does not appear in the wrapped expression. The argument is declared as a scalar (`double x`) instead of a pointer (`double *x`). Calling the wrapped function with a NumPy array then fails with:\n\n```\nTypeError: only size-1 arrays can be converted to Python scalars\n```\n\n**Why it matters:** callers often need a fixed function signature to interface with external libraries such as numerical integrators. Some arguments in that signature may not contribute to the output.\n\n**Users:** SymPy users who generate compiled numerical functions with `autowrap` and need control over the argument list.\n\n**Expected behavior:** an argument's type and shape in the generated code depend on the argument itself (e.g. `MatrixSymbol('x', 2, 1)` is always an array). They do not depend on whether the argument appears in the expression.\n\n**Reproduction (from the issue):**\n\n```python\nfrom sympy.utilities.autowrap import autowrap\nfrom sympy import MatrixSymbol\nimport numpy as np\n\nx = MatrixSymbol('x', 2, 1)\nexpr = 1.0\nf = autowrap(expr, args=(x,), backend='cython')\n\nf(np.array([[1.0, 2.0]]))   # expected: 1.0; actual: TypeError\n```\n\nCurrently generated C:\n\n```c\ndouble autofunc(double x) {\n   double autofunc_result;\n   autofunc_result = 1.0;\n   return autofunc_result;\n}\n```\n\nExpected: `x` is declared as `double *x`.\n\n**Control case (works today):** with `expr = x[0,0]` the call returns `1.0` as expected.\n\n**Suspected location:** the reporter believes the defect is in `codegen`. The exact module and function are unconfirmed. The likely cause is that array metadata (dimensions) is only inferred for symbols found in the expression.\n\n## Assumptions\n\n1. The root cause is in the code-generation layer (`codegen`) that builds routine arguments. It is not in the Cython wrapper template itself. This follows the reporter's diagnosis and has not been verified.\n2. The fix should keep dimension and array information for any argument given explicitly in `args`, whether or not it appears in `expr`.\n3. Other backends and languages that share `codegen` (e.g. f2py/Fortran) may have the same defect. A fix in shared `codegen` code may change their output too, and that change is desired.\n4. The behavior for expressions that do use all their array arguments must stay unchanged.\n5. A scalar `Symbol` that is unused but listed in `args` should stay a scalar argument. Only array-like arguments (`MatrixSymbol`, possibly `IndexedBase`) are affected.\n6. The reporter intends to submit a PR. This spec describes what that PR, or any equivalent fix, must satisfy.\n\n## Tech Stack\n\n- Python, SymPy (version unknown; whichever version contains the defect)\n- `sympy.utilities.autowrap` with the Cython backend\n- NumPy (used at call time)\n- Cython and a C compiler (needed to build the wrapper at runtime)\n- Code-generation module referred to as `codegen` in the issue (exact path not confirmed)\n\n## Commands\n\nUnknown. They are not given in the issue and the repository is not available.\n\n- Build: unknown (SymPy is pure Python; autowrap compiles at runtime)\n- Test: unknown (the test runner and the exact test file paths for `codegen` and `autowrap` are not visible)\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n\nOnly what the issue implies:\n\n- `sympy.utilities.autowrap`: public `autowrap` entry point and backends (module path from the import in the issue)\n- `codegen`: code-generation layer where the reporter believes the bug lives (file path not confirmed)\n- Test locations for `codegen` and `autowrap`: unknown\n\n## Code Style\n\nUnknown. Follow existing SymPy conventions in the touched module. No snippet of the relevant source is available.\n\n## Testing Strategy\n\nThe framework and test file locations are unknown. The required coverage is:\n\n- **Codegen-level test (no compiler needed):** generate C code for a routine with an array argument absent from the expression. Assert that the argument is declared as a pointer, e.g. `double *x`. This is the primary regression test because it runs without Cython or a C compiler.\n- **Codegen-level control test:** confirm that an array argument used in the expression still produces the same signature as before.\n- **Mixed case:** a routine with several arguments, some used and some unused, some scalar and some array. Assert that each argument has the correct declaration and that argument order matches `args`.\n- **Autowrap integration test (cython backend):** run the reproduction from the issue and assert that it returns `1.0`. It should be skipped when Cython, NumPy, or a compiler is unavailable, following whatever skip mechanism existing autowrap tests use (unknown).\n- **Other backends/languages (if affected):** if the fix is in shared `codegen` code, add equivalent signature assertions for other code generators that consume the same argument metadata (e.g. Fortran). Scope is subject to an Open Question.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after it.\n  - Keep generated output unchanged for expressions that use all their arguments.\n  - Respect the argument order given in `args`.\n- **Ask first:**\n  - Changing public signatures of `codegen` or `autowrap` APIs.\n  - Changing generated output for languages or backends beyond C/Cython.\n  - Changing how `IndexedBase` or other non-`MatrixSymbol` array types are handled, if that goes beyond the minimal fix.\n- **Never:**\n  - Work around the problem in the Cython wrapper only, for example by special-casing NumPy input, while leaving the wrong C signature in place.\n  - Require users to reference unused arguments in `expr` as a workaround.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. With `x = MatrixSymbol('x', 2, 1)`, `autowrap(1.0, args=(x,), backend='cython')` returns a callable, and `f(np.array([[1.0, 2.0]]))` returns `1.0` without error.\n2. The generated C function for that case declares `x` as `double *x`, not `double x`.\n3. The generated C for `expr = x[0,0]` with `args=(x,)` is unchanged from current behavior.\n4. With mixed used and unused scalar and array arguments, every argument appears in the generated signature in `args` order. Each array argument is a pointer and each scalar is a scalar.\n5. New regression tests cover criteria 2\u20134 at the codegen level, plus an integration test for criterion 1. All existing codegen and autowrap tests still pass.\n\n## Open Questions\n\n1. Where exactly in `codegen` is argument metadata (dimensions) derived? Is the fix best made there, for example when an explicit argument list is given, or in each language-specific generator?\n2. Do other backends and languages that share `codegen` (f2py/Fortran, Octave, Rust, Julia, etc.) show the same defect for unused array arguments? Should this fix cover them or be limited to C/Cython?\n3. Should unused `IndexedBase` arguments, not just `MatrixSymbol`, be handled too? Is there a reproduction for that case?\n4. Should an unused array argument that has no known shape be supported? If so, how should its dimensions be passed or declared?\n5. Should the generated code avoid compiler warnings about unused parameters, or are such warnings acceptable?\n6. Which SymPy version is affected, and which test files and commands should host the regression tests?\n7. The reporter plans to open a PR. Should this work build on that PR or proceed independently?",
+ "ttft_ms": 2606,
+ "type": "result",
+ "duration_ms": 28163,
+ "uuid": "4e169d5c-e778-4706-9006-2195b85cd8ed",
+ "ttft_stream_ms": 1594,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 224,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 106,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 6,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1595,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

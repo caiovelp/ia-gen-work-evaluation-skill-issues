@@ -1,0 +1,14 @@
+diff --git a/sympy/functions/elementary/complexes.py b/sympy/functions/elementary/complexes.py
+index 7fda45982b..250c63fc1e 100755
+--- a/sympy/functions/elementary/complexes.py
++++ b/sympy/functions/elementary/complexes.py
+@@ -346,6 +346,9 @@ def _eval_Abs(self):
+     def _eval_conjugate(self):
+         return sign(conjugate(self.args[0]))
+ 
++    def _eval_rewrite_as_Abs(self, arg, **kwargs):
++        return arg/Abs(arg)
++
+     def _eval_derivative(self, x):
+         if self.args[0].is_extended_real:
+             from sympy.functions.special.delta_functions import DiracDelta

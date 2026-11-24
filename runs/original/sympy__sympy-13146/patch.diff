@@ -1,0 +1,13 @@
+diff --git a/sympy/core/basic.py b/sympy/core/basic.py
+index 2ad720d35..c0b0f747e 100755
+--- a/sympy/core/basic.py
++++ b/sympy/core/basic.py
+@@ -1744,6 +1744,8 @@ def _aresame(a, b):
+                     return False
+             else:
+                 return False
++        elif getattr(i, 'is_Float', False) and i._prec != j._prec:
++            return False
+     else:
+         return True
+ 

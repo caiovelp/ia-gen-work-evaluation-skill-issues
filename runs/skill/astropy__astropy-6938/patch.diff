@@ -1,0 +1,60 @@
+diff --git a/astropy/io/fits/fitsrec.py b/astropy/io/fits/fitsrec.py
+index 574b4073b..11f8c608e 100755
+--- a/astropy/io/fits/fitsrec.py
++++ b/astropy/io/fits/fitsrec.py
+@@ -1261,7 +1261,8 @@ class FITS_rec(np.recarray):
+ 
+         # Replace exponent separator in floating point numbers
+         if 'D' in format:
+-            output_field.replace(encode_ascii('E'), encode_ascii('D'))
++            output_field[:] = output_field.replace(encode_ascii('E'),
++                                                   encode_ascii('D'))
+ 
+ 
+ def _get_recarray_field(array, key):
+diff --git a/astropy/io/fits/tests/test_checksum.py b/astropy/io/fits/tests/test_checksum.py
+index 3ee6eade8..14959407a 100755
+--- a/astropy/io/fits/tests/test_checksum.py
++++ b/astropy/io/fits/tests/test_checksum.py
+@@ -205,9 +205,9 @@ class TestChecksumFunctions(FitsTestCase):
+                 # The checksum ends up being different on Windows, possibly due
+                 # to slight floating point differences
+                 assert 'CHECKSUM' in hdul[1].header
+-                assert hdul[1].header['CHECKSUM'] == '51IDA1G981GCA1G9'
++                assert hdul[1].header['CHECKSUM'] == '3rKFAoI94oICAoI9'
+                 assert 'DATASUM' in hdul[1].header
+-                assert hdul[1].header['DATASUM'] == '1948208413'
++                assert hdul[1].header['DATASUM'] == '1914653725'
+ 
+     def test_compressed_image_data(self):
+         with fits.open(self.data('comp.fits')) as h1:
+diff --git a/astropy/io/fits/tests/test_table.py b/astropy/io/fits/tests/test_table.py
+index 67fe21aa7..0da5139ba 100755
+--- a/astropy/io/fits/tests/test_table.py
++++ b/astropy/io/fits/tests/test_table.py
+@@ -254,6 +254,25 @@ class TestTableFunctions(FitsTestCase):
+ 
+         t.close()
+ 
++    def test_ascii_table_d_exponent(self):
++        """Values in D-format columns are written with a D exponent."""
++
++        c1 = fits.Column(name='a', format='D25.17',
++                         array=np.array([1.5e100, -2.5e-100]))
++        c2 = fits.Column(name='b', format='E15.7',
++                         array=np.array([1.5e10, 2.5e-10]))
++        hdu = fits.TableHDU.from_columns([c1, c2])
++        hdu.writeto(self.temp('dexp.fits'), overwrite=True)
++
++        with open(self.temp('dexp.fits'), 'rb') as f:
++            raw = f.read()
++        assert b'D+100' in raw and b'D-100' in raw and b'E+100' not in raw
++        assert b'E+10' in raw
++
++        with fits.open(self.temp('dexp.fits')) as h:
++            assert np.allclose(h[1].data['a'], [1.5e100, -2.5e-100])
++            assert np.allclose(h[1].data['b'], [1.5e10, 2.5e-10])
++
+     def test_ascii_table(self):
+         # ASCII table
+         a = fits.open(self.data('ascii.fits'))

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 24574,
+ "stop_reason": "end_turn",
+ "session_id": "49801f0c-f857-466a-8040-39238479cc5d",
+ "total_cost_usd": 0.050324299999999995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 778,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2154,
+  "output_tokens_details": {
+   "thinking_tokens": 179
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 778,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2154,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 778,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 778
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1370,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001495,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2154,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 778,
+   "webSearchRequests": 0,
+   "costUSD": 0.0501748,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 179,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Allow the same `db_table` across models routed to different databases (models.E028 regression)\n\n## Objective\n\nAfter upgrading from Django 2.0 to 2.2, projects that use several databases now fail the system check:\n\n```\ntable_name: (models.E028) db_table 'table_name' is used by multiple models: base.ModelName, app2.ModelName.\n```\n\nThe reporter's setup:\n- A `base` app whose models live in a central database.\n- Several other apps, each with models in its own database.\n- Some models in different apps use the same table name. This is valid because the tables are in different databases.\n\nThis worked on Django 2.0. On 2.2 the check blocks startup, so the reporter rolled back to 2.0.\n\n**Users:** Django projects that use multiple databases and database routing, where models in different apps map to identically named tables in different databases.\n\n**Goal:** Projects whose same-named tables are legitimately split across databases can upgrade without being blocked. Real table-name collisions should still be detected in single-database projects.\n\n**Acceptance criteria:**\n1. When database routing is configured, two models in different apps that share a `db_table` no longer produce a blocking **error**. Projects in that situation can run management commands such as `runserver` and `migrate`.\n2. The duplicate is still reported in some form, such as a non-blocking **warning** with a hint. The check cannot reliably know which database each model will use, so the user should verify the routing.\n3. When no database routing is configured, the existing E028 error still fires for duplicate `db_table` values.\n4. Existing exemptions in the check still behave as they do today. Examples are unmanaged models and proxy models, if the check already excludes them. (Exact current rules are unknown.)\n5. The release notes and the system-check documentation describe the changed behavior for the affected release line(s).\n\n## Assumptions\n\n1. The regression comes from the E028 check (duplicate `db_table`) being new or tightened in Django 2.2. In 2.0 the same duplicate tables passed.\n2. The reporter uses `DATABASE_ROUTERS` to send each app's models to its own database. The issue implies this but doesn't state it.\n3. The system check framework runs without a database connection and can't fully evaluate router logic per model. So \"routers are configured\" is the practical signal available, not \"these two models really go to different databases.\"\n4. A non-blocking warning, which users can silence through `SILENCED_SYSTEM_CHECKS`, is an acceptable middle ground between keeping the error and removing the check entirely.\n5. The fix targets the 2.2 line as a regression and is carried forward to later versions.\n6. The models in question are ordinary concrete models. Whether they are managed or unmanaged isn't stated.\n\n## Tech Stack\n\n- Django framework source, Python. Exact supported Python versions for the target branch are **unknown**.\n- Django system checks framework (`models.E028`).\n\n## Commands\n\nNot visible in the issue; all **unknown**:\n- Test runner invocation for Django's own test suite: unknown\n- Lint / style check: unknown\n- Build / docs build: unknown\n\n## Project Structure\n\n**Unknown.** The issue gives no file paths. The relevant areas are:\n- the module that implements the model-level system checks (where E028 is raised),\n- that check's test module,\n- the system-check reference documentation,\n- the release notes for the patch release that fixes this.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the surrounding check code and its tests. No example code is available in the issue.\n\n## Testing Strategy\n\nThe framework and test locations are **unknown**. These are the behaviors to cover, as check-level unit tests using isolated model definitions:\n- Duplicate `db_table` across two apps, **no** routers configured \u2192 E028 error, as today.\n- Duplicate `db_table` across two apps, routers configured \u2192 warning instead of an error, with a hint about verifying routing. No error is emitted.\n- No duplicates, with or without routers \u2192 no message.\n- Existing exemptions (for example unmanaged or proxy models, if currently exempt) \u2192 unchanged.\n\n## Boundaries\n\n- **Always:**\n  - Keep E028 behavior unchanged for projects without database routing.\n  - Add tests for both the routed and the non-routed cases.\n  - Document the change in the check reference and the release notes.\n- **Ask first:**\n  - Removing the check entirely.\n  - Attempting to evaluate router results per model at check time.\n  - Changing check IDs beyond adding a new warning ID.\n  - Backporting decisions.\n- **Never:**\n  - Silently drop duplicate-table detection for single-database projects.\n  - Require a database connection for this check.\n  - Change unrelated system checks.\n\n## Success Criteria\n\n- A project like the reporter's, with routers configured and same-named tables in different apps, passes system checks with at most a warning. It can run on the fixed release without rolling back.\n- A single-database project with two models sharing a `db_table` still gets the E028 error.\n- New tests for both scenarios pass, and the existing check tests still pass.\n- The docs list the new or changed check message and explain when it appears and how to silence it.\n\n## Open Questions\n\n1. Is the intended behavior to downgrade to a warning when routers are configured, or should the check be reverted or removed? Should it instead try harder to determine the target database for each model?\n2. Which signal counts as \"routing is configured\"? Is it a non-empty `DATABASE_ROUTERS`, or multiple entries in `DATABASES`, or both?\n3. Should the warning get a new check ID or reuse E028 at a lower level? What is the exact message and hint text?\n4. Which release branches receive the fix: only the 2.2 maintenance line, or later versions too?\n5. Do the reporter's models with duplicate names use the same model class name, the same `db_table`, or both? Are any of them unmanaged? This affects whether existing exemptions already apply.\n6. Should the check also consider models in the *same* database that collide only through routing? (Probably out of scope.)",
+ "ttft_ms": 3001,
+ "type": "result",
+ "duration_ms": 24048,
+ "uuid": "10213ba2-58a0-4988-af68-9fbcb5344fdc",
+ "ttft_stream_ms": 1318,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 133,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1318,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

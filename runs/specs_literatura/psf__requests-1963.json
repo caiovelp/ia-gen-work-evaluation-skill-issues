@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11428,
+ "stop_reason": "end_turn",
+ "session_id": "9414cdf3-8e6e-4e2c-9ca8-338bd73db934",
+ "total_cost_usd": 0.0314619,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1215,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1079,
+  "output_tokens_details": {
+   "thinking_tokens": 248
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1215,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1079,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1215,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1215
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1419,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001539,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1079,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1215,
+   "webSearchRequests": 0,
+   "costUSD": 0.031308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 248,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`Session.resolve_redirects` starts each iteration of a redirect chain by copying the *original* request, not the most recent one. If an earlier redirect changed the method, a later redirect can bring the original method back. For example, a 303 See Other turns a POST into a GET, but a following 307 Temporary Redirect makes Requests issue a POST again.\n\n## Steps to reproduce\n\n1. Send a `POST` request to `/do_something` on `server.example.com` using a Requests `Session`.\n2. The server responds with `303 See Other` and `Location: /new_thing_1513`.\n3. Requests follows the redirect and sends a `GET` to `/new_thing_1513`. The 303 has correctly converted the POST to a GET.\n4. The server responds with `307 Temporary Redirect` and `Location: //failover.example.com/new_thing_1513`.\n5. Check which HTTP method Requests uses for the request to `failover.example.com/new_thing_1513`.\n\n## Observed behavior\n\nRequests sends a **POST** to `//failover.example.com/new_thing_1513`. This happens because each iteration of `Session.resolve_redirects` starts from a copy of the original request, which was a POST. The GET produced by the 303 is not carried forward.\n\n## Expected behavior\n\nThe 307 Temporary Redirect should keep the method of the request it redirects, which is the **GET** produced by the earlier 303. Requests should send a **GET** to `//failover.example.com/new_thing_1513`.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNo test code is provided in the original report. A test could be built from the redirect chain in the report:\n\n- Initial request: `POST /do_something` to `server.example.com`\n- Response 1: `303 See Other`, `Location: /new_thing_1513` \u2192 next request should be `GET /new_thing_1513`\n- Response 2: `307 Temporary Redirect`, `Location: //failover.example.com/new_thing_1513` \u2192 next request should be `GET`. Currently it is `POST`.\n\n## Code example\n\nRedirect chain from the original report:\n\n```\nPOST /do_something HTTP/1.1\nHost: server.example.com\n...\n\nHTTP/1.1 303 See Other\nLocation: /new_thing_1513\n\nGET /new_thing_1513\nHost: server.example.com\n...\n\nHTTP/1.1 307 Temporary Redirect\nLocation: //failover.example.com/new_thing_1513\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 4177,
+ "type": "result",
+ "duration_ms": 10874,
+ "uuid": "0989f511-07cf-4f3c-aadb-e6748c2faeb2",
+ "ttft_stream_ms": 1462,
+ "time_to_request_ms": 278,
+ "time_to_request_phases_ms": {
+  "other": 22,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 18,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 20,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 191,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 66,
+ "time_to_request_cpu_ms": 322,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 14,
+  "cpu_ms": 29,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1462,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

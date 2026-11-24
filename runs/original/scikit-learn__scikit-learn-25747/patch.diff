@@ -1,0 +1,40 @@
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 94d9465d7..747c5cd35 100755
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -928,7 +928,7 @@ def _fit_one(transformer, X, y, weight, message_clsname="", message=None, **fit_
+         return transformer.fit(X, y, **fit_params)
+ 
+ 
+-class FeatureUnion(TransformerMixin, _BaseComposition):
++class FeatureUnion(TransformerMixin, _BaseComposition, auto_wrap_output_keys=None):
+     """Concatenates results of multiple transformer objects.
+ 
+     This estimator applies a list of transformer objects in parallel to the
+@@ -1046,7 +1046,10 @@ class FeatureUnion(TransformerMixin, _BaseComposition):
+         self : estimator instance
+             Estimator instance.
+         """
+-        super().set_output(transform=transform)
++        if transform is not None:
++            if not hasattr(self, "_sklearn_output_config"):
++                self._sklearn_output_config = {}
++            self._sklearn_output_config["transform"] = transform
+         for _, step, _ in self._iter():
+             _safe_set_output(step, transform=transform)
+         return self
+@@ -1280,7 +1283,13 @@ class FeatureUnion(TransformerMixin, _BaseComposition):
+         config = _get_output_config("transform", self)
+         if config["dense"] == "pandas" and all(hasattr(X, "iloc") for X in Xs):
+             pd = check_pandas_support("transform")
+-            return pd.concat(Xs, axis=1)
++            output = pd.concat(Xs, axis=1)
++            try:
++                output.columns = self.get_feature_names_out()
++            except AttributeError:
++                # some transformer does not implement get_feature_names_out
++                pass
++            return output
+ 
+         if any(sparse.issparse(f) for f in Xs):
+             Xs = sparse.hstack(Xs).tocsr()

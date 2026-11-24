@@ -1,0 +1,21 @@
+diff --git a/sympy/simplify/simplify.py b/sympy/simplify/simplify.py
+index f1609aa90..b1c0055f7 100755
+--- a/sympy/simplify/simplify.py
++++ b/sympy/simplify/simplify.py
+@@ -507,6 +507,16 @@ def simplify(expr, ratio=1.7, measure=count_ops, fu=False):
+     """
+     expr = sympify(expr)
+ 
++    # Float exponents that differ only in precision (e.g. x**2.5 vs. the
++    # result of evalf(5) on x**(5/2)) must compare equal to be collected
++    fexp = {}
++    for p in expr.atoms(Pow):
++        e = p.exp
++        if e.is_Float and e._prec < 53:
++            fexp[e] = Float(e._mpf_, precision=53)
++    if fexp:
++        expr = expr.xreplace(fexp)
++
+     try:
+         return expr._eval_simplify(ratio=ratio, measure=measure)
+     except AttributeError:

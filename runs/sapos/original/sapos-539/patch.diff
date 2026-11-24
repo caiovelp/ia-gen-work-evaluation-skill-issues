@@ -1,0 +1,241 @@
+diff --git a/db/migrate/20250520000000_create_default_admission_process_example.rb b/db/migrate/20250520000000_create_default_admission_process_example.rb
+new file mode 100644
+index 00000000..e4a68566
+--- /dev/null
++++ b/db/migrate/20250520000000_create_default_admission_process_example.rb
+@@ -0,0 +1,222 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# Creates an example of selection process (edital) that can be customized.
++class CreateDefaultAdmissionProcessExample < ActiveRecord::Migration[7.0]
++  PROCESS_NAME = "Exemplo de edital de seleção"
++  TEMPLATES = {
++    application: "Exemplo - Formulário de candidatura",
++    homologation: "Exemplo - Homologação",
++    homologation_consolidation: "Exemplo - Consolidação da homologação",
++    evaluation: "Exemplo - Avaliação",
++    evaluation_consolidation: "Exemplo - Consolidação da avaliação"
++  }
++  PHASES = ["Exemplo - Homologação", "Exemplo - Avaliação"]
++  COMMITTEES = ["Exemplo - Secretaria", "Exemplo - Avaliadores"]
++  RANKINGS = ["Exemplo - Ranking padrão", "Exemplo - Ranking de bolsas"]
++  MACHINES = [
++    "Exemplo - Ampla concorrência", "Exemplo - Racial", "Exemplo - PcD",
++    "Exemplo - Bolsa"
++  ]
++
++  FormField = Admissions::FormField
++  FormTemplate = Admissions::FormTemplate
++  FormCondition = Admissions::FormCondition
++
++  def condition(field, value, op = FormCondition::EQUALS)
++    FormCondition.create!(
++      mode: FormCondition::CONDITION, field: field, condition: op, value: value
++    )
++  end
++
++  def template(key, type, fields)
++    t = FormTemplate.create!(name: TEMPLATES[key], template_type: type)
++    fields.each_with_index do |f, i|
++      config = f.delete(:configuration)
++      t.fields.create!(
++        { order: i + 1, configuration: config && JSON.dump(config) }.merge(f)
++      )
++    end
++    t
++  end
++
++  def yes_no(name, extra = {})
++    {
++      name: name, field_type: FormField::RADIO,
++      configuration: { values: ["Sim", "Não"] }
++    }.merge(extra)
++  end
++
++  def code_field(name, code)
++    {
++      name: name, field_type: FormField::CODE,
++      configuration: {
++        code: code, template_type: FormField::LIQUID, code_type: "number"
++      }
++    }
++  end
++
++  def email_field(name, field_condition, subject, body)
++    {
++      name: name, field_type: FormField::EMAIL,
++      configuration: {
++        to: "{{ application.email }}", subject: subject, body: body,
++        template_type: FormField::LIQUID,
++        condition: field_condition.to_hash.except(:id)
++      }
++    }
++  end
++
++  def committee(name, users)
++    c = Admissions::AdmissionCommittee.create!(name: name)
++    users.each { |u| c.members.create!(user: u) }
++    c
++  end
++
++  def ranking(name, machines, form_condition: nil)
++    rc = Admissions::RankingConfig.new(
++      name: name, form_condition: form_condition,
++      behavior_on_invalid_condition: Admissions::RankingConfig::IGNORE_CONDITION,
++      behavior_on_invalid_ranking: Admissions::RankingConfig::IGNORE_RANKING
++    )
++    ["Nota final", "Média da formação acadêmica"].each do |col|
++      rc.ranking_columns.build(name: col, order: Admissions::RankingColumn::DESC)
++    end
++    machines.each_with_index do |m, i|
++      rc.ranking_processes.build(ranking_machine: m, order: i + 1, step: 1)
++    end
++    rc.save!
++    rc
++  end
++
++  def up
++    return if FormTemplate.exists?(name: TEMPLATES[:application])
++    secretaries = User.where(role_id: Role::ROLE_SECRETARIA).order(:id).limit(1).to_a
++    admins = User.where(role_id: Role::ROLE_ADMINISTRADOR).order(:id).limit(1).to_a
++    secretaries = admins if secretaries.empty?
++
++    application = template(:application, FormTemplate::ADMISSION_FORM, [
++      { name: "Nome", field_type: FormField::STRING, sync: FormField::SYNC_NAME },
++      { name: "Email", field_type: FormField::STRING, sync: FormField::SYNC_EMAIL },
++      yes_no("Solicita bolsa")
++    ])
++
++    homologation = template(:homologation, FormTemplate::ADMISSION_FORM, [
++      yes_no("Optante negro ou indígena"),
++      yes_no("PcD"),
++      {
++        name: "Homologação", field_type: FormField::RADIO,
++        configuration: { values: ["Deferida", "Indeferida"] }
++      },
++      { name: "Razão de indeferimento", field_type: FormField::TEXT }
++    ])
++    homologation_consolidation = template(
++      :homologation_consolidation, FormTemplate::CONSOLIDATION_FORM, [
++        email_field(
++          "Notificação de deferimento",
++          condition("Homologação", "Deferida"),
++          "Inscrição deferida - {{ process.name }}",
++          "Prezado(a) {{ application.name }}, sua inscrição foi deferida."
++        ),
++        email_field(
++          "Notificação de indeferimento",
++          condition("Homologação", "Indeferida"),
++          "Inscrição indeferida - {{ process.name }}",
++          "Prezado(a) {{ application.name }}, sua inscrição foi indeferida. " \
++          "Razão: {{ fields['Razão de indeferimento'] }}"
++        )
++      ]
++    )
++
++    evaluation = template(:evaluation, FormTemplate::ADMISSION_FORM, [
++      {
++        name: "Nota da formação acadêmica", field_type: FormField::NUMBER
++      },
++      {
++        name: "Nota da experiência acadêmica e profissional",
++        field_type: FormField::NUMBER
++      },
++      { name: "Observação", field_type: FormField::TEXT }
++    ])
++    evaluation_consolidation = template(
++      :evaluation_consolidation, FormTemplate::CONSOLIDATION_FORM, [
++        code_field(
++          "Média da formação acadêmica",
++          "{{- committees | avg: 'Nota da formação acadêmica' -}}"
++        ),
++        code_field(
++          "Média da experiência acadêmica e profissional",
++          "{{- committees | avg: 'Nota da experiência acadêmica e profissional' -}}"
++        ),
++        code_field(
++          "Nota final",
++          "{%- assign v1 = fields['Média da formação acadêmica'] -%}\n" \
++          "{%- assign v2 = fields['Média da experiência acadêmica e profissional'] -%}\n" \
++          "{%- assign sum = v1 | plus: v2 -%}\n" \
++          "{{- sum | divided_by: 2.0 -}}"
++        )
++      ]
++    )
++
++    phase1 = Admissions::AdmissionPhase.create!(
++      name: PHASES[0], shared_form: homologation,
++      consolidation_form: homologation_consolidation,
++      approval_condition: condition("Homologação", "Deferida")
++    )
++    phase2 = Admissions::AdmissionPhase.create!(
++      name: PHASES[1], member_form: evaluation,
++      consolidation_form: evaluation_consolidation,
++      approval_condition: condition("Nota final", "6", FormCondition::GE)
++    )
++    phase1.admission_phase_committees.create!(
++      admission_committee: committee(COMMITTEES[0], secretaries)
++    )
++    phase2.admission_phase_committees.create!(
++      admission_committee: committee(COMMITTEES[1], admins)
++    )
++
++    machines = MACHINES.each_with_index.map do |name, i|
++      cond = case i
++        when 1 then condition("Optante negro ou indígena", "Sim")
++        when 2 then condition("PcD", "Sim")
++        when 3 then condition("Solicita bolsa", "Sim")
++      end
++      Admissions::RankingMachine.create!(name:, form_condition: cond)
++    end
++    default_ranking = ranking(
++      RANKINGS[0], [machines[1], machines[2], machines[0]]
++    )
++    scholarship_ranking = ranking(
++      RANKINGS[1], [machines[3]],
++      form_condition: condition("Solicita bolsa", "Sim")
++    )
++
++    process = Admissions::AdmissionProcess.create!(
++      name: PROCESS_NAME, form_template: application,
++      year: Date.today.year, semester: YearSemester::SEMESTERS.first,
++      start_date: Date.today, end_date: Date.today + 30, visible: false
++    )
++    process.phases.create!(admission_phase: phase1, order: 1)
++    process.phases.create!(admission_phase: phase2, order: 2)
++    process.rankings.create!(
++      ranking_config: default_ranking, admission_phase: phase2, order: 1
++    )
++    process.rankings.create!(
++      ranking_config: scholarship_ranking, admission_phase: phase2, order: 2
++    )
++  end
++
++  def down
++    Admissions::AdmissionProcess.where(name: PROCESS_NAME).each do |p|
++      p.phases.destroy_all
++      p.destroy
++    end
++    Admissions::RankingConfig.where(name: RANKINGS).destroy_all
++    Admissions::RankingMachine.where(name: MACHINES).destroy_all
++    Admissions::AdmissionPhase.where(name: PHASES).destroy_all
++    Admissions::AdmissionCommittee.where(name: COMMITTEES).destroy_all
++    FormTemplate.where(name: TEMPLATES.values + RANKINGS).destroy_all
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index cee1f55d..10e5fe8b 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2025_05_15_173026) do
++ActiveRecord::Schema[7.0].define(version: 2025_05_20_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"

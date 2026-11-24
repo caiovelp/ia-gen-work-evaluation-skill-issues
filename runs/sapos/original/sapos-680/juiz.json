@@ -1,0 +1,1 @@
+{"justificativa": "The patch makes the same code changes as the official fix: it replaces both lib/ lines with `config.autoload_lib(ignore: %w[assets tasks])` and removes `migrate_bigint_generator.rb` and `rcov.rake`. It also adds the requested spec covering the three premises.", "veredito": "resolve"}

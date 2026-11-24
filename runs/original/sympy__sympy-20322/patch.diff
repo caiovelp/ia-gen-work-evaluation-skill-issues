@@ -1,0 +1,22 @@
+diff --git a/sympy/simplify/radsimp.py b/sympy/simplify/radsimp.py
+index 4609da209c..87a465cee2 100755
+--- a/sympy/simplify/radsimp.py
++++ b/sympy/simplify/radsimp.py
+@@ -1074,7 +1074,16 @@ def fraction(expr, exact=False):
+ 
+     numer, denom = [], []
+ 
+-    for term in Mul.make_args(expr):
++    def _flat(e):
++        # also flatten nested (unevaluated) Muls
++        for a in Mul.make_args(e):
++            if a.is_Mul:
++                for b in _flat(a):
++                    yield b
++            else:
++                yield a
++
++    for term in _flat(expr):
+         if term.is_commutative and (term.is_Pow or isinstance(term, exp)):
+             b, ex = term.as_base_exp()
+             if ex.is_negative:

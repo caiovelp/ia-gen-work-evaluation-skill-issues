@@ -1,0 +1,67 @@
+diff --git a/django/utils/html.py b/django/utils/html.py
+index d0bc97be80..007602a14a 100755
+--- a/django/utils/html.py
++++ b/django/utils/html.py
+@@ -59,7 +59,7 @@ _json_script_escapes = {
+ }
+ 
+ 
+-def json_script(value, element_id=None):
++def json_script(value, element_id=None, encoder=None):
+     """
+     Escape all the HTML/XML special characters with their unicode escapes, so
+     value is safe to be output anywhere except for inside a tag attribute. Wrap
+@@ -67,7 +67,9 @@ def json_script(value, element_id=None):
+     """
+     from django.core.serializers.json import DjangoJSONEncoder
+ 
+-    json_str = json.dumps(value, cls=DjangoJSONEncoder).translate(_json_script_escapes)
++    json_str = json.dumps(value, cls=encoder or DjangoJSONEncoder).translate(
++        _json_script_escapes
++    )
+     if element_id:
+         template = '<script id="{}" type="application/json">{}</script>'
+         args = (element_id, mark_safe(json_str))
+diff --git a/docs/ref/utils.txt b/docs/ref/utils.txt
+index 7712015929..90eee2ad2d 100755
+--- a/docs/ref/utils.txt
++++ b/docs/ref/utils.txt
+@@ -593,6 +593,23 @@ autoescape mechanism, using the utilities in :mod:`django.utils.safestring`
+ where appropriate. This module provides some additional low level utilities for
+ escaping HTML.
+ 
++.. function:: json_script(value, element_id=None, encoder=None)
++
++    .. versionchanged:: 4.2
++
++        The ``encoder`` parameter was added.
++
++    Escapes all HTML/XML special characters with their Unicode escapes, so
++    ``value`` is safe to be output anywhere except for inside a tag attribute.
++    Wraps the escaped JSON in a ``<script>`` tag. If ``element_id`` is provided,
++    it is used as the tag's ``id``.
++
++    The JSON is serialized with :class:`~django.core.serializers.json.DjangoJSONEncoder`
++    by default. Pass a :class:`json.JSONEncoder` subclass as ``encoder`` to
++    customize serialization. The output is escaped regardless of the encoder.
++
++    See also the :tfilter:`json_script` template filter.
++
+ .. function:: escape(text)
+ 
+     Returns the given text with ampersands, quotes and angle brackets encoded
+diff --git a/docs/releases/4.2.txt b/docs/releases/4.2.txt
+index ca1c2a0eaa..880a893c95 100755
+--- a/docs/releases/4.2.txt
++++ b/docs/releases/4.2.txt
+@@ -214,7 +214,9 @@ URLs
+ Utilities
+ ~~~~~~~~~
+ 
+-* ...
++* The new ``encoder`` parameter for
++  :func:`django.utils.html.json_script` function allows customizing a JSON
++  encoder class.
+ 
+ Validators
+ ~~~~~~~~~~

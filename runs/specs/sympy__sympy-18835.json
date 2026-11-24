@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31212,
+ "stop_reason": "end_turn",
+ "session_id": "a3d0a0d4-d468-432a-82da-1328be1f9c71",
+ "total_cost_usd": 0.0667292,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 890,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2929,
+  "output_tokens_details": {
+   "thinking_tokens": 485
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 890,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2929,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 890,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 890
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1474,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001584,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2929,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 890,
+   "webSearchRequests": 0,
+   "costUSD": 0.0665708,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 485,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: `uniq` raises `RuntimeError` when its sequence argument changes size during iteration\n\n## Objective\n\n`uniq` yields the unique elements of its argument. If the caller modifies a passed list while consuming `uniq`, the output is silently wrong. In the reported example, removing each yielded item from `f` shifts the list, so `'H'`, `'S'` and `'E'` are skipped:\n\n```python\n>>> f = list('THISTLE')\n>>> for i in uniq(f):\n...   f.remove(i)\n...   i\n...\n'T'\n'I'\n'L'\n```\n\nPython already guards against this for dictionaries and sets with `RuntimeError: dictionary changed size during iteration`. `uniq` should behave the same way for sized sequences. It should record the argument's size when iteration starts. If the size has changed when iteration resumes, it should raise a `RuntimeError` rather than return wrong results.\n\n**Users:** anyone calling `uniq` on a mutable sequence, typically a list, who might mutate that sequence inside the consuming loop.\n\n**User stories / acceptance criteria**\n- As a caller who mutates the input list while iterating `uniq(f)`, I get a `RuntimeError` instead of a silently incomplete result.\n- As a caller who does not mutate the input, behaviour and output are unchanged from today.\n- As a caller who passes a generator or other unsized iterable, behaviour is unchanged and no error is raised.\n\n## Assumptions\n\n1. This is SymPy, and `uniq` and `multiset` are the functions from SymPy's iterables utilities. The issue does not name the project or the module path, so both are unconfirmed.\n2. `uniq` is a generator function. The size check can therefore run each time the generator resumes, i.e. on each `next()` call after the first.\n3. The check only applies to arguments that support `len()`. Arbitrary iterables such as generators and iterators cannot be size-checked and are passed through unchanged.\n4. The error type is `RuntimeError`, with a message modelled on the built-in one, e.g. `\"sequence changed size during iteration\"`. The issue does not give exact wording.\n5. Changing the size is the only mutation detected. Same-size mutations are explicitly out of scope, matching the limits of Python's own dict and set check. Examples:\n   - item assignment such as `f[0] = 'X'`\n   - a remove followed by an append\n6. `uniq` may have an internal path for unhashable elements, or extra parameters. Whatever paths exist, the size check applies to all of them.\n7. The check runs before producing the next element. A mutation made after the first yield is therefore detected on the next `next()` call, so in the example above `RuntimeError` is raised right after `'T'` is yielded and removed.\n\n## Tech Stack\n\n- Language: Python (from the issue's REPL examples).\n- Project, Python versions and dependencies: **unknown**. SymPy is assumed (Assumption 1).\n\n## Commands\n\nAll unknown; the issue provides none.\n\n- Build: unknown\n- Test: unknown (likely a pytest-style runner, unconfirmed)\n- Lint: unknown\n- Dev: not applicable (library function)\n\n## Project Structure\n\nUnknown. The file defining `uniq` and its test file are not shown in the issue. Locate them before planning.\n\n## Code Style\n\nUnknown. No project code is visible. Follow the existing style of the module that defines `uniq`. The only behavioural reference is Python's built-in error:\n\n```\nRuntimeError: dictionary changed size during iteration\n```\n\n## Testing Strategy\n\n- Framework and test location: unknown. Use the existing test file for `uniq`'s module.\n- Unit tests should cover:\n  1. **Mutation is detected.** `f = list('THISTLE')`, then `f.remove(i)` inside `for i in uniq(f)`, raises `RuntimeError`.\n  2. **Appending is detected**, so growth is caught as well as shrinkage.\n  3. **No mutation, unchanged output.** `list(uniq(list('THISTLE')))` returns `['T', 'H', 'I', 'S', 'L', 'E']`.\n  4. **Unsized iterables still work.** A generator input yields the same unique elements and raises no error.\n  5. **Unhashable elements.** If `uniq` supports them (e.g. a list of lists), the size check also applies when the input is a mutable sequence.\n  6. **Existing tests** for `uniq` and its callers pass without modification.\n- Coverage expectations: unknown. At minimum, every new branch is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Keep output identical for unmodified inputs.\n  - Keep `uniq` lazy, as a generator. Do not copy the whole input up front just to avoid the problem, since that hides the mutation instead of reporting it.\n  - Run the existing test suite.\n  - Add regression tests.\n- **Ask first:**\n  - Changing `uniq`'s signature or return type.\n  - Changing behaviour for unsized iterables.\n  - Choosing a different exception type than `RuntimeError`.\n  - Detecting same-size mutations (out of scope here).\n- **Never:**\n  - Silently \"fix\" the caller's loop by iterating a private copy.\n  - Change other functions such as `multiset`.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n- [ ] Iterating `uniq(f)` over a list `f` while removing items from `f` raises `RuntimeError`, not a truncated result.\n- [ ] Iterating `uniq(f)` while appending to `f` raises `RuntimeError`.\n- [ ] The error is raised on the first `next()` call after the size change is observed, not deferred or skipped.\n- [ ] The error message clearly states that the sequence changed size during iteration.\n- [ ] For inputs that are not modified, `uniq` output is unchanged, order included.\n- [ ] Generators and other inputs without `len()` work exactly as before, with no exception.\n- [ ] All pre-existing tests pass, and new regression tests cover the cases in Testing Strategy.\n\n## Open Questions\n\n1. **Project and location.** Is this SymPy, and which file and test file contain `uniq`?\n2. **Exact error message.** Should the wording mirror Python's built-in message exactly, using \"list\" or \"sequence\"?\n3. **Mutation after the last element.** If the caller mutates the input after the final yield, should exhausting the generator still raise? Python's dict iterator does. Assumption 7 implies yes, since the check runs on every resume.\n4. **Sized but non-list inputs.** Should the check apply to any object with `__len__` (tuples, strings, custom sequences), or only to mutable sequences? Applying it to all sized inputs is harmless for immutable ones.\n5. **Inputs whose `len()` is expensive or misbehaving.** Are there callers passing such objects that must not be checked?\n6. **Internal `uniq` paths.** Does `uniq` have extra parameters (e.g. an accumulator argument) or a separate code path for unhashable items that needs the same guard?\n7. **Same-size mutations.** Is it acceptable that mutations which keep the length constant remain undetected, as with Python's dict and set?\n8. **Commands.** What are the build, test and lint commands, and which Python versions are supported?",
+ "ttft_ms": 7317,
+ "type": "result",
+ "duration_ms": 30521,
+ "uuid": "598e61e6-3cd3-4311-9438-e33c3a3fc579",
+ "ttft_stream_ms": 1705,
+ "time_to_request_ms": 286,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 19,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 236,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 185,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1706,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

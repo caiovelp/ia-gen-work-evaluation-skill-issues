@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15645,
+ "stop_reason": "end_turn",
+ "session_id": "c156500a-5368-4aee-b222-c70ca1208b4d",
+ "total_cost_usd": 0.0468924,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2049,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1507,
+  "output_tokens_details": {
+   "thinking_tokens": 309
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2049,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1507,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2049,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2049
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2259,
+   "outputTokens": 253,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003524,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 234,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1507,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2049,
+   "webSearchRequests": 0,
+   "costUSD": 0.04654,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 309,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`NeighborhoodComponentsAnalysis` (NCA) checks that its parameters are of specific Python types. These checks are too strict and fail inside `GridSearchCV` because of how parameter grids are commonly written:\n\n- `tol`: the value `1` is an `int`, not a `float`, so it is rejected.\n- `n_components`: values from `np.arange(1, 10)` are `np.int64`, not `int`, so they are rejected.\n\n## Steps to reproduce\n\n1. Generate random data: `X` of shape `(100, 10)` and binary labels `y` of length 100.\n2. Build a `Pipeline` with `NeighborhoodComponentsAnalysis()` (step name `'nca'`) followed by `KNeighborsClassifier()` (step name `'knn'`).\n3. Define a parameter grid:\n   - `'nca__tol': [0.1, 0.5, 1]`\n   - `'nca__n_components': np.arange(1, 10)`\n4. Create `GridSearchCV(estimator=pipe, param_grid=params, error_score='raise')`.\n5. Call `gs.fit(X, y)`.\n\n## Observed behavior\n\n`gs.fit(X, y)` fails. NCA's parameter validation rejects:\n\n- `tol=1` because it is not a `float`.\n- `n_components` values of type `np.int64` because they are not `int`.\n\n## Expected behavior\n\nThe grid search should run without error. An integer value such as `1` should be accepted for `tol`, and NumPy integer types such as `np.int64` should be accepted for `n_components`.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\n```python\nimport numpy as np\n\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.model_selection import GridSearchCV\nfrom sklearn.neighbors import NeighborhoodComponentsAnalysis\nfrom sklearn.neighbors import KNeighborsClassifier\n\n\ndef test_nca_in_gridsearch_accepts_int_tol_and_numpy_int_n_components():\n    X = np.random.random_sample((100, 10))\n    y = np.random.randint(2, size=100)\n\n    pipe = Pipeline([('nca', NeighborhoodComponentsAnalysis()),\n                     ('knn', KNeighborsClassifier())])\n\n    params = {'nca__tol': [0.1, 0.5, 1],\n              'nca__n_components': np.arange(1, 10)}\n\n    gs = GridSearchCV(estimator=pipe, param_grid=params, error_score='raise')\n    gs.fit(X, y)  # should not raise\n```\n\n## Code example\n\nOriginal reproduction snippet from the report:\n\n```python\nimport numpy as np\n\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.model_selection import GridSearchCV\nfrom sklearn.neighbors import NeighborhoodComponentsAnalysis\nfrom sklearn.neighbors import KNeighborsClassifier\n\nX = np.random.random_sample((100, 10))\ny = np.random.randint(2, size=100)\n\nnca = NeighborhoodComponentsAnalysis()\nknn = KNeighborsClassifier()\n\npipe = Pipeline([('nca', nca),\n                 ('knn', knn)])\n\nparams = {'nca__tol': [0.1, 0.5, 1],\n          'nca__n_components': np.arange(1, 10)}\n\ngs = GridSearchCV(estimator=pipe, param_grid=params, error_score='raise')\ngs.fit(X, y)\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 5564,
+ "type": "result",
+ "duration_ms": 14012,
+ "uuid": "ca727008-300e-48a5-a596-630ebed27e67",
+ "ttft_stream_ms": 1530,
+ "time_to_request_ms": 322,
+ "time_to_request_phases_ms": {
+  "other": 23,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 17,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 241,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 21,
+ "time_to_request_cpu_ms": 288,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1531,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

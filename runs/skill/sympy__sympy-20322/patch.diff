@@ -1,0 +1,31 @@
+diff --git a/sympy/core/mul.py b/sympy/core/mul.py
+index 46f310b122..c1a45f52cb 100755
+--- a/sympy/core/mul.py
++++ b/sympy/core/mul.py
+@@ -1274,6 +1274,10 @@ def _eval_is_integer(self):
+         n, d = fraction(self, exact=True)
+         if is_rational:
+             if d is S.One:
++                if any(a.is_Mul for a in self.args):
++                    # unevaluated nested Mul; fraction() can't see its
++                    # denominators, so evaluate before deciding
++                    return Mul(*self.args).is_integer
+                 return True
+         if d.is_even:
+             if d.is_prime:  # literal or symbolic 2
+diff --git a/sympy/core/tests/test_arit.py b/sympy/core/tests/test_arit.py
+index e05cdf6ac1..51c2fdfee3 100755
+--- a/sympy/core/tests/test_arit.py
++++ b/sympy/core/tests/test_arit.py
+@@ -2296,3 +2296,11 @@ def test__neg__():
+ 
+ def test_issue_18507():
+     assert Mul(zoo, zoo, 0) is nan
++
++
++def test_Mul_is_integer_nested_unevaluated():
++    m = Mul(3, Pow(4, -1, evaluate=False), evaluate=False)
++    assert Mul(-1, m, evaluate=False).is_integer is False
++    x = Symbol('x')
++    e = sympify('4*ceiling(x/4 - 3/4)', evaluate=False)
++    assert e.simplify() == sympify('4*ceiling(x/4 - 3/4)').simplify()

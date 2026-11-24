@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32056,
+ "stop_reason": "end_turn",
+ "session_id": "ae6a494a-8afb-4254-8932-4aafa363a004",
+ "total_cost_usd": 0.0779774,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1803,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3113,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1803,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3113,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1803,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1803
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2391,
+   "outputTokens": 367,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00042259999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 343,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3113,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1803,
+   "webSearchRequests": 0,
+   "costUSD": 0.07755480000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Unambiguous GROUP BY for Subquery annotations that collide with joined column names\n\n## Objective\n\n**Problem.** Django 3.0.4 on PostgreSQL 11 builds invalid SQL in this case:\n\n- A queryset has a `Subquery` annotation whose alias matches a column name on a joined table.\n- The queryset is then grouped via `.values(<alias>).annotate(<aggregate>)`.\n\nDjango 3.0 emits `GROUP BY \"status\"`, using the annotation alias. Here `\"status\"` is also a column of the joined table `test_app_ab`. PostgreSQL rejects the query with:\n\n```\ndjango.db.utils.ProgrammingError: column reference \"status\" is ambiguous\n```\n\nDjango 2.2.11 handled the same queryset correctly. It emitted the full subquery expression in the GROUP BY clause:\n\n```\nGROUP BY (SELECT U0.\"status\" FROM \"test_app_ab\" U0 WHERE (U0.\"a_id\" = (\"test_app_a\".\"id\") AND U0.\"b_id\" = 1))\n```\n\n**Users.** Django ORM users who group by `Subquery` annotations on querysets that also join other tables. This is common after `filter()` with `Q` objects across relations, or after aggregations like `Count(\"c\")`.\n\n**What success looks like.** The issue's queryset runs on PostgreSQL without error. It returns the grouped result that 2.2.11 returned, so the 3.0 regression is gone. Non-colliding cases keep working.\n\n### Reproduction (from the issue)\n\nModels:\n- `A` has `bs = ManyToManyField('B', related_name=\"a\", through=\"AB\")`.\n- `B` is empty.\n- `AB` has:\n  - `a = FK(A, related_name=\"ab_a\")`\n  - `b = FK(B, related_name=\"ab_b\")`\n  - `status = IntegerField()`\n- `C` has:\n  - `a = FK(A, null=True, blank=True, on_delete=SET_NULL, related_name=\"c\")`\n  - `status = IntegerField()`\n\nQuery:\n```python\nab_query = AB.objects.filter(a=OuterRef(\"pk\"), b=1)\nfilter_conditions = Q(pk=1) | Q(ab_a__b=1)\nquery = A.objects.filter(filter_conditions).annotate(\n    status=Subquery(ab_query.values(\"status\")),\n    c_count=Count(\"c\"),\n)\nanswer = query.values(\"status\").annotate(total_count=Count(\"status\"))\n```\n\n### Acceptance criteria\n\n1. Evaluating `answer` on PostgreSQL raises no `ProgrammingError`.\n2. The generated GROUP BY clause for `answer` does not reference the bare alias `\"status\"`. That alias collides with `test_app_ab.status` and `test_app_c.status`, both of which are in the FROM clause via joins. Instead, the GROUP BY must reference something that resolves unambiguously, for example the full subquery expression as in 2.2.11.\n3. The result rows match what Django 2.2.11 returns for the same data.\n4. Grouping by a `Subquery` annotation whose alias does **not** collide with any joined column still produces correct results. Whether it is grouped by alias or by expression is an open question.\n5. Existing GROUP BY behaviour for plain field references and non-subquery annotations is unchanged. The existing test suite must pass.\n6. The new behaviour is covered by a regression test that fails on the current code and passes after the change.\n\n## Assumptions\n\n1. The regression comes from a Django 3.0 change in how GROUP BY is compiled for annotations. Specifically, 3.0 appears to reference annotation aliases instead of repeating the expression. This is inferred from the two SQL outputs and is not confirmed in source.\n2. The target fix branch is the Django 3.0.x line (a regression fix), plus the main development branch. Not confirmed.\n3. The issue only demonstrates PostgreSQL 11. The fix should still be correct on all backends Django supports (SQLite, MySQL, Oracle, PostgreSQL), not just PostgreSQL.\n4. `_(\"a\")` in the model definition is `gettext_lazy` and has no bearing on the bug.\n5. `c_count=Count(\"c\")` matters only because it introduces the `test_app_c` join, which brings in a second `status` column. The bug should also reproduce with only the `ab_a__b` join.\n6. Repeating the full subquery expression in GROUP BY, as 2.2.11 did, is an acceptable fix. Any equivalent unambiguous form is also acceptable.\n7. The fix is internal to the ORM SQL compiler/query layer. No public API changes are expected.\n\n## Tech Stack\n\n- Django (affected: 3.0.4; working reference: 2.2.11)\n- Python: version unknown\n- Database in the report: PostgreSQL 11, via `django.db.backends.postgresql`\n- Driver (e.g. psycopg2) version: unknown\n\n## Commands\n\nUnknown. The issue gives no commands. To be confirmed:\n\n- Test runner invocation: unknown\n- Database settings for running tests against PostgreSQL: unknown\n- Lint/format commands: unknown\n\n## Project Structure\n\nUnknown. The issue references no source files. The relevant ORM modules (query construction / SQL compiler) and the test app/location for the regression test must be identified from the repository.\n\n## Code Style\n\nUnknown. Follow the existing Django project conventions found in the repository. No snippets are provided in the issue beyond the reproduction above.\n\n## Testing Strategy\n\n**Regression test.**\n- Encode the issue's model shape: a through model with a field whose name collides with an annotation alias, plus a nullable FK model with the same field name.\n- Encode the issue's queryset: a `Subquery` annotation, then `.values(alias).annotate(Count(alias))`, with joins present.\n- Assert that evaluation succeeds and that the aggregated results are correct.\n\n**Backend coverage.**\n- The test must pass on PostgreSQL, where the ambiguity error occurs.\n- It must also pass on the other supported backends, which may resolve aliases differently.\n\n**SQL-shape assertion (optional).**\n- Possibly assert that the GROUP BY does not use a bare colliding alias.\n- Prefer behavioural assertions over brittle SQL string matching. See Open Questions.\n\n**Non-regression tests.**\n- Group by a `Subquery` annotation without collisions.\n- Group by regular fields and by non-subquery annotations.\n- Run the full existing aggregation/expressions/annotations test suites.\n\nExact test framework invocation and file locations: unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue.\n  - Run the existing ORM test suites, on PostgreSQL at minimum.\n  - Keep generated SQL valid on all supported backends.\n- **Ask first:**\n  - Changing GROUP BY semantics for cases beyond colliding `Subquery` aliases (e.g. switching all annotations back to expression-based grouping).\n  - Any backend-specific branching.\n  - Changing public API or documented behaviour.\n  - Adding release notes for the 3.0.x branch.\n- **Never:**\n  - Remove or weaken existing tests to make the suite pass.\n  - Fix only by special-casing the field name `status`.\n  - Introduce a fix that only works on PostgreSQL while breaking other backends.\n\n## Success Criteria\n\n- The issue's exact queryset executes on PostgreSQL 11 without `column reference \"status\" is ambiguous`.\n- Its results match Django 2.2.11's results for the same fixture data.\n- A new regression test fails before the fix and passes after it, on PostgreSQL and the other backends in CI.\n- All pre-existing tests pass.\n- No change in generated SQL or results for GROUP BY queries that don't involve alias/column name collisions, unless explicitly approved (see Open Questions).\n\n## Open Questions\n\n1. **Scope of the fix.** Should the compiler (a) always group by the full expression for `Subquery` annotations, (b) group by the expression only when the alias collides with a column name of any table in the FROM clause, or (c) restore 2.2 behaviour for all annotations? Option (b) preserves the 3.0 optimisation but requires collision detection.\n2. **Which versions get the fix?** Is this treated as a 3.0.x regression backport, or only on the main branch?\n3. Does the problem also affect other expression types used as annotations with colliding aliases (e.g. `Func`, `Case`, `ExpressionWrapper`), or only `Subquery`? Should those be in scope?\n4. Does the ambiguity also reproduce on SQLite, MySQL, or Oracle, or is it PostgreSQL-specific? This decides whether the test needs backend-specific expectations.\n5. Is asserting on generated SQL text acceptable in tests, or should tests be purely behavioural?\n6. Where should the regression models and tests live (existing test app vs. new models)? Unknown without repository access.\n7. Is a minimal reproduction without `c_count=Count(\"c\")` sufficient for the test, or should the test mirror the issue exactly?\n8. Are there performance concerns with repeating subquery expressions in GROUP BY? Should that be evaluated?",
+ "ttft_ms": 29946,
+ "type": "result",
+ "duration_ms": 29971,
+ "uuid": "266e43a0-d96c-46f5-b7fc-0ed84a2f60d5",
+ "ttft_stream_ms": 892,
+ "time_to_request_ms": 253,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 2,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 217,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 204,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 893,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

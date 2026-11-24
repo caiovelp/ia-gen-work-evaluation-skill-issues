@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28143,
+ "stop_reason": "end_turn",
+ "session_id": "d553cb16-42bd-44cb-954b-d00d9bee42eb",
+ "total_cost_usd": 0.0635951,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 893,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2771,
+  "output_tokens_details": {
+   "thinking_tokens": 156
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 893,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2771,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 893,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 893
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1483,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001603,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2771,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 893,
+   "webSearchRequests": 0,
+   "costUSD": 0.0634348,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 156,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Deleting `index_together` must not crash when `unique_together` covers the same fields\n\n## Objective\n\nWhen a model declares the same field set in both `unique_together` and `index_together`, a migration that removes the `index_together` entry fails. The error is raised in `django/db/backends/base/schema.py`, in `_delete_composed_index()` (line 378 in Django 1.11.10):\n\n```\nValueError: Found wrong number (2) of constraints for ...\n```\n\nThe lookup for the index to drop matches two database objects: the `_uniq` constraint and the `_idx` index. The schema editor cannot tell which one to remove, so it aborts. The user has no supported way past this.\n\n**Who is affected:** Developers who keep a composite unique constraint and a composite index on the same columns. This includes developers moving from `index_together` to the `Meta.indexes` API added in 1.11. For them the removal is part of a refactor, not an intent to drop the index.\n\nThe issue raises two concerns:\n\n1. **Crash (primary):** Removing `index_together` must work on its own when `unique_together` covers the same fields. It must drop only the plain index and leave the unique constraint in place.\n2. **Needless re-creation (secondary):** Moving an index declaration from `index_together` to `Meta.indexes` should not drop and re-create a database index that is the same in substance.\n\n**Acceptance criteria (from the user's view):**\n- Given a model with fields `(a, b)` in both `unique_together` and `index_together`, generating and applying a migration that removes `index_together` succeeds.\n- After that migration, the unique constraint on `(a, b)` still exists and is still enforced.\n- After that migration, the non-unique composite index on `(a, b)` no longer exists, or the behaviour is documented if the backend treats the unique constraint as the index.\n- The reverse migration re-creates the index without error.\n- Concern 2 is in scope only if confirmed (see Open Questions). If confirmed: moving the same field set from `index_together` to `Meta.indexes` does not cause the index to be dropped and re-created when applied.\n\n## Assumptions\n\n1. The primary deliverable is concern 1, the crash fix. Concern 2 is a separate, independently testable capability that may need its own spec or ticket.\n2. The fix targets the current development branch of Django, not a backport to 1.11.x, unless told otherwise.\n3. The ambiguity comes from the constraint lookup, which filters by column set and \"index\" flag without excluding unique constraints. This is inferred from the error message and has not been verified in source.\n4. All built-in backends (PostgreSQL, MySQL, SQLite, Oracle) are in scope. Some may report the unique constraint as an index during introspection.\n5. The symmetric case is also in scope as a regression guard: deleting `unique_together` while `index_together` on the same fields remains.\n6. Public APIs do not change. `unique_together`, `index_together`, and the migration operation signatures keep their current names and arguments.\n\n## Tech Stack\n\n- Django (reported on 1.11.10; the target branch version is unknown)\n- Python (version unknown)\n- Database backends: all built-in Django backends (assumed)\n\n## Commands\n\nUnknown. The issue gives no repository access or command information.\n\n- Build: unknown\n- Test: unknown (e.g. the Django test runner invocation for schema/migration tests is not specified in the issue)\n- Lint: unknown\n\n## Project Structure\n\nKnown from the issue:\n- `django/db/backends/base/schema.py` contains `_delete_composed_index()`, where the error is raised.\n\nEverything else is unknown:\n- Location of schema-editor tests: unknown\n- Location of migration autodetector tests: unknown\n- Location of release notes and docs: unknown\n\n## Code Style\n\nUnknown. Follow existing Django conventions in the touched modules. No snippet is available from the issue.\n\n## Testing Strategy\n\nFramework and file locations are unknown. Required test coverage:\n\n- **Schema-editor level:**\n  - On a model with the same fields in `unique_together` and `index_together`, removing `index_together` succeeds.\n  - The unique constraint survives.\n  - The index is removed.\n- **Symmetric case:** Removing `unique_together` while keeping `index_together` on the same fields succeeds and leaves the index.\n- **Migration level:**\n  - An end-to-end migration applies and reverses cleanly for the reported scenario.\n- **Backends:** Tests run against every backend available in CI. Backend-specific introspection differences must be covered or explicitly skipped with a reason.\n- **Concern 2 (if accepted):** Autodetector-level tests assert which operations are generated when a declaration moves from `index_together` to `Meta.indexes`.\n- **Regression check:** The existing schema and migration test suites still pass.\n\n## Boundaries\n\n- **Always:**\n  - Add a failing test that reproduces the `ValueError` before changing behaviour.\n  - Preserve the unique constraint when removing the index.\n  - Run the existing schema and migrations test suites.\n- **Ask first:**\n  - Changing the autodetector's generated operations (concern 2).\n  - Changing the names of auto-generated constraints or indexes.\n  - Backporting to a stable branch.\n  - Altering the public signatures of schema-editor methods.\n- **Never:**\n  - Silence the error by dropping whichever constraint is found first.\n  - Drop or weaken the unique constraint as a side effect.\n  - Remove or loosen the \"wrong number of constraints\" safety check for genuinely ambiguous cases.\n\n## Success Criteria\n\n1. The reproduction no longer raises `ValueError`: a model with `(a, b)` in both `unique_together` and `index_together`, followed by removal of `index_together`.\n2. After migrating, database introspection shows the unique constraint on `(a, b)` present.\n3. After migrating, introspection shows no separate non-unique `_idx` index on `(a, b)`.\n4. Reversing the migration restores the index without error.\n5. The symmetric case, removing `unique_together` while keeping `index_together`, works and keeps the index.\n6. All existing schema and migration tests pass on the supported backends.\n7. Concern 2, if in scope: moving `(a, b)` from `index_together` to an equivalent `Meta.indexes` entry does not drop and re-create the index on migrate. Exactly how that is detected is to be agreed.\n\n## Open Questions\n\n1. **Scope split:** Should concern 2 (\"moving the declaration should not re-create the index\") be handled in this spec or split into a separate spec or ticket? It is independently testable and touches the autodetector rather than the schema editor.\n2. **Equivalence for concern 2:** What counts as the \"same\" index when moving from `index_together` to `Meta.indexes`? The auto-generated name differs from a user-specified `Index(name=...)`. Options include:\n   - matching on fields only;\n   - requiring a rename operation;\n   - documenting a manual `SeparateDatabaseAndState` workaround.\n3. **Target branch:** Should this be fixed on the main development branch only, or also backported to 1.11.x or other stable branches?\n4. **Backend behaviour:** Some backends may report a unique constraint as an index, or create no separate index when a unique constraint already covers the columns. What is the expected end state per backend?\n5. **Interim workaround:** Should the docs or release notes describe how users already blocked can get past this today?\n6. **Fix location:** Is it acceptable for the fix to live entirely in `_delete_composed_index()` and its callers? Or should the migration autodetector also coordinate `index_together` and `unique_together` changes, as the reporter suggests (\"made coherent (migrations side?)\")?\n7. **Commands and test locations:** The exact test commands, test file locations, and supported Python and database versions for the target branch are unknown.",
+ "ttft_ms": 2655,
+ "type": "result",
+ "duration_ms": 27474,
+ "uuid": "271f5b51-12b6-4bed-ae72-10797218fe76",
+ "ttft_stream_ms": 1023,
+ "time_to_request_ms": 260,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 220,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 216,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1024,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

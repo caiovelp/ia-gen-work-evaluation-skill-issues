@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 7406,
+ "stop_reason": "end_turn",
+ "session_id": "9612444d-757f-48fd-82bc-fd7c9e997ac3",
+ "total_cost_usd": 0.0206548,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1112,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 577,
+  "output_tokens_details": {
+   "thinking_tokens": 64
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1112,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 577,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1112,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1112
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1318,
+   "outputTokens": 158,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 136,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 577,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1112,
+   "webSearchRequests": 0,
+   "costUSD": 0.020444,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 64,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nWhen index entries begin with the characters `@`, `\u00a3` and `\u2190`, the generated HTML index contains two separate sections both titled **Symbols**. Both sections share the same HTML anchor, so the two **Symbols** links at the top of the index page lead to the first section.\n\n## Steps to reproduce\n1. Create index entries whose text begins with each of these characters:\n   - `@`\n   - `\u00a3`\n   - `\u2190`\n2. Also create index entries that begin with ordinary letters.\n3. Build the HTML output.\n4. Open the generated index page.\n5. Look at the section headings and at the navigation links at the top of the page.\n\n## Observed behavior\n- The index contains two sections titled **Symbols**:\n  1. The first appears **before** the letter sections and contains the entries starting with `@`.\n  2. The second appears **after** the letter sections and contains the entries starting with `\u00a3` and `\u2190`.\n- Both **Symbols** sections have the same HTML anchor.\n- The links at the top of the index page include two **Symbols** links, one before the letters and one after. Both links go to the first **Symbols** section, so the second section can't be reached from these links.\n\n## Expected behavior\nAll entries that begin with non-letter characters (`@`, `\u00a3`, `\u2190`) should appear in a single **Symbols** section. The index page should have only one **Symbols** link, and it should lead to that section.\n\n## Stack trace / error output\nNot provided in the original report.\n\n## Test case\nNot provided in the original report.\n\n## Code example\nNot provided in the original report.\n\n## Version and environment\nNot provided in the original report.",
+ "ttft_ms": 1925,
+ "type": "result",
+ "duration_ms": 6094,
+ "uuid": "69248981-eb42-46bc-9845-f00ecba31738",
+ "ttft_stream_ms": 1259,
+ "time_to_request_ms": 237,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 195,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 32,
+ "time_to_request_cpu_ms": 129,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1259,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

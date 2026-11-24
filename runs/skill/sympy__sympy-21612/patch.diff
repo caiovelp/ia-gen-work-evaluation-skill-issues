@@ -1,0 +1,15 @@
+diff --git a/sympy/printing/str.py b/sympy/printing/str.py
+index c3fdcdd435..d10d75f8aa 100755
+--- a/sympy/printing/str.py
++++ b/sympy/printing/str.py
+@@ -284,8 +284,8 @@ def _print_Mul(self, expr):
+                 pre = [str(d.pop(0))]
+             else:
+                 pre = []
+-            dfactors = pre + [self.parenthesize(a, prec, strict=False)
+-                for a in d]
++            dfactors = pre + [self.parenthesize(a, prec,
++                strict=len(d) == 1 and not pre) for a in d]
+ 
+             n = '*'.join(nfactors)
+             d = '*'.join(dfactors)

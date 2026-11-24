@@ -1,0 +1,30 @@
+diff --git a/app/helpers/enrollment_holds_helper.rb b/app/helpers/enrollment_holds_helper.rb
+index 07063f21..c22c8c08 100644
+--- a/app/helpers/enrollment_holds_helper.rb
++++ b/app/helpers/enrollment_holds_helper.rb
+@@ -4,4 +4,9 @@
+ # frozen_string_literal: true
+ 
+ module EnrollmentHoldsHelper
++  def year_form_column(record, options)
++    select :record, :year, options_for_select(
++      YearSemester.selectable_years(record.year), record.year
++    ), { include_blank: true }, options
++  end
+ end
+diff --git a/app/models/year_semester.rb b/app/models/year_semester.rb
+index 676898b4..ed74140f 100644
+--- a/app/models/year_semester.rb
++++ b/app/models/year_semester.rb
+@@ -17,9 +17,10 @@ class YearSemester
+   SECOND_SEMESTER_BEGIN_MONTH = 8
+   SECOND_SEMESTER_BEGIN_DAY = 1
+ 
+-  def self.selectable_years
++  def self.selectable_years(*extra_years)
+     start_year, end_year, swap = CustomVariable.year_semester_range
+     result = ((Date.today.year - start_year)..(Date.today.year + end_year)).to_a
++    result = (result + extra_years.flatten.compact.map(&:to_i)).uniq.sort
+     result = result.reverse if swap
+     result
+   end

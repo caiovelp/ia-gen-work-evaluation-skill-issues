@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11650,
+ "stop_reason": "end_turn",
+ "session_id": "624dc944-070d-40cb-acf1-cf6a1394c46e",
+ "total_cost_usd": 0.032909799999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1300,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1117,
+  "output_tokens_details": {
+   "thinking_tokens": 203
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1300,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1117,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1300,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1300
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1513,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016180000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1117,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1300,
+   "webSearchRequests": 0,
+   "costUSD": 0.032748,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 203,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn seaborn 0.11.1, `sns.pairplot` raises a `TypeError` when `hue_order` contains only some of the values in the `hue` column. In seaborn versions before 0.11, this call worked: only the listed hue values were plotted, and points with other hue values were omitted.\n\n## Steps to reproduce\n\n1. Install seaborn 0.11.1 (matplotlib 3.3.2 was used in the report).\n2. Load the iris dataset: `iris = sns.load_dataset(\"iris\")`. Its `species` column has three distinct values.\n3. Call `pairplot` with `hue=\"species\"` and a `hue_order` listing only two of those values:\n   `sns.pairplot(iris, hue=\"species\", hue_order=[\"setosa\", \"versicolor\"])`\n4. Observe that an exception is raised.\n\n## Observed behavior\n\nThe call fails with a long error traceback. The first exception is raised in `seaborn/_core.py` and is a `TypeError` from `isnan` (see below).\n\n## Expected behavior\n\nAs in seaborn < 0.11, the pair plot should be drawn using only the hue levels listed in `hue_order` (`setosa` and `versicolor`). Points whose hue value is not in the list (here, `virginica`) should not be plotted.\n\n## Stack trace / error output\n\nOnly the first exception was included in the report. It arises in `seaborn/_core.py`:\n\n```\nTypeError: ufunc 'isnan' not supported for the input types, and the inputs could not be safely coerced to any supported types according to the casting rule ''safe''\n```\n\nThe full traceback was not provided in the original report.\n\n## Test case\n\nMinimal test derived from the reproduction snippet. It currently fails with the `TypeError` above and should pass once the regression is resolved:\n\n```python\nimport seaborn as sns\n\ndef test_pairplot_hue_order_subset_of_hue_values():\n    iris = sns.load_dataset(\"iris\")\n    # \"species\" has three values; hue_order lists only two of them\n    sns.pairplot(iris, hue=\"species\", hue_order=[\"setosa\", \"versicolor\"])\n```\n\n## Code example\n\nFrom the original report (a stray trailing backtick after the first line has been removed):\n\n```python\niris = sns.load_dataset(\"iris\")\n# The hue column contains three different species; here we want to plot two\nsns.pairplot(iris, hue=\"species\", hue_order=[\"setosa\", \"versicolor\"])\n```\n\n## Version and environment\n\n- seaborn: 0.11.1 (worked in seaborn < 0.11)\n- matplotlib: 3.3.2\n- matplotlib backends: MacOSX, Agg, or Jupyter notebook inline (the report lists all three)\n- Python version, OS, numpy/pandas versions: Not provided in the original report.",
+ "ttft_ms": 3531,
+ "type": "result",
+ "duration_ms": 10646,
+ "uuid": "c32d990c-fcb1-4ad0-90d4-b6b891eac39d",
+ "ttft_stream_ms": 1473,
+ "time_to_request_ms": 252,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 210,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 218,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1474,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

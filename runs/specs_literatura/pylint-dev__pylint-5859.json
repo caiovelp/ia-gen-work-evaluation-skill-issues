@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 7145,
+ "stop_reason": "end_turn",
+ "session_id": "f8316dcd-d11d-4e69-9308-5927fcb7ec39",
+ "total_cost_usd": 0.025433300000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1347,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 724,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1347,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 724,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1347,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1347
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1558,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001693,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 724,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1347,
+   "webSearchRequests": 0,
+   "costUSD": 0.025264,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nThe `--notes` option ignores note tags made up entirely of punctuation. When a tag such as `???` is passed to `--notes`, pylint does not emit the fixme warning (W0511) for comments that use it. Tags made of letters, such as `YES`, are reported normally.\n\n## Steps to reproduce\n\n1. Create a file `test.py` with this content:\n   ```python\n   # YES: yes\n   # ???: no\n   ```\n2. Use the default configuration.\n3. Run:\n   ```shell\n   pylint test.py --notes=\"YES,???\"\n   ```\n4. Look at the reported W0511 (fixme) messages.\n\n## Observed behavior\n\nPylint reports W0511 only for line 1, which uses the `YES` tag. It reports nothing for line 2, which uses the punctuation-only tag `???`.\n\n```shell\n************* Module test\ntest.py:1:1: W0511: YES: yes (fixme)\n```\n\n## Expected behavior\n\nPylint should report W0511 for both lines, because both tags were passed to `--notes`:\n\n```\n************* Module test\ntest.py:1:1: W0511: YES: yes (fixme)\ntest.py:2:1: W0511: ???: no (fixme)\n```\n\n## Stack trace / error output\n\nNot provided in the original report. No crash occurs. The full pylint output appears under \"Observed behavior\".\n\n## Test case\n\nA minimal test case built from the report:\n\n- Input file `test.py`:\n  ```python\n  # YES: yes\n  # ???: no\n  ```\n- Command: `pylint test.py --notes=\"YES,???\"`\n- Pass condition: the output contains `test.py:2:1: W0511: ???: no (fixme)` as well as `test.py:1:1: W0511: YES: yes (fixme)`.\n\n## Code example\n\n```python\n# YES: yes\n# ???: no\n```\n\n## Version and environment\n\n- pylint 2.12.2\n- astroid 2.9.0\n- Python 3.10.2 (main, Feb  2 2022, 05:51:25) [Clang 13.0.0 (clang-1300.0.29.3)]\n- OS: macOS 11.6.1\n- Configuration: default\n- Additional dependencies: none given",
+ "ttft_ms": 6569,
+ "type": "result",
+ "duration_ms": 6601,
+ "uuid": "c79a6df7-b7b3-40cb-a4b0-b9dde134bef2",
+ "ttft_stream_ms": 1468,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 211,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 289,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1468,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

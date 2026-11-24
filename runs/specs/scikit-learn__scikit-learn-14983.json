@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25539,
+ "stop_reason": "end_turn",
+ "session_id": "2349b11a-457e-44de-977f-ad06011c4bd3",
+ "total_cost_usd": 0.0630336,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1223,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2609,
+  "output_tokens_details": {
+   "thinking_tokens": 311
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1223,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2609,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1223,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1223
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1813,
+   "outputTokens": 35,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001988,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2609,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1223,
+   "webSearchRequests": 0,
+   "costUSD": 0.0628348,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 311,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct `__repr__` for `RepeatedKFold` and `RepeatedStratifiedKFold`\n\n## Assumptions\n\n1. The fix targets the current development branch of scikit-learn. The reporter's version (0.21.2) is used only to reproduce the bug.\n2. The two classes live in the module `sklearn.model_selection._split`. The default repr in the issue's Actual Results shows this path.\n3. Other cross-validation splitters in the same module (e.g. `KFold`, `StratifiedKFold`) already produce a `ClassName(param=value, ...)` repr. The two repeated splitters should match that existing convention rather than introduce a new one.\n4. The expected strings in the issue were typed at a REPL without the surrounding quotes. The requirement is about the *content* of the string returned by `repr(...)`, not about quoting.\n5. The defaults are `n_splits=5`, `n_repeats=10` and `random_state=None`, as shown in the issue's Expected Results. The constructor signatures themselves are not changed.\n6. Parameter order follows the issue's expected output: `n_splits`, `n_repeats`, `random_state`. If the existing splitter-repr convention orders parameters differently (e.g. alphabetically), that convention wins. See Open Questions.\n7. The repr should show the values the user actually passed, not only the defaults. For example, `RepeatedKFold(n_splits=3, n_repeats=2, random_state=0)` should repr as exactly that.\n8. This is a display-only change. Splitting behaviour (`split`, `get_n_splits`) and public attributes must not change.\n\n## Objective\n\n`repr()` on `RepeatedKFold` and `RepeatedStratifiedKFold` currently returns Python's default object repr, e.g. `<sklearn.model_selection._split.RepeatedKFold object at 0x...>`. Users who print or log CV configurations cannot see how these splitters were configured, and the output is inconsistent with other scikit-learn splitters.\n\n**User:** anyone inspecting, logging or debugging a scikit-learn cross-validation setup. This includes reprs nested inside other objects, such as a `GridSearchCV` whose `cv` is one of these splitters.\n\n**Acceptance (from the issue):**\n\n```text\nrepr(RepeatedKFold())            == \"RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)\"\nrepr(RepeatedStratifiedKFold())  == \"RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=None)\"\n```\n\n## Tech Stack\n\n- Python and the scikit-learn library, `sklearn.model_selection` subpackage.\n- Supported Python, NumPy and SciPy versions for the target branch are unknown and not given in the issue.\n- The reporter's environment was Python 3.7.4, sklearn 0.21.2 and numpy 1.16.4 on Windows 10. This is for reproduction only.\n\n## Commands\n\nThe project's build, test and lint commands are unknown because they cannot be seen from the issue.\n\n- Build: unknown\n- Test: unknown. The relevant test file for `model_selection._split` is also unknown.\n- Lint: unknown\n- Reproduce (taken directly from the issue):\n  ```python\n  from sklearn.model_selection import RepeatedKFold, RepeatedStratifiedKFold\n  repr(RepeatedKFold())\n  repr(RepeatedStratifiedKFold())\n  ```\n\n## Project Structure\n\n- `sklearn/model_selection/_split.py` is the module that defines both classes. This is inferred from the repr module path shown in the issue.\n- The location of the test file is unknown.\n- Whether a changelog or \"what's new\" entry is required, and where it goes, is unknown.\n\n## Code Style\n\n- Follow the existing conventions in `sklearn.model_selection._split`. The repr mechanism used by sibling splitters should be reused, not reimplemented. The exact helper is unknown here.\n- No new public API or new constructor parameters.\n\n## Testing Strategy\n\n- Unit tests asserting the exact repr string for:\n  - `RepeatedKFold()` and `RepeatedStratifiedKFold()` with defaults, matching the strings in Objective.\n  - Both classes constructed with non-default `n_splits`, `n_repeats` and an integer `random_state`.\n  - Optionally, a `random_state` that is a `RandomState` instance. The expected rendering follows existing convention; see Open Questions.\n- A regression check that `split` / `get_n_splits` outputs are unchanged for a fixed `random_state`.\n- Where the existing test suite has a generic \"all splitters have a proper repr\" check, include both classes in it rather than excluding them.\n- The test framework and command are unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep `split` and `get_n_splits` behaviour identical.\n  - Keep constructor signatures and defaults identical.\n  - Add tests for both classes.\n  - Match the repr format of sibling splitters.\n- **Ask first:**\n  - Renaming or adding public attributes, e.g. exposing `n_splits` as a new attribute only to support the repr.\n  - Changing repr behaviour of any other splitter.\n  - Changing parameter order away from the issue's expected output.\n- **Never:**\n  - Change splitting results or random-number consumption.\n  - Change default parameter values.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. `repr(RepeatedKFold())` returns exactly `RepeatedKFold(n_splits=5, n_repeats=10, random_state=None)`.\n2. `repr(RepeatedStratifiedKFold())` returns exactly `RepeatedStratifiedKFold(n_splits=5, n_repeats=10, random_state=None)`.\n3. With non-default arguments, e.g. `n_splits=3, n_repeats=2, random_state=0`, the repr shows those values.\n4. The repr no longer contains `object at 0x`.\n5. Splits generated with a fixed `random_state` are identical before and after the change.\n6. All existing tests pass, and new tests covering items 1\u20135 are added.\n\n## Open Questions\n\n1. Should parameter order be `n_splits, n_repeats, random_state`, as in the issue, or whatever order the existing splitter-repr convention produces? If the two differ, which wins?\n2. How should a non-`None`, non-int `random_state` (a `RandomState` instance) be rendered? Is the existing convention for other splitters acceptable?\n3. Are there other splitters with the same defect, e.g. other \"repeated\" or wrapper splitters, that should be fixed in the same change? Or is the scope strictly these two classes?\n4. Is a changelog entry required, and for which release?\n5. Which branch or version is the target, and should this be backported?",
+ "ttft_ms": 4402,
+ "type": "result",
+ "duration_ms": 24854,
+ "uuid": "52d3bf16-96c4-4765-9219-fdc35b6a19a6",
+ "ttft_stream_ms": 1483,
+ "time_to_request_ms": 236,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 208,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 111,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 6,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1483,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

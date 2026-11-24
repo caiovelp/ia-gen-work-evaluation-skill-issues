@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 7347,
+ "stop_reason": "end_turn",
+ "session_id": "37fc0119-58a6-4ae4-b5f0-b2c43ee00264",
+ "total_cost_usd": 0.0236273,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1260,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 669,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1260,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 669,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1260,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1260
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1468,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001593,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 669,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1260,
+   "webSearchRequests": 0,
+   "costUSD": 0.023468,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nWhen running the Django development server with the StatReloader, edits to `manage.py` no longer trigger an automatic reload. This is a regression: Django 2.1.8 and earlier reload when `manage.py` changes, but Django 2.2.1 does not. According to the `django.utils.autoreload` log lines, the autoreloader never sees `manage.py` itself.\n\n## Steps to reproduce\n\n1. Install Django 2.2.1: `pip install Django==2.2.1`\n2. Use a project whose `manage.py` sets `DJANGO_SETTINGS_MODULE` to `'ticket_30479.settings'`.\n3. Start the development server: `python manage.py runserver`\n4. While the server is running, edit `manage.py`. For example, add a `print()` call at the start of `main()` (see Code example).\n5. Save the file and watch the server output.\n\n## Observed behavior\n\nUnder Django 2.2.1, saving the change to `manage.py` does not trigger the auto-reloading mechanism. The server does not restart. The `django.utils.autoreload` log lines show that `manage.py` is never among the files the autoreloader sees.\n\n## Expected behavior\n\nEditing `manage.py` should trigger an automatic reload of the development server. This is what happens under Django 2.1.8 and earlier.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report.\n\n## Code example\n\nThis is the edit made to `manage.py` while the server is running. The `print('sth')` line is the added line, and the rest of the function is elided in the original report.\n\n```python\ndef main():\n    print('sth')\n    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ticket_30479.settings')\n    ...\n```\n\n## Version and environment\n\n- OS: OS X 10.11\n- Python: 3.6.2\n- pip: 19.1.1\n- Django: 2.2.1 (affected); 2.1.8 and prior (not affected)\n- Autoreloader: StatReloader",
+ "ttft_ms": 6724,
+ "type": "result",
+ "duration_ms": 6754,
+ "uuid": "37d4af7f-f007-4334-8ccc-bea7687446f4",
+ "ttft_stream_ms": 1573,
+ "time_to_request_ms": 275,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 15,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 264,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1574,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

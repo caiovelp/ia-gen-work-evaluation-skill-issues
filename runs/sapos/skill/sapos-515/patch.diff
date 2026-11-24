@@ -1,0 +1,43 @@
+diff --git a/app/assets/javascripts/form_fields/config_base.js b/app/assets/javascripts/form_fields/config_base.js
+index 8809becd..5e8ef191 100644
+--- a/app/assets/javascripts/form_fields/config_base.js
++++ b/app/assets/javascripts/form_fields/config_base.js
+@@ -138,6 +138,10 @@ function form_field_config_base(form_field) {
+     } else if (selected_value == "code") {
+       form_field.widgets = [
+         config_form_field_codemirror(form_field, "code", "text/x-ruby"),
++        config_form_field_select(form_field, "return_type", [
++          ["number", form_field.i18n("return_type_number")],
++          ["string", form_field.i18n("return_type_string")]
++        ]),
+         config_form_field_condition(form_field, "condition", form_field.condition_options)
+       ]
+     } else if (selected_value == "email") {
+diff --git a/app/models/admissions/filled_form_field.rb b/app/models/admissions/filled_form_field.rb
+index aadcabfc..8d9251ac 100644
+--- a/app/models/admissions/filled_form_field.rb
++++ b/app/models/admissions/filled_form_field.rb
+@@ -348,6 +348,9 @@ class Admissions::FilledFormField < ActiveRecord::Base
+       "number"
+     when Admissions::FormField::DATE
+       "date"
++    when Admissions::FormField::CODE
++      return_type = self.form_field.config_hash["return_type"]
++      return_type == "string" ? "string" : "number"
+     when Admissions::FormField::STUDENT_FIELD
+       configuration = self.form_field.config_hash
+       case configuration["field"]
+diff --git a/config/locales/admissions/form_field.pt-BR.yml b/config/locales/admissions/form_field.pt-BR.yml
+index 9fbc30ab..967946fb 100644
+--- a/config/locales/admissions/form_field.pt-BR.yml
++++ b/config/locales/admissions/form_field.pt-BR.yml
+@@ -107,6 +107,9 @@ pt-BR:
+           html: HTML
+           html_description: Campo usado para exibir textos adicionais no formulário.
+           code: Código
++          return_type: Tipo de retorno (padrão numérico)
++          return_type_number: Numérico
++          return_type_string: Texto
+           code_description: >
+             <span class="description">
+               <span class="desc-title"> Código em Ruby usado para consolidação. A última linha será salva </span>

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28330,
+ "stop_reason": "end_turn",
+ "session_id": "d5a400ec-d814-497b-add4-3e286d58ca49",
+ "total_cost_usd": 0.0622122,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1182,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2585,
+  "output_tokens_details": {
+   "thinking_tokens": 254
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1182,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2585,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1182,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1182
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1774,
+   "outputTokens": 16,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001854,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2585,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1182,
+   "webSearchRequests": 0,
+   "costUSD": 0.0620268,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 254,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Customizable Help Formatter for Django Management Commands\n\n## Objective\n\nCommand authors cannot control how `manage.py help <command>` renders the `help` text. Argparse's default formatting reflows the text, so line breaks and indentation are lost. For example, a multi-line \"Example usage:\" block ends up merged into one paragraph.\n\n**Goal:** Let a management command author choose the argparse help formatter for their command, for example one that keeps the original line breaks and indentation of `help`. Default behavior for all existing commands stays the same.\n\n**Users:** Authors of custom Django management commands (subclasses of `BaseCommand`) who want readable multi-line help, such as usage examples.\n\n**User stories:**\n- As a command author, I can opt my command into a formatter that keeps the newlines and indentation in `help`, so `./manage.py help my_command` shows examples the way I wrote them.\n- As a command author who does nothing, my command's help output looks exactly as it does today.\n\n**Acceptance criteria (from the issue):**\nGiven this `help`:\n```\nImport a contract from tzkt.\nExample usage:\n    ./manage.py tzkt_import 'Tezos Mainnet' KT1HTDtMBRCKoNHjfWEEvXneGQpCfPAt6BRe\n```\n- When the command opts in to a raw/preserving formatter, the description prints with its line breaks and the indented example line intact.\n- The usage line and the positional/optional argument sections still render correctly.\n\n## Assumptions\n\n1. The issue is about Django's management command framework: `BaseCommand`, `manage.py help <cmd>`, and the argparse-based `CommandParser`.\n2. Today `BaseCommand.create_parser()` builds the parser with a fixed, Django-specific formatter class. That class appears to reorder the common options (`--version`, `-v`, `--settings`, \u2026) after the command-specific ones, which matches the usage line in the issue. Authors cannot override this formatter without reimplementing `create_parser()`.\n3. The intended fix is opt-in customization, not a change to the global default. Changing the default would alter the help output of every existing command.\n4. A customized formatter is used only for formatting `--help`/`help` output. It does not change argument parsing.\n5. The preferred approach lets authors pass or select an argparse `formatter_class`, such as `argparse.RawDescriptionHelpFormatter` or a subclass of Django's formatter. Django's default stays in place when nothing is specified.\n6. The project's normal contribution rules apply: a regression test, a docs update for custom management commands, and a release note.\n\n## Tech Stack\n\n- Python, using the standard-library `argparse` (formatter classes such as `HelpFormatter` and `RawDescriptionHelpFormatter`).\n- Django management command framework (`BaseCommand`, `CommandParser`, Django's help formatter).\n- Supported Python and Django versions: **unknown**.\n\n## Commands\n\nThe issue does not show any of these, so all are unknown:\n- Build: unknown (likely none needed)\n- Test: unknown\n- Lint: unknown\n- Reproduce: `./manage.py help <command>` in a project with a command whose `help` is multi-line (taken from the issue)\n\n## Project Structure\n\n**Unknown.** The repository layout is not visible. The affected areas are:\n- The module that defines `BaseCommand`, `CommandParser` and the Django help formatter (path unknown)\n- Tests for management command parsing and help output (path unknown)\n- Documentation on writing custom management commands (path unknown)\n- Release notes for the target version (path unknown)\n\n## Code Style\n\nUnknown from the issue. Follow the conventions of the existing `BaseCommand` / `create_parser()` code. The only code in the issue is the author's command:\n\n```python\nclass Command(BaseCommand):\n    help = '''\n    Import a contract from tzkt.\n    Example usage:\n        ./manage.py tzkt_import 'Tezos Mainnet' KT1HTDtMBRCKoNHjfWEEvXneGQpCfPAt6BRe\n    '''\n```\n\n## Testing Strategy\n\n- **Framework / location:** unknown. Use the project's existing management command test suite.\n- **Regression tests:**\n  - A command that specifies a preserving formatter produces help in which the multi-line `help` keeps its newlines and indentation.\n  - A command that specifies nothing produces the same help output as before, including the common options appearing after command-specific ones.\n  - A custom formatter still gets a correct usage line and argument sections.\n  - Parsing behavior (arguments, defaults, errors) is the same whether or not a custom formatter is set.\n- **Level:** unit and integration tests around parser creation and `print_help` output. No end-to-end tests needed.\n\n## Boundaries\n\n- **Always:** Keep default help output byte-for-byte unchanged for commands that don't opt in. Add regression tests. Document the new option.\n- **Ask first:** Changing the default formatter globally. Changing the public signature of `create_parser()` or `CommandParser` in a way that could break subclasses that override them. Deprecating anything.\n- **Never:** Change argument parsing semantics. Strip or alter `help` text content. Break third-party commands that already override `create_parser()`.\n\n## Success Criteria\n\n- [ ] A command author can choose the help formatter for a command without copying or reimplementing `create_parser()`.\n- [ ] With a raw/preserving formatter, the issue's `tzkt_import` example renders as in the \"expected\" output: description lines preserved and the example line indented.\n- [ ] Commands that don't opt in produce exactly the same help output as before.\n- [ ] Django's ordering of common options keeps working, or the docs explain how to keep it when using a custom formatter.\n- [ ] Tests cover the opt-in case, the default case, and unchanged parsing.\n- [ ] Docs and release notes describe the new customization point.\n\n## Open Questions\n\n1. **API shape:** What should the extension point be?\n   - A `formatter_class` keyword passed through `create_parser(prog_name, subcommand, **kwargs)`\n   - A class attribute on `BaseCommand`\n   - Something else\n\n   Which is preferred for consistency with existing `BaseCommand` hooks?\n2. **Common-option ordering:** If an author picks a plain argparse formatter, should Django's reordering of common options be lost? Or should Django provide a raw-description variant of its own formatter?\n3. **Default behavior:** Is preserving `help` formatting by default ever in scope? The assumption is no, for backward compatibility.\n4. **Target version and backport:** Which Django version should this ship in? Is it treated as a new feature (no backport) or a bug fix?\n5. **Docs location:** Where should this be documented: the custom management commands how-to, the `BaseCommand` reference, or both?\n6. **Repository details:** The test command, the file paths for `BaseCommand` and its tests, and the supported Python versions are unknown and need confirming.",
+ "ttft_ms": 3666,
+ "type": "result",
+ "duration_ms": 26717,
+ "uuid": "a4c242c6-1fe0-4711-89a3-b2ee4296ee18",
+ "ttft_stream_ms": 1229,
+ "time_to_request_ms": 278,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 19,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 208,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 27,
+ "time_to_request_cpu_ms": 187,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1230,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34479,
+ "stop_reason": "end_turn",
+ "session_id": "43877af6-9e0d-47d1-9afb-8cdad0e51610",
+ "total_cost_usd": 0.0752145,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1199,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3228,
+  "output_tokens_details": {
+   "thinking_tokens": 256
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1199,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3228,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1199,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1199
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1787,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001917,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3228,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1199,
+   "webSearchRequests": 0,
+   "costUSD": 0.0750228,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 256,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: FK attribute not refreshed when a related object's non-numeric primary key is set after assignment\n\n## Objective\n\n**Problem.** A model can have a `ForeignKey` to a model whose primary key is a non-auto `CharField`. If you assign an unsaved, pk-less instance of the target model to that foreign key, then set its primary key, then save both objects, the referencing object is saved with an empty-string foreign key value (`product_id = \"\"`) instead of the related object's real primary key. On a backend with deferred FK constraints, the failure only shows up at transaction commit as a `ForeignKeyViolation`. Inside the transaction, queries return wrong results. The result is silent data corruption or a failed commit.\n\n**Reproduction (from the issue):**\n\n```python\nclass Product(models.Model):\n    sku = models.CharField(primary_key=True, max_length=50)\n\nclass Order(models.Model):\n    product = models.ForeignKey(Product, on_delete=models.CASCADE)\n\nwith transaction.atomic():\n    order = Order()\n    order.product = Product()\n    order.product.sku = \"foo\"\n    order.product.save()\n    order.save()\n    assert Order.objects.filter(product_id=\"\").exists()           # succeeds, but shouldn't\n    assert Order.objects.filter(product=order.product).exists()   # fails\n```\n\n**Control case that already works:** if `Product(sku=\"foo\")` is built with its pk before assignment, `order.save()` stores `product_id=\"foo\"` and the commit succeeds.\n\n**Desired behaviour.** When the referencing (child) object is saved, its foreign key attribute must hold the related object's current primary key. This must hold even if that pk was set after assignment and its type's \"empty\" value is not `None`, for example `\"\"` for `CharField`. The behaviour must be the same as when the pk was supplied at construction.\n\n**Users.** Django ORM users whose models have foreign keys to models with non-auto, non-integer primary keys (for example `CharField`).\n\n**Terminology.** The issue calls `Order` the \"parent\" and `Product` the \"child\". This spec uses the ORM terms instead:\n- **referencing model:** `Order`, which holds the FK.\n- **related model:** `Product`, which is the FK target.\n\n## Assumptions\n\n1. The bug is in Django core, in the logic that runs at save time to sync a cached related object's pk into the local FK attname. It is not in backend-specific code. (This is unverified because I have no repo access.)\n2. The root cause is likely this: the \"FK value is unset\" check treats only `None` as unset. A `CharField` pk on a fresh instance defaults to `\"\"`, so `\"\"` is copied into `product_id` at assignment time and is never refreshed. (This is a hypothesis taken from the issue's closing remark. It must be confirmed before implementation.)\n3. When a related object is assigned, the existing behaviour of copying its current pk into the FK attname stays in place. The fix only concerns refreshing that value before save.\n4. The existing guard must keep raising: saving a referencing object whose related object is unsaved or has no pk raises `ValueError` (\"save() prohibited to prevent data loss due to unsaved related object\u2026\").\n5. The fix should cover `ForeignKey` and `OneToOneField` alike. Both go through the same related-field save path.\n6. The behaviour is the same for every database backend. Deferred constraints (PostgreSQL) only change *when* the bug becomes visible.\n7. No public API, migration, or schema change is needed.\n8. Explicitly setting the FK attname to an empty-string value on purpose is unusual. The fix may treat empty values as \"not yet set\" while a cached related object exists, as long as existing tests still pass.\n\n## Tech Stack\n\n- Python and the Django ORM (django/django). The exact branch and supported Python versions are **unknown**.\n- Database backends: all supported backends. PostgreSQL (deferred FK constraints) is the backend where the reported symptom appears.\n\n## Commands\n\nThe exact invocation is **unknown** because the repository is not visible. Django's test runner script and the test-settings layout must be confirmed from the repository.\n- Build: N/A (pure Python).\n- Test: **unknown**. It should run the targeted test module(s), and the full suite on at least SQLite and PostgreSQL.\n- Lint: **unknown**. Use the project's configured linters/formatters.\n\n## Project Structure\n\n**Unknown.** The repository is not visible. The relevant areas to locate are:\n- The model save path that prepares related fields before save.\n- The FK descriptor `__set__` logic that copies the related pk into the attname.\n- The existing test modules covering FK assignment of unsaved objects and non-integer pks.\n\n## Code Style\n\nFollow the existing Django coding style and conventions, which are not visible here. Regression tests should follow the shape of the issue's reproduction above. Use minimal models with a `CharField(primary_key=True)` target.\n\n## Testing Strategy\n\n- **Level:** unit/integration tests using Django's own test suite against a real database.\n- **Regression test (required):** reproduces the issue's scenario. It assigns a pk-less related instance, sets its pk, saves the related object, then saves the referencing object. It asserts that `order.product_id == \"foo\"` and that `Order.objects.filter(product=order.product).exists()` holds.\n- **Control tests:**\n  - Assigning a related object with its pk set at construction still works.\n  - The auto-pk case still works: assign unsaved, save related, save referencing.\n- **Guard tests:** saving the referencing object while the related object is unsaved, or has an empty pk, still raises `ValueError`.\n- **Variants worth covering:** `OneToOneField`, and at least one other non-integer pk type if relevant (for example `UUIDField` without a default). Whether that type shows the bug is listed under Open Questions.\n- **Backends:** the regression test must fail before the fix and pass after it on SQLite and PostgreSQL. On PostgreSQL, the transaction must commit without a `ForeignKeyViolation`.\n- **Coverage:** no numeric target is known. The full existing suite must stay green.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the change.\n  - Keep the \"unsaved related object\" `ValueError` guard working.\n  - Run the full test suite on at least two backends.\n- **Ask first:**\n  - Changing which values count as \"empty\" for FK attnames in general, beyond the save-time refresh.\n  - Changing descriptor assignment semantics.\n  - Touching backend-specific code.\n  - Adding release notes or docs (confirm the target release).\n- **Never:**\n  - Change the database schema or constraint deferral behaviour as a workaround.\n  - Silently drop or weaken existing data-loss guards.\n  - Remove or alter existing tests to make the change pass.\n\n## Success Criteria\n\n1. In the issue's scenario, after `order.save()`, `order.product_id == \"foo\"` and the stored row has `product_id = \"foo\"`.\n2. `Order.objects.filter(product=order.product).exists()` is `True`, and `Order.objects.filter(product_id=\"\").exists()` is `False`.\n3. On PostgreSQL, the enclosing `transaction.atomic()` block commits without a `ForeignKeyViolation`.\n4. Saving `order` while the assigned `Product` has no pk value, or has not been saved, still raises `ValueError`. No row with an empty FK is written.\n5. Existing behaviour is unchanged for:\n   - integer/auto pk targets;\n   - related objects that have their pk at assignment time;\n   - explicitly assigning `product_id` without a cached related object.\n6. The same scenario passes for `OneToOneField`.\n7. The full test suite passes on SQLite and PostgreSQL.\n\n## Open Questions\n\n1. Should the fix refresh the FK attname on save whenever the cached related object's pk differs from the attname? Or only when the attname holds an \"empty\" value (`None` or the field's empty values)? The second option is narrower. The first also handles a pk that changes from one non-empty value to another after assignment. Is that case in scope?\n2. What should happen if a user deliberately sets `order.product_id = \"\"` while a different related object is cached? Should save-time sync override it?\n3. Should a related pk of `\"\"` count as \"no pk\" for the unsaved-object `ValueError` guard? It is a technically valid `CharField` value, but in practice it is almost always unintended.\n4. Are other non-integer pk types affected the same way (for example `UUIDField` without a default, or custom fields whose empty value is not `None`)? Should they be covered in this change?\n5. Does the same problem affect `GenericForeignKey` or other relation types that cache a related object and copy its pk? Is that in scope?\n6. Which Django branch or release is the target? Is a release note required?\n7. What are the exact test-runner command and test module locations in the repository? These are unknown here.",
+ "ttft_ms": 4057,
+ "type": "result",
+ "duration_ms": 33584,
+ "uuid": "ffae9a25-f606-4e07-9c16-3073538186f0",
+ "ttft_stream_ms": 1618,
+ "time_to_request_ms": 328,
+ "time_to_request_phases_ms": {
+  "other": 23,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 13,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 25,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 238,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 23,
+ "time_to_request_cpu_ms": 332,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1619,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

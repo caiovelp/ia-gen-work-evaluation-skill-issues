@@ -1,0 +1,17 @@
+diff --git a/django/contrib/admin/options.py b/django/contrib/admin/options.py
+index 6c6ee8cee7..56b01d0150 100755
+--- a/django/contrib/admin/options.py
++++ b/django/contrib/admin/options.py
+@@ -209,10 +209,10 @@ class BaseModelAdmin(metaclass=forms.MediaDefiningClass):
+         for klass in db_field.__class__.mro():
+             if klass in self.formfield_overrides:
+                 kwargs = {**copy.deepcopy(self.formfield_overrides[klass]), **kwargs}
+-                return db_field.formfield(**kwargs)
++                return db_field.formfield(**{"show_hidden_initial": False, **kwargs})
+ 
+         # For any other type of field, just call its formfield() method.
+-        return db_field.formfield(**kwargs)
++        return db_field.formfield(**{"show_hidden_initial": False, **kwargs})
+ 
+     def formfield_for_choice_field(self, db_field, request, **kwargs):
+         """

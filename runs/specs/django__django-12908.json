@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26949,
+ "stop_reason": "end_turn",
+ "session_id": "e8e38b0a-3058-49c4-be88-0bf427c20ee5",
+ "total_cost_usd": 0.0629159,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1081,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2661,
+  "output_tokens_details": {
+   "thinking_tokens": 185
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1081,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2661,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1081,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1081
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1666,
+   "outputTokens": 21,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017710000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2661,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1081,
+   "webSearchRequests": 0,
+   "costUSD": 0.0627388,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 185,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Raise an error when `distinct()` is called on a combined (union) QuerySet\n\n## Objective\n\nCalling `.distinct()` (with or without field names) on a QuerySet built with `.union()` currently has no effect. The ORM ignores it without any error. The user in the issue expected `distinct('name')` after `union()` to deduplicate by `name`. Instead they got all rows, and nothing told them the call was ignored.\n\nThe issue title sets the intended behaviour: **the ORM must raise an error instead of silently ignoring `distinct()` on a union queryset.** The issue body also suggests an alternative: wrap the union in a subquery (`SELECT DISTINCT ON (name) * FROM (... UNION ...)`). That alternative is a feature request and is **out of scope** here (see Open Questions).\n\n**User:** A developer using the ORM who combines querysets and then chains `.distinct()`.\n\n**User story:** As a developer, when I call `.distinct()` on a combined queryset, I get a clear error at call time. I should not get silently incorrect (non-deduplicated) results.\n\n### Reproduction (from the issue)\n\n```python\nqs = Sample.objects.filter(user=self.user)\nqs1 = qs.filter(name='Dub').annotate(rank=Value(0, IntegerField()))\nqs2 = qs.filter(name='Sam1').annotate(rank=Value(1, IntegerField()))\nqs = qs1.union(qs2)\nqs = qs.order_by('name').distinct('name')  # silently ignored today\nself.assertEqual(qs.count(), 2)            # fails today\n```\n\nExpected after this change: the `.distinct('name')` call raises an error. It must not return a queryset whose results ignore it.\n\n## Assumptions\n\n1. The project is Django. This is inferred from the `QuerySet`, `annotate`, `union`, `Value`, `IntegerField` and `distinct('field')` API in the issue.\n2. The codebase already has a way to reject unsupported operations after combinators such as `union()`. It may raise an error type like `NotSupportedError` with a message of the form \"Calling QuerySet.<method>() after union() is not supported.\" This is unverified because the repository is not visible. If the mechanism exists, `distinct()` should reuse it so the error type and wording match.\n3. The behaviour applies to every combinator that produces a \"combined\" queryset (`union()`, `intersection()`, `difference()`), not only `union()`. The error message should name the combinator actually used.\n4. Both forms are in scope: plain `distinct()` and `distinct(*fields)` (the `DISTINCT ON` form, PostgreSQL only).\n5. The error is raised when `.distinct()` is called, not later when the query is evaluated.\n6. Methods that are already allowed on combined querysets are unaffected. This includes `order_by()`, slicing, `count()`, `values()` and `values_list()`.\n7. `union(..., all=False)` already deduplicates whole rows via SQL `UNION`. Users needing whole-row distinctness are served by that, so raising does not take away a working use case.\n\n## Tech Stack\n\n- Python / Django ORM. Exact versions: **unknown**.\n- Database relevant to the report: PostgreSQL (`DISTINCT ON`). The fix itself is expected to be backend-agnostic.\n\n## Commands\n\nNot visible in the issue. All **unknown**:\n\n- Build: unknown\n- Test: unknown (e.g. the project's test runner targeting the queryset-combinator test module)\n- Lint: unknown\n- Dev: N/A\n\n## Project Structure\n\nNot visible in the issue. **Unknown**. The following are expected but unverified:\n\n- QuerySet API implementation (where `distinct()` and `union()` are defined): unknown path\n- Tests for combined/union querysets: unknown path\n- Release notes / documentation for QuerySet combinators: unknown path\n\n## Code Style\n\nUnknown. Follow the existing conventions in the QuerySet module. Reuse the existing helper or pattern used by other methods that are disallowed after combinators (if one exists, per Assumption 2). Do not introduce a new ad-hoc check.\n\n## Testing Strategy\n\n- **Level:** Unit/integration tests in the existing test suite for queryset combinators (location unknown).\n- **Cases to cover:**\n  - `qs1.union(qs2).distinct()` raises the \"not supported\" error.\n  - `qs1.union(qs2).distinct('name')` raises the same error. This case may need to run only on backends supporting `DISTINCT ON`, or be backend-independent if the check fires before backend dispatch.\n  - The same checks apply for `intersection()` and `difference()`, subject to backend support for those combinators.\n  - The error message names the combinator used (e.g. `union`).\n  - Regression: existing allowed operations on combined querysets still work.\n- **Coverage expectation:** unknown. At minimum, every new code path is exercised.\n\n## Boundaries\n\n- **Always:** Reuse the existing combinator-guard mechanism and error type. Add regression tests for the reported scenario. Run the full combinator test module before committing.\n- **Ask first:** Implementing the subquery-wrapping behaviour (`SELECT DISTINCT ON ... FROM (... UNION ...)`) instead of raising. Changing behaviour for combinators other than `union()` if maintainers want a narrower change. Any change to the public error type or message format. Documentation or release-note wording.\n- **Never:** Silently ignore `distinct()` on combined querysets. Change behaviour of `distinct()` on non-combined querysets. Alter SQL generation for existing supported combinator operations.\n\n## Success Criteria\n\n1. Calling `.distinct()` on a queryset produced by `union()` raises an error immediately. The error type is the one already used for unsupported post-combinator operations, if one exists.\n2. Calling `.distinct(*fields)` on such a queryset raises the same error.\n3. The error message identifies both the method (`distinct`) and the combinator (e.g. `union`). Example shape: \"Calling QuerySet.distinct() after union() is not supported.\"\n4. Criteria 1\u20133 also hold for `intersection()` and `difference()` (pending Open Question 2).\n5. `.distinct()` on ordinary (non-combined) querysets behaves exactly as before.\n6. All existing combinator tests continue to pass.\n7. Documentation, or release notes if the project requires them, mention that `distinct()` is not supported on combined querysets (pending Open Question 4).\n\n## Open Questions\n\n1. **Raise vs. support:** The title says \"should raise\". The body expects a wrapped subquery with `DISTINCT ON`. Is raising the confirmed resolution, with subquery wrapping deferred to a separate feature request?\n2. Should the guard apply to all combinators (`union`, `intersection`, `difference`) or only `union`?\n3. Should plain `distinct()` with no fields also raise, or only `distinct(*fields)`?\n4. Does this change need a release note or documentation update? It turns silently ignored code into an error, which is a behaviour change for existing users.\n5. What are the repository's test commands, file locations, and the name of the existing guard helper and error type (if any)?\n6. Does the reporter's `count()` expectation (2) imply any additional `count()` behaviour that should be addressed, or is raising on `distinct()` sufficient?",
+ "ttft_ms": 3982,
+ "type": "result",
+ "duration_ms": 27114,
+ "uuid": "db990935-36b6-48e4-8c1e-add300d0d595",
+ "ttft_stream_ms": 2096,
+ "time_to_request_ms": 1140,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 1077,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 11,
+ "time_to_request_cpu_ms": 328,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2096,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

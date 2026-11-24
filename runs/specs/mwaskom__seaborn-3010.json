@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30401,
+ "stop_reason": "end_turn",
+ "session_id": "6da49b06-68e0-4582-b45e-0a800c69e666",
+ "total_cost_usd": 0.07791959999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2358,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2894,
+  "output_tokens_details": {
+   "thinking_tokens": 261
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2358,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2894,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2358,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2358
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2948,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00030480000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2894,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2358,
+   "webSearchRequests": 0,
+   "costUSD": 0.0776148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 261,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Make `PolyFit` robust to missing data\n\n## Objective\n\n`seaborn.objects.PolyFit` raises an uncaught `numpy.linalg.LinAlgError` when its input contains missing values. The fit should succeed using only the complete observations.\n\n**Reproduction (from the issue):**\n\n```python\nso.Plot([1, 2, 3, None, 4], [1, 2, 3, 4, 5]).add(so.Line(), so.PolyFit())\n```\n\n**Observed:** `LinAlgError: SVD did not converge in Linear Least Squares`. It is raised from `np.polyfit(x, y, self.order)` in `PolyFit._fit_predict` (`seaborn/_stats/regression.py`, ~line 30). The call path is `Plotter._compute_stats` \u2192 `GroupBy.apply` \u2192 `PolyFit._fit_predict`.\n\n**Expected:** The plot renders. A polynomial is fitted to the rows where both `x` and `y` are present. The fitted curve is drawn over the range of the non-missing `x` values.\n\n**Users:** People using the `seaborn.objects` interface with real-world data that contains missing values (`None` / `NaN`).\n\n**User stories / acceptance criteria:**\n\n- As a user, when I add `so.PolyFit()` to a plot whose `x` or `y` contains missing values, I get a fitted line instead of an exception.\n- As a user, if too few valid observations remain after missing values are removed, I get the stat's existing \"not enough data\" behavior. Today that is the branch that returns empty output (`xx = yy = []`, ~line 28). I do not get an exception.\n- As a user, I can have missing values in only some groups (e.g. a `color` grouping), and each group is fitted on its own complete rows.\n\n## Tech Stack\n\n- Python. The traceback shows a Python 3.9 environment; the supported versions are unknown.\n- numpy (`np.polyfit`, `np.polyval`, `np.linspace`)\n- pandas (DataFrame input and groupby via `seaborn/_core/groupby.py`)\n- seaborn `_core` / `_stats` modules (the objects interface)\n- Exact dependency versions: **unknown**\n\n## Commands\n\nThe commands are not visible in the issue. All are **unknown**:\n\n- Build: unknown\n- Test: unknown (pytest is assumed; see Assumptions)\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n\nOnly these files are known from the traceback:\n\n```\nseaborn/_stats/regression.py  \u2192 PolyFit stat (__call__, _fit_predict); the location of the bug\nseaborn/_core/groupby.py      \u2192 GroupBy.apply; calls the stat per group\nseaborn/_core/plot.py         \u2192 Plot / Plotter; _compute_stats invokes stats\n```\n\n- Test locations: **unknown**\n- Docs and changelog location: **unknown**\n\n## Code Style\n\n- Follow the existing conventions in `seaborn/_stats/regression.py`. No style guide or linter config is visible in the issue.\n- Any example snippet would be invented, so none is given here.\n\n## Testing Strategy\n\n- Framework: **unknown** (pytest is assumed).\n- Test location: **unknown**. Presumably it sits next to the existing tests for `seaborn/_stats/regression.py`.\n- Required test levels:\n  - **Unit (stat level):** Call `PolyFit` directly on a DataFrame with missing values in `x`, in `y`, and in both. Assert that:\n    - no exception is raised;\n    - the output has `gridsize` rows;\n    - the output `x` spans the min and max of the non-missing `x`;\n    - the output contains no NaN.\n  - **Unit, equivalence:** For the same data, PolyFit with NaNs gives the same result as PolyFit on the data with the NaN rows dropped beforehand.\n  - **Unit, degenerate case:** After rows are dropped, there are too few unique `x` values for `order`. Assert the existing empty-output behavior and no exception.\n  - **Unit, all missing:** Every row has a missing `x` or `y`. Assert empty output and no exception.\n  - **Grouped:** One group has missing values and another does not. Both groups are fitted correctly.\n  - **Integration / smoke:** The exact reproduction from the issue compiles via `Plot.plot()` without raising.\n- Coverage expectations: **unknown**\n\n## Boundaries\n\n- **Always:**\n  - Drop missing rows using **pairwise** completeness. A row is excluded when its `x` or its `y` is missing.\n  - Apply the existing \"too few points\" guard *after* missing data is removed.\n  - Add regression tests for the reproduction case.\n  - Keep the output schema unchanged: the same columns and the same `gridsize` semantics.\n- **Ask first:**\n  - Changing missing-data handling globally in `Plotter._compute_stats` or `GroupBy`, rather than locally in `PolyFit`.\n  - Emitting warnings when rows are dropped.\n  - Changing behavior for non-finite values (`inf`), which differ from missing values.\n  - Changing the `PolyFit` public parameters or the minimum-data rule.\n- **Never:**\n  - Silently impute or fill missing values.\n  - Swallow `LinAlgError` generically with a try/except that hides other real failures.\n  - Change other stats' behavior as part of this fix without approval.\n\n## Success Criteria\n\n1. `so.Plot([1, 2, 3, None, 4], [1, 2, 3, 4, 5]).add(so.Line(), so.PolyFit()).plot()` completes without raising.\n2. The fitted values equal those from fitting only the complete rows: `x=[1, 2, 3, 4]`, `y=[1, 2, 3, 5]`.\n3. The prediction grid spans `[min, max]` of non-missing `x`, has length `gridsize`, and contains no NaN.\n4. Missing values in `y` only, or in both `x` and `y`, are handled the same way.\n5. When too few valid points remain, the result is empty output (the existing behavior) with no exception.\n6. In grouped plots, missing values are handled independently per group.\n7. All existing tests continue to pass (test command unknown).\n\n## Assumptions\n\n1. `None` in the input list is converted to `NaN` by pandas during plot data processing, so `x` reaches `_fit_predict` as a float Series containing `NaN`.\n2. The correct semantics is to drop incomplete observations, which is consistent with how seaborn generally handles missing data. Imputation is not wanted.\n3. The fix belongs in `PolyFit._fit_predict` (or `PolyFit.__call__`). A broader change to core missing-data handling is out of scope.\n4. The existing guard before `np.polyfit` (~lines 27\u201328, producing `xx = yy = []`) checks whether there is enough data for the requested `order`. It should be evaluated on the cleaned data. Its exact condition is not visible in the issue.\n5. pytest is the test framework.\n6. `pd.NA` and `NaT` are treated as missing like `NaN`, provided pandas null detection covers them.\n\n## Open Questions\n\n1. Should missing-data dropping happen locally in `PolyFit`, or centrally in `_compute_stats` / `GroupBy` for all stats? Other stats may have the same bug.\n2. Should infinite values (`\u00b1inf`) also be excluded, or only `NaN` / `None`?\n3. Should dropping rows emit a warning or stay silent?\n4. What is the exact \"not enough data\" condition today (e.g. `x.nunique() <= order`)? Should it remain unchanged after missing data is removed?\n5. What are the test and lint commands, where do the tests live, and is a changelog/release-notes entry required?\n6. Which Python, numpy, and pandas versions must be supported?",
+ "ttft_ms": 4826,
+ "type": "result",
+ "duration_ms": 29418,
+ "uuid": "5932d68a-e4d5-419a-bd2f-f3ff73b55539",
+ "ttft_stream_ms": 1936,
+ "time_to_request_ms": 269,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 229,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 206,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1936,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

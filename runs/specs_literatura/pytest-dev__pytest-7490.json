@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 17557,
+ "stop_reason": "end_turn",
+ "session_id": "263d038c-8286-4859-a27d-5d4ddaa68d5e",
+ "total_cost_usd": 0.08850720000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 6519,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1783,
+  "output_tokens_details": {
+   "thinking_tokens": 207
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 6519,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1783,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 6519,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 6519
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 6727,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0006872,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1783,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 6519,
+   "webSearchRequests": 0,
+   "costUSD": 0.08782000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 207,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nSince pytest 6.0.0rc, adding an `xfail` marker to a test at runtime with `request.node.add_marker(...)` no longer marks the test as expected-to-fail. A failing assertion after the marker is added is reported as a normal failure (`F`) instead of an expected failure (`x`). In pytest 5.x, a dynamically added `xfail` marker behaved like a statically applied `@pytest.mark.xfail`.\n\n## Steps to reproduce\n\n1. Create `test_foo.py` with the contents shown under **Test case** below.\n2. Run `pytest -rsx test_foo.py` with pytest 5.4.3. The test is reported as `XFAIL`.\n3. Run the same command with pytest 6.0.0rc1. The test is reported as `FAILED`.\n\n## Observed behavior\n\nWith pytest 6.0.0rc1, the test is reported as a failure (`test_foo.py F`) with an `AssertionError` on `assert 0`. The dynamically added `xfail` marker is ignored.\n\n## Expected behavior\n\nThe test should be treated as if it were statically marked with `xfail`, as in pytest 5.4.3:\n\n```\n$ pytest -rsx test_foo.py\n=============================== test session starts ================================\nplatform darwin -- Python 3.7.6, pytest-5.4.3, py-1.9.0, pluggy-0.13.0\nhypothesis profile 'default' -> database=DirectoryBasedExampleDatabase('/Users/taugspurger/sandbox/.hypothesis/examples')\nrootdir: /Users/taugspurger/sandbox\nplugins: xdist-1.29.0, hypothesis-4.36.2, forked-1.0.2, repeat-0.8.0, asyncio-0.10.0, cov-2.8.1\ncollected 1 item\n\ntest_foo.py x                                                                [100%]\n\n============================= short test summary info ==============================\nXFAIL test_foo.py::test_xfail_test\n  xfail\n================================ 1 xfailed in 0.07s ================================\n```\n\n## Stack trace / error output\n\nOutput with pytest 6.0.0rc1:\n\n```\n$ pytest -rsx test_foo.py\n=============================== test session starts ================================\nplatform darwin -- Python 3.7.6, pytest-6.0.0rc1, py-1.9.0, pluggy-0.13.0\nhypothesis profile 'default' -> database=DirectoryBasedExampleDatabase('/Users/taugspurger/sandbox/.hypothesis/examples')\nrootdir: /Users/taugspurger/sandbox\nplugins: xdist-1.29.0, hypothesis-4.36.2, forked-1.0.2, repeat-0.8.0, asyncio-0.10.0, cov-2.8.1\ncollected 1 item\n\ntest_foo.py F                                                                [100%]\n\n===================================== FAILURES =====================================\n_________________________________ test_xfail_test __________________________________\n\nrequest = <FixtureRequest for <Function test_xfail_test>>\n\n    def test_xfail_test(request):\n        mark = pytest.mark.xfail(reason=\"xfail\")\n        request.node.add_marker(mark)\n>       assert 0\nE       assert 0\n\ntest_foo.py:7: AssertionError\n```\n\n## Test case\n\n```python\n# file: test_foo.py\nimport pytest\n\n\ndef test_xfail_test(request):\n    mark = pytest.mark.xfail(reason=\"xfail\")\n    request.node.add_marker(mark)\n    assert 0\n```\n\nRun with: `pytest -rsx test_foo.py`\n\n- Expected result: `1 xfailed`\n- Actual result on pytest 6.0.0rc1: `1 failed`\n\n## Code example\n\nThe pattern that changed behavior is adding the marker to the test's node from inside the test:\n\n```python\nmark = pytest.mark.xfail(reason=\"xfail\")\nrequest.node.add_marker(mark)\n```\n\n## Version and environment\n\n- **Working version:** pytest 5.4.3\n- **Failing version:** pytest 6.0.0rc1, according to the session header in the output. The report text also mentions \"6.0.0rc0\" and \"6.0.1rc0\", which is inconsistent.\n- **Python:** 3.7.6\n- **OS:** macOS 10.14.5 (platform `darwin`)\n- **Other packages:** py 1.9.0, pluggy 0.13.0\n- **Plugins:** xdist-1.29.0, hypothesis-4.36.2, forked-1.0.2, repeat-0.8.0, asyncio-0.10.0, cov-2.8.1\n- The full `pip list` output is in the original report. It shows pytest 5.4.3 installed at the time it was captured.",
+ "ttft_ms": 3620,
+ "type": "result",
+ "duration_ms": 15141,
+ "uuid": "662e9d99-a7a3-48cb-a283-d3de1df2fb0d",
+ "ttft_stream_ms": 1620,
+ "time_to_request_ms": 325,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 14,
+  "input_hooks": 5,
+  "tool_pool_refresh": 2,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 255,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 1,
+  "client_creation": 3,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 23,
+ "time_to_request_cpu_ms": 241,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 20,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1620,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

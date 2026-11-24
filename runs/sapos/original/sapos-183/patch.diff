@@ -1,0 +1,45 @@
+diff --git a/app/models/enrollment.rb b/app/models/enrollment.rb
+index 21e6a187..091e05f3 100644
+--- a/app/models/enrollment.rb
++++ b/app/models/enrollment.rb
+@@ -41,6 +41,7 @@ class Enrollment < ApplicationRecord
+   validates :student, presence: true
+   validates_associated :dismissal
+   validate :enrollment_has_main_advisor
++  validate :enrollment_has_accredited_advisor
+ 
+   validates_date :thesis_defense_date,
+     on_or_after: :admission_date,
+@@ -170,6 +171,20 @@ class Enrollment < ApplicationRecord
+     end
+   end
+ 
++  def enrollment_has_accredited_advisor
++    return if level.blank?
++    advs = advisements.reject(&:marked_for_destruction?)
++    return if advs.blank?
++
++    accredited = advs.any? do |a|
++      next false if a.professor.blank?
++      AdvisementAuthorization.where(
++        professor_id: a.professor.id, level_id: level.id
++      ).exists?
++    end
++    errors.add(:base, :advisor_not_accredited_on_level) unless accredited
++  end
++
+   def verify_research_area_with_advisors
+     return if advisements.blank?
+     return if research_area.blank?
+diff --git a/config/locales/enrollment.pt-BR.yml b/config/locales/enrollment.pt-BR.yml
+index 7c256888..6f62f2f7 100644
+--- a/config/locales/enrollment.pt-BR.yml
++++ b/config/locales/enrollment.pt-BR.yml
+@@ -49,6 +49,7 @@ pt-BR:
+       models:
+         enrollment:
+           main_advisor_required: "Um dos orientadores deve ser Orientador Principal"
++          advisor_not_accredited_on_level: "Pelo menos um dos orientadores deve ser credenciado no nível da matrícula"
+           main_advisor_uniqueness: "Apenas um orientador pode ser Orientador Principal"
+           thesis_defense_date_before_admission_date: "anterior a Data de Admissão"
+           research_area_different_from_professors: "diferente de áreas de pesquisa do(s) orientador(es)"

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10967,
+ "stop_reason": "end_turn",
+ "session_id": "42ba23f3-a3a0-45e0-9765-baf951e0119a",
+ "total_cost_usd": 0.0285593,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1133,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 967,
+  "output_tokens_details": {
+   "thinking_tokens": 334
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1133,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 967,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1133,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1133
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1343,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001473,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 967,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1133,
+   "webSearchRequests": 0,
+   "costUSD": 0.028412,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 334,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn `io.fits`, the code in `fitsrec.py` that replaces the exponent separator `E` with `D` in floating point numbers (for `D` formats) appears to have no effect. `replace` does not seem to be an in-place operation for `chararray`; it returns a copy, and that copy is never used. The code also appears to be untested, because commenting it out does not cause any tests to fail.\n\n## Steps to reproduce\n\nThe issue was found by reading the code, not by running a reproduction.\n\n1. Open `fitsrec.py` in `io.fits`.\n2. Find the block that replaces the exponent separator when `'D'` is in `format` (see Code example below).\n3. Note that `output_field.replace(...)` is called but its return value is not used. The reporter's understanding is that `chararray.replace` returns a copy rather than changing the array in place.\n4. Comment out this block and run the test suite.\n\n## Observed behavior\n\n- The reporter believes the `replace` call returns a modified copy that is thrown away. If so, `output_field` would keep `E` as the exponent separator even when the format contains `D`.\n- Commenting out the block does not cause any tests to fail. This suggests the code path is not covered by tests.\n\n## Expected behavior\n\nWhen the format contains `D`, the exponent separator in `output_field` should change from `E` to `D`, as the code comment says. Tests should also cover this behavior.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report. The reporter notes that no existing test fails when this code is commented out.\n\n## Code example\n\nFrom `fitsrec.py`:\n\n```python\n        # Replace exponent separator in floating point numbers\n        if 'D' in format:\n            output_field.replace(encode_ascii('E'), encode_ascii('D'))\n```\n\n## Version and environment\n\nNot provided in the original report. The affected component is `io.fits`, file `fitsrec.py`.",
+ "ttft_ms": 5212,
+ "type": "result",
+ "duration_ms": 10558,
+ "uuid": "74fafdb9-96a9-4d38-8592-14124eb179af",
+ "ttft_stream_ms": 1504,
+ "time_to_request_ms": 269,
+ "time_to_request_phases_ms": {
+  "other": 18,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 13,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 205,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 20,
+ "time_to_request_cpu_ms": 273,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1505,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

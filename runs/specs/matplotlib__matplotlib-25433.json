@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 35504,
+ "stop_reason": "end_turn",
+ "session_id": "c8044c27-9791-422d-ab3a-4a0244d67e88",
+ "total_cost_usd": 0.0784907,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1270,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3363,
+  "output_tokens_details": {
+   "thinking_tokens": 222
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1270,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3363,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1270,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1270
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1859,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3363,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1270,
+   "webSearchRequests": 0,
+   "costUSD": 0.0782908,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 222,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Widget input is blocked after `clf()` + redraw inside a `RangeSlider.on_changed` callback\n\n## Objective\n\n**Problem.** A `RangeSlider` `on_changed` callback that calls `pyplot.clf()`, recreates widgets, and calls `pyplot.draw()` leaves the figure unresponsive. After that, no widget in the figure (the new slider or the new button) responds to mouse clicks. The same three steps run inside a `Button.on_clicked` callback work correctly.\n\n**Goal.** Clearing and rebuilding a figure from inside a `RangeSlider` (and, if affected, `Slider`) `on_changed` callback must leave the new widgets fully interactive. It should behave the same as doing it from a `Button.on_clicked` callback.\n\n**Users.** Matplotlib users who build interactive GUIs with `matplotlib.widgets` and rebuild figure contents in response to widget events.\n\n**User story.** As a user building an interactive figure, I can call `clf()`, add new widgets and `draw()` inside a slider's change callback. The new widgets then receive mouse input normally.\n\n### Reported reproduction (verbatim from the issue)\n\n```python\nimport matplotlib.pyplot as pyplot\nimport matplotlib.widgets as widgets\n\ndef onchanged(values):\n    print(\"on changed\")\n    print(values)\n    pyplot.clf()\n    addElements()\n    pyplot.draw()\n\ndef onclick(e):\n    print(\"on click\")\n    pyplot.clf()\n    addElements()\n    pyplot.draw()\n\ndef addElements():\n    ax = pyplot.axes([0.1, 0.45, 0.8, 0.1])\n    global slider\n    slider = widgets.RangeSlider(ax, \"Test\", valmin=1, valmax=10, valinit=(1, 10))\n    slider.on_changed(onchanged)\n    ax = pyplot.axes([0.1, 0.30, 0.8, 0.1])\n    global button\n    button = widgets.Button(ax, \"Test\")\n    button.on_clicked(onclick)\n\naddElements()\n\npyplot.show()\n```\n\n- **Actual:** After the slider is moved, no widget responds to mouse clicks.\n- **Expected:** The slider callback behaves like the button callback, and the rebuilt widgets stay interactive.\n\n### Reported environments\n\n| OS | Python | Matplotlib | Backend | Install |\n|---|---|---|---|---|\n| Windows 10 | 3.11.0 | 3.6.2 | TkAgg | pip |\n| Manjaro Linux | 3.10.9 | 3.6.2 | QtAgg | distro package manager |\n\nThe bug shows on two GUI backends, which suggests it is backend-independent.\n\n## Assumptions\n\n1. **Root cause (hypothesis, to be confirmed).**\n   - Unlike `Button`, the slider widgets \"grab\" the mouse for their axes when a drag starts. They fire `on_changed` *during* the drag, before the button-release event.\n   - When the callback clears the figure, the grabbing axes is removed but the canvas-level mouse grab is never released.\n   - Later mouse events are then routed only to a stale, removed axes, so every widget appears dead.\n   - `Button` fires on release, after any grab handling, which would explain why it is unaffected.\n2. The fix belongs in Matplotlib core (widgets and/or figure/axes removal and the canvas grab bookkeeping), not in user code.\n3. Plain `Slider` likely has the same flaw because it shares the drag/grab mechanism. The fix should cover it too.\n4. Clearing the figure by other means has the same effect as `clf()` and should be fixed too. Examples:\n   - `fig.clear()`\n   - removing the slider's axes, via `fig.delaxes(ax)` or `ax.remove()`\n5. The fix must not change the public widget API or callback signatures.\n6. Behavior is backend-independent, so it can be tested headlessly by synthesizing mouse events on a non-GUI canvas (e.g. Agg).\n7. The target branch is the current development branch. Whether to backport to 3.6.x/3.7.x is unknown.\n\n## Tech Stack\n\n- Python, Matplotlib (affected version: 3.6.2; target branch unknown).\n- Components involved (by name, as seen in the issue):\n  - `matplotlib.widgets.RangeSlider`\n  - `matplotlib.widgets.Button`\n  - `matplotlib.pyplot.clf`\n  - `matplotlib.pyplot.draw`\n- The internal mouse-grab mechanism on the figure canvas is assumed relevant but not verified.\n- GUI backends where reported: TkAgg, QtAgg.\n\n## Commands\n\nUnknown. The repository is not visible. Build, test and lint commands must be taken from the project's contributor docs.\n\n- Build/install (dev): unknown\n- Test: unknown (presumably pytest; exact invocation unknown)\n- Lint: unknown\n\n## Project Structure\n\nUnknown. The exact source and test file locations for the widgets, figure and canvas code are not visible from the issue.\n\n- Widget source module: unknown path (module `matplotlib.widgets`)\n- Figure/canvas source modules: unknown paths\n- Widget tests: unknown path\n- Changelog/API-change notes location: unknown\n\n## Code Style\n\nFollow the existing Matplotlib code style and conventions (not visible here). Regression tests should drive widgets with synthesized mouse events in the same way existing widget tests do. That helper's name and location are unknown.\n\n## Testing Strategy\n\n- **Level: unit/regression tests, headless.** Use a non-interactive canvas with synthesized press/motion/release events. No GUI backend is required.\n- **Required regression cases:**\n  1. A `RangeSlider` whose `on_changed` calls `fig.clear()` and recreates a `RangeSlider` and `Button`. A full drag (press, motion, release) must run, after which:\n     - the canvas holds no lingering mouse grab;\n     - a click on the new `Button` fires its `on_clicked`;\n     - a drag on the new `RangeSlider` changes its value and fires `on_changed`.\n  2. The same as case 1 with `Slider` instead of `RangeSlider` (if confirmed affected).\n  3. Removing only the grabbing slider's axes (not the whole figure) mid-drag. The remaining widgets must stay responsive.\n  4. The existing `Button.on_clicked` path still works (no regression).\n  5. Existing slider drag behavior is unchanged when no figure clearing happens. Values update during drag, and the grab is released on mouse release.\n- **Manual check (optional):** Run the reproduction script on TkAgg and QtAgg and confirm the rebuilt widgets respond.\n- **Coverage expectations:** Unknown project threshold. The new code paths must be covered by the tests above.\n\n## Boundaries\n\n- **Always:**\n  - Add a failing regression test reproducing the issue before the fix.\n  - Keep public widget APIs and callback semantics unchanged.\n  - Run the existing widget and figure test suites.\n- **Ask first:**\n  - Changing *when* `on_changed` fires (e.g. deferring it to mouse release). This would alter documented and expected live-update behavior.\n  - Changing public canvas/figure APIs.\n  - Backporting to maintenance branches.\n- **Never:**\n  - \"Fix\" the issue by telling users to avoid `clf()` in callbacks.\n  - Special-case only `RangeSlider` if the root cause is shared with `Slider` or general axes removal.\n  - Remove or skip existing failing tests without approval.\n\n## Success Criteria\n\n1. The reproduction script needs no modification: after moving the range slider, both rebuilt widgets respond to mouse input on TkAgg and QtAgg.\n2. The canvas holds no mouse grab on an axes that has been removed from its figure. This holds whether removal happens through `clf()`/`fig.clear()`, `delaxes`, or `ax.remove()`.\n3. All new regression tests pass, and all existing widget and figure tests still pass.\n4. Slider/RangeSlider live updates during a drag behave as before when the figure is not cleared.\n5. `Button` behavior is unchanged.\n\n## Open Questions\n\n1. **Root cause.** Is it confirmed that a stale canvas mouse grab on a removed axes causes the block? Or is there another cause, such as stale event connections from the old widgets?\n2. **Scope.** Should the fix be general (release any mouse grab when its axes is removed or the figure is cleared)? Or should it be local to the slider widgets? The general fix seems preferable but affects core figure/axes code.\n3. **Other widgets.** Is plain `Slider` affected? Are other widgets that grab the mouse (e.g. selectors) affected when their axes is removed mid-interaction?\n4. **Semantics.** If the grabbing widget's axes is removed mid-drag, should the rest of that drag be ignored? Or should it go to whatever axes is now under the cursor?\n5. **Target branch.** Which branch is the target, is a backport to 3.6.x/3.7.x wanted, and is a changelog entry required?\n6. **Commands and paths.** What are the project's build/test/lint commands and source/test file locations? These are unknown from the issue.",
+ "ttft_ms": 4804,
+ "type": "result",
+ "duration_ms": 34625,
+ "uuid": "96aa792c-ec03-45b9-93a4-c7168910ba0f",
+ "ttft_stream_ms": 2483,
+ "time_to_request_ms": 298,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 260,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 118,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 2483,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

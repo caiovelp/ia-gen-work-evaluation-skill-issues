@@ -1,0 +1,1 @@
+{"justificativa": "O patch candidato faz o controller devolver `[]` em JSON quando `term` está ausente ou em branco, antes de chamar `full_search_name`. Isso elimina o TypeError e o 500 na rota relatada e segue uma das correções sugeridas na issue, embora não proteja outros chamadores do método no model como a correção oficial faz.", "veredito": "resolve"}

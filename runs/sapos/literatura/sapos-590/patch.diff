@@ -1,0 +1,48 @@
+diff --git a/app/models/admissions/admission_process.rb b/app/models/admissions/admission_process.rb
+index 45e53aad..cbbb8d5a 100644
+--- a/app/models/admissions/admission_process.rb
++++ b/app/models/admissions/admission_process.rb
+@@ -41,6 +41,7 @@ class Admissions::AdmissionProcess < ActiveRecord::Base
+ 
+   validate :end_greater_than_start_date
+   validate :max_greater_than_min_letters
++  validate :letter_template_present_when_letters
+   validate :simple_url_is_unique_while_open
+ 
+   def initialize_dup(other)
+@@ -67,6 +68,14 @@ class Admissions::AdmissionProcess < ActiveRecord::Base
+     self.max_letters.to_i != 0
+   end
+ 
++  def letter_template_present_when_letters
++    return if !self.has_letters
++    return if self.min_letters.to_i <= 0
++    if self.letter_template.blank?
++      self.errors.add(:letter_template, :blank)
++    end
++  end
++
+   def max_greater_than_min_letters
+     return if !self.has_letters
+     return if self.max_letters.nil?
+diff --git a/app/models/admissions/admission_process_ranking.rb b/app/models/admissions/admission_process_ranking.rb
+index b8e46319..a4789c40 100644
+--- a/app/models/admissions/admission_process_ranking.rb
++++ b/app/models/admissions/admission_process_ranking.rb
+@@ -86,12 +86,10 @@ class Admissions::AdmissionProcessRanking < ActiveRecord::Base
+                 ) != 0
+                 self.set_candidate_position(next_candidate, process, candidate_position, machine)
+                 position += 1
+-                ngroups = groups
+-                nprocess_vacancies = process_vacancies
+-                if process_vacancies[process.id] == 0 || (process.group.present? && groups[process.group] == 0)
+-                  ngroups = readjust_groups
+-                  nprocess_vacancies = readjust_process_vacancies
+-                end
++                group_exhausted = process.group.present? && groups[process.group] == 0
++                process_exhausted = process_vacancies[process.id] == 0
++                ngroups = group_exhausted ? readjust_groups : groups
++                nprocess_vacancies = process_exhausted ? readjust_process_vacancies : process_vacancies
+                 process.decrease_vacancies_and_check_remaining!(ngroups, nprocess_vacancies)
+               end
+             end

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23208,
+ "stop_reason": "end_turn",
+ "session_id": "30819116-fd44-4552-91ad-d582debea5fd",
+ "total_cost_usd": 0.0555205,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1405,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2160,
+  "output_tokens_details": {
+   "thinking_tokens": 110
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1405,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2160,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1405,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1405
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1997,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020970000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2160,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1405,
+   "webSearchRequests": 0,
+   "costUSD": 0.0553108,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 110,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Support escaped (doubled) braces in `--msg-template`\n\n## Assumptions\n\n1. The intended semantics of `--msg-template` follow Python `str.format` rules: `{{` and `}}` are literal braces, and `{name}` or `{name:spec}` are replacement fields. The 1.7.4 behavior and the issue's expected output are consistent with this.\n2. The regression comes from template validation and preprocessing added after 1.7. That logic warns about unrecognized arguments. Per the traceback, it lives in or near `pylint/reporters/text.py` around line 206 in 2.12.2. It treats `{{ \"Category\"` as a field name and appears to strip or mangle the template, which leaves only `\" }` in the output. This is inferred from the issue and has not been verified against source.\n3. The fix targets the current development branch, not 2.12.2 specifically.\n4. The warning about unrecognized arguments is intentional. It should keep firing for genuinely unknown fields such as `{foo}`, and should only stop firing for escaped braces.\n5. Only `--msg-template` handling in the text reporter family is in scope. Other reporters such as JSON are unaffected.\n6. The repository's build, test and lint commands, test layout, and code style are not visible in the issue. They are marked unknown below.\n\n## Objective\n\n**Problem.** In pylint 2.12.2, a message template with literal braces escaped as `{{ \u2026 }}` is misparsed:\n\n- A spurious `UserWarning: Don't recognize the argument '{ \"Category\"'` is emitted.\n- Each message renders as `\" }` instead of `{ \"Category\": \"convention\" }`.\n\nIn pylint 1.7.4 the same template worked. This is a regression.\n\n**Users.** People who use `--msg-template` to produce structured or custom output, such as JSON-like lines for CI tooling.\n\n**User story.** As a pylint user, I can write `--msg-template='{{ \"Category\": \"{category}\" }}'` and get one line per message, such as `{ \"Category\": \"convention\" }`, with no warning.\n\n**Acceptance criteria**\n\n- **AC1.** The template `{{ \"Category\": \"{category}\" }}` renders each message as `{ \"Category\": \"<category>\" }` and emits no warning.\n- **AC2.** Doubled braces anywhere in a template render as single literal braces. This covers the start, the middle, the end, and positions adjacent to a real field such as `{{{category}}}` \u2192 `{convention}`.\n- **AC3.** Templates with unknown fields, such as `{foo}` or `{{ {foo} }}`, still trigger the \"Don't recognize the argument\" warning, naming `foo` only.\n- **AC4.** Known fields remain valid and produce no warning, including fields with a format spec such as `{line:03d}`.\n- **AC5.** Existing templates without escaped braces produce output identical to current behavior.\n- **AC6.** The warning text continues to report only the true field name, never fragments containing `{` or `\"`.\n\n## Tech Stack\n\n- Python, pylint itself. Supported Python versions: unknown (issue shows 3.9).\n- Affected module: `pylint/reporters/text.py` (per traceback). Other involved modules: unknown.\n- astroid version is irrelevant to this bug, by assumption.\n\n## Commands\n\n- Build: unknown\n- Test: unknown (the project likely uses pytest; exact invocation unknown)\n- Lint: unknown\n- Reproduce (from the issue): `pylint test.py --msg-template='{{ \"Category\": \"{category}\" }}'`\n\n## Project Structure\n\n- `pylint/reporters/text.py`: location of the template-handling and warning logic (from traceback).\n- Test directory for reporters: unknown.\n- Changelog or news-fragment location: unknown.\n\n## Code Style\n\nUnknown, because no repository code is visible. Follow the existing conventions in `pylint/reporters/text.py` and the project's lint configuration.\n\n## Testing Strategy\n\n- **Unit tests** on the template handling in the text reporter:\n  - Cover each of AC1\u2013AC6 with the template string and expected rendered line.\n  - Assert on warnings: none for AC1, AC2 and AC4; exactly one, naming the right field, for AC3.\n- **Regression test** reproducing the exact template from the issue.\n- **Functional or CLI-level test**, optional. Run pylint on a small file with the issue's template and compare the output lines.\n- Framework, file locations and coverage thresholds: unknown. Follow the project's existing reporter tests.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test for the issue's template.\n  - Keep the unknown-argument warning working for genuine unknown fields.\n  - Run the existing test suite before committing.\n- **Ask first:**\n  - Changing the warning's wording or category.\n  - Changing the semantics of `--msg-template` beyond `str.format` brace escaping.\n  - Altering behavior of other reporters.\n  - Adding dependencies.\n- **Never:**\n  - Remove or weaken the unknown-field warning to make the test pass.\n  - Silently change output for templates that currently render correctly.\n  - Edit unrelated reporters.\n\n## Success Criteria\n\n- The issue's exact command prints `{ \"Category\": \"<category>\" }` per message with no `UserWarning`.\n- New tests covering AC1\u2013AC6 pass.\n- The existing test suite passes.\n- A changelog or news entry is added in whatever form the project requires (form unknown).\n\n## Open Questions\n\n1. Is full `str.format` brace semantics the intended contract for `--msg-template`, or only \"doubled braces are literal\"? For example, how should a lone unmatched `{` or `}` be handled: warn, error, or pass through?\n2. Should a malformed template raise an error rather than warn and then produce mangled output?\n3. Which branch or versions should receive the fix: main only, or a backport to the 2.12.x maintenance line?\n4. Does the project require a changelog or news fragment, and where does it go?\n5. Are there documented `--msg-template` examples that should be updated to show brace escaping?\n6. What are the exact test commands and the location of the reporter tests?",
+ "ttft_ms": 2672,
+ "type": "result",
+ "duration_ms": 22610,
+ "uuid": "1714ea60-f9f2-44d3-bfe9-c2e87f326b08",
+ "ttft_stream_ms": 1611,
+ "time_to_request_ms": 301,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 19,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 16,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 231,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 43,
+ "time_to_request_cpu_ms": 316,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 14,
+  "cpu_ms": 25,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1611,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

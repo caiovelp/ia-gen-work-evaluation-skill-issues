@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 42223,
+ "stop_reason": "end_turn",
+ "session_id": "78f60f53-2af5-4b96-bd21-dc49ebc4a29c",
+ "total_cost_usd": 0.1173724,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1993,
+  "cache_read_input_tokens": 4361,
+  "output_tokens": 5014,
+  "output_tokens_details": {
+   "thinking_tokens": 646
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1993,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5014,
+    "cache_read_input_tokens": 4361,
+    "cache_creation_input_tokens": 1993,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1993
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2562,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002682,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 5014,
+   "cacheReadInputTokens": 4361,
+   "cacheCreationInputTokens": 1993,
+   "webSearchRequests": 0,
+   "costUSD": 0.1171042,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 646,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1993,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Cobertura por specs da l\u00f3gica do processo seletivo (admissions)\n\n## Objetivo\n\nProteger com specs a l\u00f3gica de produto do processo seletivo que hoje quase n\u00e3o \u00e9 executada pela su\u00edte. Os quatro caminhos de neg\u00f3cio a cobrir s\u00e3o:\n\n- consolida\u00e7\u00e3o de fase e troca de fase dos candidatos;\n- c\u00e1lculo de ranking;\n- gera\u00e7\u00e3o dos relat\u00f3rios do processo (grupos por fase, carta, ranking);\n- valida\u00e7\u00e3o dos formul\u00e1rios preenchidos e avalia\u00e7\u00e3o de condi\u00e7\u00e3o sobre eles.\n\n**Por qu\u00ea:** essa l\u00f3gica n\u00e3o \u00e9 superf\u00edcie de gem. Uma campanha de atualiza\u00e7\u00e3o de depend\u00eancias n\u00e3o a exercita, e um defeito ali s\u00f3 aparece quando o processo seletivo roda de fato.\n\n**Quem se beneficia:** mantenedores do sistema. Eles passam a poder alterar ou atualizar o c\u00f3digo de admissions com uma rede de regress\u00e3o.\n\n**Situa\u00e7\u00e3o medida (antes):** com `bundle exec rspec` e relat\u00f3rio em `coverage/index.html`, a cobertura de linhas est\u00e1 em 82%. S\u00e3o 1971 linhas n\u00e3o executadas em cerca de 11 mil relevantes.\n\n| diret\u00f3rio | n\u00e3o cobertas | relevantes |\n|---|---|---|\n| `app/models` | 953 | 4987 |\n| `app/controllers` | 522 | 3500 |\n| `app/helpers` | 364 | 2018 |\n| `lib/tasks` | 53 | 111 |\n\n**Arquivos-alvo (n\u00e3o cobertas / relevantes):**\n\n| arquivo | antes |\n|---|---|\n| `app/models/admissions/admission_application.rb` | 155 / 337 |\n| `app/controllers/admissions/admission_processes_controller.rb` | 142 / 230 |\n| `app/controllers/admissions/admission_applications_controller.rb` | 133 / 310 |\n| `app/models/admissions/admission_phase.rb` | 82 / 109 |\n| `app/models/admissions/admission_report_config.rb` | 65 / 109 |\n| `app/models/admissions/admission_report_group_phase.rb` | 61 / 85 |\n| `app/models/admissions/filled_form.rb` | 48 / 91 |\n| `app/controllers/admissions/admissions_controller.rb` | 47 / 88 |\n| `app/models/admissions/form_condition.rb` | 43 / 110 |\n| `app/models/admissions/admission_report_group_letter.rb` | 42 / 49 |\n| `app/models/admissions/filled_form_field.rb` | 41 / 216 |\n| `app/helpers/admissions/admission_processes_pdf_helper.rb` | 41 / 93 |\n\n**Hist\u00f3rias / crit\u00e9rios de aceita\u00e7\u00e3o por caminho, na ordem de peso do descoberto:**\n\n1. **`consolidate_phase`**\n   - Os candidatos aprovados, reprovados, sem comit\u00ea e com erro s\u00e3o tratados conforme o comportamento atual.\n   - A passagem dos candidatos para a fase seguinte \u00e9 verificada.\n2. **Ranking e consolida\u00e7\u00e3o por candidato**\n   - `calculate_ranking` \u00e9 exercitado com um `RankingConfig` real, n\u00e3o um dubl\u00ea.\n   - `AdmissionApplication#consolidate_phase!` \u00e9 exercitado diretamente.\n3. **Relat\u00f3rios do processo**\n   - `AdmissionReportConfig` e os `AdmissionReportGroup*` (fase, carta, ranking) s\u00e3o protegidos.\n   - O formato preferido \u00e9 golden-master em `spec/requests/goldens/`, como os demais PDFs e XLSX.\n4. **Formul\u00e1rios preenchidos**\n   - A valida\u00e7\u00e3o de `FilledForm` / `FilledFormField` \u00e9 coberta.\n   - A avalia\u00e7\u00e3o de `FormCondition` sobre um formul\u00e1rio preenchido \u00e9 coberta.\n\n**Fora de escopo, j\u00e1 feito na campanha de 2026-09-10:**\n\n- a a\u00e7\u00e3o `duplicate` por GET nos seis controllers de admissions;\n- os dois `rescue` de `admission_processes_controller.rb` que chamam `ExceptionNotifier.notify_exception`;\n- a amplia\u00e7\u00e3o dos goldens do hist\u00f3rico e do boletim (`enrollments_pdf_helper.rb`).\n\n## Premissas\n\n1. O projeto \u00e9 uma aplica\u00e7\u00e3o Ruby on Rails testada com RSpec. Isso \u00e9 inferido da estrutura `app/models`, `app/controllers`, `app/helpers`, `lib/tasks` e do comando `bundle exec rspec`.\n2. A cobertura \u00e9 gerada automaticamente ao rodar a su\u00edte inteira, provavelmente via SimpleCov. A ferramenta e a configura\u00e7\u00e3o exatas n\u00e3o s\u00e3o informadas.\n3. `consolidate_phase` e `calculate_ranking` s\u00e3o a\u00e7\u00f5es de `admission_processes_controller.rb`. Por isso devem ser cobertas por request specs em `spec/requests/admissions/`. As regras de modelo v\u00e3o em `spec/models/admissions/`.\n4. Os specs devem **caracterizar o comportamento atual**. O objetivo \u00e9 cobertura e prote\u00e7\u00e3o contra regress\u00e3o, n\u00e3o mudan\u00e7a de comportamento.\n5. J\u00e1 existe infraestrutura de golden-master em `spec/requests/goldens/` para PDF e XLSX, reutiliz\u00e1vel para os relat\u00f3rios do processo.\n6. H\u00e1 factories ou fixtures para os modelos de admissions, ou elas podem ser criadas dentro de `spec/`.\n7. A entrega pode ser feita em mais de um PR, um por caminho de neg\u00f3cio, na ordem sugerida.\n\n## Stack Tecnol\u00f3gica\n\n- Ruby / Rails / RSpec. As vers\u00f5es n\u00e3o s\u00e3o informadas na issue.\n- A gem `ExceptionNotifier` est\u00e1 presente.\n- A ferramenta de cobertura n\u00e3o \u00e9 nomeada (presumivelmente SimpleCov).\n- A biblioteca de gera\u00e7\u00e3o de PDF/XLSX dos goldens n\u00e3o \u00e9 informada na issue.\n\n## Comandos\n\n- **Testes + cobertura:** `bundle exec rspec` (su\u00edte inteira; relat\u00f3rio em `coverage/index.html`).\n- **Rodar um spec isolado:** n\u00e3o informado na issue original.\n- **Regenerar/atualizar goldens:** n\u00e3o informado na issue original.\n- **Lint:** n\u00e3o informado na issue original.\n\n## Estrutura do Projeto\n\n```\napp/models/admissions/        \u2192 Modelos do processo seletivo (alvo)\napp/controllers/admissions/   \u2192 Controllers do processo seletivo (alvo)\napp/helpers/admissions/       \u2192 Helpers, incl. admission_processes_pdf_helper.rb (alvo)\nspec/requests/admissions/     \u2192 Request specs de admissions (destino dos novos specs)\nspec/models/admissions/       \u2192 Model specs de admissions (destino dos novos specs)\nspec/requests/goldens/        \u2192 Golden-masters de PDF/XLSX (destino dos relat\u00f3rios)\ncoverage/index.html           \u2192 Relat\u00f3rio de cobertura\n```\n\n## Estilo de C\u00f3digo\n\nN\u00e3o informado na issue original.\n\nConven\u00e7\u00e3o indicada pela issue: um arquivo de spec por caminho de neg\u00f3cio.\n\n## Estrat\u00e9gia de Testes\n\n**Framework:** RSpec.\n\n**N\u00edveis de teste por preocupa\u00e7\u00e3o:**\n\n| Preocupa\u00e7\u00e3o | N\u00edvel | Local |\n|---|---|---|\n| `consolidate_phase`, `calculate_ranking`: fluxo HTTP, troca de fase | Request spec | `spec/requests/admissions/` |\n| `AdmissionApplication#consolidate_phase!`, `AdmissionPhase`, `RankingConfig` | Model spec | `spec/models/admissions/` |\n| `AdmissionReportConfig`, `AdmissionReportGroup*`, `admission_processes_pdf_helper.rb` | Golden-master (PDF/XLSX) | `spec/requests/goldens/` |\n| `FilledForm`, `FilledFormField`, `FormCondition` | Model spec | `spec/models/admissions/` |\n\n**Medi\u00e7\u00e3o:**\n\n- Rodar `bundle exec rspec` com a su\u00edte inteira **antes** e **depois**.\n- Registrar na issue, com o mesmo relat\u00f3rio:\n  - a cobertura total;\n  - as linhas n\u00e3o cobertas por diret\u00f3rio;\n  - as linhas n\u00e3o cobertas em cada arquivo-alvo.\n\n**Dados:** usar objetos reais onde a issue pede, em especial um `RankingConfig` real em vez de dubl\u00ea.\n\n## Limites\n\n**Sempre:**\n- Rodar a su\u00edte inteira antes de cada commit.\n- Medir a cobertura antes e depois com o mesmo comando e relat\u00f3rio.\n- Manter um spec por caminho de neg\u00f3cio.\n- Seguir o padr\u00e3o golden-master existente para relat\u00f3rios.\n\n**Perguntar antes:**\n- Alterar qualquer c\u00f3digo em `app/` ou `lib/`. Por exemplo, quando um spec revelar defeito ou c\u00f3digo n\u00e3o test\u00e1vel sem refatora\u00e7\u00e3o.\n- Adicionar depend\u00eancias ou gems de teste.\n- Alterar a configura\u00e7\u00e3o de cobertura.\n- Regenerar goldens j\u00e1 existentes, que n\u00e3o sejam os novos desta issue.\n\n**Nunca:**\n- Ajustar um spec para \"passar\" escondendo um defeito encontrado. Registrar o defeito e perguntar.\n- Remover ou enfraquecer specs existentes.\n- Alterar os specs e goldens da campanha de 2026-09-10 (`duplicate`, `rescue` com `ExceptionNotifier`, hist\u00f3rico/boletim).\n\n## Crit\u00e9rios de Sucesso\n\n1. Existe ao menos um spec para cada um dos quatro caminhos de neg\u00f3cio, nos diret\u00f3rios indicados.\n2. `consolidate_phase` tem cen\u00e1rios expl\u00edcitos para os seguintes casos:\n   - candidato aprovado;\n   - candidato reprovado;\n   - candidato sem comit\u00ea;\n   - candidato com erro;\n   - passagem dos candidatos para a fase seguinte.\n3. `calculate_ranking` \u00e9 exercitado com um `RankingConfig` real.\n4. `AdmissionApplication#consolidate_phase!` \u00e9 exercitado diretamente.\n5. Os relat\u00f3rios do processo (grupos por fase, carta, ranking) t\u00eam golden-master em `spec/requests/goldens/`, ou justificativa registrada para outro formato.\n6. `FilledForm` / `FilledFormField` (valida\u00e7\u00e3o) e `FormCondition` (avalia\u00e7\u00e3o sobre formul\u00e1rio preenchido) t\u00eam specs.\n7. A su\u00edte inteira passa com `bundle exec rspec`.\n8. A issue \u00e9 fechada com a tabela antes/depois:\n   - cobertura total;\n   - linhas n\u00e3o cobertas por diret\u00f3rio;\n   - linhas n\u00e3o cobertas em cada um dos 12 arquivos-alvo.\n9. O n\u00famero de linhas n\u00e3o cobertas diminui em cada arquivo-alvo. A meta num\u00e9rica est\u00e1 pendente (ver Quest\u00f5es em Aberto).\n\n## Quest\u00f5es em Aberto\n\n1. **Meta de cobertura.** H\u00e1 uma meta para fechar a issue? Por exemplo: cobertura total \u2265 X%, um teto de linhas descobertas por arquivo-alvo, ou basta qualquer redu\u00e7\u00e3o medida?\n2. **Defeitos encontrados.** Se um spec revelar defeito na l\u00f3gica atual, ele \u00e9 corrigido nesta issue, aberto como issue separada, ou marcado como `pending`?\n3. **A\u00e7\u00f5es de controller.** `consolidate_phase` e `calculate_ranking` s\u00e3o de fato a\u00e7\u00f5es de `admission_processes_controller.rb`? Quais outras a\u00e7\u00f5es de `admission_applications_controller.rb` (133 linhas descobertas) e `admissions_controller.rb` (47) entram no escopo? Os quatro itens sugeridos n\u00e3o as mencionam explicitamente.\n4. **Golden-master.** Qual o procedimento para gerar e aprovar novos goldens? Como lidar com conte\u00fado n\u00e3o determin\u00edstico (datas, IDs) nos PDFs/XLSX dos relat\u00f3rios?\n5. **Formato de cada relat\u00f3rio.** O relat\u00f3rio de ranking e o de grupos por fase saem em PDF, XLSX ou ambos?\n6. **Dados de teste.** Existem factories para `AdmissionProcess`, `AdmissionPhase`, `AdmissionApplication`, `RankingConfig`, `FilledForm`, `FormCondition` e `AdmissionReportConfig`? Ou ser\u00e1 preciso cri\u00e1-las?\n7. **`lib/tasks`.** As 53 linhas n\u00e3o cobertas de `lib/tasks` est\u00e3o fora de escopo desta issue?\n8. **Divis\u00e3o da entrega.** A issue re\u00fane quatro caminhos test\u00e1veis de forma independente. Prefere uma entrega \u00fanica ou um PR/issue por caminho, na ordem sugerida?\n9. **Ferramenta de cobertura.** Qual ferramenta gera `coverage/index.html`? Ela mede cobertura de branches al\u00e9m de linhas? Isso deve entrar no relat\u00f3rio antes/depois?",
+ "ttft_ms": 7501,
+ "type": "result",
+ "duration_ms": 41974,
+ "uuid": "efe6077b-1a06-47f2-8997-e0c49d1ba1cb",
+ "ttft_stream_ms": 1091,
+ "time_to_request_ms": 507,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 5,
+  "resume_other": 1,
+  "process_user_input": 8,
+  "input_attachments": 22,
+  "input_hooks": 8,
+  "conversation_append": 1,
+  "tool_pool_refresh": 3,
+  "init_message": 19,
+  "init_frame_send": 9,
+  "engine_pickup": 3,
+  "loop_entry": 8,
+  "message_prep": 3,
+  "model_config_wait": 373,
+  "autocompact": 4,
+  "request_announcements": 11,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 4,
+  "message_normalization": 3,
+  "client_creation": 3,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 79,
+ "time_to_request_cpu_ms": 473,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 8,
+  "cpu_ms": 24,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 7,
+  "render_ms": 4,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 0,
+  "placement_ms": 3,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 2,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 1,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 2,
+  "headers_ms": 1,
+  "cache_break_record_ms": 1,
+  "plans_ms": 2,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 2,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1091,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

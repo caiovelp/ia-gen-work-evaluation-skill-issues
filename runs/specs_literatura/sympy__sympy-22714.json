@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14734,
+ "stop_reason": "end_turn",
+ "session_id": "872f6c22-28d5-4835-ab57-9c20d0cd8cff",
+ "total_cost_usd": 0.045572299999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1683,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1595,
+  "output_tokens_details": {
+   "thinking_tokens": 101
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1683,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1595,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1683,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1683
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1888,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020030000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1595,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1683,
+   "webSearchRequests": 0,
+   "costUSD": 0.045371999999999996,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 101,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nCalling `sympify` (`sp.S`) on the string `'Point2D(Integer(1),Integer(2))'` inside a `with sp.evaluate(False):` block raises `ValueError: Imaginary coordinates are not permitted.` The same call works without the context manager, and also works when `evaluate=False` is passed directly to `sp.S`.\n\n## Steps to reproduce\n\n1. Import SymPy: `import sympy as sp`.\n2. Enter the global evaluation-disabled context: `with sp.evaluate(False):`.\n3. Inside that block, call `sp.S('Point2D(Integer(1),Integer(2))')`.\n4. Observe that a `ValueError` is raised.\n\nFor comparison, run each of these outside the `with` block. Both work:\n- `sp.S('Point2D(Integer(1),Integer(2))')`\n- `sp.S('Point2D(Integer(1),Integer(2))', evaluate=False)`\n\n## Observed behavior\n\nInside `with sp.evaluate(False):`, the call fails with:\n\n```\nValueError: Imaginary coordinates are not permitted.\n```\n\nThe coordinates `Integer(1)` and `Integer(2)` are real, yet the error says they are imaginary.\n\n## Expected behavior\n\n`sp.S('Point2D(Integer(1),Integer(2))')` inside `with sp.evaluate(False):` should not raise an error. It should behave the same way as the two working calls, in particular `sp.S('Point2D(Integer(1),Integer(2))', evaluate=False)`.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n  File \"<stdin>\", line 1, in <module>\n  File \"/home/avinash/.local/lib/python3.8/site-packages/sympy/core/sympify.py\", line 472, in sympify\n    expr = parse_expr(a, local_dict=locals, transformations=transformations, evaluate=evaluate)\n  File \"/home/avinash/.local/lib/python3.8/site-packages/sympy/parsing/sympy_parser.py\", line 1026, in parse_expr\n    raise e from ValueError(f\"Error from parse_expr with transformed code: {code!r}\")\n  File \"/home/avinash/.local/lib/python3.8/site-packages/sympy/parsing/sympy_parser.py\", line 1017, in parse_expr\n    rv = eval_expr(code, local_dict, global_dict)\n  File \"/home/avinash/.local/lib/python3.8/site-packages/sympy/parsing/sympy_parser.py\", line 911, in eval_expr\n    expr = eval(\n  File \"<string>\", line 1, in <module>\n  File \"/home/avinash/.local/lib/python3.8/site-packages/sympy/geometry/point.py\", line 912, in __new__\n    args = Point(*args, **kwargs)\n  File \"/home/avinash/.local/lib/python3.8/site-packages/sympy/geometry/point.py\", line 153, in __new__\n    raise ValueError('Imaginary coordinates are not permitted.')\nValueError: Imaginary coordinates are not permitted.\n```\n\n## Test case\n\nA minimal test case built from the reproduction in the report:\n\n```python\nimport sympy as sp\n\ndef test_sympify_point2d_under_evaluate_false():\n    # Both of these work according to the report\n    sp.S('Point2D(Integer(1),Integer(2))')\n    sp.S('Point2D(Integer(1),Integer(2))', evaluate=False)\n\n    # This currently raises ValueError: Imaginary coordinates are not permitted.\n    with sp.evaluate(False):\n        sp.S('Point2D(Integer(1),Integer(2))')\n```\n\n## Code example\n\nFailing:\n\n```python\nimport sympy as sp\nwith sp.evaluate(False):\n  sp.S('Point2D(Integer(1),Integer(2))')\n```\n\nWorking:\n\n```python\nsp.S('Point2D(Integer(1),Integer(2))')\nsp.S('Point2D(Integer(1),Integer(2))', evaluate=False)\n```\n\n## Version and environment\n\n- Python 3.8, based on the paths in the traceback (`/home/avinash/.local/lib/python3.8/site-packages/sympy/...`).\n- SymPy is installed in the user site-packages. The SymPy version is not provided in the original report.\n- The operating system is not stated explicitly. The `/home/...` paths suggest a Unix-like system.",
+ "ttft_ms": 2778,
+ "type": "result",
+ "duration_ms": 13530,
+ "uuid": "89a61b89-866c-4e10-b405-c392390fe0ed",
+ "ttft_stream_ms": 1467,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 198,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 7,
+ "time_to_request_cpu_ms": 157,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1467,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

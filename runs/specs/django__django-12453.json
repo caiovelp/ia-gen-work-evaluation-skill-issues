@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29757,
+ "stop_reason": "end_turn",
+ "session_id": "e70134ab-12bc-4eed-bdd5-d494f991bed4",
+ "total_cost_usd": 0.0723641,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1600,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2923,
+  "output_tokens_details": {
+   "thinking_tokens": 233
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1600,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2923,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1600,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1600
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2188,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002333,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2923,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1600,
+   "webSearchRequests": 0,
+   "costUSD": 0.0721308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 233,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Restore objects in FK-safe order in `deserialize_db_from_string` (serialized_rollback)\n\n## Objective\n\nSetting `serialized_rollback = True` on a `TransactionTestCase` should reliably restore the database contents that were captured when the test database was created.\n\n**Current flow (from the issue):**\n1. `BaseDatabaseCreation.create_test_db` stores `connection._test_serialized_contents = connection.creation.serialize_db_to_string()`.\n2. `TransactionTestCase._fixture_setup` calls `connection.creation.deserialize_db_from_string(connection._test_serialized_contents)`.\n\n**Problem:** `serialize_db_to_string` orders models with `serializers.sort_dependencies`. That function only accounts for natural-key dependencies. It does not place FK targets before the models that reference them, and it cannot do so in general, because circular FKs are allowed. `deserialize_db_from_string` then calls `obj.save()` for each object without wrapping the loop in a transaction. If an object holding an FK is saved before the object it references, an `IntegrityError` can occur.\n\n**Proposed direction (from the reporter):** Wrap the deserialize/save loop in `transaction.atomic(using=self.connection.alias)`. This mirrors `loaddata`, whose `handle()` already wraps loading in `transaction.atomic(using=self.using)`.\n\n**User:** Django developers whose test suites use `serialized_rollback = True` on any database backend.\n\n**Success looks like:** Serialized rollback restores every captured row, whatever the model or app registry ordering, including FKs that point \"forward\" in serialization order and circular FKs. No `IntegrityError` is raised.\n\n## Assumptions\n\n1. The bug and its fix live in `django/db/backends/base/creation.py`, specifically `deserialize_db_from_string`. This is the only path the issue shows.\n2. The codebase is the Django version shown in the diff. It still uses `django.utils.six`, so it is the Python 2/3-compatible era.\n3. Serialization order is deterministic, because the app registry keeps apps and models in `OrderedDict`. A deterministic regression test is therefore feasible.\n4. A transaction alone is enough only on backends where FK constraints are deferred until commit. Django creates FKs as `DEFERRABLE INITIALLY DEFERRED` on PostgreSQL, so the fix works there.\n5. On backends that check FKs immediately or do not enforce them at insert time, the transaction alone may not fix the bug. This needs verification (see Open Questions).\n6. The public behaviour and signatures of `serialize_db_to_string` and `deserialize_db_from_string` must not change.\n7. `serializers.sort_dependencies` is not to be changed to handle FK ordering. The issue states this is impossible in general because of cycles.\n\n## Tech Stack\n\n- Python and Django. Exact versions are **unknown**; the codebase predates the removal of `django.utils.six`.\n- Modules referenced in the issue:\n  - `django.db.transaction`\n  - `django.core.serializers`\n  - `django.db.router`\n  - `django.apps.apps`\n  - the `loaddata` management command\n- Database backends affected: all backends supported by Django. Per-backend behaviour is **unknown**.\n\n## Commands\n\n**Unknown.** The issue gives no build or test commands. They are to be confirmed from the repository's contributor docs and test runner:\n- Build: unknown\n- Test (full suite / targeted): unknown\n- Lint: unknown\n\n## Project Structure\n\nKnown from the issue:\n- `django/db/backends/base/creation.py` contains `BaseDatabaseCreation`, `serialize_db_to_string`, `deserialize_db_from_string` and `create_test_db`.\n- `TransactionTestCase._fixture_setup` is in an unknown file, presumably Django's test framework module.\n- `serializers.sort_dependencies` is in an unknown file within `django.core.serializers`.\n- The `loaddata` command `handle()` is the reference pattern for transactional loading.\n\nUnknown:\n- Where the regression test should live.\n- Which test apps or models with FKs exist for it.\n\n## Code Style\n\nFollow the existing style of `creation.py`. The reporter's proposed change is the reference for shape and scope: a minimal change that adds `transaction` to the existing `from django.db import router` import and wraps the existing loop:\n\n```python\ndata = StringIO(data)\nwith transaction.atomic(using=self.connection.alias):\n    for obj in serializers.deserialize(\"json\", data, using=self.connection.alias):\n        obj.save()\n```\n\nOther conventions (linting, line length) are **unknown**.\n\n## Testing Strategy\n\n**Regression test (required).** It must be deterministic and must fail before the fix and pass after it.\n- Use models whose serialization order, driven by app registry order, puts an object with an FK **before** the object it references.\n- Serialize with `serialize_db_to_string`, clear the tables, call `deserialize_db_from_string`, and assert that all objects are restored with correct FK values and no `IntegrityError`.\n\n**Circular FK case.** Two models that reference each other, both restored successfully.\n\n**Backend coverage.** The test must run on every backend in the CI matrix. It must not be skipped on backends where a bare transaction is insufficient; those backends need a working fix.\n\n**Non-regression.** Existing `serialized_rollback` and `loaddata` tests keep passing.\n\nFramework, test location and coverage thresholds are **unknown**; use Django's existing test suite conventions.\n\n## Boundaries\n\n**Always:**\n- Keep the change scoped to `deserialize_db_from_string` and its direct needs.\n- Use the connection's alias for any transaction or constraint handling.\n- Add a deterministic regression test.\n\n**Ask first:**\n- Changing `serializers.sort_dependencies` or the serialization format/order in `serialize_db_to_string`.\n- Disabling or deferring constraint checks per backend, for example via backend-specific constraint toggles.\n- Changing the public signatures of the creation methods.\n\n**Never:**\n- Swallow `IntegrityError`s to make the test pass.\n- Weaken FK integrity in the restored data.\n- Remove or skip existing tests.\n- Alter `loaddata` behaviour as part of this fix.\n\n## Success Criteria\n\n- [ ] `deserialize_db_from_string` performs all saves inside a single atomic block on `self.connection.alias`.\n- [ ] A regression test that triggers FK-before-target ordering fails on the current code and passes after the fix.\n- [ ] Circular FK data serialized by `serialize_db_to_string` restores without error.\n- [ ] After restoration, every restored row's FK values reference existing rows. If constraints were deferred or disabled during load, integrity is verified at the end.\n- [ ] Behaviour is correct on every backend in the CI matrix, or any backend limitation is explicitly documented and approved.\n- [ ] No existing `serialized_rollback` or `loaddata` tests regress.\n\n## Open Questions\n\n1. **Is `transaction.atomic` alone sufficient on all backends?** It fixes the problem where FK constraints are deferred until commit (PostgreSQL). On backends with immediate FK checks, saving a referencing row first may still fail inside the transaction. Should the fix also disable constraint checking during the load and then run an integrity check before commit, as `loaddata` may do?\n2. Does `loaddata` disable constraint checks in addition to using a transaction? The issue shows only the `atomic` wrapper. If it does, should `deserialize_db_from_string` mirror that exactly?\n3. Which existing test models or apps can produce a deterministic \"FK serialized before its target\" ordering? Or should new test models be added?\n4. Which Django versions or branches should receive the fix (backport scope)?\n5. Should a release note be added, given that this is user-visible test-framework behaviour?\n6. What are the exact commands to run the targeted and full test suites in this repository?",
+ "ttft_ms": 3584,
+ "type": "result",
+ "duration_ms": 28975,
+ "uuid": "942c6236-baf8-470d-8d5c-0c8cd73e988e",
+ "ttft_stream_ms": 1356,
+ "time_to_request_ms": 244,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 211,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 175,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1356,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

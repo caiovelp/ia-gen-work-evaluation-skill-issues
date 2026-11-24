@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 12378,
+ "stop_reason": "end_turn",
+ "session_id": "95becc4e-5dd6-44e6-ae24-76fae95d23ed",
+ "total_cost_usd": 0.043871900000000005,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2002,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1381,
+  "output_tokens_details": {
+   "thinking_tokens": 264
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2002,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1381,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2002,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2002
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2149,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00022789999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1381,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2002,
+   "webSearchRequests": 0,
+   "costUSD": 0.043644,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 264,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 2002,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\n\nNa tela de simula\u00e7\u00e3o de notifica\u00e7\u00e3o (`/notifications/:id/simulate`), quando o corpo da mensagem cont\u00e9m uma URL longa ou qualquer sequ\u00eancia longa sem espa\u00e7os, a tabela de resultados fica mais larga que a janela e a p\u00e1gina inteira passa a rolar horizontalmente.\n\nAn\u00e1lise do autor da issue:\n- A tabela est\u00e1 em `app/views/notifications/simulate.html.erb:42` e n\u00e3o tem restri\u00e7\u00e3o de largura. A classe `.notification-results` n\u00e3o possui nenhuma regra CSS no projeto.\n- Com `table-layout: auto`, a largura m\u00ednima da c\u00e9lula \"Corpo\" \u00e9 a do maior token indivis\u00edvel do texto. Uma URL longa n\u00e3o oferece ponto de quebra, ent\u00e3o a tabela estica at\u00e9 caber.\n- O problema n\u00e3o vem da convers\u00e3o de espa\u00e7os em `&nbsp;`. `Notifier.body_whitespace_to_html` (`lib/notifier.rb:46`) preserva a formata\u00e7\u00e3o, mas mant\u00e9m um espa\u00e7o real em cada sequ\u00eancia (`lib/notifier.rb:52`, comportamento fixado em `spec/lib/notifier_spec.rb:316`). Texto com espa\u00e7os quebra normalmente. S\u00f3 tokens sem espa\u00e7o estouram o layout.\n\n## Passos para reproduzir\n\n1. Ter uma notifica\u00e7\u00e3o cujo corpo contenha uma URL longa, ou qualquer sequ\u00eancia longa de caracteres sem espa\u00e7os.\n2. Acessar a tela de simula\u00e7\u00e3o dessa notifica\u00e7\u00e3o (`/notifications/:id/simulate`) e simular a notifica\u00e7\u00e3o.\n3. Observar a largura da tabela de resultados e a rolagem da p\u00e1gina.\n\n## Comportamento observado\n\n- A tabela de resultados cresce al\u00e9m da largura da janela.\n- A p\u00e1gina inteira passa a rolar horizontalmente.\n- O cabe\u00e7alho e o menu, dimensionados a 100% da viewport, terminam antes do conte\u00fado, e o fundo da p\u00e1gina fica exposto \u00e0 direita.\n\n## Comportamento esperado\n\nA tabela de resultados deve caber na largura da janela, sem rolagem horizontal da p\u00e1gina, mesmo com corpos que contenham URLs ou outros tokens longos sem espa\u00e7os. Segundo o autor, o preview de e-mail existe para ser lido de relance, ent\u00e3o o corpo deve ser leg\u00edvel sem rolagem horizontal.\n\n## Stack trace / sa\u00edda de erro\n\nN\u00e3o informado na issue original.\n\n## Caso de teste\n\nTeste proposto na issue (spec de feature com `js: true`):\n\n1. Fixar o tamanho da janela do navegador.\n2. Simular uma notifica\u00e7\u00e3o cujo corpo contenha um token longo sem espa\u00e7os.\n3. Comparar `document.documentElement.scrollWidth` com `clientWidth`. N\u00e3o deve haver rolagem horizontal, ou seja, `scrollWidth` n\u00e3o deve exceder `clientWidth`.\n\nSegundo o autor, esse teste falha no comportamento atual e deve passar quando o problema for resolvido.\n\n## Exemplo de c\u00f3digo\n\nN\u00e3o informado na issue original.\n\n## Vers\u00e3o e ambiente\n\n- Reproduz igualmente nas vers\u00f5es 7.15.21 e 7.15.22.\n- N\u00e3o \u00e9 regress\u00e3o: a tabela existe desde o commit `aed6016e`, e o preview do corpo desde `73667dea` (#530).\n- Navegador e sistema operacional: n\u00e3o informados na issue original.",
+ "ttft_ms": 4016,
+ "type": "result",
+ "duration_ms": 12223,
+ "uuid": "ed4d07c6-d71a-4848-b4ba-d30601d9155c",
+ "ttft_stream_ms": 1643,
+ "time_to_request_ms": 907,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 37,
+  "resume_other": 1,
+  "process_user_input": 6,
+  "input_attachments": 27,
+  "input_hooks": 6,
+  "conversation_append": 1,
+  "tool_pool_refresh": 3,
+  "init_message": 19,
+  "init_frame_send": 9,
+  "engine_pickup": 3,
+  "loop_entry": 8,
+  "message_prep": 2,
+  "model_config_wait": 739,
+  "autocompact": 3,
+  "request_announcements": 13,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 3,
+  "client_creation": 8,
+  "request_build": 8
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 41,
+ "time_to_request_cpu_ms": 756,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 31,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 7,
+  "ambient_wait_ms": 13,
+  "render_ms": 3,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 2,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 1,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 2,
+  "headers_ms": 0,
+  "cache_break_record_ms": 1,
+  "plans_ms": 2,
+  "retry_setup_ms": 1,
+  "sent_build_ms": 2,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1643,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

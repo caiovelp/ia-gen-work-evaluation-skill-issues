@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25202,
+ "stop_reason": "end_turn",
+ "session_id": "82aef8b9-4308-45e0-b865-af6f936836ac",
+ "total_cost_usd": 0.058385,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 919,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2500,
+  "output_tokens_details": {
+   "thinking_tokens": 163
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 919,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2500,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 919,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 919
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1507,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016220000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2500,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 919,
+   "webSearchRequests": 0,
+   "costUSD": 0.0582228,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 163,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct `get_FOO_display()` for Fields Overridden in Child Models of Abstract Bases\n\n## Objective\n\n**Problem.** A concrete model can inherit from an abstract base model and redeclare a field with a different `choices` list. When it does, `get_<field>_display()` on the child instance uses the **parent's** choices, not the child's. Values that exist only in the child's choices are returned raw, and their labels are lost.\n\n**Reproduction (from the issue):**\n\n```python\nclass A(models.Model):\n    foo_choice = [(\"A\", \"output1\"), (\"B\", \"output2\")]\n    field_foo = models.CharField(max_length=254, choices=foo_choice)\n\n    class Meta:\n        abstract = True\n\nclass B(A):\n    foo_choice = [(\"A\", \"output1\"), (\"B\", \"output2\"), (\"C\", \"output3\")]\n    field_foo = models.CharField(max_length=254, choices=foo_choice)\n```\n\n| Instance of `B` with `field_foo =` | Expected `get_field_foo_display()` | Actual |\n|---|---|---|\n| `\"A\"` | `\"output1\"` | `\"output1\"` |\n| `\"B\"` | `\"output2\"` | `\"output2\"` |\n| `\"C\"` | `\"output3\"` | `\"C\"` (wrong) |\n\n**Users.** Django developers who override a field with choices in a subclass of an abstract model.\n\n**Success.** `get_FOO_display()` always resolves labels against the field declared on the model class the instance belongs to, including fields overridden in subclasses. A user-defined `get_FOO_display()` method on a model must still not be overwritten.\n\n## Assumptions\n\n1. The target codebase is Django itself, and the fix belongs in the framework, not in user code.\n2. The issue is assigned to the model-fields component. The display method is attached to the model class while the field is contributed to the class. Two hypotheses follow:\n   - The parent's `get_FOO_display` is inherited by the child.\n   - The \"don't override an existing method\" guard is true for this inherited method, so the child never gets a version bound to its own field.\n\n   Neither has been verified against the source.\n3. \"Don't overwrite an existing `get_FOO_display`\" exists to protect methods the user defined explicitly. Those must keep working: a user method on the model wins.\n4. Overriding fields inherited from **abstract** models is supported behavior. Concrete multi-table inheritance does not allow field overriding, so the abstract case is the focus.\n5. The same mechanism may affect other per-field generated methods, such as `get_next_by_FOO` and `get_previous_by_FOO`. That is out of scope unless the investigation shows they share the same defect.\n6. Grouped/nested choices behave the same as flat choices for this bug.\n\n## Tech Stack\n\n- Python, Django (exact supported Python and Django versions: **unknown**).\n- No new dependencies.\n\n## Commands\n\nThe exact commands are **unknown** because the repository was not visible. Django's usual approach is the in-repo test runner, e.g. `tests/runtests.py <test_label>`, but this is unconfirmed.\n\n- Build: N/A (pure Python), unknown otherwise\n- Test: unknown\n- Lint: unknown (style checker/config not visible)\n\n## Project Structure\n\nNot visible. Expected areas, all **unconfirmed**:\n\n- Model field implementation: where `contribute_to_class` attaches `get_FOO_display`\n- Model base class: where `_get_FOO_display` is implemented\n- Test suite: model-fields / model-inheritance test modules\n- Release notes: for a bugfix entry, if the project requires one\n\n## Code Style\n\n- Follow the project's existing conventions; these are **unknown** here.\n- Keep the change minimal and local to the logic that attaches the display method.\n- No behavior changes outside the described scenario.\n\n## Testing Strategy\n\n- Framework: the project's existing test framework (**unknown**; likely the Django test runner with `SimpleTestCase`/`TestCase`).\n- Add regression tests with in-memory model instances. No DB queries should be needed, since `get_FOO_display` reads only the attribute value.\n\n**Required test cases:**\n\n1. Abstract base with choices, and a child overriding the field with extended choices. The child instance returns the child labels for **new** values (`\"C\"` \u2192 `\"output3\"`).\n2. Same setup: values shared with the parent return the **child's** labels. Use a variant where the child relabels `\"A\"` to verify the child field is used and not merely a merged lookup.\n3. Parent instance behavior is unchanged, if the parent is concrete in a variant, or via another concrete subclass that does not override.\n4. A model that explicitly defines `get_FOO_display()` keeps its custom method; the framework does not overwrite it. This is an existing behavior and must not regress.\n5. A subclass that does **not** override the field still gets correct display values from the inherited field.\n6. Values not in choices still return the raw value, which is the existing behavior.\n\nCoverage: all of the above must pass, and the existing model-field and inheritance test suites must remain green.\n\n## Boundaries\n\n- **Always:**\n  - Write a failing regression test reproducing the issue before changing code.\n  - Run the related existing test suites.\n  - Preserve user-defined `get_FOO_display` overrides.\n- **Ask first:**\n  - Extending the fix to other generated methods (`get_next_by_FOO`, etc.).\n  - Changing any public API or documented behavior.\n  - Adding release notes or backporting.\n- **Never:**\n  - Change the semantics of choices validation.\n  - Merge parent and child choices.\n  - Remove or weaken existing tests.\n  - Add dependencies.\n\n## Success Criteria\n\n- [ ] On an instance of `B` from the reproduction, `get_field_foo_display()` returns `\"output1\"`, `\"output2\"`, `\"output3\"` for `\"A\"`, `\"B\"`, `\"C\"` respectively.\n- [ ] When a child overrides an inherited field and changes the label of an existing value, the child's label is returned.\n- [ ] A model that explicitly defines `get_<field>_display()` retains its own implementation.\n- [ ] Models without inheritance and subclasses that don't override the field behave exactly as before.\n- [ ] New regression tests fail before the fix and pass after it, and the existing related test suites pass.\n\n## Open Questions\n\n1. Which Django version/branch is the target, and should the fix be backported?\n2. Should the same correction apply to other auto-generated per-field methods (`get_next_by_FOO` / `get_previous_by_FOO`) if they share the root cause?\n3. Consider a user-defined `get_FOO_display` on an **abstract parent**, with a child that overrides the field. Should the parent's custom method still take precedence, or should the child get a freshly generated method? Only a method defined directly on the class may need protecting, versus one inherited from any ancestor.\n4. Does the project require a release-note entry for this bugfix, and in which file?\n5. What are the exact test command and test module locations for adding the regression tests?",
+ "ttft_ms": 2560,
+ "type": "result",
+ "duration_ms": 24618,
+ "uuid": "b5add906-fe44-4426-b9e5-558dd3428b37",
+ "ttft_stream_ms": 1029,
+ "time_to_request_ms": 277,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 15,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 219,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 24,
+ "time_to_request_cpu_ms": 247,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 11,
+  "cpu_ms": 26,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1029,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

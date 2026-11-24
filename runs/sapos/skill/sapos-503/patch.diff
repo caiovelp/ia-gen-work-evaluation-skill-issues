@@ -1,0 +1,261 @@
+diff --git a/Gemfile.lock b/Gemfile.lock
+index 392dec3b..fb52e9e7 100644
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -564,7 +564,7 @@ DEPENDENCIES
+   web-console
+ 
+ RUBY VERSION
+-   ruby 3.2.2p53
++   ruby 3.2.5p208
+ 
+ BUNDLED WITH
+    2.4.19
+diff --git a/app/controllers/professor_projects_controller.rb b/app/controllers/professor_projects_controller.rb
+new file mode 100644
+index 00000000..f13a499a
+--- /dev/null
++++ b/app/controllers/professor_projects_controller.rb
+@@ -0,0 +1,46 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class ProfessorProjectsController < ApplicationController
++  authorize_resource
++
++  active_scaffold :professor_project do |config|
++    config.list.sorting = { year: "DESC" }
++
++    config.columns[:professor].form_ui = :record_select
++    config.columns[:professor].search_sql = "professors.name"
++    config.columns[:financing_type].form_ui = :select
++    config.columns[:financing_type].options = {
++      options: ProfessorProject::FINANCING_TYPES.map { |t|
++        [I18n.t("activerecord.attributes.professor_project.financing_types.#{t}"), t]
++      },
++      include_blank: false
++    }
++    config.columns[:financing_type].clear_link
++
++    columns = [
++      :professor, :title, :year, :financing_type, :financier, :total_value
++    ]
++    config.create.columns = columns
++    config.update.columns = columns
++    config.list.columns = columns
++    config.show.columns = columns
++    config.search.columns = [:professor, :title, :year]
++
++    config.actions.exclude :deleted_records
++  end
++
++  # Professors (without manager roles) only see and handle their own projects
++  def beginning_of_chain
++    chain = super
++    return chain if current_user.nil? || can?(:manage, ProfessorProject.new)
++
++    chain.where(professor_id: current_user.professor&.id)
++  end
++
++  def before_create_save(record)
++    record.professor ||= current_user&.professor
++  end
++end
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index 591dd693..e7124147 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -19,6 +19,8 @@ class Ability
+     ProfessorResearchArea,
+   ]
+ 
++  PROFESSOR_OWN_MODELS = [ProfessorProject]
++
+   SCHOLARSHIP_MODELS = [
+     Sponsor, ScholarshipDuration, Scholarship, ScholarshipType,
+     ScholarshipSuspension,
+@@ -137,9 +139,13 @@ class Ability
+   def initialize_professors(user, roles)
+     if roles[:manager]
+       can :manage, Ability::PROFESSOR_MODELS
++      can :manage, ProfessorProject
+     end
+     if roles[Role::ROLE_PROFESSOR]
+       can :read, Ability::PROFESSOR_MODELS
++      if user.professor.present?
++        can :manage, ProfessorProject, professor_id: user.professor.id
++      end
+     end
+   end
+ 
+diff --git a/app/models/professor.rb b/app/models/professor.rb
+index de52ea61..29f8a442 100644
+--- a/app/models/professor.rb
++++ b/app/models/professor.rb
+@@ -12,6 +12,7 @@ class Professor < ApplicationRecord
+   has_many :scholarships, dependent: :restrict_with_exception
+   has_many :advisement_authorizations, dependent: :restrict_with_exception
+   has_many :professor_research_areas, dependent: :destroy
++  has_many :professor_projects, dependent: :restrict_with_exception
+   has_many :research_areas, through: :professor_research_areas
+   has_many :course_classes, dependent: :restrict_with_exception
+   has_many :thesis_defense_committee_participations,
+diff --git a/app/models/professor_project.rb b/app/models/professor_project.rb
+new file mode 100644
+index 00000000..d59f6886
+--- /dev/null
++++ b/app/models/professor_project.rb
+@@ -0,0 +1,29 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# Represents a project coordinated by a Professor
++class ProfessorProject < ApplicationRecord
++  has_paper_trail
++
++  FINANCING_TYPES = ["public", "private"].freeze
++
++  belongs_to :professor, optional: false
++
++  validates :title, presence: true
++  validates :financier, presence: true
++  validates :year, presence: true,
++    numericality: {
++      only_integer: true, greater_than_or_equal_to: 1000,
++      less_than_or_equal_to: 9999, allow_nil: true
++    }
++  validates :financing_type, presence: true,
++    inclusion: { in: FINANCING_TYPES, allow_blank: true }
++  validates :total_value, presence: true,
++    numericality: { greater_than_or_equal_to: 0, allow_nil: true }
++
++  def to_label
++    "#{title} (#{year})"
++  end
++end
+diff --git a/config/locales/navigation.pt-BR.yml b/config/locales/navigation.pt-BR.yml
+index 720d60b5..21192576 100644
+--- a/config/locales/navigation.pt-BR.yml
++++ b/config/locales/navigation.pt-BR.yml
+@@ -22,6 +22,7 @@ pt-BR:
+       advisement: Orientações
+       advisement_authorization: Credenciamentos
+       thesis_defense_committee_participation: Bancas
++      professor_project: Projetos
+ 
+     scholarships:
+       label: Bolsas
+diff --git a/config/locales/professor_project.pt-BR.yml b/config/locales/professor_project.pt-BR.yml
+new file mode 100644
+index 00000000..17b85302
+--- /dev/null
++++ b/config/locales/professor_project.pt-BR.yml
+@@ -0,0 +1,24 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++pt-BR:
++  activerecord:
++    attributes:
++      professor_project:
++        professor: "Professor coordenador"
++        title: "Título"
++        year: "Ano"
++        financing_type: "Tipo de financiamento"
++        financing_types:
++          public: "Público"
++          private: "Privado"
++        financier: "Financiador"
++        total_value: "Valor total (R$)"
++
++    models:
++      professor_project:
++        one: "Projeto"
++        other: "Projetos"
++
++  active_scaffold:
++    create_professor_project_label: "Adicionar Projeto"
+diff --git a/config/navigation.rb b/config/navigation.rb
+index d2505ce8..1a5138ea 100644
+--- a/config/navigation.rb
++++ b/config/navigation.rb
+@@ -149,6 +149,7 @@ SimpleNavigation::Configuration.run do |navigation|
+       submenu.modelitem Advisement
+       submenu.modelitem AdvisementAuthorization
+       submenu.modelitem ThesisDefenseCommitteeParticipation
++      submenu.modelitem ProfessorProject
+     end
+ 
+     scholar_models = [Scholarship, ScholarshipType, ScholarshipDuration]
+diff --git a/config/routes.rb b/config/routes.rb
+index 8eaf23eb..9bbdfd52 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -160,6 +160,10 @@ Rails.application.routes.draw do
+     end
+   end
+ 
++  resources :professor_projects do
++    concerns :active_scaffold
++  end
++
+   resources :professors do
+     concerns :active_scaffold
+     record_select_routes
+diff --git a/db/migrate/20241101000000_create_professor_projects.rb b/db/migrate/20241101000000_create_professor_projects.rb
+new file mode 100644
+index 00000000..3d092064
+--- /dev/null
++++ b/db/migrate/20241101000000_create_professor_projects.rb
+@@ -0,0 +1,15 @@
++# frozen_string_literal: true
++
++class CreateProfessorProjects < ActiveRecord::Migration[7.0]
++  def change
++    create_table :professor_projects do |t|
++      t.references :professor, null: false, index: true
++      t.string :title, null: false
++      t.integer :year, null: false
++      t.string :financing_type, null: false
++      t.string :financier, null: false
++      t.decimal :total_value, precision: 14, scale: 2, null: false
++      t.timestamps
++    end
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 5bc81fc6..c541ef84 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2024_09_12_113419) do
++ActiveRecord::Schema[7.0].define(version: 2024_11_01_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -674,6 +674,18 @@ ActiveRecord::Schema[7.0].define(version: 2024_09_12_113419) do
+     t.boolean "active", default: true, null: false
+   end
+ 
++  create_table "professor_projects", force: :cascade do |t|
++    t.integer "professor_id", null: false
++    t.string "title", null: false
++    t.integer "year", null: false
++    t.string "financing_type", null: false
++    t.string "financier", null: false
++    t.decimal "total_value", precision: 14, scale: 2, null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["professor_id"], name: "index_professor_projects_on_professor_id"
++  end
++
+   create_table "professor_research_areas", force: :cascade do |t|
+     t.integer "professor_id"
+     t.integer "research_area_id"

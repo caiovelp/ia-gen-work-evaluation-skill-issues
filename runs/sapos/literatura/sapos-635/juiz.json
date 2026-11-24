@@ -1,0 +1,1 @@
+{"justificativa": "O patch usa `user&.email`, eliminando o NoMethodError e deixando o Devise mostrar a mensagem de token inválido. A condição extra `!email_before.nil?` só reforça a guarda e não altera o caminho feliz.", "veredito": "resolve"}

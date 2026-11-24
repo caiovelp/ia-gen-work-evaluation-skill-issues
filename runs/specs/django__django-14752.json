@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25501,
+ "stop_reason": "end_turn",
+ "session_id": "d72a36a8-e5be-453a-9cd7-069bbe9fa47b",
+ "total_cost_usd": 0.0633029,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1642,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2453,
+  "output_tokens_details": {
+   "thinking_tokens": 160
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1642,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2453,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1642,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1642
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2226,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00023610000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2453,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1642,
+   "webSearchRequests": 0,
+   "costUSD": 0.06306679999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 160,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Extension point for result serialization in `AutocompleteJsonView`\n\n## Assumptions\n\n1. **Project.** This is Django, and the target class is `django.contrib.admin.views.autocomplete.AutocompleteJsonView`. The file path `django/contrib/admin/views/autocomplete.py` comes from the dotted module name in the issue and has not been checked against the repository.\n2. **Current behaviour of `get()`.** The issue quotes it as:\n   - call `process_request(request)`, which returns `term`, `model_admin`, `source_field` and `to_field_name`\n   - check `has_perm(request)`, raising `PermissionDenied` on failure\n   - call `get_queryset()`, then `get_context_data()`\n   - return a `JsonResponse` with `results` and `pagination`\n\n   This may differ slightly in the actual target branch.\n3. **Each result today** is `{'id': str(getattr(obj, to_field_name)), 'text': str(obj)}`.\n4. **New method name and signature:** `serialize_result(self, obj, to_field_name)`, as proposed in the issue.\n5. **Compatibility.** This is a purely additive change. The JSON response format, permission checks, pagination and query behaviour must not change.\n6. **Bug in the issue's example.** The example override uses `super.serialize_result(...)`. That is a typo for `super().serialize_result(...)`.\n7. **Dict merge operator.** The example uses `dict | dict`, which needs Python \u2265 3.9. That only constrains user code or docs examples, not the core implementation.\n8. **Documentation.** The new method is intended as a public, documented extension point. It is not a private helper.\n\n## Objective\n\nLet developers add extra fields to each item in the admin autocomplete JSON response (for example `{'notes': obj.notes}`) by overriding one small method. Today they must copy and override the whole `AutocompleteJsonView.get()`.\n\n**Users:** developers who customize the Django admin and need related-model data on autocomplete items. This is the autocomplete counterpart of adding data attributes to `Select`-based widget options.\n\n**Why:** a copied `get()` falls out of sync as Django changes upstream, which creates ongoing maintenance work.\n\n**User story:** As an admin developer, I can subclass `AutocompleteJsonView` and override only `serialize_result(obj, to_field_name)`. Each result then includes my extra keys, and I still inherit all of the upstream request processing, permission checks and pagination.\n\n## Tech Stack\n\n- Python and Django. The target Django version or branch is unknown.\n- The view is a Django class-based view that returns `django.http.JsonResponse`.\n\n## Commands\n\nAll of these are unknown, because no repository access was available.\n\n- Build: unknown (not applicable for this change)\n- Test: unknown. Use the project's standard test runner for the admin views and autocomplete test modules.\n- Lint: unknown\n- Docs build: unknown\n\n## Project Structure\n\n| Item | Location |\n|---|---|\n| Source | `django/contrib/admin/views/autocomplete.py` (inferred from module path, unverified) |\n| Tests | unknown; presumably the existing admin autocomplete view tests |\n| Docs | unknown; presumably the admin reference docs that cover `ModelAdmin.autocomplete_fields`, `AutocompleteJsonView`, and the release notes |\n\n## Code Style\n\nFollow the existing code style of the file being modified (unknown).\n\nThe interface proposed in the issue, for illustration only:\n\n```python\n# In get():\n'results': [\n    self.serialize_result(obj, to_field_name) for obj in context['object_list']\n],\n\ndef serialize_result(self, obj, to_field_name):\n    return {'id': str(getattr(obj, to_field_name)), 'text': str(obj)}\n```\n\n## Testing Strategy\n\n- **Framework:** the project's existing test framework (unknown specifics). Place new tests alongside the existing autocomplete view tests.\n- **Regression:** the existing autocomplete tests must pass unchanged. This shows the default output is byte-for-byte identical in structure and values.\n- **New unit or integration test:** subclass `AutocompleteJsonView` and override `serialize_result` to add an extra key. Then request the view and assert that:\n  - each result contains `id`, `text` and the extra key, with correct values\n  - `pagination.more` is still correct\n- **Direct test of the default method:** for a given object and `to_field_name`, the default `serialize_result` returns exactly `{'id': str(getattr(obj, to_field_name)), 'text': str(obj)}`.\n- **No coverage gaps:** permission denial and bad-request paths keep their existing tests and behaviour.\n\n## Boundaries\n\n**Always:**\n- Keep the response shape `{'results': [...], 'pagination': {'more': bool}}` unchanged.\n- Call `serialize_result` once per object in `context['object_list']`.\n- Add tests and documentation for the new method.\n\n**Ask first:**\n- Changing the method name or signature, for example passing `request` or other context.\n- Also exposing a hook for the top-level response or pagination.\n- Backporting to any stable branch.\n\n**Never:**\n- Change permission checks, `process_request` semantics, queryset or pagination logic, or the default `id`/`text` values.\n- Remove or alter existing tests to make them pass.\n\n## Success Criteria\n\n1. `AutocompleteJsonView` has a method `serialize_result(self, obj, to_field_name)` that returns `{'id': str(getattr(obj, to_field_name)), 'text': str(obj)}` by default.\n2. `get()` builds every entry in `results` by calling `self.serialize_result(obj, to_field_name)`. No other behaviour of `get()` changes.\n3. A subclass that overrides only `serialize_result`, for example to return `super().serialize_result(obj, to_field_name) | {'notes': obj.notes}`, gets the extra key in every result. It needs no other overrides.\n4. All existing autocomplete and admin tests pass without modification.\n5. New tests cover both the default serialization and an overridden serialization.\n6. The method is documented, including an override example that uses `super()` correctly, and a release note entry is added. Exact doc locations are unknown.\n\n## Open Questions\n\n1. Should `serialize_result` be a documented public API, or an undocumented hook? This affects whether docs and release notes are required.\n2. Is `(obj, to_field_name)` the right signature, or should the hook also receive the request or other context for per-request customization?\n3. Which Django version or branch should this target? This decides the release-notes location, and whether a docs example may use the `|` dict operator, given the minimum supported Python version.\n4. Where exactly do the autocomplete view tests and admin docs live in the repository?\n5. Has `get()` diverged in the current branch from the version quoted in the issue?",
+ "ttft_ms": 3547,
+ "type": "result",
+ "duration_ms": 24507,
+ "uuid": "860498aa-7fbd-4e77-8e64-0e9e1ef93af2",
+ "ttft_stream_ms": 1986,
+ "time_to_request_ms": 270,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 17,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 18,
+ "time_to_request_cpu_ms": 278,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1986,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

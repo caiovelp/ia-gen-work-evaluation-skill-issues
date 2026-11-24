@@ -1,0 +1,1 @@
+{"justificativa": "The candidate adds a golden-master helper with PDF/XLSX normalization, but writes no characterization tests for the critical outputs (boletim/report, admission XLSX). It also does not add pdf-reader for semantic comparison, and its `mask_qr` option discards every stream, including text, so signed PDFs are barely compared.", "veredito": "parcial"}

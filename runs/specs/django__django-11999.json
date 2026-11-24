@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29779,
+ "stop_reason": "end_turn",
+ "session_id": "2a919b02-5405-4db0-a1a2-7f5d69fbc527",
+ "total_cost_usd": 0.0635183,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 792,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2808,
+  "output_tokens_details": {
+   "thinking_tokens": 262
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 792,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2808,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 792,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 792
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1375,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001515,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2808,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 792,
+   "webSearchRequests": 0,
+   "costUSD": 0.0633668,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 262,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Allow user-defined `get_FOO_display()` overrides on models (regression since Django 2.2)\n\n## Objective\n\nFrom Django 2.2 onward, a model that defines its own `get_<field>_display()` method for a field with `choices` no longer uses that method. Django's auto-generated display method replaces it. In Django 2.1 the user-defined method took precedence.\n\n**Goal:** Restore the 2.1 behaviour. A `get_<field>_display()` method that the developer explicitly defines on a model must take precedence over the one Django generates automatically.\n\n**User:** Django application developers who customise how choice fields are displayed. This affects `__str__`, templates, admin, and serializers that call `get_FOO_display()`.\n\n**User stories / acceptance criteria:**\n\n- As a developer, when I define `get_foo_bar_display()` on a model with a `choices` field `foo_bar`, calling `instance.get_foo_bar_display()` returns my method's result.\n- As a developer, when I do **not** define such a method, `instance.get_foo_bar_display()` keeps its current behaviour. It returns the human-readable label for the stored value, or the raw value if that value is not among the choices.\n- Methods defined in the model class body or inherited from a parent class or mixin are not silently replaced. The exact inheritance expectations are listed under Open Questions.\n\n**Reproduction (from the issue):**\n\n```python\nclass FooBar(models.Model):\n    foo_bar = models.CharField(_(\"foo\"), choices=[(1, 'foo'), (2, 'bar')])\n\n    def __str__(self):\n        return self.get_foo_bar_display()  # 2.2+: 'foo' or 'bar'; 2.1: 'something'\n\n    def get_foo_bar_display(self):\n        return \"something\"\n```\n\n- **Expected:** `str(instance) == \"something\"`\n- **Actual (2.2+):** `str(instance)` is `\"foo\"` or `\"bar\"`\n\n## Assumptions\n\n1. This is a regression introduced in Django 2.2. The 2.1 behaviour (user override wins) is the intended contract, not an accident.\n2. The likely cause is a change in how the field attaches the generated `get_<name>_display` method during model class creation. In 2.2+ it appears to set the method unconditionally, overwriting any method already defined on the class. This is not verified, because no source code was available.\n3. The example's quirks do not affect the bug and are not part of the defect:\n   - It uses integer choice values on a `CharField`.\n   - It has no `max_length`, which system checks would flag.\n4. The fix should apply to every field type that supports `choices` and generates `get_FOO_display()`, not only `CharField`.\n5. The fix should be backported to supported release branches. This depends on Django's backport policy, which is unknown here.\n6. The public API stays as it is: the method name pattern `get_<field_name>_display` and its zero-argument signature are unchanged.\n\n## Tech Stack\n\n- Python and the Django ORM, model metaclass / field `contribute_to_class` machinery (assumed).\n- Affected versions: Django 2.2 and later (per the issue). Working version: Django 2.1.\n- Exact Python versions and the target branch are unknown.\n\n## Commands\n\nThe issue does not provide them, so all are unknown.\n\n- Build: unknown (likely not applicable)\n- Test: unknown (Django's own test-runner invocation is not shown in the issue)\n- Lint: unknown\n- Dev: not applicable\n\n## Project Structure\n\nNot visible from the issue, so all are unknown.\n\n- Location of the field code that generates `get_FOO_display`: unknown\n- Location of the model-method / choices display tests: unknown\n- Release notes location for documenting the regression fix: unknown\n\n## Code Style\n\n- Follow the existing Django code style in the files touched. The conventions are not visible here.\n- The only code available is the reproduction snippet above. It should be the basis of the regression test.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner and location are unknown.\n- **Regression test (required):** a model with a `choices` field and an explicitly defined `get_<field>_display()`. Assert that the override's return value is used.\n- **Non-regression tests (required):**\n  - With no override defined, `get_FOO_display()` returns the choice label for a known value.\n  - With no override defined, `get_FOO_display()` returns the raw value for an unknown value.\n  - The override can call the default display logic (e.g. via `super()`, if a parent provides it) without infinite recursion. See Open Questions.\n- **Inheritance tests (pending answers to Open Questions):**\n  - The override is defined on an abstract base class, and the field is on that base.\n  - The override is defined on a child class, and the field is on the parent.\n  - The override comes from a plain mixin.\n  - A concrete child of a model whose field was auto-generated still gets correct behaviour.\n- **Test levels:** unit/model-level tests only. No database-dependent behaviour is expected beyond model instantiation.\n- **Coverage:** every new branch in the method-attachment logic is exercised.\n\n## Boundaries\n\n- **Always:**\n  - Add the regression test from the issue's example.\n  - Keep the default behaviour unchanged when no override exists.\n  - Run the full model/field test suites before committing.\n- **Ask first:**\n  - Changing behaviour for overrides inherited from parent models or mixins, if that differs from 2.1.\n  - Backporting to older release branches.\n  - Adding any deprecation or warning.\n  - Changing documented behaviour of `get_FOO_display()`.\n- **Never:**\n  - Change the method name pattern or signature.\n  - Remove or weaken existing tests.\n  - Alter unrelated field `contribute_to_class` behaviour, such as descriptors or other generated methods, beyond what this fix needs.\n\n## Success Criteria\n\n1. The issue's `FooBar` example returns `\"something\"` from both `str(instance)` and `instance.get_foo_bar_display()` on the fixed version.\n2. Models without an override return identical `get_FOO_display()` results before and after the change. The existing test suite passes unchanged.\n3. A new regression test fails on the current (2.2+) behaviour and passes after the fix.\n4. The agreed inheritance scenarios (see Open Questions) behave as specified and are covered by tests.\n5. A release note documents the fixed regression, if the project's process requires one (unknown).\n\n## Open Questions\n\n1. **Inheritance semantics:**\n   - Should an override defined on a parent model, an abstract base, or a mixin also be respected?\n   - Should a child model's auto-generated method replace a parent's custom one when the child redeclares the field?\n   - What did 2.1 do in each of these cases?\n2. **Calling the default implementation:** Should there be a supported way for an override to delegate to Django's default display logic? Examples are `super().get_foo_bar_display()` or a documented internal helper. Or is a full replacement the only supported pattern?\n3. **Which 2.2 change caused this?** Was it deliberate (e.g. related to choices on inherited/overridden fields) in a way that a naive fix could break?\n4. **Backport targets:** Which release branches should receive the fix?\n5. **Documentation:** Should the docs state explicitly that `get_FOO_display()` can be overridden?\n6. **Scope of related generated methods:** Should other auto-generated per-field methods (e.g. next/previous-by-date helpers) get the same \"don't overwrite user-defined methods\" treatment, or is that out of scope?\n7. Repository paths, test commands, and lint commands are unknown and need to be supplied.",
+ "ttft_ms": 4218,
+ "type": "result",
+ "duration_ms": 28875,
+ "uuid": "1af86aa7-ac49-46b4-8923-6fdadd3eea5e",
+ "ttft_stream_ms": 1932,
+ "time_to_request_ms": 294,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 14,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 28,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 203,
+  "autocompact": 4,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 334,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1933,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

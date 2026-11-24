@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 11447,
+ "stop_reason": "end_turn",
+ "session_id": "c4c93aa0-c223-4573-9518-023f163cf0a4",
+ "total_cost_usd": 0.0336285,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1421,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1104,
+  "output_tokens_details": {
+   "thinking_tokens": 233
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1421,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1104,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1421,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1421
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1630,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017250000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1104,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1421,
+   "webSearchRequests": 0,
+   "costUSD": 0.033456,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 233,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nIn `sphinx.ext.autosummary`, the `members` template variable for a module template includes imported members, such as `os`, even when `autosummary_imported_members = False`.\n\n## Steps to reproduce\n1. Create a Sphinx project with `sphinx.ext.autosummary` enabled.\n2. Add the custom module template `_templates/autosummary/module.rst`, the module `example.py`, and the `index.rst` and `conf.py` content shown under **Code example**.\n3. In `conf.py`, set `autosummary_generate = True` and `autosummary_imported_members = False`.\n4. Build the documentation.\n5. Open the generated file `generated/example.rst`.\n\n## Observed behavior\nThe `members` variable lists the imported module `os`, along with module attributes such as `__builtins__` and `__doc__`. The generated `generated/example.rst` is:\n\n```\nexample\n=======\n\n.. automodule:: example\n\n   .. autosummary::\n\n      __builtins__\n      __cached__\n      __doc__\n      __file__\n      __loader__\n      __name__\n      __package__\n      __spec__\n      os\n```\n\n## Expected behavior\nWhen `autosummary_imported_members` is `False`, the template variable `members` should not contain imported members. In this example, `os` should not appear in `generated/example.rst`.\n\n## Stack trace / error output\nNot provided in the original report. No error is raised; the problem is incorrect generated output.\n\n## Test case\nA minimal test case based on the reproduction in the report:\n\n- **Setup:** Use the four files under **Code example**, with `autosummary_generate = True` and `autosummary_imported_members = False`.\n- **Action:** Build the documentation so that autosummary generates `generated/example.rst`.\n- **Assertion:** The `autosummary` list in `generated/example.rst` does not contain `os`, which is the member imported by `example.py`.\n\n## Code example\n`_templates/autosummary/module.rst`:\n```\n{{ fullname | escape | underline }}\n\n.. automodule:: {{ fullname }}\n\n   .. autosummary::\n   {% for item in members %}\n      {{ item }}\n   {%- endfor %}\n```\n\n`example.py`:\n```python\nimport os\n```\n\n`index.rst`:\n```\n.. autosummary::\n   :toctree: generated\n\n   example\n```\n\n`conf.py`:\n```python\nautosummary_generate = True\nautosummary_imported_members = False\n```\n\n## Version and environment\n- OS: Mac\n- Python version: 3.8.2\n- Sphinx version: 3.1.0dev\n- Sphinx extensions: `sphinx.ext.autosummary`\n- Extra tools: None",
+ "ttft_ms": 4461,
+ "type": "result",
+ "duration_ms": 10863,
+ "uuid": "f4241f05-da06-443e-9503-b7b51f5b91d7",
+ "ttft_stream_ms": 1421,
+ "time_to_request_ms": 228,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 197,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 126,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1422,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26044,
+ "stop_reason": "end_turn",
+ "session_id": "5136d56b-3a93-4301-9cad-f5604aded176",
+ "total_cost_usd": 0.060629999999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1065,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2553,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1065,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2553,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1065,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1065
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1652,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001792,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2553,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1065,
+   "webSearchRequests": 0,
+   "costUSD": 0.0604508,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: ManagementUtility uses its own computed program name for the preliminary option parser\n\n## Assumptions\n\n1. This is the Django project. The class is `ManagementUtility`, probably in `django/core/management/__init__.py`. That location comes from the issue context and has not been checked in the repository.\n2. `CommandParser` is Django's subclass of `argparse.ArgumentParser`. It accepts and forwards the standard `prog` keyword argument.\n3. With argparse, when `prog` is not given it defaults to `os.path.basename(sys.argv[0])`. The `%(prog)s` placeholder in `usage` expands to that value. When `sys.argv[0]` is `None`, `os.path.basename(None)` raises `TypeError` while the parser is being built.\n4. The parser in question is the preliminary one. It parses `--settings` and `--pythonpath` in `ManagementUtility.execute()`, and it is built with `usage='%(prog)s subcommand [options] [args]', add_help=False, allow_abbrev=False`.\n5. `self.prog_name` is computed in `__init__` and is already correct, including the `'__main__.py'` \u2192 `'python -m django'` mapping. It needs no change.\n6. `execute_from_command_line` is technically private API. The fix is still worth making as a small correctness and consistency improvement.\n7. The scope is only this preliminary parser. Other places that may read `sys.argv` (for example subcommand parsers or `BaseCommand.create_parser`) are out of scope unless the investigation finds that they block the reporter's use case. See Open Questions.\n\n## Objective\n\nWhen `ManagementUtility` (or `execute_from_command_line(argv)`) is called with an explicit `argv`, it should get the program name from that `argv` and not from the global `sys.argv`.\n\nRight now, `__init__` computes `self.prog_name` from the supplied `argv`. The preliminary `CommandParser` in `execute()` ignores that value, so argparse falls back to `sys.argv[0]`. As a result:\n\n- Usage and error text from this parser can show the wrong program name when the supplied `argv[0]` differs from `sys.argv[0]`.\n- In embedded environments where `sys.argv[0]` is `None`, building the parser raises an exception. That happens even though the caller supplied a valid `argv`, so the caller has to patch `sys.argv[0]` globally as a workaround.\n\n**User:** a developer embedding Django who calls `execute_from_command_line(custom_argv)` / `ManagementUtility(custom_argv).execute()` in a process where `sys.argv` is wrong or unusable.\n\n**Success:** passing a custom `argv` is enough for the preliminary parser to work. No mutation of `sys.argv` is required.\n\n## Tech Stack\n\n- Python, Django core management framework (`django.core.management`)\n- `argparse` (via `CommandParser`)\n- Supported Python and Django versions: unknown, not stated in the issue\n\n## Commands\n\nUnknown. Not visible in the issue. Django's test runner is likely invoked from the `tests/` directory (e.g. `./runtests.py <module>`), but the exact command, flags, and target test module are unverified.\n\n```\nBuild: unknown\nTest: unknown\nLint: unknown\nDev: n/a\n```\n\n## Project Structure\n\nUnknown beyond what the issue implies:\n\n```\ndjango/core/management/__init__.py  \u2192 ManagementUtility, execute_from_command_line (assumed location)\ndjango/core/management/base.py      \u2192 CommandParser (assumed location)\ntests/                              \u2192 test suite; exact module for management/admin-script tests unknown\n```\n\n## Code Style\n\nThe repository is not visible. Follow the existing Django conventions in the surrounding code. The issue suggests passing `prog` explicitly as a keyword argument alongside the existing ones, with one keyword per line when the call is wrapped. That suggestion is not code from the repository, and the final form should match the file's existing style.\n\n## Testing Strategy\n\n- Framework: Django's own test suite (unittest-based). The exact location for management-utility tests is unknown.\n- Regression test(s) needed, at unit/integration level against `ManagementUtility` / `execute_from_command_line`:\n  1. With `sys.argv[0]` temporarily set to `None` (patched and restored within the test), run `execute_from_command_line` with a custom `argv` whose `argv[0]` is a valid name and that includes `--settings` and/or `--pythonpath` plus a simple subcommand or help invocation. It should not raise `TypeError` (or any other exception) from parser construction.\n  2. With `sys.argv[0]` set to something different from the supplied `argv[0]`, any usage text produced by the preliminary parser should contain the program name derived from the supplied `argv`, not from `sys.argv`.\n- The existing management command and admin script tests should still pass, especially the `python -m django` \u2192 `'python -m django'` program-name behavior.\n- Coverage expectation: unknown. At minimum, the regression scenario above must be covered.\n\n## Boundaries\n\n- **Always:**\n  - Use the already computed `self.prog_name` and do not re-derive the program name.\n  - Keep the existing preliminary parser behavior unchanged otherwise: the usage string, `add_help=False`, `allow_abbrev=False`, and the handling of `--settings`, `--pythonpath`, and unknown args.\n  - Add a regression test.\n  - Restore any patched `sys.argv` in tests.\n- **Ask first:**\n  - Extending the fix to other parsers or code paths that read `sys.argv` (e.g. per-command `create_parser`, autocomplete, help output).\n  - Changing how `self.prog_name` is computed.\n  - Making any `execute_from_command_line` behavior a documented or public guarantee.\n- **Never:**\n  - Mutate `sys.argv` globally inside Django to work around the problem.\n  - Change the public signatures of `ManagementUtility` / `execute_from_command_line`.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. The preliminary `CommandParser` in `ManagementUtility.execute()` gets its program name from `self.prog_name` and not from `sys.argv[0]`.\n2. `execute_from_command_line(argv)` with a valid `argv[0]` does not raise from preliminary parser construction when `sys.argv[0]` is `None`.\n3. Usage text rendered by the preliminary parser uses `self.prog_name`, including `'python -m django'` when `argv[0]` is `__main__.py`.\n4. When `argv` is omitted (`argv=None`), behavior is unchanged, because `self.argv` then defaults to `sys.argv[:]`.\n5. A new regression test fails before the change and passes after it. The existing management tests all pass.\n\n## Open Questions\n\n1. Does the reporter's scenario (`sys.argv[0] is None` with a custom `argv`) hit other `sys.argv[0]`-dependent code after this parser? Examples are subcommand parsers built by `BaseCommand.create_parser`, help output, or autocomplete. If so, is fixing those in scope for this issue, or should they be separate tickets?\n2. Which test module is the canonical home for this regression test (e.g. admin-script tests vs. a dedicated management-utility test), and what is the exact command to run it?\n3. Should the fix be backported to any maintained release branches, or should it land only on the main development branch?\n4. Should a release note be added, given that `execute_from_command_line` is private API?\n5. Which Python versions must be supported? This affects whether argparse's default-`prog` behavior differs across versions.",
+ "ttft_ms": 25405,
+ "type": "result",
+ "duration_ms": 25424,
+ "uuid": "2d3e9aa9-f321-4646-827b-654941305245",
+ "ttft_stream_ms": 1692,
+ "time_to_request_ms": 287,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 23,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 221,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 17,
+ "time_to_request_cpu_ms": 278,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1693,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

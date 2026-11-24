@@ -1,0 +1,13 @@
+diff --git a/app/models/enrollment_hold.rb b/app/models/enrollment_hold.rb
+index 165f9a25..c2de91b0 100644
+--- a/app/models/enrollment_hold.rb
++++ b/app/models/enrollment_hold.rb
+@@ -41,7 +41,7 @@ class EnrollmentHold < ApplicationRecord
+       errors.add(:base, :before_admission_date)
+     end
+     dismissal = enrollment.dismissal
+-    if dismissal.present? && self.end_date > dismissal.date
++    if dismissal.present? && self.start_date > dismissal.date
+       errors.add(:base, :after_dismissal_date)
+     end
+   end

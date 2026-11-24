@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25462,
+ "stop_reason": "end_turn",
+ "session_id": "4260c37a-dc30-493b-b9e8-da2f888e843d",
+ "total_cost_usd": 0.05598789999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1006,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2345,
+  "output_tokens_details": {
+   "thinking_tokens": 131
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1006,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2345,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1006,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1006
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1591,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016910000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2345,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1006,
+   "webSearchRequests": 0,
+   "costUSD": 0.055818799999999995,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 131,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Figure remains picklable after `align_labels()`\n\n## Objective\n\nCalling `fig.align_labels()` (and probably `align_xlabels()` / `align_ylabels()`) makes a Matplotlib figure unpicklable. `pickle.dumps(fig)` then fails with:\n\n```\nTypeError: cannot pickle 'weakref.ReferenceType' object\n```\n\nThe same figure pickles fine if the `align_labels()` call is removed.\n\n**User:** Matplotlib users who serialize figures, for example to cache them, send them between processes, or save and restore them later, and who also align axis labels.\n\n**Goal:** A figure on which label alignment has been requested can be pickled and unpickled. The restored figure keeps its aligned-label behaviour.\n\n**Reported environment:** Matplotlib 3.7.0 on Windows. Backend and Python version were not given.\n\n**Reproduction (from the issue):**\n\n```python\nimport matplotlib.pyplot as plt\nimport pickle\n\nfig = plt.figure()\nax1 = fig.add_subplot(211)\nax2 = fig.add_subplot(212)\ntime=[0,1,2,3,4]\nspeed=[40000,4300,4500,4700,4800]\nacc=[10,11,12,13,14]\nax1.plot(time,speed)\nax1.set_ylabel('speed')\nax2.plot(time,acc)\nax2.set_ylabel('acc')\n\nfig.align_labels()  # pickling works after removing this line\n\npickle.dumps(fig)\n```\n\n## Assumptions\n\n1. The bug is not specific to Windows or to any backend. It is a serialization defect in figure state, so it should reproduce on all platforms.\n2. The error is in the Python layer: some object that `align_labels()` stores on the figure holds `weakref` references, and the default pickling cannot handle them. Hypothesis, not verified: this is the figure's label-alignment grouping structure, likely a weakref-based grouping helper. The exact attribute and class are unknown without the source.\n3. `align_xlabels()` and `align_ylabels()` record alignment state the same way `align_labels()` does, so they fail the same way.\n4. Expected behaviour after unpickling: the alignment groups refer to the unpickled Axes objects, not to stale or missing ones. Labels stay aligned when the restored figure is drawn.\n5. The bug is present in the current development branch, not only in 3.7.0.\n6. The fix must not change the public API of `align_labels` / `align_xlabels` / `align_ylabels`.\n7. Pickling an unaligned figure must keep working exactly as it does today.\n\n## Tech Stack\n\n- Python and Matplotlib. The affected version is 3.7.0; the target branch is unknown.\n- The standard library modules `pickle` and `weakref` are involved.\n- Supported Python versions and other dependencies are unknown, because they are not visible in the issue.\n\n## Commands\n\nAll unknown, since the repository is not visible:\n\n- **Build/install:** unknown\n- **Test:** unknown. The project likely uses pytest, but the exact invocation and test file paths are not confirmed.\n- **Lint:** unknown\n- **Dev:** not applicable\n\n## Project Structure\n\nUnknown. The issue does not show any of these:\n\n- The module that implements `Figure.align_labels`\n- The module that implements the grouping helper that holds weakrefs\n- The location of the existing pickling tests\n\n## Code Style\n\nUnknown. Follow the existing conventions of the files being modified. No style snippet is available from the issue.\n\n## Testing Strategy\n\nAdd a regression test at the unit/integration level. The test location and framework are unknown.\n\nThe test should cover:\n\n1. **Main regression.** Build a figure with at least two subplots and labels, call `align_labels()`, and assert that `pickle.dumps(fig)` succeeds.\n2. **Round-trip.** `pickle.loads(pickle.dumps(fig))` succeeds and returns a usable figure that can be drawn, for example to an Agg canvas, without errors.\n3. **Alignment preserved.** After round-trip and draw, the y-labels of the aligned axes are still aligned. One possible check is that their x positions in display coordinates are equal.\n4. **Variants.** Repeat the checks after only `align_xlabels()` and after only `align_ylabels()`.\n5. **No regression.** Pickling a figure without alignment still works. Existing pickle tests still pass.\n\n## Boundaries\n\n**Always:**\n- Add a regression test that fails before the fix and passes after it.\n- Keep the public signatures of `align_labels` / `align_xlabels` / `align_ylabels` unchanged.\n- Keep the weak-reference semantics at runtime, so that grouping does not keep deleted Axes alive.\n\n**Ask first:**\n- Changing the behaviour or public interface of the shared grouping helper class, if other parts of the library use it.\n- Replacing weak references with strong references.\n- Adding new dependencies.\n\n**Never:**\n- Silently drop alignment state on pickling without agreement. That would change behaviour after unpickling.\n- Remove or skip existing pickle tests.\n- Fix this only for the reporter's platform or backend.\n\n## Success Criteria\n\n- [ ] The issue's reproduction script runs without raising, on the target branch.\n- [ ] `pickle.loads(pickle.dumps(fig))` succeeds after `align_labels()`, `align_xlabels()`, or `align_ylabels()`.\n- [ ] The unpickled figure draws without error, and its aligned labels are still aligned.\n- [ ] Alignment groups in the unpickled figure refer only to the unpickled figure's own Axes.\n- [ ] All existing tests, including pickling tests, still pass.\n- [ ] A regression test covering the above is added.\n\n## Open Questions\n\n1. Which object exactly holds the weakrefs? Is it a shared grouping utility? If so, should that utility become picklable in general, which may affect other users of it, or should only the figure's pickling handle it?\n2. Should alignment be preserved across pickling, or is it acceptable to drop alignment state on pickle and require users to call `align_labels()` again? This spec assumes it must be preserved.\n3. Do other figure-level methods store similar weakref-based state that would hit the same error, for example subfigures or shared-axes groupings? Should they be in scope?\n4. Which branch and versions should get the fix? Should it be backported to 3.7.x?\n5. What are the test command and test file locations for pickling tests in this repository?\n6. Does the bug also reproduce with `copy.deepcopy(fig)`, and is that in scope?",
+ "ttft_ms": 3147,
+ "type": "result",
+ "duration_ms": 24458,
+ "uuid": "5c6721cc-1b7a-4b02-8656-a72f4eff042b",
+ "ttft_stream_ms": 1634,
+ "time_to_request_ms": 249,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 7,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 214,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 153,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1634,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

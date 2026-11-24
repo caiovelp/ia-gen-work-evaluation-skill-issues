@@ -1,0 +1,41 @@
+diff --git a/Gemfile b/Gemfile
+index 5bf6a55a..317056c2 100644
+--- a/Gemfile
++++ b/Gemfile
+@@ -31,7 +31,7 @@ gem "recaptcha", require: "recaptcha/rails"
+ gem "dotenv-rails", require: "dotenv/load"   # ENV a partir de .env (recaptcha etc.)
+ 
+ # ─── UI administrativa / scaffolding ─────────────────────────────────────
+-gem "active_scaffold", "~> 4.0.13"       # upgrade exige saltos de versao (#621)
++gem "active_scaffold", "4.3.0"
+ gem "active_scaffold_duplicate"
+ gem "recordselect"
+ gem "simple-navigation"                  # menu (config/navigation.rb)
+diff --git a/Gemfile.lock b/Gemfile.lock
+index 1bd4439a..349a675e 100644
+--- a/Gemfile.lock
++++ b/Gemfile.lock
+@@ -57,11 +57,11 @@ GEM
+       erubi (~> 1.11)
+       rails-dom-testing (~> 2.2)
+       rails-html-sanitizer (~> 1.6)
+-    active_scaffold (4.0.13)
++    active_scaffold (4.3.0)
+       ice_nine (~> 0.11)
+-      rails (>= 5.2.0)
++      method_source (~> 1.1)
++      rails (>= 7.2.0)
+       request_store (~> 1.3)
+-      sassc-rails (~> 2.0)
+     active_scaffold_duplicate (1.3.0)
+       active_scaffold (>= 4.0.0.rc1)
+     activejob (7.2.3.2)
+@@ -551,7 +551,7 @@ PLATFORMS
+   x86_64-linux
+ 
+ DEPENDENCIES
+-  active_scaffold (~> 4.0.13)
++  active_scaffold (= 4.3.0)
+   active_scaffold_duplicate
+   activerecord-session_store
+   awesome_print

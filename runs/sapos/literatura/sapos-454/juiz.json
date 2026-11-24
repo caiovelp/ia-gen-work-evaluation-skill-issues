@@ -1,0 +1,1 @@
+{"justificativa": "O patch adiciona `created_at` às colunas de listagem e de exibição das inscrições, com rótulo traduzido, e o exclui dos formulários de criação e edição. Isso torna visível na interface o momento da inscrição, que é o que a issue pede. A formatação customizada, a coluna no XLS e as notificações por e-mail do fix oficial são extras.", "veredito": "resolve"}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30127,
+ "stop_reason": "end_turn",
+ "session_id": "269546a7-987d-48dc-8e89-7100daef51ef",
+ "total_cost_usd": 0.06811249999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 979,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2962,
+  "output_tokens_details": {
+   "thinking_tokens": 440
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 979,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2962,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 979,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 979
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1572,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016970000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2962,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 979,
+   "webSearchRequests": 0,
+   "costUSD": 0.0679428,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 440,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct related-object assignment for multi-level `FilteredRelation` with `select_related()`\n\n## Objective\n\nUsing `select_related()` on a `FilteredRelation` whose path spans more than one relation (e.g. `'pool__tournament__pool'`) can populate the selected object, or its cached related objects, with an instance of the wrong model.\n\n**Reproduction (from the issue):**\n\n```python\n# add to known_related_objects.tests.ExistingRelatedInstancesTests\ndef test_wrong_select_related(self):\n    with self.assertNumQueries(3):\n        p = list(PoolStyle.objects.annotate(\n            tournament_pool=FilteredRelation('pool__tournament__pool'),\n        ).select_related('tournament_pool'))\n        self.assertEqual(p[0].pool.tournament, p[0].tournament_pool.tournament)\n```\n\n**Observed:**\n`AssertionError: <Tournament: Tournament object (1)> != <PoolStyle: PoolStyle object (1)>`\n\n`p[0].tournament_pool.tournament` resolves to a `PoolStyle` instead of a `Tournament`. The originating `PoolStyle` instance seems to be cached on the related object under an attribute that belongs to a different relation in the chain. That attribute should hold a `Tournament`, but it holds the source `PoolStyle`.\n\n**Who is affected:** Django ORM users who combine a multi-level `FilteredRelation` with `select_related()`. The ORM silently returns wrong data, with no error raised.\n\n**Success looks like:**\n- Every model instance reached through a multi-level `FilteredRelation` with `select_related()` has the correct type.\n- Every cached relation on those instances points to the correct object.\n- Single-level `FilteredRelation` and plain `select_related()` keep working exactly as they do today.\n\n## Assumptions\n\n1. The codebase is Django. The failing test belongs in `tests/known_related_objects/tests.py` in `ExistingRelatedInstancesTests`, as the issue's traceback shows.\n2. The `known_related_objects` test models relate as follows: `PoolStyle \u2192 Pool` (one-to-one or FK), `Pool \u2192 Tournament` (FK), and `Tournament \u2192 Pool` (reverse). These are inferred from the field path `pool__tournament__pool` and the assertion. They have not been verified.\n3. The bug is in how the SQL compiler or queryset iterator assigns or caches related objects for `FilteredRelation` aliases in `select_related()`. The likely cause is a setter that assumes a single-hop relation and wires the root object back onto the related instance. This is a hypothesis, not a confirmed root cause.\n4. The SQL query itself (joins and selected columns) is probably correct, and only the in-memory assignment of objects is wrong. This is unverified.\n5. The fix should not change the public API or how `FilteredRelation` is declared.\n\n## Tech Stack\n\n- Python and Django ORM. The affected versions and branch are **unknown**.\n- Database backends: **unknown**. The fix should be backend-agnostic.\n\n## Commands\n\nAll commands are **unknown**, because the repository is not visible. The usual Django test runner invocation (run from `tests/`) would be something like `./runtests.py known_related_objects filtered_relation select_related`, but this is unconfirmed.\n\n- Build: unknown / not applicable\n- Test: unknown (see the note above)\n- Lint: unknown\n\n## Project Structure\n\nOnly these locations are known from the issue:\n\n- `tests/known_related_objects/tests.py` holds the test class `ExistingRelatedInstancesTests`, where the regression test goes.\n- The exact source module containing the defect is **unknown**. Likely candidates are the SQL compiler's related-selection logic and the queryset's related-object population logic.\n- Other relevant test packages probably exist, such as `filtered_relation` and `select_related`, but this is unverified.\n\n## Code Style\n\nFollow the existing Django code and test conventions. The issue's test snippet shows the expected test style:\n- methods on a `TestCase` subclass\n- `assertNumQueries` to guard query counts\n- direct comparisons of model instances\n\nNo further style details are visible.\n\n## Testing Strategy\n\n- **Regression test:** add the issue's test, or an equivalent, to `known_related_objects.tests.ExistingRelatedInstancesTests`. It must fail before the fix and pass after.\n- **Type/identity assertions:** check that `p[0].tournament_pool` is a `Pool` and `p[0].tournament_pool.tournament` is a `Tournament`, in addition to the equality check from the issue.\n- **No-regression coverage:** the existing `known_related_objects`, `filtered_relation`, and `select_related`-related test suites must still pass.\n- **Additional cases worth covering:**\n  - a two-level `FilteredRelation` path, such as `'pool__tournament'`, with `select_related()`\n  - a single-level `FilteredRelation` with `select_related()`, which must keep setting the reverse/known-related cache correctly\n  - a multi-level `FilteredRelation` combined with ordinary `select_related()` fields in the same query\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue.\n  - Keep single-hop `FilteredRelation` and normal `select_related()` behaviour unchanged.\n  - Run the related ORM test suites before committing.\n- **Ask first:**\n  - Changing the generated SQL.\n  - Changing query counts in existing tests.\n  - Changing public `FilteredRelation` or `select_related()` semantics.\n  - Touching code outside the ORM query or compiler layer.\n- **Never:**\n  - Weaken or delete existing assertions to make tests pass.\n  - Silently drop caching for single-level relations, which would add extra queries.\n  - Add new dependencies.\n\n## Success Criteria\n\n1. Evaluating `PoolStyle.objects.annotate(tournament_pool=FilteredRelation('pool__tournament__pool')).select_related('tournament_pool')` gives these results:\n   - `p[0].tournament_pool` is a `Pool` instance.\n   - `p[0].tournament_pool.tournament` is a `Tournament` instance and equals `p[0].pool.tournament`.\n2. No object reached via a multi-level `FilteredRelation` has an instance of the wrong model cached on any relation attribute.\n3. The regression test passes within the agreed query budget (see Open Questions).\n4. All existing tests in the relevant ORM suites pass, with no changes to their expected query counts.\n\n## Open Questions\n\n1. **Query count:** the issue's test asserts `assertNumQueries(3)`, and the block includes the attribute accesses. Is 3 the intended budget, or should some of these relations be served from cache, giving fewer queries? What exactly should be cached for intermediate hops of a multi-level `FilteredRelation`?\n2. **Known-related caching:** for multi-level paths, should the related object cache any back-reference to the root instance at all, or should back-reference caching apply only to single-hop relations?\n3. **Version scope:** which Django versions or branches are affected, and should the fix be backported?\n4. **Other operations:** does the same mis-assignment occur with `prefetch_related()`, or with nested `select_related('tournament_pool__tournament')`? Should those be in scope?\n5. **Model verification:** please confirm the actual `known_related_objects` model definitions (field names and relation types) that assumption 2 relies on.",
+ "ttft_ms": 6520,
+ "type": "result",
+ "duration_ms": 29572,
+ "uuid": "27af523e-57e5-4cd2-8881-9bdc1c19851c",
+ "ttft_stream_ms": 1557,
+ "time_to_request_ms": 226,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 197,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 121,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1557,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

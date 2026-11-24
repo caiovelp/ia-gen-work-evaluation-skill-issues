@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 32504,
+ "stop_reason": "end_turn",
+ "session_id": "497693d8-e2ac-42ac-bfc1-6e28e7b886c7",
+ "total_cost_usd": 0.07298539999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1329,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3064,
+  "output_tokens_details": {
+   "thinking_tokens": 169
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1329,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3064,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1329,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1329
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1911,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020260000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3064,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1329,
+   "webSearchRequests": 0,
+   "costUSD": 0.0727828,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 169,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Preserve top-level headings that start with a domain role when `rst_prolog` is set\n\n## Objective\n\n**Problem.** When `rst_prolog` is set in `conf.py`, a document whose first section title starts with an interpreted-text role (e.g. `` :mod:`mypackage2` ``) does not get that title:\n\n- The heading does not render correctly in the page.\n- The heading does not appear in the toctree of the parent document (e.g. `index.html`).\n\nThe same document renders correctly in two cases:\n\n- The title is plain text (`mypackage2` instead of `` :mod:`mypackage2` ``).\n- `rst_prolog` is not set.\n\nThe reporter says the bug exists since at least Sphinx v4.0.0 and is still present on `7.1.0+/d3c91f951`.\n\n**Users.** Sphinx users who set `rst_prolog`, for substitutions or other shared markup, and who title pages with domain roles. A common case is API pages titled `` :mod:`package` ``.\n\n**Goal.** With `rst_prolog` set, a document whose first title starts with a role must produce the same title, section structure and toctree entry as when `rst_prolog` is unset. The prolog's own content, such as substitution definitions, must still apply.\n\n### Acceptance criteria (user-facing)\n\n1. Using the issue's reproduction, the page built from `mypackage.rst` shows a top-level heading containing `mypackage2`.\n2. That page keeps \"Subheading\" as a second-level section under the top heading.\n3. The `index` toctree has an entry for `mypackage`, and its title contains `mypackage2`.\n4. Substitutions defined in `rst_prolog` (e.g. `|psf|`) still resolve in the document.\n5. Output for documents without a role in the first title is unchanged.\n\n## Assumptions\n\n1. The bug is in how Sphinx inserts `rst_prolog` text into a document's source. It is not a docutils parsing bug, since the same source parses correctly without a prolog.\n2. A line such as `` :mod:`mypackage2` `` at the top of a file is probably being mistaken for a docinfo / field-list line (`:name: value`). The prolog would then be inserted *after* that line instead of before it, which separates the title text from its `=====` underline. **This is a hypothesis.** It is not confirmed from code; the implementation phase must verify it.\n3. The fix should be general to any role at the start of the first line, in any domain (`:mod:`, `:class:`, `:py:func:`, `:any:`, \u2026), not only `:mod:`.\n4. Genuine docinfo / field-list metadata at the top of a file must keep its current behavior. Examples are `:orphan:`, `:tocdepth: 2`, `:nocomments:` and `:author: X`. The prolog must still be inserted after real docinfo.\n5. `rst_epilog` is out of scope unless the investigation shows the same defect there.\n6. The issue lists no extensions, so the bug reproduces with no extensions enabled.\n7. The reproduction script mixes directories. It runs `sphinx-build -b html . _build` but greps `docs/_build/index.html`. The intended build is source dir `docs`, output `docs/_build`.\n\n## Tech Stack\n\n- Python (reporter: CPython 3.11.3)\n- Sphinx (reporter: `7.1.0+/d3c91f951`; also reproduced on v4.0.0)\n- Docutils 0.20.1\n- Jinja2 3.1.2, Pygments 2.15.1 (incidental)\n- Supported Python, Sphinx and docutils version ranges for the fix: **unknown**\n\n## Commands\n\nReproduction, taken from the issue with the directory mix-up corrected per Assumption 7:\n\n```bash\nsphinx-quickstart --no-sep --project mypackage --author me -v 0.1.0 --release 0.1.0 --language en docs\necho -e 'Welcome\\n=======\\n\\n.. toctree::\\n\\n   mypackage\\n' > docs/index.rst\necho -e ':mod:`mypackage2`\\n=================\\n\\nContent\\n\\nSubheading\\n----------\\n' > docs/mypackage.rst\necho -e 'rst_prolog = \"\"\"\\n.. |psf| replace:: Python Software Foundation\\n\"\"\"\\n' >> docs/conf.py\nsphinx-build -b html docs docs/_build\ngrep 'mypackage2' docs/_build/index.html\n```\n\n- Expected after fix: `grep` finds `mypackage2` in `index.html`.\n- Observed before fix: it does not.\n\nRepository commands are **unknown**, since the repository is not visible:\n\n- Build: unknown\n- Test: unknown (likely pytest; unverified)\n- Lint: unknown\n\n## Project Structure\n\n**Unknown.** No repository access. The prolog-insertion logic most likely sits in a reST utility module in Sphinx, and tests sit in a `tests/` tree. Exact paths must be confirmed before planning.\n\n## Code Style\n\n**Unknown.** Follow the existing conventions of the Sphinx codebase: formatting, type hints, linters. No snippet is available from the issue.\n\n## Testing Strategy\n\nExact framework, locations and fixtures are unknown. Required coverage:\n\n- **Unit level, prolog insertion.** Given source lines and a prolog, assert where the prolog is inserted.\n  - First line is a role-prefixed title followed by an underline: the prolog goes before the title, and title and underline stay adjacent.\n  - First lines are real docinfo fields (`:orphan:`, `:tocdepth: 2`, `:author: me`): the prolog still goes after them (regression guard).\n  - Plain-text first title: behavior unchanged.\n  - Role-prefixed title with an overline as well as an underline, if supported.\n- **Integration level, build.** Build a small project with `rst_prolog` set and a document titled `` :mod:`mypackage2` `` containing a subsection. Assert:\n  - The document title is `mypackage2`, rendered via the role.\n  - The parent toctree contains the entry.\n  - The subsection is nested under the title.\n  - A substitution from the prolog resolves.\n- Coverage threshold: unknown.\n\n## Boundaries\n\n**Always:**\n- Write a failing test reproducing the issue before changing code.\n- Keep existing docinfo-before-prolog behavior intact.\n- Run the existing test suite before proposing the change.\n\n**Ask first:**\n- Changing the public behavior or semantics of `rst_prolog` / `rst_epilog` beyond this bug.\n- Altering how genuine docinfo fields are detected in ways that may affect other documents.\n- Adding dependencies.\n- Changing docutils-facing parsing hooks.\n\n**Never:**\n- Special-case only `:mod:`.\n- Strip or rewrite the user's title text.\n- Silently drop the prolog for affected documents as a workaround.\n- Remove or weaken existing tests.\n\n## Success Criteria\n\n- [ ] The issue's reproduction (with corrected paths) produces `mypackage2` in `docs/_build/index.html`.\n- [ ] The `mypackage` page has an `<h1>`-level title containing `mypackage2`, and \"Subheading\" is nested beneath it.\n- [ ] `rst_prolog` substitutions still work in the affected document.\n- [ ] Documents starting with real docinfo fields still receive the prolog after the docinfo block.\n- [ ] Documents with plain-text titles produce unchanged output.\n- [ ] New unit and integration tests fail before the fix and pass after it; the existing suite passes.\n\n## Open Questions\n\n1. Is Assumption 2 correct, i.e. is the role line misidentified as docinfo during prolog insertion? It needs confirming in the code.\n2. How should Sphinx tell a docinfo field (`:tocdepth: 2`) from a title starting with a role (`` :mod:`x` ``)? Options to discuss:\n   - The backtick after the second colon.\n   - Checking whether the next line is a section underline.\n   - Another rule.\n\n   Which is acceptable to maintainers?\n3. Does `rst_epilog` or any other source-mangling step have the same defect?\n4. Should titles whose role is not on the first line, or that use an overline, be covered too?\n5. Which Sphinx versions should receive the fix: main only, or backports to supported branches?\n6. Does the bug also affect non-HTML builders (LaTeX, man, etc.)? Presumably yes, since it happens at parse time; should integration tests cover them?\n7. What are the repository's actual test, lint and build commands, and where do the existing tests for prolog handling live?",
+ "ttft_ms": 3639,
+ "type": "result",
+ "duration_ms": 31342,
+ "uuid": "ff322d9f-cecc-42ba-83a7-0f1d3bac6068",
+ "ttft_stream_ms": 1774,
+ "time_to_request_ms": 255,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 205,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 250,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1775,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

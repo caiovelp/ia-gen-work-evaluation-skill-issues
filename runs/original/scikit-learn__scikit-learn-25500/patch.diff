@@ -1,0 +1,22 @@
+diff --git a/sklearn/isotonic.py b/sklearn/isotonic.py
+index b05e59536..f4587a072 100755
+--- a/sklearn/isotonic.py
++++ b/sklearn/isotonic.py
+@@ -10,6 +10,7 @@ from numbers import Real
+ import warnings
+ import math
+ 
++from ._config import config_context
+ from .base import BaseEstimator, TransformerMixin, RegressorMixin
+ from .utils import check_array, check_consistent_length
+ from .utils.validation import _check_sample_weight, check_is_fitted
+@@ -410,7 +411,8 @@ class IsotonicRegression(RegressorMixin, TransformerMixin, BaseEstimator):
+         y_pred : ndarray of shape (n_samples,)
+             Transformed data.
+         """
+-        return self.transform(T)
++        with config_context(transform_output="default"):
++            return self.transform(T)
+ 
+     # We implement get_feature_names_out here instead of using
+     # `ClassNamePrefixFeaturesOutMixin`` because `input_features` are ignored.

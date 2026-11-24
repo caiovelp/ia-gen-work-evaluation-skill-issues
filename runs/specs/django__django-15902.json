@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27343,
+ "stop_reason": "end_turn",
+ "session_id": "6a626de1-e40c-4e2c-bebe-047ff13a677c",
+ "total_cost_usd": 0.05741939999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 696,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2542,
+  "output_tokens_details": {
+   "thinking_tokens": 149
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 696,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2542,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 696,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 696
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1286,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001406,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2542,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 696,
+   "webSearchRequests": 0,
+   "costUSD": 0.05727879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 149,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Suppress \"default.html\" Template Deprecation Warning for Formset ManagementForm\n\n## Assumptions\n\n1. This issue is in the Django web framework (`django.forms`). It concerns the deprecation of the default form template `\"default.html\"` (table-style rendering) in favour of a div-based template.\n2. The warning is emitted when a form is rendered through the form renderer with the deprecated default template, and no project-level `FORM_RENDERER` or template override opts in to the new style.\n3. When a formset is rendered, its `ManagementForm` is also rendered. That rendering goes through the same template path, so it raises the deprecation warning even when the project never renders forms with `{{ form }}`.\n4. The `ManagementForm` contains only hidden inputs (`TOTAL_FORMS`, `INITIAL_FORMS`, `MIN_NUM_FORMS`, `MAX_NUM_FORMS`). For hidden-only output, the table and div templates produce the same visible result, so the warning gives the user nothing to act on.\n5. The intended outcome is to stop the warning for management forms only. The deprecation warning for user-facing forms must stay as it is.\n6. The fix targets the Django release line that carries this deprecation. The exact version is unknown.\n7. The exact source files, class names and warning category for the deprecation are not visible in the issue. They are treated as unknown below.\n\n## Objective\n\n**Problem:** Developers who never render forms with the deprecated default template still get the `\"default.html\"` deprecation warning. This happens because rendering a formset also renders its `ManagementForm`, and that form uses the default template internally. The warning is noise: the developer cannot act on it, and it hides real deprecation warnings from their own forms. It also breaks test suites that run with warnings treated as errors.\n\n**User:** A Django developer who uses formsets and has either moved off the deprecated form templates or never relied on them.\n\n**Desired behaviour:**\n- Rendering a formset's `ManagementForm`, alone or as part of rendering the formset, does **not** emit the `\"default.html\"` deprecation warning.\n- Rendering an ordinary form with the deprecated default template **still** emits the warning, exactly as before.\n- The HTML produced for the `ManagementForm` stays semantically the same: the same hidden inputs, names, ids and values.\n\n**Acceptance criteria:**\n- AC1: Rendering a formset with default settings emits no `\"default.html\"` deprecation warning that comes from its `ManagementForm`.\n- AC2: Rendering a `ManagementForm` directly (e.g. `str(formset.management_form)`) emits no such warning.\n- AC3: Rendering a regular `Form` with the deprecated default template still emits the deprecation warning. Its message and category are unchanged.\n- AC4: The `ManagementForm` output keeps the same hidden inputs as before:\n  - names, ids and values are unchanged;\n  - no visible labels or table rows are introduced.\n- AC5: Formset validation behaviour is unchanged, including handling of a missing or tampered management form.\n\n## Tech Stack\n\n- Python, Django (`django.forms`: forms, formsets, form renderers, templates).\n- Exact Python and Django versions: **unknown**. This is the release that introduced the `\"default.html\"` deprecation.\n\n## Commands\n\nAll commands are **unknown**; they are not stated in the issue. Django's test runner is presumably used:\n\n```\nTest: unknown (e.g. Django's tests/runtests.py with a forms/formsets test label; not confirmed)\nLint: unknown\nBuild: N/A (library)\n```\n\n## Project Structure\n\n**Unknown.** The issue does not reference any file paths. The relevant areas are presumably:\n- the module defining `BaseFormSet` and `ManagementForm`;\n- the module emitting the `\"default.html\"` deprecation warning (form rendering / renderer utilities);\n- the forms and formsets test suites.\n\nThese must be located before planning.\n\n## Code Style\n\nFollow existing Django coding conventions in the touched modules. No code snippet is available from the issue. Style specifics are **unknown** beyond \"match surrounding code\".\n\n## Testing Strategy\n\n- **Level:** unit and regression tests in Django's existing forms/formsets test suites. The location is unknown.\n- **Required tests:**\n  - A regression test asserting no deprecation warning is emitted when rendering a formset's management form under default settings (AC1, AC2).\n  - A test, or confirmation that one already exists, that a regular form rendered with the deprecated default template still emits the warning (AC3).\n  - An assertion on the management form's rendered HTML: hidden inputs only, with unchanged names, ids and values (AC4).\n  - The existing formset validation tests continue to pass (AC5).\n- **Coverage expectation:** every acceptance criterion is covered by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Keep the deprecation warning for user-rendered forms intact.\n  - Add regression tests.\n  - Keep the `ManagementForm` HTML output equivalent.\n  - Follow Django's deprecation policy.\n- **Ask first:**\n  - Changing the public API of `ManagementForm` or `BaseFormSet` (e.g. new public attributes or template names).\n  - Changing the warning message or category.\n  - Adding a release-notes entry and choosing which release it targets.\n  - Backporting the change.\n- **Never:**\n  - Globally silence or remove the `\"default.html\"` deprecation warning.\n  - Change the rendered output of non-management forms.\n  - Alter formset validation semantics.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n- With default settings, rendering any formset (and its `management_form`) produces zero `\"default.html\"` deprecation warnings that come from the management form.\n- Regular forms rendered with the deprecated default template still produce the same deprecation warning.\n- The management form HTML contains the same hidden inputs, with identical names, ids and values, as before the change.\n- The existing forms and formsets test suites pass, and the new regression tests pass.\n\n## Open Questions\n\n1. **Scope of the special case:** Should only `ManagementForm` be exempt? Or should any form consisting solely of hidden fields also skip the warning?\n2. **Mechanism preference:** Should the exemption come from giving `ManagementForm` a template that is not deprecated? Or should the warning check be skipped specifically for management forms? This has implications for custom renderers and for users who override formset templates.\n3. **Output change tolerance:** If the management form switches templates, is a whitespace or markup difference acceptable as long as the hidden inputs are identical?\n4. **Custom renderers / overrides:** Should a project that customises `ManagementForm` rendering, or the formset `management_form` template, see any change in behaviour?\n5. **Target release and backport:** Which Django version should this land in? Should it be backported to the stable branch where the deprecation was introduced?\n6. **Release notes:** Is a release-notes entry required, or is this treated as a bug fix without notes?\n7. **Commands and paths:** What are the exact test commands, and which source and test files are involved? These are not determinable from the issue.",
+ "ttft_ms": 2597,
+ "type": "result",
+ "duration_ms": 26320,
+ "uuid": "a5e905a1-c733-48e2-82bd-a00756a45b2d",
+ "ttft_stream_ms": 1197,
+ "time_to_request_ms": 319,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 3,
+  "model_config_wait": 266,
+  "autocompact": 7,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 19,
+ "time_to_request_cpu_ms": 141,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1198,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

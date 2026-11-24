@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 5719,
+ "stop_reason": "end_turn",
+ "session_id": "96838c9e-e435-4fe5-8cc4-8606e50419d2",
+ "total_cost_usd": 0.017115499999999995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1135,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 394,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1135,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 394,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1135,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1135
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1365,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014749999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 394,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1135,
+   "webSearchRequests": 0,
+   "costUSD": 0.016967999999999997,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nAdd a `draggable` keyword argument to the `Legend` constructor so a legend can be made draggable when it is created.\n\n## Description\nThere is currently no keyword that makes a legend draggable at creation time. To get a draggable legend, the user must first create the legend and then make it draggable with a separate call.\n\nThe request asks whether there is a technical (code) reason why a `draggable=True` keyword cannot be added to the `__init__` function of `Legend`. The reporter thinks this looks simple to implement but acknowledges there may be a reason it would not work.\n\n## Product version\nNot provided in the original request.\n\n## Rationale\nSetting draggability at creation would be more convenient than making a separate call after the legend has been created.\n\n## Use case or scenario\nA user creating a legend who wants it to be draggable. Today they must create the legend and then make it draggable in a second step. With the proposed keyword, they could set this in a single step when creating the legend.\n\n## Possible solution\nAdd a `draggable` keyword argument (e.g., `draggable=True`) to the `Legend.__init__` function so that draggability can be enabled at creation time. The reporter asks maintainers to confirm whether there is a technical reason this would not work.",
+ "ttft_ms": 4980,
+ "type": "result",
+ "duration_ms": 5012,
+ "uuid": "ab77f89e-fd2e-460e-95e6-1880bf63b909",
+ "ttft_stream_ms": 1451,
+ "time_to_request_ms": 290,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 24,
+  "input_attachments": 18,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 17,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 31,
+ "time_to_request_cpu_ms": 297,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 13,
+  "cpu_ms": 76,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1452,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

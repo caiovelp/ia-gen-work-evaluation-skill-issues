@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28851,
+ "stop_reason": "end_turn",
+ "session_id": "af5db87b-4def-4175-abae-c22349f75e52",
+ "total_cost_usd": 0.0636475,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 707,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2849,
+  "output_tokens_details": {
+   "thinking_tokens": 343
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 707,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2849,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 707,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 707
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1297,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001407,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2849,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 707,
+   "webSearchRequests": 0,
+   "costUSD": 0.0635068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 343,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Remove the `for` attribute from MultiWidget's `<label>`\n\n## Objective\n\nWhen a form field uses the base `MultiWidget` class, its `<label>` is generated as `<label for=\"{id}0\">`. The label then points only at the first sub-widget, and the developer cannot change this.\n\nOther widgets let the developer choose. The issue names `ChoiceWidget`, which has an `add_id_index` attribute. That attribute controls whether the label id gets an index suffix.\n\n**Requested change (as stated in the issue):** remove the `id_for_label` method from the `MultiWidget` class entirely. The result should be that labels rendered for a raw `MultiWidget` no longer carry a `for=\"..._0\"`-style attribute.\n\n**Users:** Django developers who render forms containing `MultiWidget`-based fields, and the end users and assistive technologies that rely on `<label for>` linking.\n\n**User stories / acceptance (draft):**\n- As a developer using a raw `MultiWidget`, I want its label not to point arbitrarily at the first sub-widget.\n- As a developer subclassing `MultiWidget`, I want to be able to define my own label-target behaviour, as `ChoiceWidget` allows.\n\n## Assumptions\n\n1. The project is Django. The class meant is `django.forms.widgets.MultiWidget`. The repository is not visible, so this is inferred from the class names in the issue.\n2. \"Remove `for = ...`\" means the rendered `<label>` for a field whose widget is a raw `MultiWidget` should have no `for` attribute.\n3. Today, `MultiWidget.id_for_label(id_)` returns `id_ + '0'`, i.e. `f'{id_}0'`. Exactly how it is built (for example, whether an underscore is included) is not visible.\n4. Label rendering omits the `for` attribute when the widget's `id_for_label` returns a falsy value. This needs to be confirmed in the code.\n5. Built-in `MultiWidget` subclasses may depend on the current base behaviour. Examples could include `SplitDateTimeWidget`, `SplitHiddenDateTimeWidget` and `SelectDateWidget`, but which of these inherit `id_for_label` is not visible. Their behaviour must be checked and decided explicitly, not changed silently.\n6. This is a single capability, so no capability map (Phase 0) is needed.\n7. This is a user-visible behaviour change. It will likely need release notes and a docs update.\n\n## Tech Stack\n\n- Python / Django. The supported versions are **unknown**.\n- No new dependencies are expected.\n\n## Commands\n\nAll of the following are **unknown**, because the repository is not visible:\n- Build: unknown\n- Test: unknown. Presumably Django's test runner, but the exact invocation and flags are not visible.\n- Lint: unknown\n- Dev: not applicable (library)\n\n## Project Structure\n\n**Unknown.** The likely locations below are inferred, not verified:\n- Widget implementation: probably the forms widgets module, e.g. `django/forms/widgets.py`. **Unverified.**\n- Label rendering: probably the bound-field or label-tag logic in the forms package. **Unverified.**\n- Tests: forms/widgets test suite. **Path unknown.**\n- Docs: widget reference docs and release notes. **Paths unknown.**\n\n## Code Style\n\nUnknown. Follow the existing conventions of the surrounding code; no snippet is available from the issue. The only API shape known from the issue is:\n- `MultiWidget.id_for_label(id_)` exists and produces `f'{id_}0'`.\n- `ChoiceWidget.add_id_index` is a boolean-like attribute that controls index suffixing.\n\n## Testing Strategy\n\n- **Framework:** Django's test suite. The exact runner and command are unknown.\n- **Unit level:**\n  - `MultiWidget().id_for_label('id_x')` returns the agreed value, which is still open (see Open Questions), instead of `'id_x0'`.\n  - Built-in `MultiWidget` subclasses keep or change their `id_for_label` behaviour as explicitly decided.\n- **Rendering level:**\n  - A form field using a raw `MultiWidget` renders its label with no `for` attribute.\n  - Fields using affected subclasses render labels as decided.\n- **Regression:**\n  - Run the existing forms and widgets tests.\n  - Expect, and review deliberately, any assertions on rendered HTML that contain `for=\"..._0\"`-style ids. Do not update them blindly.\n- **Coverage:** the project's expectation is unknown. At minimum, every changed code path needs a test.\n\n## Boundaries\n\n- **Always:**\n  - Run the existing forms and widget test suites.\n  - Add tests for the new label behaviour.\n  - Document the behaviour change.\n- **Ask first:**\n  - Changing `id_for_label` behaviour of built-in `MultiWidget` subclasses.\n  - Choosing between deleting the method outright and overriding it with a \"no label target\" return.\n  - Adding a configuration attribute similar to `add_id_index`.\n  - Any deprecation path.\n- **Never:**\n  - Change `ChoiceWidget` / `add_id_index` behaviour.\n  - Change how sub-widget `id` attributes are rendered. Only the label target is in scope.\n  - Remove or weaken failing tests without approval.\n\n## Success Criteria\n\n1. A form field using a raw `MultiWidget` renders `<label>` with no `for` attribute.\n2. `MultiWidget` no longer hard-codes the `f'{id_}0'` label target.\n3. Subclasses of `MultiWidget` can still provide their own `id_for_label` and have it honoured in label rendering.\n4. Behaviour of built-in `MultiWidget` subclasses matches an explicit, documented decision.\n5. Sub-widget `id` attributes in the rendered widget HTML are unchanged.\n6. The existing test suite passes, with any changed expectations reviewed and justified.\n7. Docs and release notes describe the change.\n\n## Open Questions\n\n1. **Delete or override?** Literally deleting `id_for_label` from `MultiWidget` would make it inherit the base `Widget.id_for_label`. That base method likely returns `id_` unchanged, so the label would get `for=\"id_x\"`. No sub-widget has that id, which may give a broken `for` instead of none. Should `MultiWidget.id_for_label` instead return an empty value, so that no `for` is rendered?\n2. **Opt-in?** Should there be an opt-in attribute, analogous to `ChoiceWidget.add_id_index`, that lets developers keep the indexed label target? Or is overriding `id_for_label` in a subclass sufficient?\n3. **Built-in subclasses.** Which built-in `MultiWidget` subclasses should keep pointing the label at a sub-widget, and which should drop `for`? Examples are `SplitDateTimeWidget` and `SelectDateWidget`.\n4. **Deprecation.** Is a deprecation period required for this rendered-HTML change, or is a release-note mention sufficient?\n5. **Accessibility.** With no `for`, the label is not programmatically associated with any input. Is that acceptable, or should an alternative such as `fieldset`/`legend` be considered? The latter is likely out of scope for this change.\n6. **Commands and paths.** The exact test, lint and build commands and file paths are unknown and need confirmation from the repository.",
+ "ttft_ms": 4470,
+ "type": "result",
+ "duration_ms": 28196,
+ "uuid": "044a006f-c9e2-4b8d-9a2e-24138c9523ac",
+ "ttft_stream_ms": 1296,
+ "time_to_request_ms": 282,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 20,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 267,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1296,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

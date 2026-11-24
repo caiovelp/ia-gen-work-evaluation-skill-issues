@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25303,
+ "stop_reason": "end_turn",
+ "session_id": "b0fdaf6a-719f-4d66-89fc-be6e0dc3db89",
+ "total_cost_usd": 0.052426299999999995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 670,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2303,
+  "output_tokens_details": {
+   "thinking_tokens": 126
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 670,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2303,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 670,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 670
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1255,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00013550000000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2303,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 670,
+   "webSearchRequests": 0,
+   "costUSD": 0.0522908,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 126,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Clear the primary key after `delete()` on models with no dependencies\n\n## Objective\n\nWhen a model instance is deleted with `instance.delete()`, Django should set the instance's primary key to `None` afterwards. The issue reports that this does **not** happen for models that have no dependencies, meaning no related objects that need to be collected or cascaded.\n\nThe reporter points to `django/db/models/deletion.py`, lines 276\u2013281, and says line 280 should update the model. This suggests a single-object shortcut in the deletion collector that returns early without clearing the PK. This is unverified; the source was not inspected.\n\n**Who is affected:** Django users who call `.delete()` on an instance and then check `instance.pk`. Examples are code that tests `pk is None` to detect deleted or unsaved state, and code that re-saves an instance as a new row.\n\n**Expected behaviour:** After `instance.delete()` returns, `instance.pk` is `None`. This must hold whether or not the model has relations or dependents, so dependency-free models behave the same as models deleted through the full collection path.\n\n### Acceptance criteria\n\n1. A model with no relations, saved and then deleted with `obj.delete()`, has `obj.pk is None` afterwards.\n2. The row is removed from the database, as today.\n3. The return value of `delete()` (deleted count and per-model breakdown) is unchanged from current behaviour.\n4. Instances deleted through the existing path for models with dependencies still have their PKs cleared, so there is no regression.\n5. No extra database queries are added to the dependency-free path, if it is a performance optimisation (unverified; see Open Questions).\n\n## Assumptions\n\n1. The project is the Django framework, and the affected code is the deletion collector in `django/db/models/deletion.py`.\n2. The reported lines 276\u2013281 belong to an early-return or \"fast delete\" branch used when exactly one instance with no dependencies is deleted.\n3. The intended invariant, `pk is None` after delete, is already implemented on the normal path. The bug is only that the shortcut branch skips it.\n4. \"Set to None\" means the model's primary-key attribute (`pk` / the PK field's attname). Other fields are not cleared.\n5. This change applies to `Model.delete()` on a single instance. The issue does not cover `QuerySet.delete()`, which does not modify in-memory instances.\n6. Signals (`pre_delete` / `post_delete`) are out of scope. Their current behaviour on this path must not change.\n7. The fix must not change the issue's stated scope, for example by disabling the shortcut path.\n\n## Tech Stack\n\n- Language: Python (version unknown, depends on the target Django branch)\n- Framework: Django (target branch or version unknown)\n- Affected module: `django/db/models/deletion.py` (from the issue)\n\n## Commands\n\nUnknown. The repository was not inspected. Placeholders to be confirmed:\n\n```\nTest (targeted): UNKNOWN (e.g. Django's runtests script for the delete test app; exact invocation unverified)\nTest (full):     UNKNOWN\nLint:            UNKNOWN\nBuild:           N/A / UNKNOWN\n```\n\n## Project Structure\n\nOnly what the issue states:\n\n```\ndjango/db/models/deletion.py   \u2192 Deletion collector; lines 276\u2013281 reported as the faulty branch\n```\n\n- The test location is unknown. It is likely the existing delete-related test package in the Django test suite, but the path is unverified.\n\n## Code Style\n\nFollow existing Django conventions in `deletion.py`. No example snippet is included, because the source has not been seen. Keep the change minimal and consistent with how the existing non-shortcut path clears PKs. Reuse that mechanism rather than inventing a new one.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite (exact runner command unknown).\n- **Regression test:** Create and save an instance of a model with no relations, call `.delete()`, and assert `instance.pk is None`. The test should fail before the fix and pass after.\n- **Non-regression:** Run the existing deletion tests unchanged. Include a check that a model with dependents still has its PK cleared after delete.\n- **Query count (optional):** If the shortcut path exists for performance, assert that it still uses the same number of queries, for example with an `assertNumQueries`-style check.\n- **Level:** Unit and integration tests against the test database. No end-to-end tests are needed.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that reproduces the bug.\n  - Run the existing deletion test suite.\n  - Keep the return value of `delete()` unchanged.\n  - Keep the change confined to the reported branch.\n- **Ask first:**\n  - Changing the conditions under which the shortcut path is taken.\n  - Touching `QuerySet.delete()` behaviour.\n  - Changing signal dispatch.\n  - Modifying files other than `deletion.py` and tests.\n- **Never:**\n  - Remove or weaken existing deletion tests.\n  - Add extra queries to the shortcut path.\n  - Clear fields other than the PK.\n  - Change public API signatures.\n\n## Success Criteria\n\n- [ ] `obj.delete()` on a dependency-free model leaves `obj.pk is None`.\n- [ ] The database row is gone, and the `delete()` return value matches current output.\n- [ ] Models with dependencies still have their PK cleared, and all existing deletion tests pass.\n- [ ] The query count on the dependency-free path is unchanged.\n- [ ] A new regression test fails on the current code and passes with the fix.\n\n## Open Questions\n\n1. **Target version:** Which Django branch or version is targeted? The line numbers 276\u2013281 depend on it.\n2. **Shortcut branch:** Is the branch at lines 276\u2013281 indeed a single-object fast-delete path that returns early? Is it the only path that skips PK clearing?\n3. **Clearing mechanism:** How does the normal path clear PKs? Should the fix reuse that exact mechanism, for example setting the PK field's attname to `None`?\n4. **Bulk deletes:** Should a multi-object `Collector` usage that hits the fast path also clear PKs, or only the single-instance case?\n5. **Inherited models:** Does multi-table inheritance or a proxy model ever reach this branch? If so, should parent-link PKs also be cleared?\n6. **Test location:** What is the preferred test location and the runner command for Django's suite in this checkout?\n7. **Release notes:** Is a release note required for this bug fix on the target branch?",
+ "ttft_ms": 2719,
+ "type": "result",
+ "duration_ms": 23922,
+ "uuid": "88f44172-3370-4369-9d87-c8f05680acd3",
+ "ttft_stream_ms": 1340,
+ "time_to_request_ms": 258,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 217,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 202,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1340,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

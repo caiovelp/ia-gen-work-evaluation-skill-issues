@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27008,
+ "stop_reason": "end_turn",
+ "session_id": "b3be9b48-234e-4c68-a768-d875cd3a9f45",
+ "total_cost_usd": 0.05761870000000001,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 878,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2478,
+  "output_tokens_details": {
+   "thinking_tokens": 119
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 878,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2478,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 878,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 878
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1464,
+   "outputTokens": 35,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001639,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2478,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 878,
+   "webSearchRequests": 0,
+   "costUSD": 0.05745480000000001,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 119,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Preserve Named Tuples as `__range` Lookup Values in `Query.resolve_lookup_value`\n\n## Objective\n\n**Problem.** After upgrading Django from 2.2 to 3.0, a queryset filter that passes a **named tuple** as the value of a `__range` lookup fails with:\n\n```\nTypeError: __new__() missing 1 required positional argument: 'far'\n```\n\n(`far` is a field name of the reporter's named tuple.) The same code works on 2.2.\n\n**Root cause (as reported).** `django.db.models.sql.query.Query.resolve_lookup_value`:\n\n1. iterates over the elements of a tuple or list value,\n2. resolves each element, and\n3. rebuilds the container with the original type, passing an **iterator** to the constructor.\n\nThis works for plain `tuple` and `list`, which accept a single iterable. A named tuple's constructor expects one positional argument per field. Given a single iterator, it raises a `TypeError` for missing positional arguments.\n\n**Users.** Django users who pass named tuples, or other tuple subclasses with positional-field constructors, as lookup values. The main case is the 2-element value for `__range`.\n\n**Goal.** Restore the 2.2 behaviour. A named tuple passed as a lookup value must be accepted, its elements must be resolved, and the rebuilt value must have the same type.\n\n**Acceptance criteria**\n- `Model.objects.filter(field__range=SomeNamedTuple(near=a, far=b))` runs without error. It returns the same rows as `field__range=(a, b)`.\n- Named-tuple elements that are expressions (for example `F()`) are still resolved. This is the behaviour that 3.0's element-wise resolution introduced.\n- The rebuilt value keeps its original type. A named tuple stays a named tuple, a `tuple` stays a `tuple`, and a `list` stays a `list`.\n- Plain `tuple` and `list` lookup values behave exactly as before. There are no regressions in existing lookup tests.\n\n## Assumptions\n\n1. The fault is in `Query.resolve_lookup_value` in `django/db/models/sql/query.py`, as the issue states. I have not checked this against the source.\n2. The reporter's named tuple is a standard `collections.namedtuple` or `typing.NamedTuple` with two fields, one of them named `far`.\n3. The affected branch handles values that are instances of `list` or `tuple`, including subclasses. Named tuples enter it because they subclass `tuple`.\n4. The suggested direction, unpacking the resolved elements into the constructor, must keep working for plain `tuple` and `list`. That needs checking: `list(*elements)` and `tuple(*elements)` behave differently from `list(elements)` and `tuple(elements)`. Plain types and named tuples may therefore need different handling. This spec does not choose the implementation.\n5. The scope is a regression fix for the 3.0 series, which suggests the fix should be backported to 3.0.x. This is a guess; see Open Questions.\n6. The fix should be small and local, with no public API change and no deprecation.\n\n## Tech Stack\n\n- Django (regression between 2.2 and 3.0). Python version support follows Django 3.0's supported range, which the issue does not state.\n- Module named in the issue: `django.db.models.sql.query` (`Query.resolve_lookup_value`).\n- Other dependencies: unknown.\n\n## Commands\n\nThe issue gives no commands. All of these are unknown:\n\n```\nBuild: unknown\nTest (full suite): unknown\nTest (targeted, e.g. queries/lookup tests): unknown\nLint: unknown\n```\n\n## Project Structure\n\nKnown from the issue:\n\n```\ndjango/db/models/sql/query.py  \u2192 Query.resolve_lookup_value (location of the bug)\n```\n\nUnknown:\n- where the regression test should go (test package or module for queries and lookups)\n- the test models available there\n\n## Code Style\n\nThe issue does not show any project code. Conventions, such as formatting, the linter, and comment style, are unknown. They should follow the existing style of `django/db/models/sql/query.py`.\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite. The runner command and location are unknown.\n- **Regression test (required):** Filter with `__range` using a named tuple whose fields are concrete values. Assert that there is no error and that the expected rows are returned.\n- **Expression resolution (required):** Use a named tuple whose elements include an expression such as `F()`. Assert that the expressions resolve and the query returns the correct results.\n- **Type preservation:** Check that the resolved value keeps its type for:\n  - a named tuple\n  - a plain `tuple`\n  - a plain `list`\n- **Non-regression:** The existing lookup and query tests must still pass, especially those covering `__in` and `__range` with tuples and lists.\n- **Level:** Unit and integration tests against the test database. End-to-end tests are not needed.\n- **Coverage:** Every branch of the rebuild logic touched by the change must be exercised.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after it.\n  - Preserve the original container type.\n  - Keep resolving expressions inside tuples and lists.\n  - Run the relevant test suites.\n- **Ask first:**\n  - Changing behaviour for other iterable types, such as sets or generators, or arbitrary tuple and list subclasses beyond named tuples.\n  - Changing the public signature or semantics of `resolve_lookup_value`.\n  - Backport targets.\n- **Never:**\n  - Drop element-wise resolution to \"fix\" the error.\n  - Convert named tuples to plain tuples silently, unless this is approved as the intended behaviour.\n  - Remove or weaken existing tests.\n  - Refactor code outside the scope of this regression.\n\n## Success Criteria\n\n- A `__range` filter whose value is a named tuple runs on 3.0 with the fix and returns the same results as on 2.2.\n- A named tuple containing expressions resolves correctly.\n- Values that are named tuples, `tuple`s, or `list`s keep their type after resolution.\n- The new regression test(s) fail without the fix and pass with it.\n- The full relevant test suite passes with no regressions.\n\n## Open Questions\n\n1. Should the fix cover only named tuples, detected for example by the presence of `_fields`, or any `tuple`/`list` subclass whose constructor takes positional elements instead of a single iterable?\n2. Is keeping the named-tuple type the desired result, or would returning a plain `tuple` be acceptable? The issue implies the type should be kept.\n3. Which release branches should get the fix: 3.0.x only, or later branches as well? Does it need a release note?\n4. Where should the regression test go, and which existing test models suit a `__range` query?\n5. Does the same bug affect lookups other than `__range` that go through `resolve_lookup_value`, such as `__in`? Should they be tested explicitly?\n6. Which exact commands should be used to run the targeted and full test suites, and to lint?",
+ "ttft_ms": 2832,
+ "type": "result",
+ "duration_ms": 25414,
+ "uuid": "91fd76fb-049d-4e5e-92ae-437cba814049",
+ "ttft_stream_ms": 1560,
+ "time_to_request_ms": 241,
+ "time_to_request_phases_ms": {
+  "other": 9,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 207,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 182,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1560,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

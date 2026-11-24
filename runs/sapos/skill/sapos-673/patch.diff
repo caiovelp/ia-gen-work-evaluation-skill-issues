@@ -1,0 +1,50 @@
+diff --git a/app/helpers/pdf_helper.rb b/app/helpers/pdf_helper.rb
+index aaddace5..184a5d44 100644
+--- a/app/helpers/pdf_helper.rb
++++ b/app/helpers/pdf_helper.rb
+@@ -378,19 +378,36 @@ module PdfHelper
+         end
+       end
+       if options[:watermark] && pdf_config.signature_type != "qr_code"
+-        pdf.create_stamp("watermark") do
+-          pdf.rotate(60, origin: [0, 0]) do
+-            pdf.fill_color "993333"
+-            pdf.font("FreeMono", size: 25) do
+-              pdf.draw_text(
+-                I18n.t("pdf_content.watermark"), at: [0, 0]
+-              )
++        watermark_angle = 60
++        watermark_size = 25
++        watermark_text = I18n.t("pdf_content.watermark")
++        pdf.font("FreeMono", size: watermark_size) do
++          # centro do papel (nao da area entre margens), em coordenadas
++          # relativas ao bounds corrente, que e onde draw_text e rotate operam
++          page_box = pdf.page.dimensions
++          center_x = (page_box[0] + page_box[2]) / 2.0 - pdf.bounds.absolute_left
++          center_y = (page_box[1] + page_box[3]) / 2.0 - pdf.bounds.absolute_bottom
++
++          # centro da caixa do texto em relacao ao ponto de partida da linha de base
++          box_x = pdf.width_of(watermark_text) / 2.0
++          box_y = (pdf.font.ascender + pdf.font.descender) / 2.0
++          radians = watermark_angle * Math::PI / 180
++          rotated_x = box_x * Math.cos(radians) - box_y * Math.sin(radians)
++          rotated_y = box_x * Math.sin(radians) + box_y * Math.cos(radians)
++          start = [center_x - rotated_x, center_y - rotated_y]
++
++          pdf.create_stamp("watermark") do
++            pdf.rotate(watermark_angle, origin: start) do
++              pdf.fill_color "993333"
++              pdf.font("FreeMono", size: watermark_size) do
++                pdf.draw_text(watermark_text, at: start)
++              end
++              pdf.fill_color "000000"
+             end
+-            pdf.fill_color "000000"
+           end
+         end
+         pdf.repeat(:all) do
+-          pdf.stamp_at "watermark", [80, 0]
++          pdf.stamp "watermark"
+         end
+       end
+     end

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21241,
+ "stop_reason": "end_turn",
+ "session_id": "a47436a2-1f8a-403c-8a85-aab9d2109d5b",
+ "total_cost_usd": 0.0639372,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1893,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2428,
+  "output_tokens_details": {
+   "thinking_tokens": 487
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1893,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2428,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1893,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1893
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2102,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00022520000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2428,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1893,
+   "webSearchRequests": 0,
+   "costUSD": 0.063712,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 487,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nPretty-printing `sympy.vector` objects with `pprint` in the terminal produces jumbled output. The unit vector (for example `i_C` or `k_C`) is inserted in the middle of the scalar coefficient's 2D layout instead of appearing as a separate factor.\n\n## Steps to reproduce\n1. Start a Python session in a terminal.\n2. Import SymPy and `sympy.vector` (`CoordSys3D`, `Del`), then call `init_printing()`.\n3. Create a coordinate system `C = CoordSys3D(\"C\")` and a `Del()` operator.\n4. Build a vector whose coefficient is a fraction containing trigonometric functions. For example, `Bx * C.i`, where `Bx = 2 * ten**(-4) * cos(ten**5 * t) * sin(ten**(-3) * C.y)` and `ten = symbols(\"10\", positive=True)`.\n5. Build a second vector containing an unevaluated `Integral` of the curl of the first vector.\n6. Call `pprint` on the first vector, on the integral vector, and on the integral vector after `.doit()`.\n7. Look at where the unit vector appears in each printed result.\n\nThe full script is under **Code example**.\n\n## Observed behavior\nThe unit vector is placed inside the 2D layout of the coefficient, breaking up the expression:\n\n- **`pprint(vecB)`:** `i_C` appears inside the numerator, between `2\u22c5sin(y_C/10^3)` and `cos(10^5\u22c5t)`. The bracket/fraction lines are also misaligned.\n- **`pprint(vecE)`:** `k_C` appears on the second line, to the right of the large parenthesised expression, rather than aligned with it as a clear factor.\n- **`pprint(vecE.doit())`:** `k_C` appears inside the numerator, after `cos(y_C/10^3)`. The bracket lines are again misaligned.\n\nThe full output is under **Stack trace / error output**.\n\n## Expected behavior\nThe report does not state the expected output explicitly. It implies that the unit vector should not be inserted in the middle of the expression. The coefficient should render as an intact 2D expression, with the unit vector shown cleanly alongside it.\n\n## Stack trace / error output\nNo exception is raised. The incorrect terminal output is:\n\n```\n\u239b     \u239by_C\u239e    \u239b  5  \u239e\u239e    \n\u239c2\u22c5sin\u239c\u2500\u2500\u2500\u239f i_C\u22c5cos\u239d10 \u22c5t\u23a0\u239f\n\u239c     \u239c  3\u239f           \u239f    \n\u239c     \u239d10 \u23a0           \u239f    \n\u239c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u239f    \n\u239c           4         \u239f    \n\u239d         10          \u23a0    \n\n\u239b     \u2320                           \u239e    \n\u239c     \u23ae       \u239by_C\u239e    \u239b  5  \u239e    \u239f k_C\n\u239c     \u23ae -2\u22c5cos\u239c\u2500\u2500\u2500\u239f\u22c5cos\u239d10 \u22c5t\u23a0    \u239f    \n\u239c     \u23ae       \u239c  3\u239f               \u239f    \n\u239c  11 \u23ae       \u239d10 \u23a0               \u239f    \n\u239c10  \u22c5\u23ae \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 dt\u239f    \n\u239c     \u23ae             2             \u239f    \n\u239c     \u23ae           10              \u239f    \n\u239c     \u2321                           \u239f    \n\u239c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u239f    \n\u239d               4\u22c5\u03c0               \u23a0    \n\n\u239b   4    \u239b  5  \u239e    \u239by_C\u239e \u239e    \n\u239c-10 \u22c5sin\u239d10 \u22c5t\u23a0\u22c5cos\u239c\u2500\u2500\u2500\u239f k_C \u239f\n\u239c                   \u239c  3\u239f \u239f    \n\u239c                   \u239d10 \u23a0 \u239f    \n\u239c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u239f    \n\u239d           2\u22c5\u03c0           \u23a0    \n```\n\n## Test case\nThe original report contains no automated test case. This minimal reproduction is taken from the reporter's snippet and covers the first faulty output:\n\n```python\nfrom sympy import symbols, cos, sin, pprint\nfrom sympy.vector import CoordSys3D\n\nC = CoordSys3D(\"C\")\nt = symbols(\"t\")\nten = symbols(\"10\", positive=True)\n\nBx = 2 * ten**(-4) * cos(ten**5 * t) * sin(ten**(-3) * C.y)\npprint(Bx * C.i)  # i_C is printed in the middle of the coefficient\n```\n\n## Code example\n```python\nfrom sympy import *\nfrom sympy.vector import CoordSys3D, Del\n\ninit_printing()\n\ndelop = Del()\nCC_ = CoordSys3D(\"C\")\nx,    y,    z    = CC_.x, CC_.y, CC_.z\nxhat, yhat, zhat = CC_.i, CC_.j, CC_.k\n\nt = symbols(\"t\")\nten = symbols(\"10\", positive=True)\neps, mu = 4*pi*ten**(-11), ten**(-5)\n\nBx = 2 * ten**(-4) * cos(ten**5 * t) * sin(ten**(-3) * y)\nvecB = Bx * xhat\nvecE = (1/eps) * Integral(delop.cross(vecB/mu).doit(), t)\n\npprint(vecB)\nprint()\npprint(vecE)\nprint()\npprint(vecE.doit())\n```\n\n## Version and environment\n- SymPy version: Not provided in the original report.\n- Python version and OS: Not provided in the original report.\n- Context given in the report: output printed in a terminal using `pprint` after `init_printing()`, with Unicode pretty printing as shown in the output.",
+ "ttft_ms": 6312,
+ "type": "result",
+ "duration_ms": 20605,
+ "uuid": "73af4814-25ee-4545-9254-58e7eabfc916",
+ "ttft_stream_ms": 1398,
+ "time_to_request_ms": 258,
+ "time_to_request_phases_ms": {
+  "other": 16,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 9,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 12,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 198,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 2,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 8,
+ "time_to_request_cpu_ms": 192,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 14,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1398,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

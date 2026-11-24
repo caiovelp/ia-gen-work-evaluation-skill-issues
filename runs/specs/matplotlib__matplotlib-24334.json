@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 31261,
+ "stop_reason": "end_turn",
+ "session_id": "3c1e0512-6dd3-4e66-b928-f7a4501ff620",
+ "total_cost_usd": 0.0691587,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 839,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3071,
+  "output_tokens_details": {
+   "thinking_tokens": 78
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 839,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3071,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 839,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 839
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1424,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001559,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3071,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 839,
+   "webSearchRequests": 0,
+   "costUSD": 0.0690028,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 78,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Validate `**kwargs` in `Axis.set_ticks` / `Axes.set_xticks` when *labels* is not passed\n\n## Objective\n\n`Axis.set_ticks` (and wrappers such as `Axes.set_xticks`) accepts `**kwargs`. Its docstring describes them as \"`.Text` properties for the labels\", which \"take effect only if you pass *labels*.\"\n\nWhen *labels* is not passed, these kwargs are currently ignored without any validation. A misspelled or misplaced argument therefore has no effect and produces no warning or error. The issue's example is `ax.set_xticks([0, 1], xticklabels=[\"a\", \"b\"])`. Here `xticklabels` is not a valid parameter: the user meant `labels=`. The call sets the ticks and drops the labels without any signal.\n\n**Goal:** Users get feedback when they pass kwargs to `set_ticks` / `set_xticks` / `set_yticks` that cannot do anything.\n\n**Users:** Matplotlib users who call tick-setting APIs, especially those who confuse `xticklabels=` with `labels=` or pass styling kwargs without labels.\n\n**Acceptance criteria (user stories):**\n1. As a user, if I pass an invalid `Text` property to `set_ticks` without *labels*, I get an error instead of silent success.\n2. As a user, if I pass a valid `Text` property without *labels*, I either get an error or a clear warning (see Open Questions), and the docs say which one.\n3. As a user, existing calls that pass *labels* together with valid `Text` kwargs behave exactly as before.\n4. As a user, calls with no kwargs behave exactly as before.\n\n## Assumptions\n\n1. The issue covers `Axis.set_ticks` and every public wrapper that forwards `**kwargs` to it. This includes at least `Axes.set_xticks` and `Axes.set_yticks`. It may also include 3D axes (`set_zticks`) and colorbar tick setters, if they forward kwargs. I have not verified these wrappers.\n2. \"Valid Text properties\" means the same validation that `Text` applies when properties are set via its `set`/`update` mechanism. The new check should reuse that existing mechanism rather than keep a separate list of allowed names.\n3. The minimum required behaviour is the issue's first option: always validate kwargs as `Text` properties. Whether kwargs without *labels* also become an error is a design decision that needs a maintainer (Open Questions).\n4. If the behaviour change is user-visible, it goes through Matplotlib's normal deprecation policy rather than an immediate hard break. One exception: invalid property names may reasonably raise immediately, because they never worked.\n5. Validation happens before any tick state is changed, so a rejected call leaves the Axis unchanged.\n6. The error raised for invalid property names matches the type and message style that `Text` already uses for unknown properties. I assume this is `AttributeError`, but have not confirmed it.\n7. The docstring for `Axis.set_ticks` and its wrappers will be updated to describe the new behaviour.\n8. A release note / API-change note is required, following the project's usual process.\n\n## Tech Stack\n\n- Python, Matplotlib library code.\n- Exact Python and Matplotlib versions targeted: **unknown** (not stated in the issue).\n- Relevant APIs named in the issue: `Axis.set_ticks`, `Axes.set_xticks`, `.Text`, `Axes.tick_params`.\n\n## Commands\n\nAll commands are **unknown**, because the repository is not visible.\n\n```\nBuild:       unknown\nTest:        unknown (project test runner and invocation not visible)\nLint:        unknown\nDocs build:  unknown\n```\n\n## Project Structure\n\n**Unknown.** Source file locations for `Axis.set_ticks`, `Axes.set_xticks`, the tests, and the API-change/release-note directory are not visible in the issue and must be confirmed in the repository.\n\n```\n<unknown>  \u2192 module defining Axis.set_ticks\n<unknown>  \u2192 module defining Axes.set_xticks / set_yticks (and any other wrappers)\n<unknown>  \u2192 tests for axis/axes tick setting\n<unknown>  \u2192 API change / release notes location\n```\n\n## Code Style\n\n- Follow the existing Matplotlib conventions in the touched modules. Specific style rules and lint configuration are **unknown**.\n- Reuse existing `Text` property validation and existing deprecation/warning helpers where the project has them. Their exact names are **unknown** and must be looked up rather than invented.\n- No code snippet is included, because no source is visible.\n\n## Testing Strategy\n\n- Framework and test locations: **unknown** (to be confirmed in the repo).\n- Test levels: unit tests on `Axis.set_ticks` and on each public wrapper (`Axes.set_xticks`, `Axes.set_yticks`, and others confirmed under Assumption 1).\n- Required cases:\n  1. `set_ticks(ticks)` with no kwargs: unchanged behaviour, no warning.\n  2. `set_ticks(ticks, labels=..., <valid Text kwarg>)`: unchanged behaviour, and the kwarg is applied to the labels.\n  3. `set_ticks(ticks, labels=..., <invalid kwarg>)`: still errors, as it does today.\n  4. `set_ticks(ticks, <invalid kwarg>)` without labels: raises an error. This includes the issue's exact example, `ax.set_xticks([0, 1], xticklabels=[\"a\", \"b\"])`.\n  5. `set_ticks(ticks, <valid Text kwarg>)` without labels: behaves as decided in Open Question 1 (warning, deprecation warning, or error).\n  6. After a rejected call, tick locations and labels are unchanged (Assumption 5).\n  7. The `minor=True` path behaves the same as major ticks.\n- The existing test suite passes. Any existing tests that rely on silently ignored kwargs are identified and listed for review, not deleted.\n\n## Boundaries\n\n- **Always:**\n  - Validate kwargs against `Text` properties in every call path.\n  - Keep behaviour identical when *labels* is passed with valid kwargs.\n  - Update the docstrings of `Axis.set_ticks` and its wrappers.\n  - Add tests for every case listed above.\n  - Add an API-change note.\n- **Ask first:**\n  - Turning valid-but-ineffective kwargs (no *labels*) into a hard error, and whether a deprecation period is required.\n  - Changing the signatures of public wrapper methods.\n  - Extending the change to other tick-related APIs not named in the issue.\n- **Never:**\n  - Silently start applying kwargs to existing tick labels when *labels* is absent; that is a different feature.\n  - Remove or weaken existing tests without approval.\n  - Introduce a hand-maintained list of allowed `Text` properties.\n\n## Success Criteria\n\n1. `ax.set_xticks([0, 1], xticklabels=[\"a\", \"b\"])` no longer succeeds silently; it raises an error that names the offending kwarg.\n2. For any kwarg that is not a valid `Text` property, `Axis.set_ticks` raises an error whether or not *labels* is passed.\n3. Passing a valid `Text` kwarg without *labels* produces the behaviour chosen in Open Question 1. That behaviour is documented in the `set_ticks` docstring and the API-change note.\n4. All calls with *labels* plus valid kwargs, and all calls without kwargs, produce the same results as before. The existing test suite confirms this.\n5. The behaviour is consistent across `Axis.set_ticks` and all public wrappers that forward kwargs.\n6. A rejected call leaves the axis tick state unmodified.\n\n## Open Questions\n\n1. When *labels* is not passed and the kwargs are valid `Text` properties, what should happen?\n   - (a) Accept them silently, but only after validation. This is the issue's minimum.\n   - (b) Emit a warning.\n   - (c) Deprecate, then make it an error.\n   - (d) Raise an error immediately.\n2. Should invalid property names raise immediately, or also go through a deprecation period? Some downstream code may currently pass junk kwargs without noticing.\n3. Which exception type and message are expected? Should it match `Text`'s existing unknown-property error, or have a tailored message such as \"did you mean `labels=`?\" for `xticklabels`/`yticklabels`?\n4. Which wrappers are in scope beyond `Axes.set_xticks`/`set_yticks`? Candidates are 3D `set_zticks`, colorbar tick setters, and polar/other projections.\n5. Should a kwarg named `labels` passed inside `**kwargs`, or aliases like `ticklabels`, get special handling?\n6. Which Matplotlib version is targeted, and where should the API-change note go? Both are unknown without repository access.",
+ "ttft_ms": 2490,
+ "type": "result",
+ "duration_ms": 30534,
+ "uuid": "d495d191-e581-4110-904b-4199f8b75828",
+ "ttft_stream_ms": 1565,
+ "time_to_request_ms": 243,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 207,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 207,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 9,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1565,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

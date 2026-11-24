@@ -1,0 +1,41 @@
+diff --git a/sympy/geometry/util.py b/sympy/geometry/util.py
+index d32adc306..535eb5f6b 100755
+--- a/sympy/geometry/util.py
++++ b/sympy/geometry/util.py
+@@ -12,7 +12,7 @@
+ """
+ from __future__ import division, print_function
+ 
+-from sympy import Function, Symbol, solve
++from sympy import Eq, Function, Symbol, solve
+ from sympy.core.compatibility import (
+     is_sequence, range, string_types, ordered)
+ from sympy.core.containers import OrderedSet
+@@ -570,13 +570,21 @@ def idiff(eq, y, x, n=1):
+         y = y[0]
+     elif isinstance(y, Symbol):
+         dep = {y}
++    elif isinstance(y, Function):
++        pass
+     else:
+-        raise ValueError("expecting x-dependent symbol(s) but got: %s" % y)
+-
+-    f = dict([(s, Function(
+-        s.name)(x)) for s in eq.free_symbols if s != x and s in dep])
+-    dydx = Function(y.name)(x).diff(x)
+-    eq = eq.subs(f)
++        raise ValueError("expecting x-dependent symbol(s) or function(s) but got: %s" % y)
++    if isinstance(eq, Eq):
++        eq = eq.lhs - eq.rhs
++
++    if isinstance(y, Symbol):
++        f = dict([(s, Function(
++            s.name)(x)) for s in eq.free_symbols if s != x and s in dep])
++        dydx = Function(y.name)(x).diff(x)
++        eq = eq.subs(f)
++    else:
++        f = {}
++        dydx = y.diff(x)
+     derivs = {}
+     for i in range(n):
+         yp = solve(eq.diff(x), dydx)[0].subs(derivs)

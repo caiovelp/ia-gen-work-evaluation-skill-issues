@@ -1,0 +1,42 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 737e16cc7..fb530b988 100755
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -6,7 +6,7 @@
+ 
+ import itertools
+ 
+-from sympy.core import S, Add, Symbol, Mod
++from sympy.core import S, Add, Mul, Pow, Symbol, Mod
+ from sympy.core.function import _coeff_isneg
+ from sympy.core.sympify import SympifyError
+ from sympy.core.alphabets import greeks
+@@ -1854,7 +1854,27 @@ def _print_PolynomialRingBase(self, expr):
+ 
+     def _print_Poly(self, poly):
+         cls = poly.__class__.__name__
+-        expr = self._print(poly.as_expr())
++        terms = []
++        for monom, coeff in poly.terms():
++            factors = [Pow(g, e) for g, e in zip(poly.gens, monom) if e > 0]
++            if not factors:
++                term = coeff
++            elif coeff is S.One:
++                term = Mul(*factors, evaluate=False)
++            elif coeff is S.NegativeOne:
++                term = Mul(S.NegativeOne, *factors, evaluate=False)
++            else:
++                term = Mul(coeff, *factors, evaluate=False)
++            terms.append(self._print(term))
++        if not terms:
++            expr = "0"
++        else:
++            expr = terms[0]
++            for t in terms[1:]:
++                if t.startswith("-"):
++                    expr += " - " + t[1:].lstrip()
++                else:
++                    expr += " + " + t
+         gens = list(map(self._print, poly.gens))
+         domain = "domain=%s" % self._print(poly.get_domain())
+ 

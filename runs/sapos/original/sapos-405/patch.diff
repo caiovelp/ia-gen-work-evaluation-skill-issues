@@ -1,0 +1,13 @@
+diff --git a/lib/notifier.rb b/lib/notifier.rb
+index 68ddf847..8e038280 100644
+--- a/lib/notifier.rb
++++ b/lib/notifier.rb
+@@ -42,7 +42,7 @@ module Notifier
+         m[:body] = "Originalmente para #{m[:to]}\n\n" + m[:body]
+         m[:to] = CustomVariable.redirect_email
+       end
+-      unless CustomVariable.reply_to.nil?
++      unless CustomVariable.reply_to.blank? || !m[:reply_to].blank?
+         Notifier.logger.info "Custom Variable 'reply_to' is set. Forwarding email"
+         m[:reply_to] = CustomVariable.reply_to
+       end

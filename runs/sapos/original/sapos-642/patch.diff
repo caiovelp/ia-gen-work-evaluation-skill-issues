@@ -1,0 +1,13 @@
+diff --git a/app/models/report_configuration.rb b/app/models/report_configuration.rb
+index 7b6b8371..c99faa34 100644
+--- a/app/models/report_configuration.rb
++++ b/app/models/report_configuration.rb
+@@ -18,7 +18,7 @@ class ReportConfiguration < ApplicationRecord
+ 
+   mount_uploader :image, ImageUploader
+ 
+-  enum signature_type: { no_signature: 0, manual: 1, qr_code: 2 }
++  enum :signature_type, { no_signature: 0, manual: 1, qr_code: 2 }
+ 
+   def initialize_dup(other)
+     super

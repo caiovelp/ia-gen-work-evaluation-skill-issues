@@ -1,0 +1,26 @@
+diff --git a/sympy/core/expr.py b/sympy/core/expr.py
+index 24d89897f7..b1e85ead5f 100755
+--- a/sympy/core/expr.py
++++ b/sympy/core/expr.py
+@@ -121,7 +121,7 @@ def _hashable_content(self):
+ 
+     def __eq__(self, other):
+         try:
+-            other = sympify(other)
++            other = _sympify(other)
+             if not isinstance(other, Expr):
+                 return False
+         except (SympifyError, SyntaxError):
+diff --git a/sympy/core/tests/test_var.py b/sympy/core/tests/test_var.py
+index be1467f66d..fb1490d589 100755
+--- a/sympy/core/tests/test_var.py
++++ b/sympy/core/tests/test_var.py
+@@ -19,7 +19,7 @@ def test_var():
+     assert ns['fg'] == Symbol('fg')
+ 
+ # check return value
+-    assert v == ['d', 'e', 'fg']
++    assert v == [Symbol('d'), Symbol('e'), Symbol('fg')]
+ 
+ 
+ def test_var_return():

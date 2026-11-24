@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15626,
+ "stop_reason": "end_turn",
+ "session_id": "1ff02673-be25-4d88-981d-8cc69e64714d",
+ "total_cost_usd": 0.0535261,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1924,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1895,
+  "output_tokens_details": {
+   "thinking_tokens": 155
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1924,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1895,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1924,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1924
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2136,
+   "outputTokens": 25,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002261,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1895,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1924,
+   "webSearchRequests": 0,
+   "costUSD": 0.0533,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 155,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nConverting a `BlockDiagMatrix` with exactly one matrix block to a regular `Matrix` raises `TypeError: 'One' object is not subscriptable`. The same conversion works with two or more blocks. This is a regression: it happens in SymPy 1.5.1 but not in SymPy 1.4.\n\n## Steps to reproduce\n\n1. Create a regular matrix: `M = sympy.Matrix([[1, 2], [3, 4]])`\n2. Wrap it in a block diagonal matrix with a single block: `D = sympy.BlockDiagMatrix(M)`\n3. Convert it back to a regular matrix: `B = sympy.Matrix(D)`\n\n## Observed behavior\n\nStep 3 raises `TypeError: 'One' object is not subscriptable`. The error comes from `BlockMatrix._entry` while `as_explicit()` builds the explicit matrix.\n\nFor comparison, the conversion works with two blocks:\n\n```python\nM = sympy.Matrix([[1, 2], [3, 4]])\nD = sympy.BlockDiagMatrix(M, M)\nB = sympy.Matrix(D)\n```\n\nOutput:\n\n```\nMatrix([\n[1, 2, 0, 0],\n[3, 4, 0, 0],\n[0, 0, 1, 2],\n[0, 0, 3, 4]])\n```\n\n## Expected behavior\n\n`sympy.Matrix(D)` should return a regular matrix for a single-block `BlockDiagMatrix`, just as it does for two blocks. Here that is a matrix equal to `M`, i.e. `Matrix([[1, 2], [3, 4]])`. This worked in SymPy 1.4.\n\n## Stack trace / error output\n\n```\nTraceback (most recent call last):\n\n  File \"<ipython-input-37-5b65c1f8f23e>\", line 3, in <module>\n    B = sympy.Matrix(D)\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/dense.py\", line 430, in __new__\n    return cls._new(*args, **kwargs)\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/dense.py\", line 442, in _new\n    rows, cols, flat_list = cls._handle_creation_inputs(*args, **kwargs)\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/matrices.py\", line 2528, in _handle_creation_inputs\n    return args[0].rows, args[0].cols, args[0].as_explicit()._mat\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/expressions/matexpr.py\", line 340, in as_explicit\n    for i in range(self.rows)])\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/expressions/matexpr.py\", line 340, in <listcomp>\n    for i in range(self.rows)])\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/expressions/matexpr.py\", line 339, in <listcomp>\n    for j in range(self.cols)]\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/expressions/matexpr.py\", line 289, in __getitem__\n    return self._entry(i, j)\n\n  File \"/home/rikard/.local/lib/python3.7/site-packages/sympy/matrices/expressions/blockmatrix.py\", line 248, in _entry\n    return self.blocks[row_block, col_block][i, j]\n\nTypeError: 'One' object is not subscriptable\n```\n\n## Test case\n\n```python\nimport sympy\n\ndef test_blockdiagmatrix_single_block_to_matrix():\n    M = sympy.Matrix([[1, 2], [3, 4]])\n    D = sympy.BlockDiagMatrix(M)\n    B = sympy.Matrix(D)  # raises TypeError in SymPy 1.5.1\n    assert B == M\n\ndef test_blockdiagmatrix_two_blocks_to_matrix():\n    # Works as expected (control case)\n    M = sympy.Matrix([[1, 2], [3, 4]])\n    D = sympy.BlockDiagMatrix(M, M)\n    B = sympy.Matrix(D)\n    assert B == sympy.Matrix([\n        [1, 2, 0, 0],\n        [3, 4, 0, 0],\n        [0, 0, 1, 2],\n        [0, 0, 3, 4]])\n```\n\n## Code example\n\n```python\nimport sympy\n\nM = sympy.Matrix([[1, 2], [3, 4]])\nD = sympy.BlockDiagMatrix(M)\nB = sympy.Matrix(D)  # TypeError: 'One' object is not subscriptable\n```\n\n## Version and environment\n\n- SymPy 1.5.1: affected\n- SymPy 1.4: not affected\n- Python 3.7, based on the installation path in the traceback\n- Run from IPython, based on `<ipython-input-...>` in the traceback\n- Operating system: Not provided in the original report.",
+ "ttft_ms": 3106,
+ "type": "result",
+ "duration_ms": 15132,
+ "uuid": "7407d74b-2765-4e64-bf73-07bb39525624",
+ "ttft_stream_ms": 1391,
+ "time_to_request_ms": 264,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 7,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 217,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 13,
+ "time_to_request_cpu_ms": 284,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1391,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

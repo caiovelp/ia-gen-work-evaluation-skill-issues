@@ -1,0 +1,200 @@
+diff --git a/app/controllers/professor_accreditations_controller.rb b/app/controllers/professor_accreditations_controller.rb
+new file mode 100644
+index 00000000..ff55f713
+--- /dev/null
++++ b/app/controllers/professor_accreditations_controller.rb
+@@ -0,0 +1,20 @@
++# frozen_string_literal: true
++
++class ProfessorAccreditationsController < ApplicationController
++  authorize_resource
++
++  active_scaffold :professor_accreditation do |config|
++    columns = [:professor, :accreditation_date]
++
++    config.list.columns = columns
++    config.create.columns = columns
++    config.update.columns = columns
++    config.show.columns = columns
++
++    config.columns[:professor].form_ui = :record_select
++    config.columns[:accreditation_date].form_ui = :date_picker
++
++    config.list.sorting = { accreditation_date: :desc }
++    config.actions.exclude :deleted_records
++  end
++end
+diff --git a/app/controllers/professors_controller.rb b/app/controllers/professors_controller.rb
+index c624de61..11b19aec 100644
+--- a/app/controllers/professors_controller.rb
++++ b/app/controllers/professors_controller.rb
+@@ -76,7 +76,7 @@ class ProfessorsController < ApplicationController
+       :siape, :scholarships, :academic_title_level,
+       :academic_title_institution, :academic_title_country,
+       :academic_title_date, :obs, :professor_research_areas, :professor_research_lines,
+-      :affiliations
++      :affiliations, :professor_accreditations
+     ]
+ 
+     config.create.columns = form_columns
+@@ -90,7 +90,7 @@ class ProfessorsController < ApplicationController
+       :advisement_authorizations, :advisements_with_points,
+       :academic_title_level, :academic_title_institution,
+       :academic_title_country, :academic_title_date, :obs, :research_areas,
+-      :research_lines
++      :research_lines, :professor_accreditations
+     ]
+ 
+     config.actions.exclude :deleted_records
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index 9c172879..23e5a9b7 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -17,7 +17,8 @@ class Ability
+     Professor, Advisement, AdvisementAuthorization,
+     ThesisDefenseCommitteeParticipation,
+     ProfessorResearchArea, ProfessorResearchLine, Grant,
+-    Paper, PaperProfessor, PaperStudent, Affiliation
++    Paper, PaperProfessor, PaperStudent, Affiliation,
++    ProfessorAccreditation
+   ]
+ 
+   SCHOLARSHIP_MODELS = [
+diff --git a/app/models/professor.rb b/app/models/professor.rb
+index 40ce8f8e..c0754422 100644
+--- a/app/models/professor.rb
++++ b/app/models/professor.rb
+@@ -20,8 +20,11 @@ class Professor < ApplicationRecord
+     dependent: :restrict_with_exception
+   has_many :thesis_defense_committee_enrollments,
+     source: :enrollment, through: :thesis_defense_committee_participations
++  has_many :professor_accreditations, dependent: :destroy
+   has_many :affiliations, dependent: :destroy
+   has_many :institutions, through: :affiliations
++  accepts_nested_attributes_for :professor_accreditations,
++    allow_destroy: true, reject_if: :all_blank
+   accepts_nested_attributes_for :affiliations, allow_destroy: false, reject_if: :all_blank
+ 
+   belongs_to :city, optional: true
+diff --git a/app/models/professor_accreditation.rb b/app/models/professor_accreditation.rb
+new file mode 100644
+index 00000000..43b6e5f1
+--- /dev/null
++++ b/app/models/professor_accreditation.rb
+@@ -0,0 +1,17 @@
++# frozen_string_literal: true
++
++# Represents one accreditation (credenciamento) of a Professor. A professor may
++# have many, forming the accreditation history.
++class ProfessorAccreditation < ApplicationRecord
++  has_paper_trail
++
++  belongs_to :professor, optional: false
++
++  validates :accreditation_date, presence: true
++  validates :accreditation_date,
++    uniqueness: { scope: :professor_id }, allow_nil: true
++
++  def to_label
++    I18n.l(accreditation_date) if accreditation_date
++  end
++end
+diff --git a/config/locales/professor.pt-BR.yml b/config/locales/professor.pt-BR.yml
+index 2f703e0a..cfc4cf76 100644
+--- a/config/locales/professor.pt-BR.yml
++++ b/config/locales/professor.pt-BR.yml
+@@ -22,6 +22,7 @@ pt-BR:
+         identity_issuing_place: "Local de Expedição"
+         identity_number: "Número da identidade"
+         affiliations: "Afiliações"
++        professor_accreditations: "Credenciamentos"
+         institution:
+           one: "Instituição"
+           other: "Instituições"
+diff --git a/config/locales/professor_accreditation.pt-BR.yml b/config/locales/professor_accreditation.pt-BR.yml
+new file mode 100644
+index 00000000..16b3b662
+--- /dev/null
++++ b/config/locales/professor_accreditation.pt-BR.yml
+@@ -0,0 +1,10 @@
++pt-BR:
++  activerecord:
++    attributes:
++      professor_accreditation:
++        professor: "Professor"
++        accreditation_date: "Data de credenciamento"
++    models:
++      professor_accreditation:
++        one: "Credenciamento"
++        other: "Credenciamentos"
+diff --git a/config/routes.rb b/config/routes.rb
+index 1bd905eb..b98f4940 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -43,6 +43,10 @@ Rails.application.routes.draw do
+     concerns :active_scaffold
+   end
+ 
++  resources :professor_accreditations do
++    concerns :active_scaffold
++  end
++
+   resources :professor_research_areas do
+     concerns :active_scaffold
+     record_select_routes
+diff --git a/db/migrate/20260701000000_create_professor_accreditations.rb b/db/migrate/20260701000000_create_professor_accreditations.rb
+new file mode 100644
+index 00000000..f5fdb780
+--- /dev/null
++++ b/db/migrate/20260701000000_create_professor_accreditations.rb
+@@ -0,0 +1,13 @@
++# frozen_string_literal: true
++
++class CreateProfessorAccreditations < ActiveRecord::Migration[7.1]
++  def change
++    create_table :professor_accreditations do |t|
++      t.references :professor, null: false, foreign_key: true
++      t.date :accreditation_date, null: false
++      t.timestamps
++    end
++    add_index :professor_accreditations, [:professor_id, :accreditation_date],
++      unique: true, name: "index_prof_accreditations_on_prof_and_date"
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 4a943b95..aeebac29 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
++ActiveRecord::Schema[7.1].define(version: 2026_07_01_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -770,6 +770,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
+     t.boolean "active", default: true, null: false
+   end
+ 
++  create_table "professor_accreditations", force: :cascade do |t|
++    t.integer "professor_id", null: false
++    t.date "accreditation_date", null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["professor_id", "accreditation_date"], name: "index_prof_accreditations_on_prof_and_date", unique: true
++    t.index ["professor_id"], name: "index_professor_accreditations_on_professor_id"
++  end
++
+   create_table "professor_research_areas", force: :cascade do |t|
+     t.integer "professor_id"
+     t.integer "research_area_id"
+@@ -1160,6 +1169,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_06_20_000000) do
+   add_foreign_key "paper_students", "papers"
+   add_foreign_key "paper_students", "students"
+   add_foreign_key "papers", "professors", column: "owner_id"
++  add_foreign_key "professor_accreditations", "professors"
+   add_foreign_key "professor_research_lines", "professors"
+   add_foreign_key "professor_research_lines", "research_lines"
+   add_foreign_key "reports", "carrier_wave_files", column: "carrierwave_file_id"

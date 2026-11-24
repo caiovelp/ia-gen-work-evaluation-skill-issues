@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29622,
+ "stop_reason": "end_turn",
+ "session_id": "de04efce-6a7f-4440-b0d8-f5deecd96774",
+ "total_cost_usd": 0.0831618,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2728,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3006,
+  "output_tokens_details": {
+   "thinking_tokens": 417
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2728,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3006,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 2728,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2728
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3315,
+   "outputTokens": 31,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000347,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3006,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 2728,
+   "webSearchRequests": 0,
+   "costUSD": 0.0828148,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 417,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Test DB setup with `\"TEST\": {\"MIGRATE\": False}` must not crash\n\n## Objective\n\nDjango 3.1 added the database setting `\"TEST\": {\"MIGRATE\": False}`, which lets a project skip migrations when building the test database. In the reported project, `./manage.py test` crashes during `setup_databases` when this setting is enabled. Removing the setting makes the tests run.\n\n**Who is affected:** Developers on Django 3.1 who want faster test database setup by skipping migrations. The reporter's project was upgraded from Django 1.4 to 3.0 and is now moving to 3.1.\n\n**Observed behaviour, from the traceback:**\n\n1. `DiscoverRunner.run_tests` calls `setup_databases` (`django/test/runner.py`).\n2. `setup_databases` calls `create_test_db`, passing `serialize=connection.settings_dict['TEST'].get('SERIALIZE', True)` (`django/test/utils.py`).\n3. `create_test_db` calls `serialize_db_to_string()` (`django/db/backends/base/creation.py`, line 78).\n4. `serialize_db_to_string` iterates over model querysets and queries `django_admin_log`.\n5. PostgreSQL raises `relation \"django_admin_log\" does not exist`.\n6. While that error is being handled, closing the server-side cursor fails with `psycopg2.errors.InvalidCursorName: cursor \"_django_curs_..._sync_1\" does not exist`.\n\n**Interpretation, to be confirmed:** With `MIGRATE: False`, the test database contains no tables for at least some installed apps. Here, `django.contrib.admin`'s `LogEntry` table is missing. Serialization still runs and queries every model, so it fails on the first missing table.\n\n**Expected behaviour:**\n- Setting `\"TEST\": {\"MIGRATE\": False}` lets the test database be created without running migrations.\n- `./manage.py test` then completes setup without errors.\n- Tests that use the ORM can run against tables that reflect the current model state.\n\n**Acceptance criteria:**\n- AC1: With `\"TEST\": {\"MIGRATE\": False}` and default `SERIALIZE` (True), `setup_databases` completes without raising.\n- AC2: With `MIGRATE: False`, the tables for installed apps' models exist in the test database, including contrib apps such as `admin`, `auth` and `contenttypes`. Tests can therefore query them.\n- AC3: With `MIGRATE: False` and `SERIALIZE: True`, serialization of the test database succeeds. Behaviour that depends on serialized contents, such as `serialized_rollback`, keeps working.\n- AC4: Behaviour with `MIGRATE: True` (the default) is unchanged.\n- AC5: The secondary `InvalidCursorName` error no longer hides the primary error. This is a scope question; see Open Questions.\n\n## Tech Stack\n\n- Django 3.1.x. The exact patch version is unknown.\n- Python 3.6, per the traceback paths.\n- PostgreSQL via `psycopg2`. The server and driver versions are unknown.\n- Other backends (SQLite, MySQL, Oracle) may be affected but have not been verified.\n\n## Commands\n\n- Reproduction in the reporter's project: `./manage.py test`, with `\"TEST\": {\"MIGRATE\": False}` in the `DATABASES` entry.\n- Django's own test-suite command: unknown, not shown in the issue.\n- Build and lint commands: unknown.\n\n## Project Structure\n\nLocations visible in the traceback, under `site-packages/django/`:\n\n- `test/runner.py`: `DiscoverRunner.run_tests` and `setup_databases`\n- `test/utils.py`: module-level `setup_databases`\n- `db/backends/base/creation.py`: `create_test_db`, `serialize_db_to_string`\n- `db/models/sql/compiler.py`: `execute_sql`, where the cursor close fails\n- `core/management/commands/test.py`: the `test` command\n\nThe location of Django's own tests for this area is unknown.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the Django codebase; no example is available in the issue.\n\n## Testing Strategy\n\n- **Regression test:** Create a test database with `TEST['MIGRATE'] = False` and serialization enabled. Assert that creation succeeds and that model tables exist. Cover at least one contrib app that has migrations, such as `admin.LogEntry`.\n- **Control test:** Run with `MIGRATE: True` and confirm the behaviour is unchanged.\n- **Backends:** Run against PostgreSQL, because the reported failure, including the cursor-close error, is PostgreSQL-specific. Also run on SQLite to check that the behaviour is backend-agnostic.\n- Test framework, file locations and coverage requirements are unknown. Use Django's existing test-suite conventions.\n\n## Boundaries\n\n- **Always:**\n  - Keep the default `MIGRATE: True` path behaviour identical.\n  - Add a regression test that reproduces the crash before the fix.\n  - Respect the `SERIALIZE` setting.\n- **Ask first:**\n  - Changing the public meaning of `TEST['MIGRATE']` or `TEST['SERIALIZE']`.\n  - Changing the error handling in `SQLCompiler.execute_sql` (the cursor-close masking).\n  - Backporting to the 3.1 maintenance branch.\n- **Never:**\n  - \"Fix\" the problem by silently disabling serialization when `MIGRATE` is False, unless this is approved as the intended semantics.\n  - Swallow database errors during test setup.\n\n## Success Criteria\n\n- The reproduction (`\"TEST\": {\"MIGRATE\": False}` with `./manage.py test` on PostgreSQL) no longer crashes in `setup_databases`.\n- AC1\u2013AC4 are covered by automated tests that pass. AC5 is covered too if it is accepted into scope.\n- The existing test-database creation tests still pass.\n- The release notes or docs for `TEST['MIGRATE']` accurately describe what gets created when migrations are skipped.\n\n## Assumptions\n\n1. The crash is a Django bug, not legacy cruft in the reporter's project. The failing table belongs to `django.contrib.admin`, which is standard.\n2. The intended semantics of `MIGRATE: False` are to skip migrations but still create tables from the current models, like `syncdb`. It is not meant to create no tables at all.\n3. `SERIALIZE` defaults to True and the reporter did not change it.\n4. The `InvalidCursorName` error is a side effect of the first failure inside a server-side (chunked) cursor on PostgreSQL. It is not an independent root cause.\n5. The target is the Django 3.1 line, with a possible backport.\n\n## Open Questions\n\n1. Is Assumption 2 correct: should `MIGRATE: False` create tables for all apps from their models? The alternative is that users are expected to also set `SERIALIZE: False`, or to create the schema themselves.\n2. Does the crash reproduce on a fresh 3.1 project with `django.contrib.admin` installed? This would rule out the reporter's legacy configuration, e.g. `MIGRATION_MODULES` or custom routers.\n3. Should the `InvalidCursorName` error that masks the original `ProgrammingError` be fixed in this change (AC5), or tracked separately?\n4. Which other backends need verification beyond PostgreSQL?\n5. Which Django 3.1 patch version is affected, and should the fix be backported?\n6. Should the documentation for `TEST['MIGRATE']` be clarified regardless of the fix?",
+ "ttft_ms": 6684,
+ "type": "result",
+ "duration_ms": 29143,
+ "uuid": "a12b386c-3cd7-43cc-a901-db27b4b629a5",
+ "ttft_stream_ms": 1881,
+ "time_to_request_ms": 293,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 5,
+  "input_attachments": 10,
+  "input_hooks": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 26,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 224,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 257,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1881,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

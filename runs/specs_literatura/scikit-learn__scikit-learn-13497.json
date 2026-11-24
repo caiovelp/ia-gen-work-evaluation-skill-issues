@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10641,
+ "stop_reason": "end_turn",
+ "session_id": "8f5c7b81-bf88-46af-b1e7-daf38b7c98c2",
+ "total_cost_usd": 0.026190699999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1058,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 879,
+  "output_tokens_details": {
+   "thinking_tokens": 272
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1058,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 879,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1058,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1058
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1267,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00013869999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 879,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1058,
+   "webSearchRequests": 0,
+   "costUSD": 0.026052,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 272,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`_estimate_mi` compares `discrete_features` to a string with `discrete_features == 'auto'`. However, `discrete_features` can also be an array of indices or a boolean mask. In those cases the code compares a string to an array, which will raise an error in future versions of numpy. The reporter also suspects that the function is never tested with `discrete_features` set to anything other than `'auto'`.\n\n## Steps to reproduce\n\n1. Call `_estimate_mi` with `discrete_features` set to an array of indices or a boolean mask, rather than `'auto'`.\n2. The code evaluates `discrete_features == 'auto'`, which compares a string to an array.\n\n## Observed behavior\n\nWhen `discrete_features` is an array of indices or a boolean mask, `_estimate_mi` compares that array to the string `'auto'`. According to the reporter, this comparison will error in future versions of numpy. The reporter also notes that this case does not appear to be covered by tests, since the function seems never to be tested with `discrete_features != 'auto'`.\n\n## Expected behavior\n\n`_estimate_mi` should handle all supported forms of `discrete_features` without comparing an array to a string:\n\n- `'auto'`\n- an array of indices\n- a boolean mask\n\nThis should keep working in future numpy versions. The non-`'auto'` cases should also be covered by tests.\n\n## Stack trace / error output\n\nNot provided in the original report.\n\n## Test case\n\nNot provided in the original report. The reporter notes that there seem to be no tests calling `_estimate_mi` with `discrete_features` set to an array of indices or a boolean mask.\n\n## Code example\n\nThe problematic expression in `_estimate_mi`:\n\n```python\ndiscrete_features == 'auto'\n```\n\n## Version and environment\n\nNot provided in the original report. The report only states that the problem will arise in future versions of numpy.",
+ "ttft_ms": 4411,
+ "type": "result",
+ "duration_ms": 9470,
+ "uuid": "619be8f7-ff2b-4253-8131-e9a20621f57a",
+ "ttft_stream_ms": 1542,
+ "time_to_request_ms": 330,
+ "time_to_request_phases_ms": {
+  "other": 15,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 2,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 272,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 28,
+ "time_to_request_cpu_ms": 170,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 17,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1542,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

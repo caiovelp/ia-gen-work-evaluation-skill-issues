@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 20370,
+ "stop_reason": "end_turn",
+ "session_id": "14738fb7-661b-4d11-9fda-39f461fefdbb",
+ "total_cost_usd": 0.0493149,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 682,
+  "cache_read_input_tokens": 4361,
+  "output_tokens": 2142,
+  "output_tokens_details": {
+   "thinking_tokens": 26
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 682,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2142,
+    "cache_read_input_tokens": 4361,
+    "cache_creation_input_tokens": 682,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 682
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1252,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001387,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2142,
+   "cacheReadInputTokens": 4361,
+   "cacheCreationInputTokens": 682,
+   "webSearchRequests": 0,
+   "costUSD": 0.0491762,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 26,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 682,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Corre\u00e7\u00e3o do erro ao visualizar bolsa com aloca\u00e7\u00e3o sem data limite de concess\u00e3o\n\n## Objetivo\n\nNa tela de bolsas, o \u00edcone de visualiza\u00e7\u00e3o (\"olhinho\") gera um erro em algumas bolsas: aquelas que possuem pelo menos uma aloca\u00e7\u00e3o sem a **data limite de concess\u00e3o** preenchida.\n\nO objetivo \u00e9 que o usu\u00e1rio consiga visualizar os detalhes de **qualquer** bolsa sem erro, inclusive quando alguma aloca\u00e7\u00e3o n\u00e3o tem data limite de concess\u00e3o.\n\n**Usu\u00e1rio:** quem acessa a tela de bolsas e consulta os detalhes de uma bolsa. O perfil exato n\u00e3o foi informado na issue original.\n\n**Crit\u00e9rios de aceita\u00e7\u00e3o (hist\u00f3ria de usu\u00e1rio):**\n- Como usu\u00e1rio da tela de bolsas, ao clicar no \"olhinho\" de uma bolsa que tem aloca\u00e7\u00e3o sem data limite de concess\u00e3o, quero ver os detalhes da bolsa normalmente, sem erro.\n- O campo de data limite de concess\u00e3o vazio deve ser exibido de forma clara (ver Quest\u00f5es em Aberto), sem quebrar a tela.\n\n## Premissas\n\n1. O erro ocorre ao abrir a visualiza\u00e7\u00e3o de detalhes da bolsa. A issue n\u00e3o diz se o erro acontece no frontend (renderiza\u00e7\u00e3o/formata\u00e7\u00e3o de data) ou no backend (serializa\u00e7\u00e3o/consulta).\n2. A data limite de concess\u00e3o \u00e9 um campo **opcional** por regra de neg\u00f3cio. Aloca\u00e7\u00f5es sem esse valor s\u00e3o v\u00e1lidas e n\u00e3o s\u00e3o um problema de dados a corrigir.\n3. Bolsas cujas aloca\u00e7\u00f5es t\u00eam todas a data limite preenchida j\u00e1 funcionam corretamente. Esse comportamento deve continuar igual.\n4. A corre\u00e7\u00e3o n\u00e3o deve exigir altera\u00e7\u00e3o no esquema do banco de dados.\n5. O problema afeta apenas o campo \"data limite de concess\u00e3o\" da aloca\u00e7\u00e3o. N\u00e3o sabemos se outros campos opcionais causam erro parecido.\n\n## Stack Tecnol\u00f3gica\n\nN\u00e3o informado na issue original.\n\n## Comandos\n\nN\u00e3o informado na issue original.\n- Build: desconhecido\n- Testes: desconhecido\n- Lint: desconhecido\n- Dev: desconhecido\n\n## Estrutura do Projeto\n\nN\u00e3o informado na issue original. A localiza\u00e7\u00e3o da tela de bolsas, do componente de visualiza\u00e7\u00e3o e do modelo/entidade de aloca\u00e7\u00e3o \u00e9 desconhecida.\n\n## Estilo de C\u00f3digo\n\nN\u00e3o informado na issue original.\n\n## Estrat\u00e9gia de Testes\n\nO framework e a localiza\u00e7\u00e3o dos testes n\u00e3o foram informados na issue original. N\u00edveis de teste esperados, a confirmar com a stack real:\n- **Teste de regress\u00e3o (unit\u00e1rio/componente):** visualiza\u00e7\u00e3o de uma bolsa com aloca\u00e7\u00e3o sem data limite de concess\u00e3o n\u00e3o gera erro, e o campo vazio aparece conforme o comportamento definido.\n- **Teste de n\u00e3o regress\u00e3o:** visualiza\u00e7\u00e3o de uma bolsa com todas as aloca\u00e7\u00f5es com data limite preenchida continua exibindo as datas corretamente.\n- **Caso misto:** bolsa com v\u00e1rias aloca\u00e7\u00f5es, algumas com e outras sem data limite. Todas devem ser exibidas corretamente.\n- **Integra\u00e7\u00e3o/E2E (se existir infraestrutura):** clicar no \"olhinho\" na tela de bolsas abre os detalhes sem erro para os tr\u00eas cen\u00e1rios acima.\n\n## Limites\n\n- **Sempre:**\n  - Reproduzir o erro antes de corrigir e registrar a mensagem/stack trace.\n  - Tratar a data limite de concess\u00e3o como possivelmente ausente em todo o fluxo de visualiza\u00e7\u00e3o.\n  - Adicionar teste de regress\u00e3o que cubra a aloca\u00e7\u00e3o sem data limite.\n  - Rodar os testes existentes antes de concluir.\n- **Perguntar antes:**\n  - Tornar a data limite de concess\u00e3o obrigat\u00f3ria ou alterar o esquema do banco.\n  - Preencher ou migrar dados existentes de aloca\u00e7\u00f5es sem data.\n  - Adicionar novas depend\u00eancias (por exemplo, biblioteca de datas).\n  - Mudar o comportamento de outras telas que usam a mesma data.\n- **Nunca:**\n  - Esconder bolsas ou aloca\u00e7\u00f5es sem data limite para \"evitar\" o erro.\n  - Suprimir o erro de forma gen\u00e9rica (try/catch silencioso) sem tratar a causa.\n  - Remover ou desabilitar testes existentes.\n  - Inventar um valor de data padr\u00e3o que possa ser confundido com uma data real.\n\n## Crit\u00e9rios de Sucesso\n\n1. Clicar no \"olhinho\" de uma bolsa com pelo menos uma aloca\u00e7\u00e3o sem data limite de concess\u00e3o abre os detalhes sem erro, seja no console, na interface ou na resposta do servidor.\n2. Nas aloca\u00e7\u00f5es sem data limite, o campo aparece vazio ou com um texto indicativo, conforme definido nas Quest\u00f5es em Aberto.\n3. Nas aloca\u00e7\u00f5es com data limite, a data continua sendo exibida com o mesmo formato de antes.\n4. Bolsas com mistura de aloca\u00e7\u00f5es (com e sem data) exibem todas as aloca\u00e7\u00f5es corretamente.\n5. Existe pelo menos um teste automatizado que falhava antes da corre\u00e7\u00e3o e passa depois.\n6. Todos os testes existentes continuam passando.\n\n## Quest\u00f5es em Aberto\n\n1. Qual \u00e9 a mensagem de erro exata e o stack trace? Ele aparece no frontend (console/tela) ou no backend (status HTTP 500, por exemplo)?\n2. A data limite de concess\u00e3o \u00e9 de fato opcional pela regra de neg\u00f3cio, ou aloca\u00e7\u00f5es sem ela s\u00e3o dados inconsistentes que deveriam ser corrigidos?\n3. Como exibir uma aloca\u00e7\u00e3o sem data limite: campo vazio, \"-\", \"N\u00e3o informada\", \"Sem data limite\" ou outro texto?\n4. Outras telas ou funcionalidades usam a data limite de concess\u00e3o (listagem, relat\u00f3rios, exporta\u00e7\u00f5es, edi\u00e7\u00e3o)? Elas tamb\u00e9m devem ser verificadas nesta issue?\n5. Existem outros campos opcionais de aloca\u00e7\u00e3o com o mesmo risco que devam entrar no escopo?\n6. Quais s\u00e3o a stack, os comandos de build/teste e os caminhos dos arquivos envolvidos (tela de bolsas, componente de visualiza\u00e7\u00e3o, modelo de aloca\u00e7\u00e3o)?\n7. H\u00e1 um ambiente ou bolsa espec\u00edfica onde o erro possa ser reproduzido (ID da bolsa de exemplo)?",
+ "ttft_ms": 1314,
+ "type": "result",
+ "duration_ms": 20088,
+ "uuid": "eb54d04d-e2d2-47a8-af2c-aa4cb9eeb5d4",
+ "ttft_stream_ms": 1118,
+ "time_to_request_ms": 377,
+ "time_to_request_phases_ms": {
+  "other": 6,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "conversation_append": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 12,
+  "init_frame_send": 5,
+  "engine_pickup": 2,
+  "loop_entry": 5,
+  "message_prep": 2,
+  "model_config_wait": 301,
+  "autocompact": 2,
+  "request_announcements": 8,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 2,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 5
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 46,
+ "time_to_request_cpu_ms": 472,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 17,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 4,
+  "ambient_wait_ms": 3,
+  "render_ms": 2,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 0,
+  "waits_ms": 1,
+  "placement_ms": 0,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 1,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 1,
+  "images_ms": 0,
+  "post_process_ms": 1,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 1,
+  "system_ms": 1,
+  "headers_ms": 0,
+  "cache_break_record_ms": 1,
+  "plans_ms": 1,
+  "retry_setup_ms": 0,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 1
+ },
+ "first_content_frame_ms": 1119,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

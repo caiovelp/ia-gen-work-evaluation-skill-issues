@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 23515,
+ "stop_reason": "end_turn",
+ "session_id": "a45ab574-26e1-4a6a-9da2-8b3aff970818",
+ "total_cost_usd": 0.056437,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1024,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2360,
+  "output_tokens_details": {
+   "thinking_tokens": 153
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1024,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2360,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1024,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1024
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1612,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001742,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2360,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1024,
+   "webSearchRequests": 0,
+   "costUSD": 0.0562628,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 153,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Correct `separability_matrix` for Nested CompoundModels\n\n## Assumptions\n1. The bug is in `astropy.modeling.separable`, the module that provides `separability_matrix` per the issue's import. The exact source file path is not shown in the issue, so it is unverified.\n2. Separability is a property of the model's mathematical structure. Grouping with parentheses or nesting with `&` must not change the result, because `&` is associative in meaning. So `A & (B & C)` should give the same matrix as `(A & B) & C`.\n3. The flat results shown in the issue are correct and are the reference behavior:\n   - `Linear1D & Linear1D` gives a diagonal matrix.\n   - `Pix2Sky_TAN & Linear1D & Linear1D` gives a 2\u00d72 block plus a diagonal.\n4. The fault is not specific to `Pix2Sky_TAN` or `Linear1D`. It most likely affects any compound model whose right-hand operand (and possibly left-hand) of `&` is itself a `CompoundModel`.\n5. Other operators that build compound models (for example `|`) may hit the same nesting problem. This is not confirmed by the issue.\n6. The public API (`separability_matrix` signature, return type: a boolean numpy array of shape `(n_outputs, n_inputs)`) must not change.\n7. The test framework is pytest. This is assumed from the astropy ecosystem and not confirmed by the issue.\n\n## Objective\n`separability_matrix` returns wrong results when a `CompoundModel` is nested inside another `CompoundModel`.\n\nReproduction from the issue:\n\n```python\nfrom astropy.modeling import models as m\nfrom astropy.modeling.separable import separability_matrix\n\ncm = m.Linear1D(10) & m.Linear1D(5)\nseparability_matrix(m.Pix2Sky_TAN() & cm)\n```\n\nActual result (the bottom-right block wrongly says the two linear models are coupled):\n\n```\n[[ True,  True, False, False],\n [ True,  True, False, False],\n [False, False,  True,  True],\n [False, False,  True,  True]]\n```\n\nExpected result (identical to the non-nested `Pix2Sky_TAN() & Linear1D(10) & Linear1D(5)`):\n\n```\n[[ True,  True, False, False],\n [ True,  True, False, False],\n [False, False,  True, False],\n [False, False, False,  True]]\n```\n\n**Users:** astropy modeling users, e.g. people building WCS / GWCS transforms. They rely on separability to tell which outputs depend on which inputs.\n\n**Success means:** the separability matrix of a compound model depends only on its structure, never on how it was grouped or nested.\n\n## Tech Stack\n- Python, astropy (`astropy.modeling`), numpy.\n- Supported Python, numpy and astropy versions: unknown, not stated in the issue.\n- The astropy version the bug was observed on: unknown.\n\n## Commands\n- Build: unknown\n- Test: unknown. Presumably pytest scoped to the modeling separability tests; the exact command and path are unverified.\n- Lint: unknown\n- Dev: unknown\n\n## Project Structure\n- Implementation: the module behind `astropy.modeling.separable`. Its file path is unknown and not shown in the issue.\n- Tests: the existing test location for separability is unknown and needs to be found in the repo.\n- Docs / changelog: astropy's changelog convention is unknown.\n\n## Code Style\n- Follow the existing style in `astropy.modeling.separable`. It is not visible from the issue.\n- No code snippet is available.\n\n## Testing Strategy\n- **Unit tests** for `separability_matrix` (and `is_separable`, if it shares the same code path) using nested compound models. Compare against the hand-computed expected matrix and against the equivalent flat model.\n- **Regression test:** the exact case from the issue, `Pix2Sky_TAN() & (Linear1D & Linear1D)`.\n- **Grouping-invariance tests:**\n  - `A & (B & C)` vs `(A & B) & C` vs `A & B & C`.\n  - Nesting on the left side as well as the right side.\n  - Deeper nesting (3+ levels).\n- **Mixed-operator tests:** nested sub-models combined with `|` (and other compound operators, if supported by separability). Check that results match the equivalent flat expression.\n- **Existing separability tests** must keep passing, with no expectations changed.\n- Coverage target: unknown. At minimum, every branch touched by the change must be exercised.\n\n## Boundaries\n- **Always:**\n  - Keep the public signature and return type of `separability_matrix` unchanged.\n  - Add a regression test reproducing the issue.\n  - Run the existing modeling test suite before committing.\n- **Ask first:**\n  - Changing the behavior of `is_separable` or other public functions in `separable`.\n  - Changing how `CompoundModel` represents its tree.\n  - Adding dependencies.\n  - Changing results for any non-nested case.\n- **Never:**\n  - Modify or delete existing passing tests to make the fix pass.\n  - Special-case specific model classes (e.g. `Linear1D`, `Pix2Sky_TAN`) instead of fixing the general nesting logic.\n\n## Success Criteria\n1. `separability_matrix(m.Pix2Sky_TAN() & cm)` returns the expected matrix shown above, where `cm = m.Linear1D(10) & m.Linear1D(5)`.\n2. For models A, B, C, these all return identical matrices: `A & (B & C)`, `(A & B) & C`, and `A & B & C`. This holds for nesting on either side and at any depth.\n3. Expressions combining nested compound sub-models with `|` produce the same matrix as their equivalent flat expression.\n4. All pre-existing separability tests pass unchanged.\n5. The output shape stays `(n_outputs, n_inputs)` and the dtype stays boolean.\n\n## Open Questions\n1. Which astropy version(s) show the bug, and should the fix be backported?\n2. Are operators other than `&` (`|`, arithmetic operators, `fix_inputs`, etc.) also affected? Are they in scope for this change?\n3. Does `is_separable` share the same faulty path? Should it be covered by the same fix and tests?\n4. Are there models with custom separability definitions that need specific nested test cases?\n5. What is the exact test command, test file location and changelog convention for this repository?\n6. Should the fix be accompanied by a documentation note on separability of nested models?",
+ "ttft_ms": 3087,
+ "type": "result",
+ "duration_ms": 22888,
+ "uuid": "a00d1ee5-22dc-4385-a4c4-8885566a357f",
+ "ttft_stream_ms": 1275,
+ "time_to_request_ms": 292,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 12,
+  "input_hooks": 3,
+  "tool_pool_refresh": 3,
+  "init_message": 11,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 235,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 282,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 7,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1275,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

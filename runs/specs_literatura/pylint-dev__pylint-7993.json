@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14598,
+ "stop_reason": "end_turn",
+ "session_id": "a0f04cb7-f7c3-43c4-8a13-89d78d0c1a5b",
+ "total_cost_usd": 0.046533700000000004,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1792,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1599,
+  "output_tokens_details": {
+   "thinking_tokens": 138
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1792,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1599,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1792,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1792
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1997,
+   "outputTokens": 20,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00020970000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1599,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1792,
+   "webSearchRequests": 0,
+   "costUSD": 0.046324000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 138,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nEscaped (doubled) braces in `--msg-template` no longer work in pylint 2.12.2. With the template `{{ \"Category\": \"{category}\" }}`, pylint 1.7.4 (Python 3.6) printed a literal brace-wrapped string for each message, for example `{ \"Category\": \"convention\" }`. Pylint 2.12.2 (Python 3.9) instead emits a `UserWarning` saying it does not recognize the argument `{ \"Category\"`, and prints only `\" }` for each message.\n\n## Steps to reproduce\n\n1. Use a Python file (`test.py`) that produces pylint messages. The reporter's file produced convention and error messages; its contents were not shared.\n2. Run pylint with a message template that uses doubled braces to output literal `{` and `}`:\n   ```shell\n   pylint test.py --msg-template='{{ \"Category\": \"{category}\" }}'\n   ```\n3. Look at the warning output and the per-message lines.\n\n## Observed behavior\n\nWith pylint 2.12.2 on Python 3.9:\n\n- pylint emits a `UserWarning` saying it doesn't recognize the argument `'{ \"Category\"'` in `--msg-template`.\n- Each message is printed only as `\" }`. The literal braces, the `\"Category\":` key and the category value are all missing.\n\nWith pylint 1.7.4 on Python 3.6, the same command worked as intended (see Expected behavior).\n\n## Expected behavior\n\nDoubled braces `{{` and `}}` should produce literal `{` and `}`. `{category}` should be replaced with the message category. Each message should print as a dictionary-like line with `\"Category\"` as the key, as pylint 1.7.4 did:\n\n```\n{ \"Category\": \"convention\" }\n{ \"Category\": \"error\" }\n{ \"Category\": \"error\" }\n{ \"Category\": \"convention\" }\n{ \"Category\": \"convention\" }\n{ \"Category\": \"convention\" }\n{ \"Category\": \"error\" }\n```\n\nNo warning about an unrecognized template argument should be emitted.\n\n## Stack trace / error output\n\nPylint 2.12.2 output (paths redacted by the reporter):\n\n```\n[redacted]/site-packages/pylint/reporters/text.py:206: UserWarning: Don't recognize the argument '{ \"Category\"' in the --msg-template. Are you sure it is supported on the current version of pylint?\n  warnings.warn(\n************* Module [redacted].test\n\" }\n\" }\n\" }\n\" }\n\" }\n\" }\n```\n\nPylint 1.7.4 output (previously working):\n\n```\nNo config file found, using default configuration\n************* Module [redacted].test\n{ \"Category\": \"convention\" }\n{ \"Category\": \"error\" }\n{ \"Category\": \"error\" }\n{ \"Category\": \"convention\" }\n{ \"Category\": \"convention\" }\n{ \"Category\": \"convention\" }\n{ \"Category\": \"error\" }\n```\n\n## Test case\n\nMinimal check based on the report:\n\n1. Run `pylint <file-with-messages> --msg-template='{{ \"Category\": \"{category}\" }}'`.\n2. Assert that no `UserWarning` about an unrecognized `--msg-template` argument is emitted.\n3. Assert that each message line has the form `{ \"Category\": \"<category>\" }`, for example `{ \"Category\": \"convention\" }` or `{ \"Category\": \"error\" }`, and not `\" }`.\n\n## Code example\n\nThe only code in the report is the command line:\n\n```shell\npylint test.py --msg-template='{{ \"Category\": \"{category}\" }}'\n```\n\nThe contents of `test.py` were not provided in the original report.\n\n## Version and environment\n\n**Affected version:**\n```\npylint 2.12.2\nastroid 2.9.2\nPython 3.9.9+ (heads/3.9-dirty:a2295a4, Dec 21 2021, 22:32:52)\n[GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]\n```\n\n**Previously working version:**\n```\npylint 1.7.4\nastroid 1.6.6\nPython 3.6.8 (default, Nov 16 2020, 16:55:22)\n[GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]\n```\n\n- Configuration: none. The 1.7.4 run reports \"No config file found, using default configuration.\"\n- OS / environment: not provided in the original report. The GCC build string mentions Red Hat.\n- Additional dependencies: not provided in the original report.",
+ "ttft_ms": 2967,
+ "type": "result",
+ "duration_ms": 14139,
+ "uuid": "c79396d4-89ba-416f-824e-d237a5b37505",
+ "ttft_stream_ms": 1366,
+ "time_to_request_ms": 227,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 4,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 110,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1366,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

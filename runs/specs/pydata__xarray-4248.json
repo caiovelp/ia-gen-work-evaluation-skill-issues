@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28862,
+ "stop_reason": "end_turn",
+ "session_id": "0a303361-8fb3-4adb-a868-d05c662791db",
+ "total_cost_usd": 0.06213249999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 935,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2681,
+  "output_tokens_details": {
+   "thinking_tokens": 59
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 935,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2681,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 935,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 935
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1522,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00016170000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2681,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 935,
+   "webSearchRequests": 0,
+   "costUSD": 0.06197079999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 59,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Show Units in the `Dataset` Text Repr\n\n## Objective\n\nShow the units of each coordinate and data variable in the plain-text `xarray.Dataset` repr. Users can then read the physical meaning of each variable (metres, mm, deg C) from the overview, without inspecting `.attrs` one variable at a time.\n\n**User:** Someone working interactively in a REPL or notebook who prints a `Dataset` to get an overview of its contents.\n\n**User story:** As an xarray user, when I print a `Dataset`, I want each coordinate and data variable line to show its units, if it has any, so I can understand the data at a glance.\n\n**Requested output (from the issue):**\n\n```\n<xarray.Dataset>\nDimensions:  (time: 3, x: 988, y: 822)\nCoordinates:\n  * x, in metres         (x)            float64 ...\n  * y, in metres         (y)            float64 ...\n  * time                 (time)         datetime64[ns] ...\nData variables:\n    rainfall, in mm      (time, y, x)   float32 ...\n    max_temp, in deg C   (time, y, x)   float32 ...\n```\n\nNotable properties of this example:\n- Units follow the variable name in the form `<name>, in <units>`.\n- A variable without units (`time`) shows only its name. It gets no placeholder.\n- The dims, dtype and values columns stay aligned across all lines after the name is made longer.\n\n## Assumptions\n\n1. A variable's units come from its `attrs[\"units\"]` entry, following the CF conventions. The issue does not say where units come from.\n2. Only the plain-text `__repr__` of `Dataset` is in scope. Whether the HTML notebook repr, the `DataArray` repr, or `Dataset.info()` should change is an open question.\n3. A variable with no `units` attribute is rendered exactly as it is today, apart from any column-alignment changes caused by other lines.\n4. The `<name>, in <units>` format in the issue is a suggestion, not a fixed requirement. The final format is an open question.\n5. Units are shown as their string form. They are not parsed, validated or normalised: `\"m\"` stays `\"m\"` and is not expanded to `\"metres\"`.\n6. Behaviour is the same for coordinates (indexed `*` and non-indexed) and data variables.\n7. Showing units must not load lazy or backend-backed data. Reading `attrs` is assumed to be cheap and not to trigger computation.\n8. The change is to existing repr/formatting code. No new dependency (for example, a units library) is introduced.\n\n## Tech Stack\n\n- Python library: xarray.\n- Python version, supported dependency versions and the formatting module location: **unknown** (not visible in the issue).\n\n## Commands\n\nAll **unknown**. The repository is not visible. To be filled in from the project's contributor docs:\n\n```\nInstall (dev): unknown\nTest:          unknown\nLint/format:   unknown\nDocs build:    unknown\n```\n\n## Project Structure\n\n**Unknown.** The issue does not show the repository layout. The spec only assumes that:\n- Some source module produces the `Dataset` text repr (location unknown).\n- An existing test suite covers repr output (location unknown).\n- Documentation and a changelog/\"what's new\" file may exist (locations unknown).\n\n## Code Style\n\nUnknown. Follow the existing conventions of the repr/formatting code and the project's configured linters. No style example is available from the issue.\n\n## Testing Strategy\n\n- **Framework:** unknown (to be confirmed from the repo).\n- **Unit tests on repr output.** Build small in-memory `Dataset`s and assert the exact repr strings for:\n  - A coordinate with units, a coordinate without units, and an indexed (`*`) coordinate with units.\n  - A data variable with units and one without.\n  - Column alignment when names and units have different lengths.\n  - A long units string, checking the agreed truncation or width behaviour.\n  - A non-string `units` value (for example a number or list), checking the agreed behaviour.\n  - An empty-string `units` attribute.\n  - Unicode units (for example `\u00b0C`, `\u00b5m`).\n  - A `Dataset` with no variables or coordinates, which must render unchanged.\n- **Regression:** existing repr tests either pass unchanged (variables without units) or are updated deliberately, with each update explained.\n- **Laziness:** a test confirming that printing a `Dataset` backed by lazy data does not trigger computation or loading.\n- **Coverage expectation:** unknown project threshold. All new branches in the formatting logic are covered.\n\n## Boundaries\n\n- **Always:**\n  - Keep the repr of variables without units visually identical, except where alignment requires a change.\n  - Keep the dims/dtype/values columns aligned.\n  - Respect any existing repr width limits and truncation rules.\n  - Add or adjust tests for every repr change.\n  - Add a changelog entry if the project keeps one.\n- **Ask first:**\n  - Changing the output format away from the issue's suggestion.\n  - Extending the change to the HTML repr, `DataArray` repr or `info()`.\n  - Adding a configuration option, for example in `xr.set_options`, to turn the feature on or off.\n  - Changing existing repr snapshots that have no units, for example because of alignment shifts.\n  - Reading units from any source other than `attrs[\"units\"]`.\n- **Never:**\n  - Load or compute lazy data to build the repr.\n  - Add a units library dependency.\n  - Modify `attrs` or any data as a side effect of printing.\n  - Delete or weaken existing repr tests to make them pass.\n\n## Success Criteria\n\n1. Printing a `Dataset` whose coordinates and data variables carry `attrs[\"units\"]` shows each variable's units on its line, in the agreed format.\n2. Variables without a `units` attribute show only their name, with no placeholder text.\n3. The dims, dtype and values columns stay aligned across all coordinate and data-variable lines.\n4. Using the example in the issue, the output matches the agreed target string exactly. If the format proposed in the issue is accepted, that means the issue's example.\n5. Printing a lazily backed `Dataset` triggers no data loading.\n6. Non-string, empty and very long `units` values render according to the agreed rules and never raise an exception during repr.\n7. All existing tests pass, and any updated repr expectations are justified in review.\n\n## Open Questions\n\n1. **Format.** Is `name, in units` the desired format? Alternatives include `name [units]`, `name (units)`, or a separate aligned units column. A separate column might read better and would not overload the name column.\n2. **Source of units.** Should only `attrs[\"units\"]` be used? Should units from duck arrays that carry units (for example pint-wrapped data) also be shown, and which wins if both are present?\n3. **Scope.** Should the same change apply to the HTML notebook repr, the `DataArray` repr (its coordinates and the array itself), and `Dataset.info()`?\n4. **Opt-in or default.** Should this be on by default, or controlled by a display option? Turning it on by default changes the output for many users and many downstream doctests.\n5. **Width and truncation.** How should very long units strings be handled? Should they be truncated with an ellipsis, and is there a maximum width for the name-plus-units column?\n6. **Non-string units.** How should numbers, lists, `None` or an empty string in `attrs[\"units\"]` be displayed? Should they be stringified, skipped, or shown as-is?\n7. **Alignment cost.** Is it acceptable that adding units to one variable widens the name column for all lines, including lines that have no units?\n8. **Other attributes.** Should other common attributes such as `long_name` or `standard_name` be considered, or is this strictly limited to units?\n9. **Repository details.** What are the formatting module location, the test/lint/build commands and the changelog location? These are all unknown from the issue.",
+ "ttft_ms": 1397,
+ "type": "result",
+ "duration_ms": 28136,
+ "uuid": "8bd502b0-b77b-4303-aee0-48be6765778c",
+ "ttft_stream_ms": 962,
+ "time_to_request_ms": 248,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 219,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 127,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 963,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

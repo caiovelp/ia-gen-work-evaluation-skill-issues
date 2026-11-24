@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 8331,
+ "stop_reason": "end_turn",
+ "session_id": "8b29c35c-99ad-4286-a808-687e36902a54",
+ "total_cost_usd": 0.026032200000000002,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1117,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 847,
+  "output_tokens_details": {
+   "thinking_tokens": 66
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1117,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 847,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1117,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1117
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1332,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014820000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 847,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1117,
+   "webSearchRequests": 0,
+   "costUSD": 0.025884,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 66,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`Derivative` of a `MatrixSymbol` returns the wrong `kind`. `Integral(A, x).kind` correctly gives `MatrixKind(NumberKind)`, but `Derivative(A, x).kind` gives `UndefinedKind`.\n\n## Steps to reproduce\n\n1. Import `Integral`, `Derivative` and `MatrixSymbol` from SymPy, and `x` from `sympy.abc`.\n2. Create a 2\u00d72 matrix symbol: `A = MatrixSymbol('A', 2, 2)`.\n3. Create `Integral(A, x)` and inspect its `kind`. It is `MatrixKind(NumberKind)`, which is correct.\n4. Create `Derivative(A, x)` and inspect its `kind`. It is `UndefinedKind`.\n\n## Observed behavior\n\n`Derivative(A, x).kind` returns `UndefinedKind`.\n\n## Expected behavior\n\nThe reporter considers `UndefinedKind` wrong. By analogy with `Integral(A, x).kind`, `Derivative(A, x).kind` should be `MatrixKind(NumberKind)`.\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the issue is an incorrect return value:\n\n```\n>>> d.kind\nUndefinedKind\n```\n\n## Test case\n\n```python\nfrom sympy import Integral, Derivative, MatrixSymbol\nfrom sympy.abc import x\n\nA = MatrixSymbol('A', 2, 2)\n\n# Currently passes\nassert str(Integral(A, x).kind) == 'MatrixKind(NumberKind)'\n\n# Currently fails: returns UndefinedKind\nassert str(Derivative(A, x).kind) == 'MatrixKind(NumberKind)'\n```\n\n## Code example\n\nCorrect behavior with `Integral`:\n\n```python\nfrom sympy import Integral, Derivative\nfrom sympy import MatrixSymbol\nfrom sympy.abc import x\nA = MatrixSymbol('A', 2, 2)\ni = Integral(A, x)\ni.kind\n# MatrixKind(NumberKind)\n```\n\nIncorrect behavior with `Derivative`:\n\n```python\nd = Derivative(A, x)\nd.kind\n# UndefinedKind\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 2417,
+ "type": "result",
+ "duration_ms": 7779,
+ "uuid": "f6ea4e4b-7f29-4313-a4f6-7f969e93e059",
+ "ttft_stream_ms": 1621,
+ "time_to_request_ms": 226,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 8,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 186,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 22,
+ "time_to_request_cpu_ms": 234,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1622,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

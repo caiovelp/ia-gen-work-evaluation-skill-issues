@@ -1,0 +1,13 @@
+diff --git a/app/controllers/admissions/form_autocompletes_controller.rb b/app/controllers/admissions/form_autocompletes_controller.rb
+index 3aefda92..2ac362b0 100644
+--- a/app/controllers/admissions/form_autocompletes_controller.rb
++++ b/app/controllers/admissions/form_autocompletes_controller.rb
+@@ -51,6 +51,8 @@ class Admissions::FormAutocompletesController < Admissions::ProcessBaseControlle
+   end
+ 
+   def form_field
++    return render json: [] if params[:term].blank?
++
+     @form_fields = Admissions::FormField.full_search_name(
+       field: params[:term],
+       in_letter: params[:in_letter] || false,

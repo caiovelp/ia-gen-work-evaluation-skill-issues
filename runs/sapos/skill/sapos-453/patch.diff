@@ -1,0 +1,25 @@
+diff --git a/app/helpers/enrollment_holds_helper.rb b/app/helpers/enrollment_holds_helper.rb
+index 07063f21..aa206e8e 100644
+--- a/app/helpers/enrollment_holds_helper.rb
++++ b/app/helpers/enrollment_holds_helper.rb
+@@ -4,4 +4,20 @@
+ # frozen_string_literal: true
+ 
+ module EnrollmentHoldsHelper
++  HOLD_YEARS_BACK = 50
++
++  def enrollment_hold_selectable_years(current_year = nil)
++    this_year = Date.today.year
++    _, end_year, swap = CustomVariable.year_semester_range
++    years = ((this_year - HOLD_YEARS_BACK)..(this_year + end_year)).to_a
++    years << current_year.to_i if current_year.present?
++    years = years.uniq.sort
++    swap ? years.reverse : years
++  end
++
++  def year_form_column(record, options)
++    select :record, :year, options_for_select(
++      enrollment_hold_selectable_years(record.year), record.year
++    ), { include_blank: true }, options
++  end
+ end

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28483,
+ "stop_reason": "end_turn",
+ "session_id": "472aa744-5f00-42f4-9362-884f9e78c0ec",
+ "total_cost_usd": 0.0806222,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 3434,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2583,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3434,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2583,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 3434,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3434
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 4019,
+   "outputTokens": 435,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0006194,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 411,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2583,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 3434,
+   "webSearchRequests": 0,
+   "costUSD": 0.0800028,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Make `ManyToManyRel.identity` hashable when `through_fields` is a list\n\n## Objective\n\n**Problem.** Since Django 3.2, every `ForeignObjectRel` has an `identity` property, which is a tuple. `ForeignObjectRel.__hash__` returns `hash(self.identity)`. The base identity already passes `limit_choices_to` through `make_hashable`. `ManyToManyRel` adds `through_fields` to its identity without that call. Users may legally pass `through_fields` as a list, for example `through_fields=['child', 'parent']`. In that case hashing the rel fails with:\n\n```\nTypeError: unhashable type: 'list'\n```\n\nThe issue's traceback shows the failure inside `Model._check_field_name_clashes` (`if f not in used_fields:`) while system checks run (`manage.py` \u2192 `check()` \u2192 `check_all_models`). According to the reporter it shows up only when a proxy model of the M2M target exists. The reporter's guess about why is unverified.\n\n**Users.**\n- Django developers who declare `ManyToManyField(..., through=..., through_fields=[...])` with a list.\n- Any code path that hashes or compares `ManyToManyRel` objects.\n\n**Goal.**\n- A `ManyToManyRel` whose `through_fields` is a list hashes without error.\n- System checks pass for the reporter's minimal reproduction.\n- Equality and hash semantics for rels stay consistent: equal identities give equal hashes.\n\n**Acceptance criteria / user stories.**\n1. As a developer, when I declare `through_fields` as a list and have a proxy model of the target model, `manage.py check` (and any command that runs checks) finishes without `TypeError`.\n2. As a developer, `hash(field.remote_field)` works for an M2M rel whether `through_fields` is a list, a tuple, or `None`.\n3. Two `ManyToManyRel` instances that differ only in `through_fields` container type (list vs. tuple with the same items) compare as described in the Open Questions decision. Whatever that decision is, `__eq__` and `__hash__` agree.\n\n## Tech Stack\n\n- Python and Django. The issue names Django 3.2 as the version that introduced `identity`, and the traceback was produced on Python 3.8.\n- The affected code is `django/db/models/fields/reverse_related.py`, which the traceback names. It contains `ForeignObjectRel.identity`, `ForeignObjectRel.__hash__`, and `ManyToManyRel.identity`.\n- The fix relies on the existing helper `make_hashable`. The issue says the base identity already uses it, but its import location is not shown in the issue (unknown).\n\n## Commands\n\nAll commands are unknown because they are not given in the issue:\n- Build: unknown (pure Python; likely none)\n- Test: unknown (Django's own test runner invocation and the test module to run are not shown)\n- Lint: unknown\n- Reproduce: `python manage.py check` in a project containing the reproduction models below (from the issue's traceback)\n\n## Project Structure\n\nKnown from the traceback:\n```\ndjango/db/models/fields/reverse_related.py \u2192 ForeignObjectRel / ManyToManyRel, identity, __hash__ (the fix location)\ndjango/db/models/base.py                   \u2192 Model.check, _check_field_name_clashes (where the hash is triggered)\ndjango/core/checks/model_checks.py         \u2192 check_all_models\n```\nThe location of the regression tests is unknown, for example which test app or module covers M2M through models or model checks.\n\n## Code Style\n\n- Follow the existing pattern in the base `ForeignObjectRel.identity`, which wraps `limit_choices_to` in `make_hashable(...)`.\n- Apply the same wrapping to `through_fields` in `ManyToManyRel.identity`.\n- Do not introduce new helpers.\n- Exact surrounding code is not visible in the issue, so no snippet is reproduced here.\n\n## Testing Strategy\n\n- **Regression test (model checks level).** Define the reporter's models in an isolated test app:\n  - `Parent`\n  - proxy `ProxyParent`\n  - `Child` with `ManyToManyField(to=Parent, through=\"ManyToManyModel\", through_fields=['child', 'parent'], related_name=\"something\")`\n  - `ManyToManyModel` with FKs `parent`, `child`, `second_child`\n\n  Run model checks and assert no exception is raised and no errors are reported.\n- **Unit level.** Assert `hash(<ManyToManyRel with list through_fields>)` does not raise. Also assert that it equals the hash of an equal rel built the same way.\n- **Before/after.** The new test must fail with `TypeError: unhashable type: 'list'` before the change and pass after it.\n- **Full suite.** The existing tests for reverse-related fields, M2M through models, and model checks must still pass. The exact test labels are unknown.\n- Coverage targets are unknown.\n\n## Boundaries\n\n- **Always:**\n  - Keep `__eq__` and `__hash__` derived from the same `identity`.\n  - Add a regression test reproducing the reported crash.\n  - Keep the change confined to `ManyToManyRel.identity` unless investigation shows other identity elements have the same defect.\n- **Ask first:**\n  - Normalizing `through_fields` to a tuple at construction time instead of in `identity`, since that changes a public attribute's type.\n  - Auditing or changing identity elements of other rel classes (`ManyToOneRel`, `OneToOneRel`, `ForeignObjectRel`).\n  - Backporting to stable branches.\n- **Never:**\n  - Change the order or meaning of identity tuple elements.\n  - Make `__hash__` ignore fields to dodge the error.\n  - Alter `_check_field_name_clashes` or the checks framework to avoid hashing.\n  - Weaken or remove existing tests.\n\n## Success Criteria\n\n1. With the reporter's minimal models, running system checks raises no `TypeError` and reports no errors attributable to this field.\n2. `hash()` succeeds on `ManyToManyRel` for `through_fields` given as a list, a tuple, or `None`.\n3. For any two rels `a` and `b`, `a == b` implies `hash(a) == hash(b)`.\n4. A new regression test exists, fails on the unpatched code, and passes on the patched code.\n5. The existing test suite shows no regressions.\n\n## Assumptions\n\n1. `ManyToManyRel.identity` currently appends `self.through_fields` raw. The issue states this but the code is not visible.\n2. `make_hashable` converts lists to tuples, and is the same helper already used for `limit_choices_to`.\n3. The bug affects any code path that hashes the rel. The proxy-model condition is only what triggers hashing during checks in the reporter's setup.\n4. The target is the Django version line containing the 3.2 `identity` change; the main development branch is assumed.\n5. `through_fields` given as a tuple or `None` already hashes correctly and must keep doing so.\n\n## Open Questions\n\n1. Should a list `through_fields` and an equal tuple `through_fields` produce equal identities? Using `make_hashable` implies yes, since both become tuples. Is that acceptable?\n2. Why does the failure occur only with a proxy model present? Should the root cause be confirmed and documented in the test, or is the hashability fix sufficient?\n3. Are other elements of any rel's `identity` (for example `related_name`, `related_query_name`, `through`) potentially unhashable user input and in scope?\n4. Which stable branches, if any, should receive a backport, and is a release note required?\n5. Where should the regression test live, and what is the exact test command? Both are unknown from the issue.",
+ "ttft_ms": 25826,
+ "type": "result",
+ "duration_ms": 25852,
+ "uuid": "bdca07a2-c9f7-43f7-9204-87bbabf7b845",
+ "ttft_stream_ms": 1557,
+ "time_to_request_ms": 347,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 6,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 313,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 0,
+ "time_to_request_cpu_ms": 241,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1558,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

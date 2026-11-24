@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 10516,
+ "stop_reason": "end_turn",
+ "session_id": "35ef0477-1e8c-4869-9ba0-3beaa19f77ec",
+ "total_cost_usd": 0.026865100000000003,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1171,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 867,
+  "output_tokens_details": {
+   "thinking_tokens": 178
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1171,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 867,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1171,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1171
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1381,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014910000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 867,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1171,
+   "webSearchRequests": 0,
+   "costUSD": 0.026716000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 178,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nRunning `django-admin startapp` with a trailing slash on the target directory name (e.g. `directory/`) fails with a `CommandError` saying `''` is not a valid app directory. Bash tab-completion adds trailing slashes to directory names automatically, so this is easy to hit.\n\n## Steps to reproduce\n\n1. In a shell, type `django-admin startapp name directory`, using Bash tab-completion to complete the directory name. Tab-completion appends a trailing slash.\n2. Run the resulting command:\n   ```bash\n   django-admin startapp name directory/\n   ```\n\n## Observed behavior\n\nThe command fails with a `CommandError`. The directory name in the error message is an empty string (`''`) instead of `directory`.\n\nThe reporter traces the error to line 77 of `django/core/management/templates.py`. That line calls `os.path.basename()` on the target path without accounting for a trailing slash. For a path ending in a separator, `basename()` returns an empty string, and validation then rejects it.\n\n## Expected behavior\n\n`django-admin startapp name directory/` should behave the same as `django-admin startapp name directory`. The trailing slash should not cause the directory name to be rejected.\n\n## Stack trace / error output\n\n```\nCommandError: '' is not a valid app directory. Please make sure the directory is a valid identifier.\n```\n\nFull stack trace: Not provided in the original report.\n\n## Test case\n\nMinimal reproduction derived from the report:\n\n1. Run `django-admin startapp name directory/`, with a trailing slash on the target directory.\n2. Check that no `CommandError: '' is not a valid app directory...` is raised.\n3. Check that the result matches running the same command without the trailing slash.\n\n## Code example\n\nThe line identified in the report (line 77 of `django/core/management/templates.py`):\n\n```python\nself.validate_name(os.path.basename(target), 'directory')\n```\n\n## Version and environment\n\n- Django version: Not provided in the original report.\n- Shell: Bash, where tab-completion appends trailing slashes to directory names.\n- OS / Python version: Not provided in the original report.",
+ "ttft_ms": 3677,
+ "type": "result",
+ "duration_ms": 9607,
+ "uuid": "10af3936-e196-4eb4-a814-4239cfae77fc",
+ "ttft_stream_ms": 1944,
+ "time_to_request_ms": 358,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 307,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 191,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1944,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

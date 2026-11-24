@@ -1,0 +1,13 @@
+diff --git a/sympy/printing/latex.py b/sympy/printing/latex.py
+index 1edc71235..af10bc596 100755
+--- a/sympy/printing/latex.py
++++ b/sympy/printing/latex.py
+@@ -127,7 +127,7 @@ class LatexPrinter(Printer):
+         "fold_frac_powers": False,
+         "fold_func_brackets": False,
+         "fold_short_frac": None,
+-        "long_frac_ratio": 2,
++        "long_frac_ratio": float("inf"),
+         "mul_symbol": None,
+         "inv_trig_style": "abbreviated",
+         "mat_str": None,

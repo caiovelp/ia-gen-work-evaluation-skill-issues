@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 25699,
+ "stop_reason": "end_turn",
+ "session_id": "e40b6cc2-1b50-4c23-b147-b1fc6e3e8126",
+ "total_cost_usd": 0.064489,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2307,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 2288,
+  "output_tokens_details": {
+   "thinking_tokens": 113
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2307,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2288,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 2307,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2307
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2510,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00026500000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2288,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 2307,
+   "webSearchRequests": 0,
+   "costUSD": 0.064224,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 113,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nOn Matplotlib 3.6.1, `ax.bar` raises `StopIteration` when the x positions are all NaN. On 3.6.0 the same call returned a `BarCollection`. The failure depends on the x position: NaN x raises, while NaN height with a finite x works.\n\nThis breaks seaborn's histogram function. Seaborn draws and then removes a \"phantom\" bar to advance the color cycle.\n\nThe reporter suspects a link to this 3.6.1 release-note entry: \"Fix barplot being empty when first element is NaN\".\n\n## Steps to reproduce\n\n1. Install Matplotlib 3.6.1 (installed via pip on macOS in the original report).\n2. Run:\n   ```python\n   import numpy as np\n   import matplotlib.pyplot as plt\n   f, ax = plt.subplots()\n   ax.bar([np.nan], [np.nan])\n   ```\n3. A `StopIteration` exception is raised.\n\nFurther variants from the report:\n\n| Call | Result on 3.6.1 |\n|---|---|\n| `ax.bar([np.nan], [np.nan])` | Raises |\n| `ax.bar([np.nan], [0])` | Raises |\n| `ax.bar([0], [np.nan])` | Works |\n\n## Observed behavior\n\n`ax.bar` raises `StopIteration` whenever all x values are NaN, whatever the height. The exception comes from `cbook._safe_first_finite`, called from `Axes._convert_dx` while converting `width`. No finite value is found in `x0`, so `next(...)` on the generator raises `StopIteration`. This exception is not among those caught there (`TypeError`, `IndexError`, `KeyError`).\n\n## Expected behavior\n\nAs on Matplotlib 3.6.0, `ax.bar([np.nan], [np.nan])` should return a `BarCollection` containing one `Rectangle` whose `x` and `height` are `nan`. No exception should be raised.\n\n## Stack trace / error output\n\nNote: the traceback was produced by `ax.bar([np.nan], [np.nan])[0].get_x()`, a slight variant of the reproduction snippet.\n\n```python-traceback\n---------------------------------------------------------------------------\nStopIteration                             Traceback (most recent call last)\nCell In [1], line 4\n      2 import matplotlib.pyplot as plt\n      3 f, ax = plt.subplots()\n----> 4 ax.bar([np.nan], [np.nan])[0].get_x()\n\nFile ~/miniconda/envs/py310/lib/python3.10/site-packages/matplotlib/__init__.py:1423, in _preprocess_data.<locals>.inner(ax, data, *args, **kwargs)\n   1420 @functools.wraps(func)\n   1421 def inner(ax, *args, data=None, **kwargs):\n   1422     if data is None:\n-> 1423         return func(ax, *map(sanitize_sequence, args), **kwargs)\n   1425     bound = new_sig.bind(ax, *args, **kwargs)\n   1426     auto_label = (bound.arguments.get(label_namer)\n   1427                   or bound.kwargs.get(label_namer))\n\nFile ~/miniconda/envs/py310/lib/python3.10/site-packages/matplotlib/axes/_axes.py:2373, in Axes.bar(self, x, height, width, bottom, align, **kwargs)\n   2371 x0 = x\n   2372 x = np.asarray(self.convert_xunits(x))\n-> 2373 width = self._convert_dx(width, x0, x, self.convert_xunits)\n   2374 if xerr is not None:\n   2375     xerr = self._convert_dx(xerr, x0, x, self.convert_xunits)\n\nFile ~/miniconda/envs/py310/lib/python3.10/site-packages/matplotlib/axes/_axes.py:2182, in Axes._convert_dx(dx, x0, xconv, convert)\n   2170 try:\n   2171     # attempt to add the width to x0; this works for\n   2172     # datetime+timedelta, for instance\n   (...)\n   2179     # removes the units from unit packages like `pint` that\n   2180     # wrap numpy arrays.\n   2181     try:\n-> 2182         x0 = cbook._safe_first_finite(x0)\n   2183     except (TypeError, IndexError, KeyError):\n   2184         pass\n\nFile ~/miniconda/envs/py310/lib/python3.10/site-packages/matplotlib/cbook/__init__.py:1749, in _safe_first_finite(obj, skip_nonfinite)\n   1746     raise RuntimeError(\"matplotlib does not \"\n   1747                        \"support generators as input\")\n   1748 else:\n-> 1749     return next(val for val in obj if safe_isfinite(val))\n\nStopIteration: \n```\n\n## Test case\n\nMinimal test derived from the reproduction and the expected 3.6.0 behavior:\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\n\n\ndef test_bar_all_nan():\n    f, ax = plt.subplots()\n    bars = ax.bar([np.nan], [np.nan])  # raises StopIteration on 3.6.1\n    assert len(bars) == 1\n    assert np.isnan(bars[0].get_x())\n    assert np.isnan(bars[0].get_height())\n\n\ndef test_bar_nan_x_finite_height():\n    f, ax = plt.subplots()\n    ax.bar([np.nan], [0])  # raises StopIteration on 3.6.1\n\n\ndef test_bar_finite_x_nan_height():\n    f, ax = plt.subplots()\n    ax.bar([0], [np.nan])  # works on 3.6.1\n```\n\n## Code example\n\n```python\nimport numpy as np\nimport matplotlib.pyplot as plt\nf, ax = plt.subplots()\nax.bar([np.nan], [np.nan])\n\nax.bar([np.nan], [0])  # Raises\nax.bar([0], [np.nan])  # Works\n```\n\n## Version and environment\n\n- Matplotlib version: 3.6.1 (regression; 3.6.0 behaves as expected)\n- Operating system: macOS\n- Installation: pip\n- Python version: not stated. The traceback paths suggest a Python 3.10 conda environment (`~/miniconda/envs/py310/lib/python3.10/...`).\n- Matplotlib backend: Not provided in the original report.\n- Jupyter version: Not provided in the original report.",
+ "ttft_ms": 2646,
+ "type": "result",
+ "duration_ms": 18011,
+ "uuid": "9429b8b2-9487-47ad-b84d-92efdbadd81d",
+ "ttft_stream_ms": 1714,
+ "time_to_request_ms": 307,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 20,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 246,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 3,
+ "time_to_request_cpu_ms": 210,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 10,
+  "cpu_ms": 29,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1714,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

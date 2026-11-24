@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 49760,
+ "stop_reason": "end_turn",
+ "session_id": "da69784d-8d52-44d4-8725-363d8e76c28f",
+ "total_cost_usd": 0.13085449999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 2188,
+  "cache_read_input_tokens": 4361,
+  "output_tokens": 5609,
+  "output_tokens_details": {
+   "thinking_tokens": 953
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 2188,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 5609,
+    "cache_read_input_tokens": 4361,
+    "cache_creation_input_tokens": 2188,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 2188
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2763,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002903,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 5609,
+   "cacheReadInputTokens": 4361,
+   "cacheCreationInputTokens": 2188,
+   "webSearchRequests": 0,
+   "costUSD": 0.1305642,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 953,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 2188,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Isolamento entre testes: detectar vazamento de `before(:all)` e tornar falhas por ordem reproduz\u00edveis\n\n## Objetivo\n\n**Problema.** Registros criados em `before(:all)` rodam fora da transa\u00e7\u00e3o por exemplo do `DatabaseCleaner`, que envolve s\u00f3 `around(:each)`. Por isso esses registros s\u00e3o commitados de verdade. Quando o `after(:all)` correspondente n\u00e3o apaga tudo o que foi criado, o registro fica no banco durante parte da su\u00edte. Ele contamina exemplos de outros arquivos e depois some antes do fim da execu\u00e7\u00e3o.\n\nCaso concreto: a trait `:in_process_with_letters` cria tamb\u00e9m um `AdmissionProcess` com `simple_url` fixo em `\"mestrado\"`. O `after(:all)` de `letter_request_spec` n\u00e3o apagava esse registro, e por isso tr\u00eas specs da #636 falhavam na su\u00edte inteira com a mensagem:\n\n```\nA valida\u00e7\u00e3o falhou: URL j\u00e1 est\u00e1 sendo usada no mesmo intervalo por outro processo aberto\n```\n\nO detector de vazamento j\u00e1 existente no `after(:suite)` de `spec/rails_helper.rb` n\u00e3o acusou o problema, por dois motivos:\n1. Sem eager load fora do CI, varria s\u00f3 1 classe. Este ponto foi corrigido no PR: 1 \u2192 62 descendants.\n2. Ele \u00e9 **estruturalmente cego** a vazamentos que existem durante a execu\u00e7\u00e3o mas s\u00e3o limpos antes do `after(:suite)`. Este ponto **n\u00e3o** foi corrigido.\n\n**J\u00e1 entregue pelo PR (fora do escopo desta spec, registrado como linha de base):**\n- `after(:all)` do `letter_request_spec` apaga tamb\u00e9m o `AdmissionProcess`.\n- O detector chama `Rails.application.eager_load!` antes de contar.\n- `LEAK_CHECK=strict` transforma o aviso em falha. N\u00e3o \u00e9 o padr\u00e3o.\n\n**Escopo desta spec (o que fica proposto):**\n1. **Invent\u00e1rio de d\u00edvida via `after(:context)`.** Instrumentar a su\u00edte para detectar, ao fim de cada grupo de exemplos, registros que permaneceram no banco. Isso cobre a classe de vazamento que o `after(:suite)` n\u00e3o enxerga. O objetivo \u00e9 **medir** quantos dos ~115 arquivos com `before(:all)` vazam, n\u00e3o corrigi-los.\n2. **Seed vis\u00edvel no resultado do CI.** Toda execu\u00e7\u00e3o no CI deve registrar a seed usada, para que falhas dependentes de ordem possam ser reproduzidas com `--seed` e reduzidas com `rspec --bisect`.\n\n**Usu\u00e1rios:** desenvolvedores do projeto que escrevem e depuram specs. Indiretamente, quem decidir sobre a paraleliza\u00e7\u00e3o da su\u00edte.\n\n**Fora do escopo:**\n- Corrigir os vazamentos encontrados pelo invent\u00e1rio.\n- Tornar `LEAK_CHECK=strict` o padr\u00e3o.\n- Adotar `parallel_tests`. A issue recomenda sanear a depend\u00eancia de ordem antes de paralelizar.\n- Substituir `before(:all)` por outro padr\u00e3o.\n\n## Premissas\n\n1. O projeto \u00e9 Rails com RSpec, FactoryBot e DatabaseCleaner, como indicam os trechos da issue.\n2. O `DatabaseCleaner` usa estrat\u00e9gia transacional envolvendo apenas `around(:each)`, conforme descrito na issue.\n3. O banco de teste come\u00e7a cada grupo de exemplos em um estado conhecido. Esse estado pode n\u00e3o ser vazio, por exemplo se houver seeds. Por isso a detec\u00e7\u00e3o deve comparar a contagem do in\u00edcio com a do fim do grupo (snapshot e diff), e n\u00e3o exigir zero registros. *A confirmar.*\n4. Um hook `after(:context)` registrado em `config` roda **depois** dos `after(:all)` definidos no pr\u00f3prio grupo. Assim, ele v\u00ea o estado ap\u00f3s a limpeza manual. *A verificar na vers\u00e3o do RSpec em uso.*\n5. Hooks `before/after(:context)` registrados em `config` se aplicam a grupos de n\u00edvel superior. Vazamentos em grupos aninhados seriam ent\u00e3o observados ao fim do grupo raiz do arquivo. *A verificar.* Ver Quest\u00f5es em Aberto.\n6. O invent\u00e1rio reaproveita a mesma enumera\u00e7\u00e3o de modelos do detector atual (`Rails.application.eager_load!` + `ApplicationRecord.descendants`), para n\u00e3o criar uma segunda fonte de verdade.\n7. O invent\u00e1rio \u00e9 **informativo por padr\u00e3o**: reporta e n\u00e3o falha a su\u00edte. Isso segue a mesma l\u00f3gica de n\u00e3o tornar `LEAK_CHECK=strict` o padr\u00e3o.\n8. O \"CI\" mencionado \u00e9 o ambiente onde `ENV[\"CI\"]` est\u00e1 presente (`config/environments/test.rb:22`).\n\n## Stack Tecnol\u00f3gica\n\n- Ruby on Rails. Vers\u00e3o n\u00e3o informada na issue original.\n- RSpec. Vers\u00e3o n\u00e3o informada na issue original.\n- FactoryBot.\n- DatabaseCleaner, com estrat\u00e9gia transacional por exemplo.\n- `parallel_tests` \u00e9 mencionado apenas como possibilidade futura e n\u00e3o est\u00e1 em uso.\n- Banco de dados: n\u00e3o informado na issue original.\n- Provedor de CI: n\u00e3o informado na issue original.\n\n## Comandos\n\nConhecidos pela issue:\n\n```\n# Reprodu\u00e7\u00e3o m\u00ednima do caso (antes da corre\u00e7\u00e3o)\nrspec './spec/models/admissions/letter_request_spec.rb[1:4:2]' \\\n      './spec/requests/goldens/reports_golden_spec.rb[1:9:1,1:9:2,1:9:3]' --seed 17813\n\n# Redu\u00e7\u00e3o de falha dependente de ordem\nrspec --bisect --seed <SEED>\n\n# Detector de vazamento em modo estrito (falha em vez de avisar)\nLEAK_CHECK=strict rspec\n```\n\nDesconhecidos:\n- Comando exato da su\u00edte no CI: n\u00e3o informado na issue original.\n- Vari\u00e1vel ou flag para ativar o invent\u00e1rio por `after(:context)`: a definir. Ver Quest\u00f5es em Aberto.\n- Lint: n\u00e3o informado na issue original.\n\n## Estrutura do Projeto\n\nCaminhos citados na issue:\n\n```\nspec/rails_helper.rb                              \u2192 configura\u00e7\u00e3o do RSpec; cont\u00e9m o detector after(:suite) e LEAK_CHECK\nconfig/environments/test.rb                       \u2192 linha 22: config.eager_load = ENV[\"CI\"].present?\nspec/models/admissions/letter_request_spec.rb     \u2192 caso que vazava AdmissionProcess via before(:all)\nspec/requests/goldens/reports_golden_spec.rb      \u2192 spec afetado pelo vazamento\n```\n\n- Onde ficam as factories (trait `:in_process_with_letters`): n\u00e3o informado na issue original.\n- Arquivo de configura\u00e7\u00e3o do CI: n\u00e3o informado na issue original.\n- Se o invent\u00e1rio deve ficar em `spec/rails_helper.rb` ou em `spec/support/`: n\u00e3o informado na issue original.\n\n## Estilo de C\u00f3digo\n\nN\u00e3o informado na issue original.\n\nO \u00fanico padr\u00e3o observ\u00e1vel \u00e9 o de setup e limpeza manual que originou o problema:\n\n```ruby\nbefore(:all) do\n  @admission_application = FactoryBot.create(:admission_application, :in_process_with_letters)\nend\nafter(:all) do\n  @admission_application.delete\n  @filled_form.delete\nend\n```\n\nA nova instrumenta\u00e7\u00e3o deve seguir as conven\u00e7\u00f5es j\u00e1 usadas em `spec/rails_helper.rb`, que n\u00e3o s\u00e3o vis\u00edveis aqui.\n\n## Estrat\u00e9gia de Testes\n\n- **Valida\u00e7\u00e3o do invent\u00e1rio contra o caso conhecido.** Reintroduzir temporariamente o vazamento em `letter_request_spec`, removendo a exclus\u00e3o do `AdmissionProcess` no `after(:all)`. O invent\u00e1rio deve reportar esse arquivo ou grupo e o modelo `AdmissionProcess`. Com a corre\u00e7\u00e3o do PR presente, o arquivo n\u00e3o deve aparecer.\n- **Prova de que o `after(:suite)` n\u00e3o basta.** No mesmo cen\u00e1rio reintroduzido, confirmar que o detector `after(:suite)` continua sem acusar e que o `after(:context)` acusa. Isso demonstra que a lacuna estrutural foi coberta.\n- **Regress\u00e3o da su\u00edte.** Rodar a su\u00edte completa com as seeds j\u00e1 usadas no PR (17813, 4242, 90210, 31337). O resultado n\u00e3o pode ter novas falhas: linha de base de 2263 exemplos e 0 falhas. O invent\u00e1rio apenas reporta.\n- **Custo.** Medir o tempo da su\u00edte com e sem a instrumenta\u00e7\u00e3o. O snapshot por grupo implica contagens em ~62 modelos a cada grupo de n\u00edvel superior.\n- **Seed no CI.** Verificar no log de uma execu\u00e7\u00e3o real do CI que a seed aparece e que, usada localmente com `--seed`, reproduz a mesma ordem.\n- Framework de cobertura e metas de cobertura: n\u00e3o informado na issue original.\n\n## Limites\n\n- **Sempre:**\n  - Manter o invent\u00e1rio n\u00e3o-bloqueante por padr\u00e3o.\n  - Reportar, por vazamento, o arquivo ou grupo de origem, o modelo e a quantidade de registros.\n  - Usar `eager_load!` antes de enumerar modelos.\n  - Rodar a su\u00edte com m\u00faltiplas seeds antes de concluir.\n- **Perguntar antes:**\n  - Tornar o invent\u00e1rio ou o `LEAK_CHECK=strict` bloqueante.\n  - Corrigir em massa os `after(:all)` dos ~115 arquivos.\n  - Alterar a estrat\u00e9gia do `DatabaseCleaner`.\n  - Mudar `config.eager_load` em `config/environments/test.rb`.\n  - Adicionar gems.\n  - Alterar a configura\u00e7\u00e3o do CI al\u00e9m de expor a seed.\n  - Iniciar qualquer trabalho de paraleliza\u00e7\u00e3o.\n- **Nunca:**\n  - Apagar dados automaticamente no hook de invent\u00e1rio. Isso mascararia a d\u00edvida que se quer medir.\n  - Remover ou pular specs que passem a acusar vazamento.\n  - Fixar uma seed no CI no lugar da ordem aleat\u00f3ria.\n\n## Crit\u00e9rios de Sucesso\n\n1. Existe instrumenta\u00e7\u00e3o em `after(:context)` que, ao fim de cada grupo, compara as contagens por modelo com o estado do in\u00edcio do grupo e reporta as diferen\u00e7as.\n2. Com o vazamento do `letter_request_spec` reintroduzido, o relat\u00f3rio aponta `AdmissionProcess` e o arquivo de origem. Com a corre\u00e7\u00e3o, n\u00e3o aponta.\n3. O relat\u00f3rio da su\u00edte completa produz um invent\u00e1rio consolidado: lista de arquivos ou grupos com vazamento, modelos e quantidades. Esse invent\u00e1rio responde \u00e0 pergunta \"quantos dos ~115 arquivos com `before(:all)` esquecem algum registro?\".\n4. Sem ativar modo estrito, a su\u00edte completa continua com 0 falhas nas seeds 17813, 4242, 90210 e 31337.\n5. O comportamento atual do detector `after(:suite)` e do `LEAK_CHECK=strict` permanece inalterado.\n6. Toda execu\u00e7\u00e3o da su\u00edte no CI exibe a seed em local consult\u00e1vel no resultado, sem precisar baixar artefatos.\n7. O acr\u00e9scimo de tempo da su\u00edte causado pela instrumenta\u00e7\u00e3o \u00e9 medido e documentado. O limite aceit\u00e1vel ainda n\u00e3o foi definido; ver Quest\u00f5es em Aberto.\n\n## Quest\u00f5es em Aberto\n\n1. **Divis\u00e3o do escopo.** O invent\u00e1rio por `after(:context)` e o registro da seed no CI s\u00e3o independentes e podem ser entregues e verificados separadamente. Devem ser specs e PRs distintos?\n2. **Ativa\u00e7\u00e3o do invent\u00e1rio.** Deve rodar sempre, s\u00f3 no CI, ou s\u00f3 sob uma vari\u00e1vel (por exemplo, uma extens\u00e3o de `LEAK_CHECK`)? Qual nome?\n3. **Grupos aninhados.** `before(:all)` em grupo aninhado, como o exemplo `[1:4:2]`, pode vazar e ser limpo por um `after(:all)` do grupo externo antes do fim do arquivo. Isso precisa ser detectado? Se sim, o hook deve ser aplicado a todos os grupos e n\u00e3o s\u00f3 aos de n\u00edvel superior, com o custo correspondente.\n4. **Estado inicial do banco.** O banco de teste est\u00e1 vazio no in\u00edcio da su\u00edte e de cada grupo, ou h\u00e1 seeds e dados de refer\u00eancia? Isso define se basta checar zero ou se \u00e9 necess\u00e1rio fazer diff.\n5. **Formato e destino do invent\u00e1rio.** Sa\u00edda no console, arquivo (JSON ou CSV) como artefato do CI, ou ambos?\n6. **Or\u00e7amento de desempenho.** Qual \u00e9 o aumento de tempo aceit\u00e1vel da su\u00edte com a instrumenta\u00e7\u00e3o ativa?\n7. **Exposi\u00e7\u00e3o da seed no CI.** O RSpec j\u00e1 imprime a seed na sa\u00edda com `--order random`? A seed precisa aparecer em um local mais vis\u00edvel, como resumo do job ou nome de artefato? Qual \u00e9 o provedor de CI?\n8. **Pr\u00f3ximo passo ap\u00f3s o invent\u00e1rio.** Medida a d\u00edvida, qual \u00e9 o crit\u00e9rio para decidir entre corrigir os `after(:all)` um a um, migrar para outro padr\u00e3o de setup ou tornar o modo estrito o padr\u00e3o?\n9. **Contorno na #636.** O contorno adicionado no spec da #636 deve ser removido agora que a reprodu\u00e7\u00e3o m\u00ednima passa sem ele?\n10. **`delete` vs `destroy`.** O `after(:all)` usa `delete`, que n\u00e3o dispara callbacks nem `dependent:`. Faz parte da investiga\u00e7\u00e3o verificar se isso contribui para outros vazamentos?",
+ "ttft_ms": 10584,
+ "type": "result",
+ "duration_ms": 49722,
+ "uuid": "7e3d17c8-e5ed-40c6-bc3d-3b39c8eda497",
+ "ttft_stream_ms": 1316,
+ "time_to_request_ms": 872,
+ "time_to_request_phases_ms": {
+  "other": 19,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 8,
+  "input_attachments": 227,
+  "input_hooks": 8,
+  "conversation_append": 1,
+  "tool_pool_refresh": 3,
+  "init_message": 45,
+  "init_frame_send": 21,
+  "engine_pickup": 5,
+  "loop_entry": 11,
+  "message_prep": 3,
+  "model_config_wait": 437,
+  "autocompact": 5,
+  "request_announcements": 22,
+  "query_setup": 1,
+  "model_gates": 1,
+  "tool_schema_build": 6,
+  "message_normalization": 5,
+  "client_creation": 28,
+  "request_build": 14
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 126,
+ "time_to_request_cpu_ms": 873,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "nested_memory",
+  "slowest_producer_ms": 150,
+  "cpu_ms": 245,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 60,
+  "ambient_start_ms": 9,
+  "ambient_wait_ms": 150,
+  "render_ms": 6,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 1,
+  "placement_ms": 3,
+  "render_ms": 1,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 1,
+  "normalize_ms": 3,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 1,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 1,
+  "system_ms": 2,
+  "headers_ms": 0,
+  "cache_break_record_ms": 3,
+  "plans_ms": 3,
+  "retry_setup_ms": 1,
+  "sent_build_ms": 3,
+  "record_attempt_ms": 1,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1317,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

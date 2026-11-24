@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 34058,
+ "stop_reason": "end_turn",
+ "session_id": "fef0d658-b023-487a-b1bf-18fdf3b4d2ed",
+ "total_cost_usd": 0.07296829999999997,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 988,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3201,
+  "output_tokens_details": {
+   "thinking_tokens": 150
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 988,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3201,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 988,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 988
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1570,
+   "outputTokens": 33,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00017350000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3201,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 988,
+   "webSearchRequests": 0,
+   "costUSD": 0.07279479999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 150,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Make `auth.0011_update_proxy_permissions` tolerate pre-existing proxy-model permissions\n\n## Objective\n\n**Problem.** When upgrading to Django 2.2, `python manage.py migrate` fails while applying `auth.0011_update_proxy_permissions` with:\n\n```\ndjango.db.utils.IntegrityError: duplicate key value violates unique constraint\n\"..._auth_permission_content_type_id_..._uniq\"\nDETAIL: Key (content_type_id, codename)=(12, add_agency) already exists.\n```\n\nThe migration moves proxy-model permissions from the concrete model's `ContentType` to the proxy model's own `ContentType`. If a `Permission` with the same `codename` already exists on the target content type, the `(content_type_id, codename)` unique constraint on `auth_permission` is violated. The reporter hit this when upgrading from 2.0.13 and from 2.1.8. The title points to one known trigger: models that were deleted and **recreated as a proxy** under the same name.\n\n**Who is affected.** Django users upgrading existing projects to 2.2 whose `auth_permission` table already holds rows for a proxy model's content type alongside the matching rows on the concrete model's content type.\n\n**What success looks like.** `auth.0011_update_proxy_permissions` finishes on databases where both rows already exist. It does not lose data silently, and it leaves the permission table in a consistent, explainable state. The user learns about any conflicting rows the migration could not move automatically.\n\n### Acceptance criteria (behavioral)\n\n1. **AC1 \u2013 No crash on conflict.** If a permission with the same `codename` already exists on the proxy's content type, the forward migration does not raise `IntegrityError`.\n2. **AC2 \u2013 Non-conflicting permissions still move.** Proxy permissions with no conflict are reassigned from the concrete content type to the proxy content type, exactly as the migration does today.\n3. **AC3 \u2013 Conflicts are reported.** For every conflicting permission, the migration writes a human-readable message to the migration output. The message names the app/model and codename and tells the user to check the affected permission rows manually.\n4. **AC4 \u2013 Atomicity per conflict.** A conflict on one permission does not prevent other permissions, models or apps from being processed. It does not leave the migration half-applied in a way that breaks a re-run.\n5. **AC5 \u2013 Reverse migration.** Backward migration likewise does not crash when the same conflict exists in the reverse direction.\n6. **AC6 \u2013 Idempotence.** Re-running the migration logic on an already-migrated database is a no-op and produces no errors.\n7. **AC7 \u2013 No silent destruction.** The migration does not delete or merge conflicting `Permission` rows, or their user/group assignments, unless that behavior is explicitly approved (see Open Questions).\n\n## Assumptions\n\n1. The bug is in the data migration `django/contrib/auth/migrations/0011_update_proxy_permissions.py` introduced in Django 2.2. It is not a problem in the reporter's own project setup.\n2. The duplicate rows on the proxy content type exist legitimately. They come from cases such as a model recreated as a proxy, a rename, or a `post_migrate` permission creation that already ran for the proxy content type.\n3. The unique constraint `(content_type_id, codename)` on `auth_permission` is correct and must not change.\n4. The fix belongs in Django itself, targeted at the 2.2 line (and the main branch at that time), and must work on all supported database backends.\n5. \"Report the conflict\" means writing to the migration's standard output or warning channel. It does not mean raising an exception.\n6. The migration is never edited to depend on project-specific models. It uses only the historical models available through `apps`.\n7. The `(content_type_id, codename)` value shown in the traceback reflects the actual state. The `co.ntent_type_id` typo in the report is a copy/paste artifact.\n\n## Tech Stack\n\n- Python and Django (affected version: 2.2; upgrade sources reported: 2.0.13, 2.1.8)\n- `django.contrib.auth` and `django.contrib.contenttypes`\n- Reporter's database: PostgreSQL (inferred from the error format). The fix must stay backend-agnostic.\n- Exact supported Python and database versions for the target branch: **unknown**\n\n## Commands\n\nNot visible from the issue; all **unknown**:\n\n- Build: unknown\n- Test: unknown (presumably Django's own test runner; exact invocation and test label unknown)\n- Lint: unknown\n- Reproduce: `python manage.py migrate` (from the issue) on a database that already contains conflicting proxy permissions\n\n## Project Structure\n\nKnown from the issue and the migration name only:\n\n- `django/contrib/auth/migrations/0011_update_proxy_permissions.py`: the failing data migration (path inferred from the migration label `auth.0011_update_proxy_permissions`)\n- Test location for auth migrations: **unknown**\n\n## Code Style\n\nFollow the existing conventions of the Django codebase. The specific style guide and lint configuration cannot be seen from the issue: **unknown**.\n\n## Testing Strategy\n\n- **Regression test for AC1/AC3.** Create a concrete model and a proxy model, and pre-create a `Permission` with the same codename on both content types. Run the migration's forward function. Assert that it raises no exception and that a conflict message is emitted.\n- **AC2.** In the same scenario, include a non-conflicting permission. Assert that it ends up on the proxy content type.\n- **AC5.** Run the reverse function in the mirrored conflict scenario. Assert that it raises no exception.\n- **AC6.** Run the forward function twice. Assert that the second run changes nothing.\n- **AC7.** Assert that the conflicting `Permission` rows still exist and that user/group links to them are untouched.\n- **Existing tests.** The existing tests for `0011_update_proxy_permissions` keep passing unchanged.\n- Test framework and exact location: Django's internal test suite. Path and command are **unknown**.\n\n## Boundaries\n\n- **Always:**\n  - Use historical models (`apps.get_model`) inside the migration.\n  - Keep the fix backend-agnostic.\n  - Add regression tests reproducing the conflict.\n  - Keep existing non-conflict behavior identical.\n- **Ask first:**\n  - Deleting or merging duplicate `Permission` rows.\n  - Reassigning user or group permission links between duplicates.\n  - Changing the unique constraint.\n  - Adding a new migration rather than editing `0011` in place.\n  - Backporting scope.\n- **Never:**\n  - Swallow all `IntegrityError`s indiscriminately without reporting.\n  - Silently drop permissions or user/group grants.\n  - Make the migration depend on project or app code outside `contrib.auth` and `contrib.contenttypes`.\n\n## Success Criteria\n\n- [ ] On a database containing a permission with the same codename on both the concrete and the proxy content type, `migrate` completes `auth.0011_update_proxy_permissions` without `IntegrityError` (forward and backward).\n- [ ] Non-conflicting proxy permissions are reassigned exactly as before the fix.\n- [ ] Each skipped conflict produces an output message identifying app label, model and codename, with guidance to review it manually.\n- [ ] No `Permission` rows, or their user/group assignments, are deleted or altered for conflicting entries.\n- [ ] A second application of the migration logic is a no-op.\n- [ ] New regression tests cover these cases, and all existing auth migration tests pass.\n\n## Open Questions\n\n1. **Conflict resolution policy.** Which behavior is wanted when a duplicate exists?\n   - (a) Skip and warn (proposed default).\n   - (b) Merge user/group grants into the proxy permission and delete the concrete one.\n   - (c) Something else.\n2. **Fix location.** Should `0011` be edited in place, given that it already ran successfully for many users? Or should the fix go into a follow-up migration?\n3. **Backport target.** Which release branches should receive the fix (2.2.x patch release)?\n4. **Warning channel.** How should the conflict be reported: plain stdout, `warnings.warn`, or a system check? What exact message wording is wanted?\n5. **Reproduction data.** Can the reporter share the exact model history for `agency` (concrete \u2192 deleted \u2192 recreated as proxy, or a rename)? Can they share the matching `auth_permission` and `django_content_type` rows? The linked full stack trace was not available in the issue.\n6. **Proxy edge cases.** Are there other triggers to cover, such as a proxy of a proxy, a model switching from concrete to proxy, or a custom `default_permissions`/`permissions` in `Meta`?\n7. **Atomicity.** Should each model's update run in its own atomic block (savepoint)? This matters on PostgreSQL, where a failed statement aborts the transaction, and is a decision for whoever implements this.\n8. **Commands.** Which test command and test module path should be used for the regression tests?",
+ "ttft_ms": 3121,
+ "type": "result",
+ "duration_ms": 32979,
+ "uuid": "36a09044-0176-4c0d-a428-34b10eb80653",
+ "ttft_stream_ms": 1310,
+ "time_to_request_ms": 309,
+ "time_to_request_phases_ms": {
+  "other": 20,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 21,
+  "input_hooks": 4,
+  "tool_pool_refresh": 1,
+  "init_message": 11,
+  "engine_pickup": 2,
+  "message_prep": 1,
+  "model_config_wait": 232,
+  "autocompact": 3,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 16,
+ "time_to_request_cpu_ms": 286,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 17,
+  "cpu_ms": 27,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1311,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

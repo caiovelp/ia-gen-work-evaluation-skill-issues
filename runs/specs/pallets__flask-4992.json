@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 28082,
+ "stop_reason": "end_turn",
+ "session_id": "5e0247d2-1a22-45d2-8a1a-cc15d9929b7e",
+ "total_cost_usd": 0.0630767,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 982,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2709,
+  "output_tokens_details": {
+   "thinking_tokens": 95
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 982,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2709,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 982,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 982
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1569,
+   "outputTokens": 26,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001699,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2709,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 982,
+   "webSearchRequests": 0,
+   "costUSD": 0.0629068,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 95,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: File Mode Parameter for `flask.Config.from_file()`\n\n## Objective\n\nLet `flask.Config.from_file()` open the config file in **binary mode** as well as text mode. Loaders that need a binary file object, such as Python 3.11's `tomllib.load`, can then be passed directly:\n\n```python\napp.config.from_file(\"config.toml\", tomllib.load, mode=\"b\")   # API shape from the issue; name not final\n```\n\n**Problem today:** `from_file()` always opens the file in text mode. With `tomllib.load` this fails:\n\n```\nTypeError: File must be opened in binary mode, e.g. use `open('foo.toml', 'rb')`\n```\n\nThe current workaround means opening the file yourself and repeating the root-path joining that `from_file()` already does:\n\n```python\nwith open(os.path.join(app.config.root_path, \"config.toml\"), \"rb\") as file:\n    app.config.from_mapping(tomllib.load(file))\n```\n\n**Users:** Flask application developers who load config from files. This mainly means TOML users on Python 3.11+, plus any loader that expects bytes.\n\n**User stories**\n- As a Flask developer, I can load a TOML config file in one call to `from_file()` using `tomllib.load`.\n- As an existing user of `from_file()` with `json.load` or other text loaders, my code keeps working with no changes.\n\n## Assumptions\n\n1. Scope is limited to `flask.Config.from_file()`. No other `Config.from_*` methods change.\n2. The new parameter is **optional and keyword-usable**. Its default keeps the current text-mode behaviour, so the change is fully backward compatible.\n3. Path handling stays the same in both modes:\n   - relative paths are joined with `Config.root_path`\n   - the existing `silent` handling of missing files applies\n4. Behaviour after loading stays the same in both modes. The loader's returned mapping goes through `from_mapping()`, so the existing key filtering still applies.\n5. Flask will **not** depend on `tomllib` or any TOML library. The caller supplies the loader. `tomllib` appears only in docs and examples.\n6. Text-mode encoding behaviour stays exactly as it is today. I can't see the current code, so whether an explicit encoding is passed is **unknown**.\n7. In binary mode, no encoding argument is passed to `open()`, since that would raise an error.\n8. The new parameter is documented in the method docstring with a \"changed in version\" note. The exact version number is **unknown**.\n9. A changelog entry is expected, following the project's usual practice.\n\n## Tech Stack\n\n- Python, the Flask library itself.\n- Supported Python versions: **unknown**. This matters because `tomllib` exists only on 3.11+.\n- No new runtime dependencies.\n\n## Commands\n\nAll **unknown**, since the repository is not visible. Fill these in from the project's contributor docs or CI config.\n\n```\nInstall (dev): unknown\nTest:          unknown (likely pytest; unconfirmed)\nLint/format:   unknown\nType check:    unknown\nDocs build:    unknown\n```\n\n## Project Structure\n\n**Unknown.** The repository is not visible. Relevant locations to identify:\n\n| What | Location |\n|---|---|\n| The module defining `flask.Config` / `from_file()` | unknown |\n| Existing tests for `Config.from_file()` and their fixture/static config files | unknown |\n| Config documentation page(s) showing `from_file()` examples | unknown |\n| Changelog file | unknown |\n\n## Code Style\n\n**Unknown.** Follow the conventions already used in the `Config` class:\n- type annotations\n- docstring format, including \"versionchanged\" style notes\n- parameter naming\n\nThis spec does not include a code snippet, because none is visible.\n\n## Testing Strategy\n\n- **Framework:** unknown (pytest presumed; confirm against the repo).\n- **Unit tests for `Config.from_file()`:**\n  - Default call with a text loader (e.g. `json.load`) behaves exactly as before. This is the regression check.\n  - Binary-mode call with a loader that requires bytes loads the expected keys into config.\n    - On Python 3.11+, `tomllib.load` with a TOML fixture file.\n    - The test must be skipped on Pythons without `tomllib`, or must use a version-independent bytes-asserting loader. See Open Questions.\n  - Binary mode with a missing file and `silent=True` returns `False` and does not raise.\n  - Binary mode with a missing file and `silent=False` raises the same error type and message format as text mode.\n  - Only valid keys are loaded in binary mode, following the existing `from_mapping()` filtering.\n  - Invalid values for the new parameter: expected behaviour depends on how the API-shape question below is resolved.\n- **Docs:** if a docs build exists, the updated docstring and examples render without warnings.\n- **Coverage:** every code path added for the new parameter is exercised.\n\n## Boundaries\n\n- **Always:**\n  - keep the default behaviour identical to today's\n  - add tests for both modes\n  - update the docstring, the config docs example and the changelog\n  - run the full test suite before committing\n- **Ask first:**\n  - choosing the final parameter name and type (see Open Questions)\n  - adding TOML as a documented or recommended config format in the narrative docs\n  - any change to text-mode encoding\n  - changing the behaviour of other `Config.from_*` methods\n- **Never:**\n  - add `tomllib`, `tomli` or any TOML package as a Flask dependency\n  - change the existing signature in a way that breaks positional callers\n  - remove or weaken existing `from_file()` tests\n\n## Success Criteria\n\n1. `app.config.from_file(\"config.toml\", tomllib.load, <binary-mode argument>)` loads the TOML file's uppercase keys into `app.config` on Python 3.11+, with no `TypeError`.\n2. Every existing call form of `from_file()` (path, load function, `silent`) behaves identically with no new argument given. The existing tests pass unchanged.\n3. Relative paths resolve against `root_path` in binary mode, just as in text mode.\n4. `silent=True` handling of missing files works the same in binary mode.\n5. The method docstring documents the new parameter, its default, and a TOML example, with a version-change note.\n6. A changelog entry describes the addition.\n7. New tests cover the binary-mode path and pass on all supported Python versions. Version-specific tests are skipped where `tomllib` is unavailable.\n\n## Open Questions\n\n1. **API shape.** The issue proposes `mode=\"b\"`. Which form is preferred?\n   - (a) `mode: str = \"t\"` accepting `\"t\"`/`\"b\"`, as proposed\n   - (b) a boolean such as `text: bool = True`\n   - (c) a full `open()` mode string like `\"rb\"`\n\n   A boolean (b) rules out invalid values. A string (a/c) is closer to `open()`, but needs validation and raises the question of what to do with values like `\"w\"` or `\"rb+\"`.\n2. **Invalid values.** If a string is chosen, should invalid modes raise `ValueError` right away, or be passed through to `open()`?\n3. **Keyword-only?** Should the new parameter be keyword-only to avoid positional ambiguity with `silent`?\n4. **Supported Python versions.** If 3.11+ is not the floor, how should tests and doc examples handle `tomllib`'s absence? Options are to skip, or to mention the `tomli` backport in the docs only.\n5. **Text-mode encoding.** Does `from_file()` currently pass an explicit `encoding`? Should that be in scope for this change?\n6. **Docs scope.** Should the narrative config docs gain a TOML example section, or only the docstring?\n7. **Target release.** What version number goes in the \"changed in version\" note and the changelog?",
+ "ttft_ms": 2160,
+ "type": "result",
+ "duration_ms": 27378,
+ "uuid": "57970e7a-0e53-4744-baf8-a426bb6f0a52",
+ "ttft_stream_ms": 951,
+ "time_to_request_ms": 261,
+ "time_to_request_phases_ms": {
+  "other": 14,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 19,
+  "engine_pickup": 1,
+  "message_prep": 2,
+  "model_config_wait": 199,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 9,
+ "time_to_request_cpu_ms": 196,
+ "time_to_request_major_faults": 8,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 12,
+  "major_faults": 1
+ },
+ "first_content_frame_ms": 952,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

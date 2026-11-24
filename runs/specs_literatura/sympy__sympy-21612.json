@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 16294,
+ "stop_reason": "end_turn",
+ "session_id": "6091cb1b-497b-4768-9ba6-c25a678ef752",
+ "total_cost_usd": 0.040386500000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1306,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1476,
+  "output_tokens_details": {
+   "thinking_tokens": 328
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1306,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1476,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1306,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1306
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1515,
+   "outputTokens": 518,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00041050000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 495,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1476,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1306,
+   "webSearchRequests": 0,
+   "costUSD": 0.039976000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 328,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\n`parse_latex` drops the brackets around a fraction that is used as a denominator. For `\\frac{\\frac{a^3+b}{c}}{\\frac{1}{c^2}}`, the result is `((a**3 + b)/c)/1/(c**2)`. Because of the missing brackets, this is mathematically different from the input, which is `((a**3 + b)/c)/(1/(c**2))`.\n\n## Steps to reproduce\n\n1. Start a Python 3 interpreter with SymPy installed.\n2. Import the LaTeX parser: `from sympy.parsing.latex import parse_latex`\n3. Parse a nested fraction whose denominator is itself a fraction:\n   `parse_latex(\"\\\\frac{\\\\frac{a^3+b}{c}}{\\\\frac{1}{c^2}}\")`\n4. Look at the returned expression.\n\n## Observed behavior\n\nThe expression is parsed as:\n\n```\n((a**3 + b)/c)/1/(c**2)\n```\n\nThere are no brackets around the denominator `1/(c**2)`. Python evaluates `/` left to right, so the result is `((a**3 + b)/c) / 1 / c**2`. The input means `((a**3 + b)/c) / (1/c**2)`, so the parsed expression is wrong.\n\n## Expected behavior\n\nThe expression should be parsed with the denominator fraction in brackets:\n\n```\n((a**3 + b)/c)/(1/(c**2))\n```\n\n## Stack trace / error output\n\nNot provided in the original report. No exception is raised; the parser silently returns a wrong expression. The interpreter session from the report:\n\n```\nroot@d31ef1c26093:/# python3\nPython 3.6.9 (default, Jan 26 2021, 15:33:00)\n[GCC 8.4.0] on linux\nType \"help\", \"copyright\", \"credits\" or \"license\" for more information.\n>>> from sympy.parsing.latex import parse_latex\n>>> parse_latex(\"\\\\frac{\\\\frac{a^3+b}{c}}{\\\\frac{1}{c^2}}\")\n((a**3 + b)/c)/1/(c**2)\n```\n\n## Test case\n\nThis minimal test is derived from the reproduction in the report. It checks that the parsed expression is mathematically equal to the expected one:\n\n```python\nfrom sympy import symbols, simplify\nfrom sympy.parsing.latex import parse_latex\n\ndef test_parse_latex_nested_fraction_in_denominator():\n    a, b, c = symbols('a b c')\n    expr = parse_latex(\"\\\\frac{\\\\frac{a^3+b}{c}}{\\\\frac{1}{c^2}}\")\n    expected = ((a**3 + b)/c)/(1/(c**2))\n    assert simplify(expr - expected) == 0\n```\n\n## Code example\n\n```python\nfrom sympy.parsing.latex import parse_latex\nparse_latex(\"\\\\frac{\\\\frac{a^3+b}{c}}{\\\\frac{1}{c^2}}\")\n# returns: ((a**3 + b)/c)/1/(c**2)\n# expected: ((a**3 + b)/c)/(1/(c**2))\n```\n\n## Version and environment\n\n- SymPy versions tested: 1.8 and 1.6.2 (both affected)\n- Python 3.6.9 (default, Jan 26 2021, 15:33:00), GCC 8.4.0\n- OS: Linux (run as root inside what appears to be a container, host `d31ef1c26093`)",
+ "ttft_ms": 4773,
+ "type": "result",
+ "duration_ms": 13248,
+ "uuid": "4461c9fd-11af-4786-abce-99b6e9057478",
+ "ttft_stream_ms": 1438,
+ "time_to_request_ms": 242,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 14,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 192,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 37,
+ "time_to_request_cpu_ms": 243,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1438,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

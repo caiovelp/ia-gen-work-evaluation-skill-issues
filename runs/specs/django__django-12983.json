@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 30382,
+ "stop_reason": "end_turn",
+ "session_id": "6bf842cd-d192-4723-8a65-680442b605c8",
+ "total_cost_usd": 0.0644761,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 720,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2885,
+  "output_tokens_details": {
+   "thinking_tokens": 274
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 720,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2885,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 720,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 720
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1313,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00014529999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2885,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 720,
+   "webSearchRequests": 0,
+   "costUSD": 0.0643308,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 274,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Make `django.utils.text.slugify()` strip leading/trailing dashes and underscores\n\n## Objective\n\n`django.utils.text.slugify()` currently keeps leading and trailing dashes and underscores in its output. The issue reports this example:\n\n```\nfrom django.utils import text\ntext.slugify(\"___This is a test ---\")\n# current output:  ___this-is-a-test-\n# desired output:  this-is-a-test\n```\n\n**Goal:** slugs produced by `slugify()` should not start or end with `-` or `_`. This gives cleaner URL slugs.\n\n**Users:** Django developers who call `slugify()` directly or indirectly, for example through slug-generating code in their apps or templates.\n\n**Acceptance criteria (user-level):**\n- `slugify(\"___This is a test ---\")` returns `\"this-is-a-test\"`.\n- Leading and trailing runs of `-` and `_`, in any mix, are removed from the result.\n- Other existing behavior of `slugify()` stays the same, apart from this stripping (see Assumptions and Open Questions).\n\n## Assumptions\n\n1. The function in scope is `slugify()` in the `django.utils.text` module, as named in the issue. Its exact signature and current implementation were not visible to me. I assume it has an `allow_unicode` option, based on general knowledge of Django; this needs to be verified.\n2. Stripping applies **only at the start and end** of the resulting slug. Interior underscores are preserved (`\"foo_bar\"` \u2192 `\"foo_bar\"`). Interior dash handling stays as it is today.\n3. Stripping happens on the **final** slug, after lowercasing, removal of disallowed characters, and collapsing of whitespace/dashes. So characters that only end up at the edges after earlier steps are also stripped. For example, `\"!!-hello-!!\"` \u2192 `\"hello\"`.\n4. The change applies equally whether `allow_unicode` is true or false.\n5. An input made only of dashes, underscores, whitespace, or disallowed characters returns an empty string `\"\"`. It does not raise an error.\n6. This is accepted as a deliberate behavior change. It is documented in release notes rather than put behind a flag or deprecation path.\n7. The `slugify` template filter delegates to this function, so it inherits the new behavior without separate changes. This needs to be verified.\n8. The \"PR\" linked in the issue was not available to me. This spec is based only on the issue text.\n\n## Tech Stack\n\n- Language: Python. The minimum supported version for the target Django branch is **unknown**.\n- Project: Django. The target branch/version is **unknown**.\n- No new dependencies are expected.\n\n## Commands\n\nThe project's commands are not visible from the issue.\n- Build: **unknown**\n- Test (full suite): **unknown**\n- Test (targeted, for `django.utils.text` tests): **unknown**\n- Lint/format: **unknown**\n\n## Project Structure\n\nOnly the module path in the issue is known:\n- `django/utils/text.py` \u2192 location implied by `django.utils.text`; contains `slugify()`\n- Tests for `django.utils.text`: location **unknown**\n- Template filter tests (if `slugify` filter exists): location **unknown**\n- Documentation for `slugify()` (utils reference docs): location **unknown**\n- Release notes for the target version: location **unknown**\n\n## Code Style\n\n- Follow the existing conventions of the surrounding code in `django/utils/text.py`. These were not visible to me, so specifics are **unknown**.\n- Project-wide style tooling (formatter, linter, import sorting): **unknown**.\n\n## Testing Strategy\n\n- **Level:** unit tests for `slugify()`, plus, if applicable, a check that the template filter reflects the change.\n- **Framework / location:** **unknown**. Use whatever the existing `django.utils.text` tests use.\n- **Cases to cover:**\n  - The issue's example: `\"___This is a test ---\"` \u2192 `\"this-is-a-test\"`.\n  - Leading only: `\"__hello\"` \u2192 `\"hello\"`; `\"--hello\"` \u2192 `\"hello\"`.\n  - Trailing only: `\"hello__\"` \u2192 `\"hello\"`; `\"hello--\"` \u2192 `\"hello\"`.\n  - Mixed edges: `\"-_-hello_-_\"` \u2192 `\"hello\"`.\n  - Interior preserved: `\"hello_world\"` \u2192 `\"hello_world\"`; `\"hello-world\"` \u2192 `\"hello-world\"`.\n  - Edges created by other processing: `\"  -hello- \"`, `\"!hello!\"`, which should produce no leading or trailing `-`/`_`.\n  - Degenerate input: `\"___\"`, `\"---\"`, `\"-_- \"` \u2192 `\"\"`.\n  - Both `allow_unicode=False` and `allow_unicode=True`, including a non-ASCII case such as `\"__\u4f60\u597d__\"` with unicode allowed.\n  - Regression: all existing `slugify()` tests still pass. Any test that asserts leading/trailing `-`/`_` must be reviewed and flagged, not silently changed (see Boundaries).\n- **Coverage expectations:** **unknown** project policy. Every branch of the changed logic should be exercised by at least one test.\n\n## Boundaries\n\n- **Always:**\n  - Add regression tests for the issue's example and the edge cases above.\n  - Run the existing `django.utils.text` and template filter tests before submitting.\n  - Update the function's documentation and the release notes to describe the behavior change.\n- **Ask first:**\n  - Changing the function signature, for example adding a parameter to opt out of stripping.\n  - Changing how interior dashes or underscores are handled.\n  - Modifying any existing test whose expected output contains leading/trailing `-`/`_`.\n  - Backporting to stable branches.\n- **Never:**\n  - Change `slugify()` behavior beyond edge stripping, for example lowercasing, allowed character set, or whitespace collapsing.\n  - Remove or skip failing tests to make the change pass.\n  - Add new third-party dependencies.\n\n## Success Criteria\n\n1. `slugify(\"___This is a test ---\")` returns exactly `\"this-is-a-test\"`.\n2. For any input, the output of `slugify()` neither starts nor ends with `-` or `_`, with both `allow_unicode` values.\n3. Interior `_` and `-` characters are unchanged compared to current behavior.\n4. All-separator inputs return `\"\"` without raising.\n5. All pre-existing `slugify()` tests pass, or any that encoded the old edge behavior are explicitly identified and approved for update.\n6. Documentation and release notes mention that leading/trailing dashes and underscores are now stripped.\n\n## Open Questions\n\n1. **Backward compatibility:** Is this an accepted behavior change for the next feature release? Or does it need a deprecation path or an opt-out parameter? Existing stored slugs and URLs may differ when regenerated.\n2. **Target version/branch:** Which Django version should this land in? Should it be backported?\n3. **Interior underscores:** Should interior underscores be kept as-is (assumed)? Or should runs of underscores also be collapsed or normalized to dashes?\n4. **Ordering of stripping:** Should stripping happen on the final slug, as assumed, or only on the raw input before other processing? The two can give different results for inputs like `\"!-hello-!\"`.\n5. **Empty result:** Is returning `\"\"` for all-separator input acceptable, or is another behavior expected?\n6. **Template filter:** Does the `slugify` template filter delegate entirely to this function? Does it need its own tests or docs update?\n7. **Linked PR:** The issue references a PR that was not available. Does it contain decisions, such as an implementation approach or extra test cases, that should be reflected here?\n8. **Project commands and paths:** What are the exact test, lint, and docs-build commands and the test and doc file locations for this repository?",
+ "ttft_ms": 4719,
+ "type": "result",
+ "duration_ms": 29048,
+ "uuid": "7aabb7cc-6c9d-497f-adb4-15970961e281",
+ "ttft_stream_ms": 1503,
+ "time_to_request_ms": 263,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 3,
+  "input_attachments": 11,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 215,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 234,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 16,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1503,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,101 @@
+diff --git a/CHANGES.rst b/CHANGES.rst
+index e75719ee..36a545a0 100755
+--- a/CHANGES.rst
++++ b/CHANGES.rst
+@@ -3,6 +3,10 @@ Version 2.3.0
+ 
+ Unreleased
+ 
++-   ``flask routes`` shows a Domain (or Host, with host matching) column when
++    rules use subdomains or hosts, and supports ``--sort domain``. The same
++    information is available from ``rule.subdomain`` / ``rule.host`` of
++    ``app.url_map.iter_rules()``.
+ -   Remove previously deprecated code. :pr:`4995`
+ 
+     -   The ``push`` and ``pop`` methods of the deprecated ``_app_ctx_stack`` and
+diff --git a/docs/cli.rst b/docs/cli.rst
+index a72e6d51..4c990e45 100755
+--- a/docs/cli.rst
++++ b/docs/cli.rst
+@@ -554,3 +554,12 @@ PyCharm window and click the play button next to it to run the server.
+ 
+ Now that you have a configuration for ``flask run``, you can copy that configuration and
+ change the *Parameters* argument to run a different CLI command.
++
++
++Routes and Subdomains
++---------------------
++
++``flask routes`` adds a ``Domain`` column (``Host`` with ``host_matching``) when
++any rule uses a subdomain or host. Use ``--sort domain`` to sort by it. To get
++this programmatically, read the ``subdomain`` and ``host`` attributes of each
++rule in ``app.url_map.iter_rules()``.
+diff --git a/src/flask/cli.py b/src/flask/cli.py
+index 37a15ff2..ba0a7455 100755
+--- a/src/flask/cli.py
++++ b/src/flask/cli.py
+@@ -989,7 +989,7 @@ def shell_command() -> None:
+ @click.option(
+     "--sort",
+     "-s",
+-    type=click.Choice(("endpoint", "methods", "rule", "match")),
++    type=click.Choice(("endpoint", "methods", "domain", "rule", "match")),
+     default="endpoint",
+     help=(
+         'Method to sort routes by. "match" is the order that Flask will match '
+@@ -1013,25 +1013,45 @@ def routes_command(sort: str, all_methods: bool) -> None:
+     elif sort == "methods":
+         rules = sorted(rules, key=lambda rule: sorted(rule.methods))  # type: ignore
+ 
++    host_matching = current_app.url_map.host_matching
++    has_domain = any(rule.host if host_matching else rule.subdomain for rule in rules)
++    server_name = current_app.config.get("SERVER_NAME") or ""
++
++    def get_domain(rule: t.Any) -> str:
++        if host_matching:
++            return rule.host or ""
++
++        if rule.subdomain:
++            return f"{rule.subdomain}.{server_name}" if server_name else rule.subdomain
++
++        return server_name
++
++    if sort == "domain":
++        rules = sorted(rules, key=get_domain)
++
+     rule_methods = [
+         ", ".join(sorted(rule.methods - ignored_methods))  # type: ignore
+         for rule in rules
+     ]
+ 
+-    headers = ("Endpoint", "Methods", "Rule")
+-    widths = (
+-        max(len(rule.endpoint) for rule in rules),
+-        max(len(methods) for methods in rule_methods),
+-        max(len(rule.rule) for rule in rules),
+-    )
+-    widths = [max(len(h), w) for h, w in zip(headers, widths)]
+-    row = "{{0:<{0}}}  {{1:<{1}}}  {{2:<{2}}}".format(*widths)
++    columns = [
++        ("Endpoint", [rule.endpoint for rule in rules]),
++        ("Methods", rule_methods),
++        ("Rule", [rule.rule for rule in rules]),
++    ]
++
++    if has_domain:
++        columns.insert(0, ("Host" if host_matching else "Domain", [get_domain(r) for r in rules]))
++
++    headers = [name for name, _ in columns]
++    widths = [max(len(name), *(len(v) for v in values)) for name, values in columns]
++    row = "  ".join(f"{{{i}:<{w}}}" for i, w in enumerate(widths))
+ 
+     click.echo(row.format(*headers).strip())
+     click.echo(row.format(*("-" * width for width in widths)))
+ 
+-    for rule, methods in zip(rules, rule_methods):
+-        click.echo(row.format(rule.endpoint, methods, rule.rule).rstrip())
++    for values in zip(*(v for _, v in columns)):
++        click.echo(row.format(*values).rstrip())
+ 
+ 
+ cli = FlaskGroup(

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 29278,
+ "stop_reason": "end_turn",
+ "session_id": "3374765c-682c-49d1-9407-c31a074a7f2b",
+ "total_cost_usd": 0.0686346,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1742,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2679,
+  "output_tokens_details": {
+   "thinking_tokens": 194
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1742,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2679,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1742,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1742
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 2328,
+   "outputTokens": 30,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0002478,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2679,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1742,
+   "webSearchRequests": 0,
+   "costUSD": 0.0683868,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 194,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Fix assertion failure excerpt that includes trailing decorator lines (Python 3.8+)\n\n## Objective\n\nWhen an `assert` fails, pytest prints the source of the failing statement. If the next statement after the `assert` is a **decorated** function or class, the excerpt on Python 3.9 also includes the blank line and the decorator line(s) (`@t`) that follow the assert. On Python 3.7 the excerpt correctly stops at the end of the `assert`.\n\n**Users:** anyone whose failing test has an `assert` followed by a decorated nested definition. The issue reports pytest 6.2.5 on Windows 10 with Python 3.9.6.\n\n**Success means:** the failure excerpt for an `assert` covers exactly that statement's lines on every supported Python version. Lines that belong to the following statement, including its decorators, are not shown.\n\n### Observed vs. expected (from the issue)\n\nInput test:\n\n```python\ndef test_right_statement(foo):\n    assert foo == (3 + 2) * (6 + 9)\n\n    @t\n    def inner():\n        return 2\n\n    assert 2 == inner\n```\n\nObserved on Python 3.9.6:\n\n```\n    def test_right_statement(foo):\n>       assert foo == (3 + 2) * (6 + 9)\n    \n        @t\nE       assert 1 == 75\n```\n\nExpected, matching Python 3.7.10:\n\n```\n    def test_right_statement(foo):\n>       assert foo == (3 + 2) * (6 + 9)\nE       assert 1 == 75\n```\n\n### User stories / acceptance\n\n- As a test author, when an `assert` fails, I see only the lines of that `assert`, whatever statement follows it.\n- As a test author on Python 3.7 and 3.9+, I get the same excerpt for the same code.\n\n## Assumptions\n\n1. The bug is in how pytest computes the line range of the failing statement, as the reporter suggests. It is not in the assertion rewriting or in the comparison message, because the `E` lines are correct.\n2. **Unverified hypothesis:** starting with Python 3.8, the AST `lineno` of a decorated `FunctionDef`/`ClassDef` points at the `def`/`class` line instead of the first decorator. If pytest ends the current statement at the start of the next statement node, it would end at the `def` line and pull in the decorator lines. This must be confirmed against the actual source before any fix.\n3. Under the same hypothesis, a decorated `class` and multiple stacked decorators would trigger the same behaviour. The issue only shows a single function decorator.\n4. The blank line between the `assert` and `@t` is part of the same leak. It is not a separate bug.\n5. The OS (Windows) is not a factor. The `allure-pytest` plugin in the 3.9 run is not a factor either, since it is absent from the 3.7 run but has no plausible effect on source excerpts. This should still be confirmed.\n6. The fix targets the current development line of pytest, not a backport to 6.2.x, unless maintainers decide otherwise.\n7. Module-level decorated definitions, such as `outer` in the example, are not involved here. The failing statement is inside the test function.\n\n## Tech Stack\n\n- Language: Python. The affected versions reported are 3.9.6 (bug present) and 3.7.10 (bug absent).\n- Project: pytest. Reported against 6.2.5.\n- Exact supported Python range for the target branch: **unknown**.\n- Relevant module / function computing statement ranges: **unknown** (not visible in the issue).\n\n## Commands\n\nAll unknown. No repository access, and the issue shows no project commands.\n\n```\nBuild: unknown\nTest:  unknown (likely a pytest/tox invocation; exact command and env names not visible)\nLint:  unknown\nDev:   unknown\n```\n\nReproduction, derived from the issue:\n\n```\npytest -v test_statement.py   # with the test file from the issue, on Python 3.9\n```\n\n## Project Structure\n\nUnknown. No repository layout is visible in the issue. Needed:\n- the location of the source-excerpt and statement-range code\n- the location of the existing tests for that code\n- whether a changelog-fragment directory exists\n\n## Code Style\n\nUnknown. Follow the existing conventions of the surrounding pytest code and its configured linters and formatters, once those are identified.\n\n## Testing Strategy\n\n- **Framework:** pytest itself (self-tests). The exact test file locations are unknown.\n- **Regression tests (required):**\n  1. **Unit level:** for source like the issue's example, the computed statement range for the line `assert foo == ...` contains only that line.\n  2. **Integration level:** run a test file equivalent to the issue's example and check that the failure output does **not** contain the decorator line `@t` in the source excerpt, and does contain the `>` line for the assert.\n- **Variants to cover:**\n  - a single decorator on a nested function\n  - multiple stacked decorators\n  - a decorated nested class\n  - a decorator with arguments that spans multiple lines\n  - a multi-line `assert` followed by a decorated definition, to check that the full assert is still shown\n  - an `assert` followed by a comment and then a decorated definition\n- **Non-regression:** existing source / traceback-excerpt tests must still pass.\n- **Python versions:** the tests must pass on every Python version the target branch supports. The behaviour must be identical on versions before and after 3.8.\n\n## Boundaries\n\n- **Always:**\n  - Reproduce the bug with a failing test before changing behaviour.\n  - Keep the excerpt behaviour for statements not followed by decorated definitions unchanged.\n  - Run the full existing test suite.\n- **Ask first:**\n  - Changing the public or semi-public API of the source/code-excerpt utilities.\n  - Dropping support for any Python version.\n  - Backporting to a maintenance branch.\n  - Adding dependencies.\n- **Never:**\n  - Change assertion-rewriting output (the `E` lines).\n  - Suppress or delete existing failing tests.\n  - Special-case the literal decorator name or the issue's exact example.\n\n## Success Criteria\n\n1. Running the issue's example on Python 3.9+ shows exactly this excerpt: the `def test_right_statement(foo):` line, then the `>` assert line, then the `E` lines. There is no blank line and no `@t` line.\n2. Each variant in the Testing Strategy shows only the failing statement's lines.\n3. The new regression tests fail before the fix and pass after it, on all supported Python versions.\n4. The full existing test suite passes with no changes to unrelated expected outputs.\n5. Output for the issue's example is identical on Python versions before and after 3.8.\n\n## Open Questions\n\n1. Which pytest branch or version should receive the fix, and should it be backported to 6.2.x?\n2. What is the minimum supported Python version on the target branch? This decides whether pre-3.8 AST behaviour still needs to be handled.\n3. Which module or function computes the statement range for failure excerpts, and where are its tests?\n4. Are other consumers of the same statement-range logic affected and in scope? Examples: traceback entries for non-assert failures, and `--tb` styles other than the default.\n5. Can the reporter confirm the bug reproduces without `allure-pytest` installed?\n6. Does the project require a changelog entry for bug fixes, and in what format and location?\n7. Are the test, lint, and CI commands defined in tox or another runner, and what are the exact invocations?",
+ "ttft_ms": 2897,
+ "type": "result",
+ "duration_ms": 28633,
+ "uuid": "46cc42b3-06f2-48ff-aa63-8b20a61e9c7d",
+ "ttft_stream_ms": 941,
+ "time_to_request_ms": 311,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 35,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 230,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 263,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "at_mentioned_files",
+  "slowest_producer_ms": 27,
+  "cpu_ms": 100,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 942,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

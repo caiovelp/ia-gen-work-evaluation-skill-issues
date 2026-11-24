@@ -1,0 +1,15 @@
+diff --git a/django/db/migrations/autodetector.py b/django/db/migrations/autodetector.py
+index 5f41053283..6a7073fb88 100755
+--- a/django/db/migrations/autodetector.py
++++ b/django/db/migrations/autodetector.py
+@@ -1033,6 +1033,10 @@ class MigrationAutodetector:
+                     self.to_state,
+                 )
+             )
++        # A field being replaced (e.g. FK to M2M) must stay after the removal
++        # of any index/unique_together that includes it.
++        if (app_label, model_name, field_name) in self.old_field_keys:
++            dependencies.append((app_label, model_name, field_name, "foo_together_change"))
+         # You can't just add NOT NULL fields with no default or fields
+         # which don't allow empty strings as default.
+         time_fields = (models.DateField, models.DateTimeField, models.TimeField)

@@ -1,0 +1,1 @@
+{"justificativa": "The official fix shows the enrollment creation date (`created_at`) in the ClassEnrollment list, show view and XLS export. The candidate only adds `created_at`/`updated_at` to the ClassEnrollmentRequests screen, which shows when requests were made but not when the class enrollments themselves were created, nor in the export.", "veredito": "parcial"}

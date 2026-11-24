@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14050,
+ "stop_reason": "end_turn",
+ "session_id": "f7474b69-1f31-4494-8900-ebfafdfb8da4",
+ "total_cost_usd": 0.035583800000000006,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1173,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1302,
+  "output_tokens_details": {
+   "thinking_tokens": 393
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1173,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1302,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1173,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1173
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1383,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001518,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1302,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1173,
+   "webSearchRequests": 0,
+   "costUSD": 0.035432000000000005,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 393,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\nIn Jupyter, the rendered output of `SeqFormula()` backslash-escapes its square brackets (`\\left\\[ ... \\right\\]`). When this output is copied into a Markdown cell, it does not render properly. The same content with unescaped brackets renders correctly.\n\n## Steps to reproduce\n1. Open a Jupyter notebook.\n2. Run the following in a code cell:\n   ```python\n   import sympy as sp\n   k, m, n = sp.symbols('k m n', integer=True)\n   sp.init_printing()\n\n   sp.SeqFormula(n**2, (n,0,sp.oo))\n   ```\n3. Look at the rendered output. Its LaTeX source is `\\left\\[0, 1, 4, 9, \\ldots\\right\\]`.\n4. Copy this output into a Markdown cell and render the cell.\n\n## Observed behavior\nThe Jupyter rendering produces backslash-escaped square brackets:\n\n`\\left\\[0, 1, 4, 9, \\ldots\\right\\]`\n\nWhen this output is pasted into a Markdown cell, it does not render properly.\n\n## Expected behavior\nThe sequence output should render properly when copied into a Markdown cell. For comparison, the following renders correctly in a Markdown cell:\n\n`[0, 1, 4, 9, \\ldots ]`\n\nThe reporter suggests that either sequence output should not backslash-escape square brackets, or `\\]` should render correctly. The report does not say which is intended.\n\n## Stack trace / error output\nNot provided in the original report. No error is raised; the problem is incorrect rendering. The problematic output is:\n\n`\\left\\[0, 1, 4, 9, \\ldots\\right\\]`\n\n## Test case\nNot provided in the original report. The following minimal reproduction comes from the report's snippet:\n\n```python\nimport sympy as sp\nk, m, n = sp.symbols('k m n', integer=True)\nsp.init_printing()\n\nsp.SeqFormula(n**2, (n,0,sp.oo))\n# Observed rendered output: \\left\\[0, 1, 4, 9, \\ldots\\right\\]\n# Copied into a Markdown cell, this does not render properly.\n# By contrast, [0, 1, 4, 9, \\ldots ] renders fine in a Markdown cell.\n```\n\n## Code example\n```python\nimport sympy as sp\nk, m, n = sp.symbols('k m n', integer=True)\nsp.init_printing()\n\nsp.SeqFormula(n**2, (n,0,sp.oo))\n```\n\n## Version and environment\n- Environment: Jupyter notebook, with output rendered via `sp.init_printing()` and pasted into a Markdown cell.\n- SymPy version, Python version, Jupyter version and OS: Not provided in the original report.",
+ "ttft_ms": 6106,
+ "type": "result",
+ "duration_ms": 13029,
+ "uuid": "c940f907-409d-4713-90c7-cb5f6f31fcfc",
+ "ttft_stream_ms": 1542,
+ "time_to_request_ms": 273,
+ "time_to_request_phases_ms": {
+  "other": 17,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 4,
+  "input_attachments": 10,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 23,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 277,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 6,
+  "cpu_ms": 15,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1543,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,90 @@
+diff --git a/app/assets/stylesheets/active_scaffold_overrides.scss b/app/assets/stylesheets/active_scaffold_overrides.scss
+index 3085c8cb..84112633 100644
+--- a/app/assets/stylesheets/active_scaffold_overrides.scss
++++ b/app/assets/stylesheets/active_scaffold_overrides.scss
+@@ -351,4 +351,12 @@ small._default_value {
+ 
+ .active-scaffold li.form-element dd {
+   padding: 6px 0;
+-}
+\ No newline at end of file
++}
++.cm-format-toolbar {
++  margin-bottom: 4px;
++  .cm-format-button {
++    cursor: pointer;
++    padding: 2px 8px;
++    margin-right: 2px;
++  }
++}
+diff --git a/app/helpers/application_helper.rb b/app/helpers/application_helper.rb
+index 6a88384e..439d88ae 100644
+--- a/app/helpers/application_helper.rb
++++ b/app/helpers/application_helper.rb
+@@ -101,13 +101,40 @@ module ApplicationHelper
+                      extra: extra })
+   end
+ 
+-  def code_mirror_text_area_widget(column, id, type, options, set_size = false, line_wrapping = false)
++  def code_mirror_text_area_widget(column, id, type, options, set_size = false, line_wrapping = false, toolbar = false)
+     set_size_str = set_size ?
+       ".setSize(null, '#{(set_size.is_a?(TrueClass) ? options[:value].count("\n") + 2 : set_size)}em')" :
+       ""
+     block = text_area(:record, :sql_query, options)
+-    block + "<script>
+-    CodeMirror.fromTextArea(document.getElementById('#{id}'),
++    toolbar_html = ""
++    toolbar_js = ""
++    if toolbar
++      buttons = [
++        ["<b>", "</b>", "<b>N</b>", "Negrito"],
++        ["<i>", "</i>", "<i>I</i>", "Itálico"],
++        ['<div style="text-align: center;">', "</div>", "&#8801; Centralizar", "Alinhar ao centro"],
++        ['<div style="text-align: justify;">', "</div>", "&#9776; Justificar", "Justificar"]
++      ].map do |open, close, label, title|
++        "<button type='button' class='cm-format-button' title='#{title}' " \
++        "data-open='#{ERB::Util.html_escape(open)}' data-close='#{ERB::Util.html_escape(close)}'>#{label}</button>"
++      end.join(" ")
++      toolbar_html = "<div class='cm-format-toolbar' id='#{id}_toolbar'>#{buttons}</div>"
++      toolbar_js = "
++      document.querySelectorAll('##{id}_toolbar .cm-format-button').forEach(function(btn) {
++        btn.addEventListener('click', function() {
++          var o = btn.dataset.open, c = btn.dataset.close;
++          var sel = editor.getSelection();
++          editor.replaceSelection(o + sel + c, 'around');
++          if (sel === '') {
++            var cur = editor.getCursor();
++            editor.setCursor({line: cur.line, ch: cur.ch - c.length});
++          }
++          editor.focus();
++        });
++      });"
++    end
++    toolbar_html.html_safe + block + "<script>
++    var editor = CodeMirror.fromTextArea(document.getElementById('#{id}'),
+      {mode: '#{type}',
+       indentWithTabs: true,
+       smartIndent: true,
+@@ -116,7 +143,7 @@ module ApplicationHelper
+       autofocus: true,
+       lineWrapping: #{line_wrapping ? "true" : "false"}
+      }
+-    )#{set_size_str};
++    )#{set_size_str};#{toolbar_js}
+     </script>".html_safe
+   end
+ 
+diff --git a/app/helpers/assertions_helper.rb b/app/helpers/assertions_helper.rb
+index eb450ce8..4749e659 100644
+--- a/app/helpers/assertions_helper.rb
++++ b/app/helpers/assertions_helper.rb
+@@ -18,7 +18,8 @@ module AssertionsHelper
+           I18n.t("active_scaffold.notification.body_template_default_liquid"),
+       ),
+       set_size=35,
+-      line_wrapping=true
++      line_wrapping=true,
++      toolbar=true
+     )
+   end
+ 

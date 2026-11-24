@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 9328,
+ "stop_reason": "end_turn",
+ "session_id": "4fd53bc7-5137-4171-a8bb-84c711c93e39",
+ "total_cost_usd": 0.0262634,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1146,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 839,
+  "output_tokens_details": {
+   "thinking_tokens": 25
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1146,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 839,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1146,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1146
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1294,
+   "outputTokens": 356,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0003074,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 332,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 839,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1146,
+   "webSearchRequests": 0,
+   "costUSD": 0.025956,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 25,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 1146,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Resumo\nA issue relata dois problemas no processo seletivo:\n\n1. **Empate no ranking:** quando h\u00e1 empate na pen\u00faltima posi\u00e7\u00e3o de algum grupo do ranking, a vaga n\u00e3o \u00e9 descontada das vagas dispon\u00edveis para o grupo.\n2. **N\u00famero m\u00ednimo de cartas:** quando o edital especifica um n\u00famero m\u00ednimo de cartas, o sistema n\u00e3o valida se o edital tem um modelo de formul\u00e1rio de carta. Ao submeter uma inscri\u00e7\u00e3o, ocorre um erro.\n\n## Passos para reproduzir\n**Problema 1 \u2013 Empate na pen\u00faltima posi\u00e7\u00e3o do ranking**\n1. Ter um processo seletivo com ranking dividido em grupos, cada um com um n\u00famero de vagas dispon\u00edveis.\n2. Fazer com que dois ou mais candidatos fiquem empatados na pen\u00faltima posi\u00e7\u00e3o de um grupo.\n3. Gerar ou verificar o ranking e observar as vagas dispon\u00edveis do grupo.\n\n**Problema 2 \u2013 Edital com n\u00famero m\u00ednimo de cartas**\n1. Criar ou configurar um edital que especifique um n\u00famero m\u00ednimo de cartas.\n2. N\u00e3o associar ao edital um modelo de formul\u00e1rio de carta. O sistema n\u00e3o impede essa configura\u00e7\u00e3o.\n3. Submeter uma inscri\u00e7\u00e3o nesse edital.\n\n## Comportamento observado\n- **Problema 1:** a vaga ocupada pelo empate na pen\u00faltima posi\u00e7\u00e3o n\u00e3o \u00e9 descontada das vagas dispon\u00edveis para o grupo.\n- **Problema 2:** o sistema aceita o edital sem validar o modelo de formul\u00e1rio de carta. Ao submeter uma inscri\u00e7\u00e3o, ocorre um erro. A issue n\u00e3o descreve qual erro.\n\n## Comportamento esperado\n- **Problema 1:** a vaga ocupada na pen\u00faltima posi\u00e7\u00e3o deve ser descontada das vagas dispon\u00edveis para o grupo, mesmo quando h\u00e1 empate.\n- **Problema 2:** quando o edital especifica um n\u00famero m\u00ednimo de cartas, o sistema deve validar o modelo de formul\u00e1rio de carta no edital. A submiss\u00e3o de uma inscri\u00e7\u00e3o n\u00e3o deve gerar erro.\n\n## Stack trace / sa\u00edda de erro\nN\u00e3o informado na issue original. A issue apenas diz que \"d\u00e1 erro\" ao submeter uma inscri\u00e7\u00e3o (problema 2), sem mensagem nem stack trace.\n\n## Caso de teste\nN\u00e3o informado na issue original.\n\n## Exemplo de c\u00f3digo\nN\u00e3o informado na issue original.\n\n## Vers\u00e3o e ambiente\nN\u00e3o informado na issue original.",
+ "ttft_ms": 1724,
+ "type": "result",
+ "duration_ms": 8031,
+ "uuid": "97ae134e-a29f-4758-8f82-fe263dcc0eec",
+ "ttft_stream_ms": 1435,
+ "time_to_request_ms": 926,
+ "time_to_request_phases_ms": {
+  "other": 13,
+  "system_prompt": 4,
+  "resume_other": 1,
+  "process_user_input": 6,
+  "input_attachments": 18,
+  "input_hooks": 7,
+  "conversation_append": 1,
+  "tool_pool_refresh": 5,
+  "init_message": 31,
+  "init_frame_send": 14,
+  "engine_pickup": 4,
+  "loop_entry": 9,
+  "message_prep": 3,
+  "model_config_wait": 765,
+  "autocompact": 4,
+  "request_announcements": 19,
+  "query_setup": 2,
+  "model_gates": 1,
+  "tool_schema_build": 4,
+  "message_normalization": 3,
+  "client_creation": 3,
+  "request_build": 9
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 323,
+ "time_to_request_cpu_ms": 827,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 20,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 0,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 5,
+  "render_ms": 3,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 1,
+  "placement_ms": 2,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 2,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 1,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 2,
+  "headers_ms": 1,
+  "cache_break_record_ms": 1,
+  "plans_ms": 2,
+  "retry_setup_ms": 1,
+  "sent_build_ms": 2,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 1,
+  "sent_build_surrogate_scan_ms": 0
+ },
+ "first_content_frame_ms": 1435,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26411,
+ "stop_reason": "end_turn",
+ "session_id": "e933a049-5759-4993-9e2e-74d5b74c9820",
+ "total_cost_usd": 0.0781764,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 3108,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2603,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3108,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2603,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 3108,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3108
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3696,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00038160000000000006,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2603,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 3108,
+   "webSearchRequests": 0,
+   "costUSD": 0.0777948,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: SQLite Table Remake With Expression-Based UniqueConstraint\n\n## Objective\n\n**Problem.** On Django 4.0a1 with the SQLite backend, running `AlterField` on a model with an expression-based `UniqueConstraint` (for example `UniqueConstraint(F('name'), F('value'), name='unique_name_value')`) crashes during `migrate` with:\n\n```\ndjango.db.utils.OperationalError: the \".\" operator prohibited in index expressions\n```\n\nAccording to the traceback, the failure happens in `django/db/backends/sqlite3/schema.py` \u2192 `_alter_field` \u2192 `_remake_table` \u2192 `self.execute(sql)`. SQLite cannot `ALTER` most column properties, so Django rebuilds the table. While it re-creates the constraint's index on the rebuilt table, the generated index SQL seems to contain table-qualified column references (e.g. `\"myapp_tag\".\"name\"`). SQLite does not allow these inside index expressions.\n\n**Who is affected.** Django users on SQLite who declare `UniqueConstraint` with positional expressions (new in Django 4.0) and then run any migration that makes the SQLite schema editor remake the table.\n\n**What success looks like.** The reported migration sequence (CreateModel \u2192 AddConstraint with `F()` expressions \u2192 AlterField on `value`) applies cleanly on SQLite. Afterwards the unique constraint/index still exists and is still enforced on the rebuilt table.\n\n**Acceptance criteria (user-level):**\n- Given the `Tag` model and the two migrations in the issue, `manage.py migrate` succeeds on SQLite.\n- After migrating, inserting two `Tag` rows with the same `(name, value)` raises an `IntegrityError`.\n- Other operations that trigger `_remake_table` also succeed when the model has an expression-based unique constraint: alter field, add field, remove field (including a field the constraint does not reference), and rename field.\n\n## Assumptions\n\n1. The root cause is that expression column references in index/constraint SQL are rendered with a table alias/qualifier. SQLite rejects these in `CREATE INDEX` expressions. This is inferred from the error message and is not yet confirmed against source code.\n2. The bug only affects expression-based constraints (`UniqueConstraint(*expressions, ...)`). Field-based constraints (`UniqueConstraint(fields=[...])`) are not affected. Not verified.\n3. The crash happens when the index is re-created during `_remake_table`. The initial `AddConstraint` succeeded in the report, which suggests that path generates valid SQL, possibly through a different code path.\n4. The table name used during the remake (a temporary \"new\" table, then a rename) may be involved in the qualifier. Not verified.\n5. The fix belongs in Django core (schema editor / expression compilation for indexes), not in user code or migrations.\n6. Other backends (PostgreSQL, MySQL, Oracle) are out of scope, except that they must not regress.\n7. This is a release blocker for the 4.0 line, since expression-based `UniqueConstraint` is a new 4.0 feature. Severity is assumed.\n\n## Tech Stack\n\n- Django 4.0a1, as reported. The target branch is unknown.\n- SQLite backend (`django.db.backends.sqlite3`). The SQLite library version is unknown.\n- Python version: unknown. The reporter is on Windows (`D:\\...\\.venv`).\n\n## Commands\n\nUnknown. The repository is not visible, so no build, test or lint commands can be stated with confidence.\n\n- Build: unknown\n- Test: unknown (the test runner invocation and settings module for SQLite are not visible)\n- Lint: unknown\n- Reproduce: `manage.py migrate` in a project containing the model and migrations from the issue (taken from the issue itself)\n\n## Project Structure\n\nOnly these paths are known, from the traceback:\n\n```\ndjango/db/backends/sqlite3/schema.py   \u2192 SQLite schema editor (alter_field, _alter_field, _remake_table)\ndjango/db/backends/base/schema.py      \u2192 Base schema editor (alter_field, execute)\ndjango/db/backends/sqlite3/base.py     \u2192 SQLite cursor wrapper\ndjango/db/migrations/operations/fields.py \u2192 AlterField.database_forwards\n```\n\nThese locations are unknown:\n- where constraint/index SQL is generated for expressions\n- where the schema/migration tests live\n\n## Code Style\n\nUnknown. Follow existing project conventions; no snippet is visible beyond the user's model and migrations.\n\n## Testing Strategy\n\n- **Level:** schema-editor / migration tests that run on the SQLite backend. The exact test modules and framework invocation are unknown.\n- **Regression test (required):** create a model with an expression-based `UniqueConstraint`, add the constraint, then perform an operation that triggers a SQLite table remake (at minimum `AlterField`). Assert:\n  - no exception is raised\n  - the constraint is still present when introspected on the rebuilt table\n  - the constraint is still enforced (a duplicate insert raises `IntegrityError`)\n- **Additional coverage (desirable):** the same checks for add field, remove field and rename field on SQLite, with expression-based unique constraints.\n- **Cross-backend:** existing constraint/index tests must keep passing on other backends. The CI configuration is unknown.\n- **Coverage target:** unknown.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test that fails before the fix and passes after it.\n  - Keep generated SQL valid on all supported backends.\n  - Preserve the semantics of the constraint across the table remake.\n- **Ask first:**\n  - Changing the public API of `UniqueConstraint`, `Index` or expression compilation.\n  - Changing SQL generated for non-SQLite backends.\n  - Changing migration autodetector or serializer output.\n- **Never:**\n  - Silently drop the constraint during a remake to avoid the error.\n  - Require users to rewrite their migrations as the fix.\n  - Remove or skip existing failing tests without approval.\n\n## Success Criteria\n\n1. The exact reproduction from the issue (both migrations, SQLite) applies without error.\n2. After the migration, the `unique_name_value` constraint exists on the `Tag` table, as shown by introspection.\n3. After the migration, inserting a duplicate `(name, value)` raises `IntegrityError`.\n4. `_remake_table`-triggering operations (alter, add, remove, rename field) succeed on SQLite for models with expression-based unique constraints.\n5. The generated `CREATE UNIQUE INDEX` SQL for expression constraints on SQLite contains no table-qualified column references.\n6. No regressions in existing schema, migration or constraint test suites on any backend.\n\n## Open Questions\n\n1. Which branch and versions should get the fix: 4.0 release branch, main, or both?\n2. Does the same failure occur for expression-based `Index` (`Meta.indexes` with expressions), not only `UniqueConstraint`? Should that be in scope?\n3. Does the bug also affect conditional (`condition=`) or `include=`/`opclasses` constraints during a remake on SQLite?\n4. Is the qualifier introduced by the expression compiler for all backends? (Other backends tolerate it, so it may only surface on SQLite.) Or is it specific to the remake code path?\n5. Why does the initial `AddConstraint` succeed while the remake fails? Do they use different SQL generation paths?\n6. Which SQLite versions must be supported or tested?\n7. What are the exact test commands, settings and test module locations for schema-editor tests in this repository?\n8. If a remake renames or drops a column that the expression constraint references, what is the expected behavior? Should it update, drop or error?",
+ "ttft_ms": 25825,
+ "type": "result",
+ "duration_ms": 25849,
+ "uuid": "e092795f-ad3c-4dea-a6dd-ed5f1acda7e8",
+ "ttft_stream_ms": 1273,
+ "time_to_request_ms": 233,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 7,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 4,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 203,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 1
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 113,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 11,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1274,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

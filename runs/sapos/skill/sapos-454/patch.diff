@@ -1,0 +1,54 @@
+diff --git a/app/controllers/class_enrollments_controller.rb b/app/controllers/class_enrollments_controller.rb
+index f999e58c..f06584b4 100644
+--- a/app/controllers/class_enrollments_controller.rb
++++ b/app/controllers/class_enrollments_controller.rb
+@@ -18,17 +18,18 @@ class ClassEnrollmentsController < ApplicationController
+     config.list.sorting = { enrollment: "ASC" }
+     config.list.columns = [
+       :enrollment, :course_class, :situation,
+-      :grade_label, :disapproved_by_absence
++      :grade_label, :disapproved_by_absence, :created_at
+     ]
+     config.create.columns = columns - [:grade_label]
+     config.update.columns = columns - [:grade_label]
+     config.show.columns = [
+       :enrollment, :course_class, :situation, :disapproved_by_absence,
+       :grade_label, :obs, :grade_not_count_in_gpr,
+-      :justification_grade_not_count_in_gpr,
++      :justification_grade_not_count_in_gpr, :created_at
+     ]
+     config.create.label = :create_class_enrollment_label
+ 
++    config.columns[:created_at].sort = true
+     config.columns[:enrollment].form_ui = :record_select
+     config.columns[:course_class].form_ui = :record_select
+     config.columns[:grade].options = {
+diff --git a/app/helpers/class_enrollments_helper.rb b/app/helpers/class_enrollments_helper.rb
+index eb7ee381..3d60e608 100644
+--- a/app/helpers/class_enrollments_helper.rb
++++ b/app/helpers/class_enrollments_helper.rb
+@@ -7,6 +7,12 @@ module ClassEnrollmentsHelper
+   include EnrollmentSearchHelperConcern
+   include ClassEnrollmentHelperConcern
+ 
++  def created_at_column(record, _column)
++    return I18n.t("active_scaffold.unknown_date", default: "data desconhecida") if record.created_at.blank?
++
++    I18n.l(record.created_at.in_time_zone, format: "%d/%m/%Y %H:%M")
++  end
++
+   # EnrollmentSearchHelperConcern
+   alias_method(
+     :enrollment_search_column,
+diff --git a/config/locales/class_enrollment.pt-BR.yml b/config/locales/class_enrollment.pt-BR.yml
+index d42a7ecd..a05eab5b 100644
+--- a/config/locales/class_enrollment.pt-BR.yml
++++ b/config/locales/class_enrollment.pt-BR.yml
+@@ -5,6 +5,7 @@ pt-BR:
+   activerecord:
+     attributes:
+       class_enrollment:
++        created_at: "Data da inscrição"
+         course_class_id: "Turma"
+         course_class: "Turma"
+         disapproved_by_absence: "Reprovado por Falta"

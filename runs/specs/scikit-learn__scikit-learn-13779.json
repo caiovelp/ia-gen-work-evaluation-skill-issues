@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 21837,
+ "stop_reason": "end_turn",
+ "session_id": "5dbdabde-8161-403d-9e50-89b3bf914bad",
+ "total_cost_usd": 0.0507491,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 818,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2159,
+  "output_tokens_details": {
+   "thinking_tokens": 111
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 818,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2159,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 818,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 818
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1403,
+   "outputTokens": 28,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00015429999999999998,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2159,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 818,
+   "webSearchRequests": 0,
+   "costUSD": 0.050594799999999995,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 111,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Skip `None` Estimators in Voting Ensemble `sample_weight` Support Check\n\n## Objective\n\n**Problem.** If any estimator in a voting ensemble is set to `None` (e.g. via `set_params(lr=None)`), calling `fit(X, y, sample_weight=...)` raises:\n\n```\nAttributeError: 'NoneType' object has no attribute 'fit'\n```\n\nThe issue states the cause: the `sample_weight` support check does not skip estimators that are `None`.\n\n**Reproduction (from the issue):**\n\n```python\nX, y = load_iris(return_X_y=True)\nvoter = VotingClassifier(\n    estimators=[('lr', LogisticRegression()),\n                ('rf', RandomForestClassifier())]\n)\nvoter.fit(X, y, sample_weight=np.ones(y.shape))   # works\nvoter.set_params(lr=None)\nvoter.fit(X, y, sample_weight=np.ones(y.shape))   # AttributeError\n```\n\n**Users.** Anyone using a voting ensemble who disables a sub-estimator by setting it to `None` and also passes `sample_weight`.\n\n**Expected behavior.**\n- `None` estimators are excluded from the `sample_weight` support check.\n- `fit` completes using only the remaining non-`None` estimators.\n- The result is the same as fitting without `sample_weight`, where `None` estimators are already skipped.\n\n**Acceptance criteria:**\n1. The reproduction above runs without error.\n2. After that second `fit`, the fitted ensemble contains only the non-`None` estimator(s). `predict` works.\n3. `sample_weight` is still validated for every non-`None` estimator. If a non-`None` estimator does not support `sample_weight`, the existing error is still raised, with the same type and message as today.\n4. If all estimators are `None`, the existing \"all estimators are None\" error is raised (current behavior, unchanged), not an `AttributeError`.\n5. Behavior without `sample_weight` is unchanged.\n\n## Assumptions\n\n1. The fix belongs in shared voting-ensemble fitting logic. Any regressor counterpart (e.g. `VotingRegressor`, if present in this version) shares the same code path and needs the same fix and tests.\n2. Setting an estimator to `None` is a supported, documented way to drop it from the ensemble. The bug is only that the `sample_weight` path ignores this.\n3. The existing behavior when *all* estimators are `None` is to raise a `ValueError`. This should be preserved.\n4. Estimator `weights` (the voting weights parameter) are out of scope. The issue concerns `sample_weight` passed to `fit`.\n5. The project uses pytest (the standard for this library). This is unconfirmed for this repository.\n6. No public API change is required, so no deprecation is needed.\n\n## Tech Stack\n\n- Python, NumPy; the library is scikit-learn (inferred from `VotingClassifier`, `LogisticRegression`, `RandomForestClassifier`, `load_iris`).\n- Versions: **unknown**.\n\n## Commands\n\n- Build: **unknown**\n- Test: **unknown** (likely a pytest invocation targeting the voting tests; exact command and path not visible)\n- Lint: **unknown**\n\n## Project Structure\n\n- Voting ensemble source file: **unknown** (not visible in the issue).\n- Voting ensemble test file: **unknown**.\n- Changelog / release notes location: **unknown**.\n\n## Code Style\n\n- Follow the existing conventions of the voting ensemble module. Not visible here, so **unknown**.\n- Error messages for unsupported `sample_weight` must remain unchanged.\n\n## Testing Strategy\n\n- **Level:** unit tests in the existing voting ensemble test module.\n- **Regression test:** the issue's reproduction, asserting that the second `fit` succeeds and that the fitted ensemble contains only the remaining estimator.\n- **Additional cases:**\n  - A `None` estimator plus a non-`None` estimator that does *not* support `sample_weight`: the existing error is still raised.\n  - All estimators `None` with `sample_weight`: the existing \"all None\" error is raised, not `AttributeError`.\n  - If a voting regressor shares the code path, the same regression test is applied to it.\n- No reduction of existing tests.\n\n## Boundaries\n\n- **Always:**\n  - Add a regression test reproducing the issue.\n  - Keep validation of `sample_weight` support for non-`None` estimators.\n  - Run the voting ensemble test suite before committing.\n- **Ask first:**\n  - Changing error types or messages.\n  - Changing behavior for the all-`None` case.\n  - Refactoring the fitting logic beyond the `None` check.\n  - Touching other ensemble classes.\n- **Never:**\n  - Silently drop `sample_weight` for estimators that do support it.\n  - Remove or weaken existing tests.\n  - Change the public API.\n\n## Success Criteria\n\n- The reproduction script from the issue runs to completion with no exception.\n- New regression test(s) fail before the fix and pass after it.\n- The full existing voting ensemble test suite passes.\n- Unsupported-`sample_weight` errors for non-`None` estimators are unchanged.\n- A changelog entry is added, if the project requires one for bug fixes (convention **unknown**).\n\n## Open Questions\n\n1. Does a voting regressor (or another voting class) exist in this version, and does it share the affected code path?\n2. Should the `None` check be applied once, centrally (e.g. filter `None` estimators before all validation), or only in the `sample_weight` check?\n3. What error, if any, is expected today when all estimators are `None` and `sample_weight` is passed? Should it match the no-`sample_weight` case exactly?\n4. Are there other places in `fit` (or `set_params`/`get_params` handling) that assume non-`None` estimators and should be covered by this fix?\n5. What are the test command, file locations, and changelog conventions for this repository?\n6. Is `'drop'` (or any other sentinel) also supported for disabling estimators in this version? If so, does it need the same handling?",
+ "ttft_ms": 2975,
+ "type": "result",
+ "duration_ms": 20816,
+ "uuid": "4fb6960b-7717-4ab9-9b20-f5e043574b68",
+ "ttft_stream_ms": 1896,
+ "time_to_request_ms": 238,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 8,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 196,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 140,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1896,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

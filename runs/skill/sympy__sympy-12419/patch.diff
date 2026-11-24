@@ -1,0 +1,61 @@
+diff --git a/sympy/concrete/summations.py b/sympy/concrete/summations.py
+index 372487664..bcad5f1b1 100755
+--- a/sympy/concrete/summations.py
++++ b/sympy/concrete/summations.py
+@@ -184,6 +184,8 @@ def doit(self, **hints):
+                 a, b = b + 1, a - 1
+                 f = -f
+ 
++            if (n > 0 or f != self.function) and isinstance(f, Piecewise):
++                f = _fold_piecewise_on_range(f, (i, a, b))
+             newf = eval_sum(f, (i, a, b))
+             if newf is None:
+                 if f == self.function:
+@@ -843,6 +845,19 @@ def telescopic(L, R, limits):
+         return telescopic_direct(L, R, s, (i, a, b))
+ 
+ 
++def _fold_piecewise_on_range(f, limits):
++    """Replace Piecewise f by its first branch if that branch's condition
++    holds on the whole summation range. Relationals linear in the summation
++    variable hold throughout if they hold at both endpoints."""
++    (i, a, b) = limits
++    expr, cond = f.args[0]
++    rels = cond.args if cond.func is And else (cond,)
++    if all(r.is_Relational and (r.lhs - r.rhs).diff(i, 2) == 0 and
++           r.subs(i, a) == True and r.subs(i, b) == True for r in rels):
++        return expr
++    return f
++
++
+ def eval_sum(f, limits):
+     from sympy.concrete.delta import deltasummation, _has_simple_delta
+     from sympy.functions import KroneckerDelta
+diff --git a/sympy/matrices/expressions/matexpr.py b/sympy/matrices/expressions/matexpr.py
+index b4d759836..981c9e8df 100755
+--- a/sympy/matrices/expressions/matexpr.py
++++ b/sympy/matrices/expressions/matexpr.py
+@@ -7,6 +7,8 @@
+ from sympy.core.compatibility import range
+ from sympy.core.sympify import SympifyError, sympify
+ from sympy.functions import conjugate, adjoint
++from sympy.functions.special.tensor_functions import KroneckerDelta
++from sympy.core.relational import Eq
+ from sympy.matrices import ShapeError
+ from sympy.simplify import simplify
+ 
+@@ -476,10 +478,12 @@ def conjugate(self):
+         return self
+ 
+     def _entry(self, i, j):
+-        if i == j:
++        eq = Eq(i, j)
++        if eq == True:
+             return S.One
+-        else:
++        elif eq == False:
+             return S.Zero
++        return KroneckerDelta(i, j)
+ 
+     def _eval_determinant(self):
+         return S.One

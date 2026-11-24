@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 27636,
+ "stop_reason": "end_turn",
+ "session_id": "58cc73e9-8edb-4da3-b239-80d8fe3fdf82",
+ "total_cost_usd": 0.0926417,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 3089,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 3379,
+  "output_tokens_details": {
+   "thinking_tokens": 414
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 3089,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3379,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 3089,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 3089
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 3297,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00034170000000000007,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3379,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 3089,
+   "webSearchRequests": 0,
+   "costUSD": 0.0923,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 414,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nIn Matplotlib 3.5.0, a 3D line plot fails with `AttributeError: 'Line3D' object has no attribute '_verts3d'` after a previous failed plot call in the same IPython session.\n\nThe sequence is:\n\n1. The plotting code works with integer inputs.\n2. The reporter passes a NumPy array as one coordinate value (`x_s_0[n]`). This fails with `input operand has more dimensions than allowed by the axis remapping`.\n3. The reporter goes back to integer inputs. Every later run now fails at `plt.show()` with the `AttributeError`.\n\nThe error continues whatever the variables are changed to, and even after they are deleted. Only restarting the IPython console kernel clears it.\n\n## Steps to reproduce\n\n1. Start an IPython console. The reporter used PyCharm on Windows, connected to a remote Ubuntu 20.04 interpreter, with the `module://backend_interagg` backend.\n2. Fill the six arrays `x_s_0`, `x_e_0`, `y_s_0`, `y_e_0`, `z_s_0`, `z_e_0` with integer values. The actual values are not given in the report.\n3. Run the code from the Code example section. **Result:** the 3D lines are drawn correctly.\n4. Run the code again, but make `x_s_0[n]` a NumPy array instead of an int. The exact array is not given in the report. **Result:** an error occurs: `input operand has more dimensions than allowed by the axis remapping`.\n5. Set `x_s_0[n]` and the other variables back to int values and run the code again. **Result:** `AttributeError: 'Line3D' object has no attribute '_verts3d'` is raised from `plt.show()`.\n6. Change or delete the variables and run again. **Result:** the same `AttributeError` occurs every time until the IPython kernel is restarted.\n\n## Observed behavior\n\n- After a failed call with array-valued input, every later attempt to draw the figure fails during `plt.show()`. The failure happens in `mpl_toolkits/mplot3d/art3d.py`, `Line3D.draw`, with `AttributeError: 'Line3D' object has no attribute '_verts3d'`.\n- The error survives changes to the variables and deleting them. Only a kernel restart clears it.\n\n## Expected behavior\n\nOnce valid integer inputs are supplied again, the code should draw the 3D lines, as it did on the first run.\n\n## Stack trace / error output\n\nError at step 4 (only the message was reported, with no full traceback):\n\n```\ninput operand has more dimensions than allowed by the axis remapping\n```\n\nError at steps 5 and 6:\n\n```\nTraceback (most recent call last):\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/IPython/core/interactiveshell.py\", line 3444, in run_code\n    exec(code_obj, self.user_global_ns, self.user_ns)\n  File \"<ipython-input-80-e04907066a16>\", line 20, in <module>\n    plt.show()\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/pyplot.py\", line 368, in show\n    return _backend_mod.show(*args, **kwargs)\n  File \"/home/hanyaning/.pycharm_helpers/pycharm_matplotlib_backend/backend_interagg.py\", line 29, in __call__\n    manager.show(**kwargs)\n  File \"/home/hanyaning/.pycharm_helpers/pycharm_matplotlib_backend/backend_interagg.py\", line 112, in show\n    self.canvas.show()\n  File \"/home/hanyaning/.pycharm_helpers/pycharm_matplotlib_backend/backend_interagg.py\", line 68, in show\n    FigureCanvasAgg.draw(self)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/backends/backend_agg.py\", line 436, in draw\n    self.figure.draw(self.renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/artist.py\", line 73, in draw_wrapper\n    result = draw(artist, renderer, *args, **kwargs)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/artist.py\", line 50, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/figure.py\", line 2803, in draw\n    mimage._draw_list_compositing_images(\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/image.py\", line 132, in _draw_list_compositing_images\n    a.draw(renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/artist.py\", line 50, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/mpl_toolkits/mplot3d/axes3d.py\", line 469, in draw\n    super().draw(renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/artist.py\", line 50, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/axes/_base.py\", line 3082, in draw\n    mimage._draw_list_compositing_images(\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/image.py\", line 132, in _draw_list_compositing_images\n    a.draw(renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/matplotlib/artist.py\", line 50, in draw_wrapper\n    return draw(artist, renderer)\n  File \"/home/hanyaning/anaconda3/envs/SBeA/lib/python3.8/site-packages/mpl_toolkits/mplot3d/art3d.py\", line 215, in draw\n    xs3d, ys3d, zs3d = self._verts3d\nAttributeError: 'Line3D' object has no attribute '_verts3d'\n```\n\n## Test case\n\nNot provided in the original report. The reproduction code uses placeholders (`'my int number list'`) instead of real data. The report also does not give the NumPy array that was assigned to `x_s_0[n]` in step 4, so a self-contained test case cannot be built from it.\n\n## Code example\n\nThis is the code from the report. Indentation is normalized, and the placeholder data is kept as written. The imports (`numpy as np`, `matplotlib.pyplot as plt`, and mplot3d) are not shown in the original.\n\n```python\nx_s_0 = np.array(['my int number list'])\nx_e_0 = np.array(['my int number list'])\ny_s_0 = np.array(['my int number list'])\ny_e_0 = np.array(['my int number list'])\nz_s_0 = np.array(['my int number list'])\nz_e_0 = np.array(['my int number list'])\n\nfig = plt.figure()\nax = fig.gca(projection='3d')\nax.view_init(elev=90, azim=0)\nax.set_zlim3d(-10, 10)\nclr_list = 'r-'\n\nfor n in range(np.size(z_s_0, axis=0)):\n    ax.plot([int(x_s_0[n]), int(x_e_0[n])],\n            [int(y_s_0[n]), int(y_e_0[n])],\n            [int(z_s_0[n]), int(z_e_0[n])], clr_list)\n\nplt.xlabel('x')\nplt.ylabel('y')\n# ax.zlabel('z')\nplt.title('90-0')\nplt.show()\n```\n\n## Version and environment\n\n- **Matplotlib:** 3.5.0\n- **Python:** 3.8.12\n- **Backend:** `module://backend_interagg` (PyCharm's matplotlib backend)\n- **Operating system:** local Windows running PyCharm; remote Ubuntu 20.04 interpreter (Anaconda environment `SBeA`)\n- **Execution context:** IPython console\n- **Installation:** pip\n- **Jupyter version:** Not provided in the original report.",
+ "ttft_ms": 5807,
+ "type": "result",
+ "duration_ms": 27121,
+ "uuid": "da6421ce-fe21-4eac-9c7b-cfed2c27e7f4",
+ "ttft_stream_ms": 1588,
+ "time_to_request_ms": 263,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 3,
+  "input_attachments": 9,
+  "input_hooks": 2,
+  "tool_pool_refresh": 1,
+  "init_message": 7,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 220,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 2,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 12,
+ "time_to_request_cpu_ms": 255,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 13,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1589,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

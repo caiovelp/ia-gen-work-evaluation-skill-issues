@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 26668,
+ "stop_reason": "end_turn",
+ "session_id": "971110cb-b879-4ea5-b6c1-75bd54938201",
+ "total_cost_usd": 0.058743699999999996,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 926,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 2515,
+  "output_tokens_details": {
+   "thinking_tokens": 328
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 926,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2515,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 926,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 926
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1514,
+   "outputTokens": 27,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001649,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2515,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 926,
+   "webSearchRequests": 0,
+   "costUSD": 0.05857879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 328,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Clear deferred fields correctly when `QuerySet.defer()` follows `QuerySet.only()`\n\n## Assumptions\n\n1. This is the Django ORM (`QuerySet.only()` / `QuerySet.defer()`). The project version is unknown.\n2. The current semantics of `.only()` and `.defer()` must be preserved, and this fix only changes their interaction:\n   - `.only(*fields)` restricts loading to the named fields plus the primary key.\n   - `.defer(*fields)` excludes the named fields from loading.\n   - The primary key is always loaded, even if deferred.\n3. Root-cause hypothesis, not verified against source. The query appears to track loading as either:\n   - an \"immediate load\" set (from `only()`), or\n   - a \"deferred\" set (from `defer()`).\n\n   When `defer()` removes every field from the `only()` set, the empty immediate set seems to be read as \"no restriction\". That would load all fields. The internal function names and data structures are unknown, because the repository is not visible.\n4. The expected result when every `only()` field is later deferred is \"load only the primary key\". It is not \"load everything\" and it is not an error. This follows the issue reporter's stated expectation.\n5. The `Company` model in the issue (`id`, `name`, `trade_number`, `country`) is illustrative. Tests may use an existing test model with an equivalent shape.\n6. The behaviour should be the same on all database backends, since it concerns SQL column selection, not dialect.\n\n## Objective\n\nMake `QuerySet.only(...).defer(...)` produce a column selection consistent with applying the two operations in order. Removing every field named in `only()` via later `defer()` calls must leave only the primary key selected. It must not revert to selecting all columns.\n\n**User:** developers using the Django ORM to limit which columns are fetched.\n\n**Observed (bug):**\n\n| Expression | Current SQL columns |\n|---|---|\n| `Company.objects.only(\"name\").defer(\"name\")` | id, name, trade_number, country |\n| `Company.objects.only(\"name\").defer(\"name\").defer(\"country\")` | id, name, trade_number, country |\n| `Company.objects.only(\"name\", \"country\").defer(\"name\")` | id, country \u2705 |\n\n**Expected:**\n\n| Expression | Expected SQL columns |\n|---|---|\n| `Company.objects.only(\"name\").defer(\"name\")` | id |\n| `Company.objects.only(\"name\").defer(\"name\").defer(\"country\")` | id |\n| `Company.objects.only(\"name\", \"country\").defer(\"name\")` | id, country (unchanged) |\n\n## Tech Stack\n\n- Python and Django ORM (exact versions unknown).\n- No new dependencies.\n\n## Commands\n\nAll commands are unknown, because the repository is not visible.\n\n- Build: unknown (likely none for a Python library)\n- Test: unknown. Must be able to run the ORM's deferred-loading / `only()`/`defer()` test suite in isolation.\n- Lint: unknown\n- Dev: N/A\n\n## Project Structure\n\nUnknown. To be confirmed from the repository:\n\n- **Code location:** where `QuerySet.only()` / `QuerySet.defer()` and the underlying query object's deferred-loading state live.\n- **Test location:** where the existing tests for `defer()` / `only()` live.\n\n## Code Style\n\n- Follow the existing project conventions, which cannot be seen from here.\n- Keep the change minimal and local to the deferred-loading state transition.\n- Add no new public API.\n\n## Testing Strategy\n\n- **Level:** unit/integration tests at the QuerySet level. Assert which fields are deferred or selected, either by inspecting the generated SQL columns or via the existing assertion helpers in the defer test suite (unknown).\n- **Regression tests (must fail before the fix, pass after):**\n  1. `only(\"name\").defer(\"name\")` \u2192 only the pk is loaded.\n  2. `only(\"name\").defer(\"name\").defer(\"country\")` \u2192 only the pk is loaded.\n  3. `only(\"name\").defer(\"name\", \"country\")` (single call) \u2192 only the pk is loaded.\n- **Guard tests (must pass before and after):**\n  4. `only(\"name\", \"country\").defer(\"name\")` \u2192 pk and `country`.\n  5. `only(\"name\").defer(\"trade_number\")` \u2192 pk and `name`. Deferring a field not in the `only()` set has no effect.\n  6. `defer(\"name\").only(\"country\")` \u2192 existing behaviour preserved. A later `only()` replaces earlier deferrals.\n  7. Plain `defer(...)` and plain `only(...)` behaviour unchanged.\n  8. `defer(None)` still clears all deferrals.\n- **Instance check:** for regression case 1, loading an instance and then accessing `name` still works. It triggers a deferred load, consistent with existing deferred-field behaviour.\n- Run the full existing defer/only test suite with no regressions.\n\n## Boundaries\n\n**Always**\n- Add regression tests reproducing the issue's examples.\n- Run the existing defer/only and query-related test suites.\n- Preserve \"the primary key is always loaded\".\n\n**Ask first**\n- Changing behaviour of any `only`/`defer` combination other than \"`defer()` empties the `only()` set\".\n- Changing internal data structures used by other code paths (e.g. `values()`, related-field traversal, `select_related`).\n- Raising an error or warning instead of selecting only the pk.\n\n**Never**\n- Change public method signatures.\n- Remove or weaken existing tests.\n- Alter `defer(None)` semantics.\n\n## Success Criteria\n\n- `Company.objects.only(\"name\").defer(\"name\")` generates SQL selecting only the pk column.\n- `Company.objects.only(\"name\").defer(\"name\").defer(\"country\")` generates SQL selecting only the pk column.\n- `Company.objects.only(\"name\", \"country\").defer(\"name\")` still selects only pk and `country`.\n- All new regression tests pass, and all pre-existing tests in the relevant suites pass.\n- Model instances from these querysets lazily load deferred fields on access, as with any deferred field.\n\n## Open Questions\n\n1. Is \"select only the pk\" definitely the desired result when `defer()` removes every `only()` field? The alternative is restoring \"load all fields\", which is the current behaviour and might be considered intentional. This spec assumes the former.\n2. Should the fix also cover related-field lookups? For example, `only(\"fk__name\").defer(\"fk__name\")` together with `select_related`.\n3. Which Django version or branch is targeted, and should the fix be backported?\n4. What are the exact test command and test module for defer/only behaviour in this repository?\n5. Should a release note or documentation update accompany the fix?",
+ "ttft_ms": 5144,
+ "type": "result",
+ "duration_ms": 26151,
+ "uuid": "f0ae40a2-a062-4691-97b1-dfba63b45a3f",
+ "ttft_stream_ms": 1570,
+ "time_to_request_ms": 251,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 5,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 2,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 3
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 138,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1570,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

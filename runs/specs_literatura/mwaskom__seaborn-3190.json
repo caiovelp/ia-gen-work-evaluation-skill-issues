@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 15379,
+ "stop_reason": "end_turn",
+ "session_id": "4b5296db-f5e7-4dd8-9251-4f43589ea19f",
+ "total_cost_usd": 0.046360900000000003,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1667,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1641,
+  "output_tokens_details": {
+   "thinking_tokens": 288
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1667,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1641,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1667,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1667
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1874,
+   "outputTokens": 19,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019690000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1641,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1667,
+   "webSearchRequests": 0,
+   "costUSD": 0.046164000000000004,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 288,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nMapping `color` to boolean data in `seaborn.objects` (`so.Plot`) raises a `TypeError`. While setting up scales, seaborn appears to treat the boolean values with a continuous scale (`ContinuousBase._setup`). It then subtracts NumPy booleans, which NumPy does not support.\n\n## Steps to reproduce\n\n1. Use seaborn's objects interface, referred to as `so` in the report. The import statement is not shown in the original report.\n2. Create a plot with two categorical x values, two numeric y values and a boolean list mapped to `color`. Add a `Bar` mark:\n   ```python\n   so.Plot([\"a\", \"b\"], [1, 2], color=[True, False]).add(so.Bar())\n   ```\n3. Render or display the plot.\n\n## Observed behavior\n\nPlotting fails with a `TypeError` during scale setup, in `Plotter._setup_scales` \u2192 `ContinuousBase._setup`. The failing line is `b = forward(vmax) - forward(vmin)`. NumPy rejects the `-` operator on boolean values.\n\n## Expected behavior\n\nNot explicitly stated in the original report. The title (\"Color mapping fails with boolean data\") implies the plot should render, with bar colors mapped to the boolean values instead of raising an error.\n\n## Stack trace / error output\n\n```python-traceback\n---------------------------------------------------------------------------\nTypeError                                 Traceback (most recent call last)\n...\nFile ~/code/seaborn/seaborn/_core/plot.py:841, in Plot._plot(self, pyplot)\n    838 plotter._compute_stats(self, layers)\n    840 # Process scale spec for semantic variables and coordinates computed by stat\n--> 841 plotter._setup_scales(self, common, layers)\n    843 # TODO Remove these after updating other methods\n    844 # ---- Maybe have debug= param that attaches these when True?\n    845 plotter._data = common\n\nFile ~/code/seaborn/seaborn/_core/plot.py:1252, in Plotter._setup_scales(self, p, common, layers, variables)\n   1250     self._scales[var] = Scale._identity()\n   1251 else:\n-> 1252     self._scales[var] = scale._setup(var_df[var], prop)\n   1254 # Everything below here applies only to coordinate variables\n   1255 # We additionally skip it when we're working with a value\n   1256 # that is derived from a coordinate we've already processed.\n   1257 # e.g., the Stat consumed y and added ymin/ymax. In that case,\n   1258 # we've already setup the y scale and ymin/max are in scale space.\n   1259 if axis is None or (var != coord and coord in p._variables):\n\nFile ~/code/seaborn/seaborn/_core/scales.py:351, in ContinuousBase._setup(self, data, prop, axis)\n    349 vmin, vmax = axis.convert_units((vmin, vmax))\n    350 a = forward(vmin)\n--> 351 b = forward(vmax) - forward(vmin)\n    353 def normalize(x):\n    354     return (x - a) / b\n\nTypeError: numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.\n```\n\n## Test case\n\nA minimal test case based on the report's snippet. Plotting should complete without raising `TypeError`:\n\n```python\nso.Plot([\"a\", \"b\"], [1, 2], color=[True, False]).add(so.Bar()).plot()\n```\n\nThe report does not specify how the plot was rendered. The traceback shows the failure inside `Plot._plot`.\n\n## Code example\n\n```python\nso.Plot([\"a\", \"b\"], [1, 2], color=[True, False]).add(so.Bar())\n```\n\n## Version and environment\n\nNot provided in the original report. The traceback paths (`~/code/seaborn/seaborn/_core/...`) suggest seaborn was run from a local source checkout. No seaborn, NumPy, matplotlib or Python versions are given.",
+ "ttft_ms": 4563,
+ "type": "result",
+ "duration_ms": 14314,
+ "uuid": "08783303-5dce-4d1b-a720-58ecb888967f",
+ "ttft_stream_ms": 1403,
+ "time_to_request_ms": 302,
+ "time_to_request_phases_ms": {
+  "other": 21,
+  "system_prompt": 1,
+  "resume_other": 1,
+  "process_user_input": 5,
+  "input_attachments": 14,
+  "input_hooks": 4,
+  "tool_pool_refresh": 2,
+  "init_message": 28,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 212,
+  "autocompact": 3,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 45,
+ "time_to_request_cpu_ms": 328,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 9,
+  "cpu_ms": 18,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1404,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

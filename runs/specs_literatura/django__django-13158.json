@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14243,
+ "stop_reason": "end_turn",
+ "session_id": "fc4f5555-82be-4164-bd58-9aec40695043",
+ "total_cost_usd": 0.040101,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1405,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1434,
+  "output_tokens_details": {
+   "thinking_tokens": 358
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1405,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1434,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1405,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1405
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1620,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.000173,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1434,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1405,
+   "webSearchRequests": 0,
+   "costUSD": 0.039928,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 358,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nOn a `ModelMultipleChoiceField` whose queryset is built with `union()`, submitting the form with no selection adds **all** objects in the queryset to the many-to-many relation. The same field built with the `|` (OR) operator adds no objects, which is the expected result. The title suggests the cause is that `QuerySet.none()` on a combined (`union()`) query returns all results instead of none. The reporter found this on Stack Overflow and is \"not 100% sure it's a bug\".\n\n## Steps to reproduce\n\n1. Define the models, form and admin from the **Code example** section. Use the `|` (OR) version of the queryset first.\n2. Create `Publication` objects so that some match `id < 2` or `id > 5`.\n3. In the admin, open an `Article` and submit the form with no publications selected.\n4. Note that no publications are added to the article. This is correct.\n5. Change the `publications` field's queryset to the `union()` version shown in the **Code example** section.\n6. Open the form again. Only the matching publications are listed, which is correct.\n7. Submit the form with no publications selected.\n8. Note that every publication matched by the queryset has been added to the article.\n\n## Observed behavior\n\n- With `union()`, the form lists the correct choices.\n- Submitting the form with nothing selected adds **all** objects matched by the union queryset to `Article.publications`.\n\n## Expected behavior\n\nSubmitting the form with nothing selected should add **no** publications. This is what happens with the `|` (OR) queryset. Following the title, calling `.none()` on a combined (`union()`) queryset should return no results.\n\n## Stack trace / error output\n\nNot provided in the original report. No error is raised; the wrong data is saved silently.\n\n## Test case\n\nNot provided in the original report. A minimal check based on the report's reproduction:\n\n1. Create `Publication` objects, some with `id < 2` and some with `id > 5`.\n2. Create an `Article`.\n3. Bind `ArticleForm` (union version) to that article with `publications` left empty.\n4. Validate and save the form.\n5. Assert that `article.publications` is empty.\n   - **Expected:** empty, the same as the OR version.\n   - **Observed per the report:** contains all publications matched by the union queryset.\n\n## Code example\n\nSetup that works correctly, using the `|` operator:\n\n```python\nclass Publication(models.Model):\n    pass\n\nclass Article(models.Model):\n    publications = models.ManyToManyField(to=Publication, blank=True, null=True)\n\nclass ArticleForm(forms.ModelForm):\n    publications = forms.ModelMultipleChoiceField(\n        Publication.objects.filter(id__lt=2) | Publication.objects.filter(id__gt=5),\n        required=False,\n    )\n\n    class Meta:\n        model = Article\n        fields = [\"publications\"]\n\nclass ArticleAdmin(admin.ModelAdmin):\n    form = ArticleForm\n```\n\nField definition that triggers the bug, using `union()`:\n\n```python\npublications = forms.ModelMultipleChoiceField(\n    Publication.objects.filter(id__lt=2).union(\n        Publication.objects.filter(id__gt=5)\n    ),\n    required=False,\n)\n```\n\n## Version and environment\n\nNot provided in the original report.",
+ "ttft_ms": 5303,
+ "type": "result",
+ "duration_ms": 13674,
+ "uuid": "463a40ec-6fb7-45e8-9902-666e38d7dcfd",
+ "ttft_stream_ms": 1308,
+ "time_to_request_ms": 254,
+ "time_to_request_phases_ms": {
+  "other": 11,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 6,
+  "input_hooks": 2,
+  "tool_pool_refresh": 2,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 216,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 214,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 12,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1308,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

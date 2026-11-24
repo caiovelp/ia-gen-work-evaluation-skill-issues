@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 37672,
+ "stop_reason": "end_turn",
+ "session_id": "2753b8df-a226-4697-8cb1-b0ffbd72e5b1",
+ "total_cost_usd": 0.08315649999999998,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1301,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3584,
+  "output_tokens_details": {
+   "thinking_tokens": 672
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1301,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3584,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1301,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1301
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1887,
+   "outputTokens": 18,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001977,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3584,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1301,
+   "webSearchRequests": 0,
+   "costUSD": 0.08295879999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 672,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Improve Pretty-Printing of `Product`\n\n## Objective\n\nMake the 2D pretty-printed form of `Product` more compact and better proportioned, in both Unicode and ASCII modes.\n\n**Who benefits:** anyone who views `Product` expressions through `pprint` or a similar pretty-print entry point.\n\n**Problems reported in the issue:**\n\n1. **Empty bottom row.** The \u220f symbol always ends with an empty row below the function body. This makes the bottom look asymmetric and makes the symbol taller than it needs to be.\n2. **Too wide.** The \u220f is \"too fat\". From the samples, its interior width grows with the body's height rather than its width:\n   - body height 1 \u2192 interior width 3\n   - body height 3 \u2192 interior width 6\n   - body height 4 \u2192 interior width 8\n3. **Top bar (tentative).** The reporter thinks the top bar might look better if it extended one column past each vertical leg. The reporter says they are unsure about this.\n\n**Target shape proposed in the issue** (Unicode, `Product(1/n**2, (n, 1, oo))`):\n\n```\n    \u221e\n\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u252c\u2500\n \u2502     \u2502  1\n \u2502     \u2502  \u2500\u2500\n \u2502     \u2502   2\n \u2502     \u2502  n\n  n = 1\n```\n\nThe reporter adds a constraint: making the symbol much skinnier than this \"starts to look bad\". The result may still be roughly twice as wide as the equivalent `Sum`.\n\n**Success looks like:**\n- Product output is shorter (no trailing empty row) and narrower than today.\n- Product output stays readable and symmetric.\n- Product output stays correctly aligned when embedded in larger expressions.\n\n## Assumptions\n\n1. This issue is about SymPy's pretty printer (`pprint`, `Product`, `oo`, `use_unicode=False`). The actual file and function that render `Product` are not visible in the issue and are **unknown**.\n2. The change is limited to the visual layout of `Product`. `Sum`, `Integral` and other operators are out of scope, apart from not regressing.\n3. Both Unicode and ASCII (`use_unicode=False`) output must change consistently. The issue shows a target only for Unicode, so the ASCII target is inferred (see Open Questions).\n4. The issue's mockup is a guide, not an exact specification. Small deviations, such as the exact width formula, are acceptable if they meet the criteria below.\n5. Existing tests that hard-code the current `Product` output will need their expected strings updated. That counts as an intended behavior change, not a regression.\n6. The rules for placing the limits stay as they are now:\n   - The upper limit is centered above the symbol.\n   - The lower limit (`n = 1`) is centered below it.\n7. The baseline and vertical centering of the function body relative to surrounding terms must keep working, for example in `Product(...) * x` and in nested products.\n8. Behavior for multiple limits is assumed to apply the new shape to each factor. The issue's examples show only single-limit products.\n\n## Tech Stack\n\n- Python, SymPy pretty-printing subsystem.\n- Versions: **unknown**.\n\n## Commands\n\n- Build: **unknown** (not shown in the issue)\n- Test: **unknown**. Presumably the project's standard test runner, targeted at the pretty-printing tests, but the exact command and path are not visible.\n- Doctests: **unknown**\n- Lint: **unknown**\n\n## Project Structure\n\n**Unknown.** The issue does not show the location of:\n- the `Product` pretty-printing implementation;\n- the pretty-printing tests;\n- any documentation or doctests that embed `Product` output.\n\nAll three need to be located before planning.\n\n## Code Style\n\nUnknown. Follow the existing conventions of the pretty-printing module. No code is shown in the issue.\n\n## Testing Strategy\n\n- **Unit tests (pretty printer).** Assert the exact Unicode and ASCII output strings for at least these cases, which are the issue's own examples:\n  - `Product(1, (n, 1, oo))`\n  - `Product(1/n, (n, 1, oo))`\n  - `Product(1/n**2, (n, 1, oo))`\n- **Edge cases to cover:**\n  - a symbolic upper limit wider than the symbol, e.g. `Product(1, (n, 1, k + 10))`;\n  - a long lower-limit expression;\n  - multiple limits, e.g. `Product(f, (n, 1, oo), (m, 1, oo))`;\n  - a nested `Product`;\n  - `Product` as a factor or term in a larger expression, e.g. `Product(...) * x` and `x + Product(...)`, to check baseline alignment.\n- **Regression.** The existing pretty-printing test suite and doctests must pass. The only allowed changes are updated expected strings for `Product` output.\n- **Coverage expectations:** unknown.\n\n## Boundaries\n\n**Always:**\n- Update Unicode and ASCII rendering together.\n- Update every hard-coded expected `Product` output in tests and doctests.\n- Keep the upper and lower limits centered relative to the symbol.\n\n**Ask first:**\n- Adopting the extended top bar (`\u2500\u252c\u2500\u2026\u2500\u252c\u2500`), since the reporter is unsure about it.\n- Changing the shared helpers used by other operators, such as `Sum`.\n- Changing the baseline semantics of the printed form.\n\n**Never:**\n- Change how `Sum`, `Integral`, etc. render as a side effect.\n- Change the mathematical content or the order of printed limits.\n- Delete failing tests instead of updating their expected output.\n\n## Success Criteria\n\n**1. No trailing empty row.** The last row of the vertical legs is level with the last row of the function body. For example, `Product(1/n**2, (n, 1, oo))` has 4 leg rows, not 5.\n\n**2. Narrower symbol.** The interior width between the legs is strictly smaller than today for each example:\n\n| Expression | Interior width today | Target in issue mockup |\n|---|---|---|\n| `Product(1, (n, 1, oo))` | 3 | \u2014 |\n| `Product(1/n, (n, 1, oo))` | 6 | \u2014 |\n| `Product(1/n**2, (n, 1, oo))` | 8 | 5 |\n\nThe final width rule must be documented in the tests.\n\n**3. Readable proportions.** The symbol is not made \"much skinnier\" than the mockup. A reviewer judges this visually against the issue's mockup.\n\n**4. Top bar.** Implemented with the extension or without it, depending on the decision in Open Questions. Either way, it is consistent between Unicode and ASCII.\n\n**5. Unicode matches the mockup.** For `Product(1/n**2, (n, 1, oo))`, the Unicode output matches the issue's mockup, or a variant that has been agreed.\n\n**6. ASCII follows the same rules.** ASCII output has no trailing empty row and the same narrower width.\n\n**7. Alignment preserved.**\n- Limits stay centered.\n- The body stays vertically aligned with adjacent terms in compound expressions.\n- Wide limits still widen the layout correctly.\n\n**8. No regressions.** All existing tests pass, apart from intended updates to expected `Product` strings.\n\n## Open Questions\n\n1. **Top bar.** Should the top bar extend past the legs (`\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u252c\u2500`)? The reporter is unsure. Who makes the final call?\n2. **Width formula.** What exact width rule is wanted? Candidates:\n   - a fixed small padding around the body;\n   - a smaller height-proportional ratio;\n   - the mockup's width of 5 for a body of height 4, generalized somehow.\n   What is the minimum width for a height-1 body such as `Product(1, \u2026)`?\n3. **ASCII target.** The issue gives no target for ASCII. Should the top bar be `_` characters, extended past the legs like `_|_` / `__`? Or should it keep today's style, just narrower and without the empty row?\n4. **Gap before the body.** In the mockup, the body starts two columns after the right leg. Today it starts one column after. Is the extra column intended?\n5. **Sum consistency.** Should `Sum` change to match? For example, should both use the same padding or the same position for the limits? Or is this strictly `Product`-only?\n6. **Multiple limits.** For products with multiple limits, should each \u220f get the new shape independently? Should adjacent symbols share spacing?\n7. **Baseline.** With the trailing row removed, where should the baseline sit? This affects alignment with neighboring terms and should be confirmed against current behavior.\n8. **Documentation impact.** Do documentation pages or tutorials outside the test suite embed `Product` pretty output that also needs updating? Their locations are unknown.",
+ "ttft_ms": 9384,
+ "type": "result",
+ "duration_ms": 37160,
+ "uuid": "5c300d73-ac9c-439d-a378-4c39de95fcde",
+ "ttft_stream_ms": 1336,
+ "time_to_request_ms": 239,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 5,
+  "input_hooks": 3,
+  "tool_pool_refresh": 1,
+  "init_message": 9,
+  "engine_pickup": 1,
+  "message_prep": 1,
+  "model_config_wait": 200,
+  "autocompact": 2,
+  "query_setup": 0,
+  "model_gates": 0,
+  "tool_schema_build": 1,
+  "message_normalization": 0,
+  "client_creation": 1,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 4,
+ "time_to_request_cpu_ms": 140,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 3,
+  "cpu_ms": 8,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1337,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

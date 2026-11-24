@@ -1,0 +1,293 @@
+diff --git a/app/controllers/enrollments_controller.rb b/app/controllers/enrollments_controller.rb
+index 47cad398..77b1d717 100644
+--- a/app/controllers/enrollments_controller.rb
++++ b/app/controllers/enrollments_controller.rb
+@@ -73,6 +73,7 @@ class EnrollmentsController < ApplicationController
+       :delayed_phase,
+       :course_class_year_semester,
+       :research_area,
++      :research_line,
+       :enrollment_hold
+     ]
+ 
+@@ -108,6 +109,7 @@ class EnrollmentsController < ApplicationController
+     config.columns[:professor].search_sql = "professors.name"
+     config.columns[:professor].search_ui = :text
+     config.columns[:research_area].form_ui = :record_select
++    config.columns[:research_line].form_ui = :select
+     config.columns[:scholarship_durations_active].search_sql = ""
+     config.columns[:scholarship_durations_active].search_ui = :select
+     config.columns[:student].form_ui = :record_select
+@@ -123,6 +125,7 @@ class EnrollmentsController < ApplicationController
+       :enrollment_status,
+       :level,
+       :research_area,
++      :research_line,
+       :thesis_title,
+       :thesis_defense_date,
+       :obs,
+diff --git a/app/controllers/research_lines_controller.rb b/app/controllers/research_lines_controller.rb
+new file mode 100644
+index 00000000..cd6422d2
+--- /dev/null
++++ b/app/controllers/research_lines_controller.rb
+@@ -0,0 +1,19 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++class ResearchLinesController < ApplicationController
++  authorize_resource
++
++  active_scaffold :research_line do |config|
++    config.create.label = :create_research_line_label
++    config.list.sorting = { name: "ASC" }
++    config.list.columns = [:name, :research_area]
++    config.columns = [:research_area, :name]
++    config.columns[:research_area].form_ui = :select
++    config.columns[:research_area].clear_link
++
++    config.actions.exclude :deleted_records
++  end
++end
+diff --git a/app/models/ability.rb b/app/models/ability.rb
+index d21d31c9..2f227f51 100644
+--- a/app/models/ability.rb
++++ b/app/models/ability.rb
+@@ -30,7 +30,7 @@ class Ability
+   ]
+ 
+   COURSE_MODELS = [
+-    ResearchArea, Course, CourseType, CourseClass, ClassSchedule,
++    ResearchArea, ResearchLine, Course, CourseType, CourseClass, ClassSchedule,
+     ClassEnrollment, Allocation, EnrollmentRequest, ClassEnrollmentRequest,
+     EnrollmentRequestComment,
+   ]
+diff --git a/app/models/enrollment.rb b/app/models/enrollment.rb
+index 21e6a187..5a4f8e71 100644
+--- a/app/models/enrollment.rb
++++ b/app/models/enrollment.rb
+@@ -15,6 +15,7 @@ class Enrollment < ApplicationRecord
+   belongs_to :level, optional: false
+   belongs_to :enrollment_status, optional: false
+   belongs_to :research_area, optional: true
++  belongs_to :research_line, optional: true
+ 
+   has_one :dismissal, dependent: :restrict_with_exception
+   has_many :advisements, dependent: :destroy
+@@ -48,6 +49,7 @@ class Enrollment < ApplicationRecord
+     on_or_after_message: :thesis_defense_date_before_admission_date
+ 
+   validate :verify_research_area_with_advisors
++  validate :verify_research_line_in_research_area
+ 
+   after_save :create_phase_completions
+   after_create :create_user!
+@@ -170,6 +172,13 @@ class Enrollment < ApplicationRecord
+     end
+   end
+ 
++  def verify_research_line_in_research_area
++    return if research_line.blank?
++    return if research_line.research_area_id == research_area_id
++
++    errors.add(:research_line, :research_line_different_from_research_area)
++  end
++
+   def verify_research_area_with_advisors
+     return if advisements.blank?
+     return if research_area.blank?
+diff --git a/app/models/research_area.rb b/app/models/research_area.rb
+index 8aff0f10..a47299dc 100644
+--- a/app/models/research_area.rb
++++ b/app/models/research_area.rb
+@@ -9,6 +9,7 @@ class ResearchArea < ApplicationRecord
+ 
+   has_many :course_research_areas, dependent: :destroy
+   has_many :courses, through: :course_research_areas
++  has_many :research_lines, dependent: :restrict_with_exception
+   has_many :enrollments, dependent: :restrict_with_exception
+   has_many :professor_research_areas, dependent: :destroy
+   has_many :professors, through: :professor_research_areas
+diff --git a/app/models/research_line.rb b/app/models/research_line.rb
+new file mode 100644
+index 00000000..edfff7bd
+--- /dev/null
++++ b/app/models/research_line.rb
+@@ -0,0 +1,23 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++# Represents a ResearchLine, which belongs to a ResearchArea
++class ResearchLine < ApplicationRecord
++  has_paper_trail
++
++  belongs_to :research_area, optional: false
++  has_many :enrollments, dependent: :restrict_with_exception
++
++  validates :research_area, presence: true
++  validates :name, presence: true, uniqueness: { scope: :research_area_id }
++
++  def to_label
++    "#{name}"
++  end
++
++  def full_name
++    "#{name}, #{research_area.name}"
++  end
++end
+diff --git a/config/locales/enrollment.pt-BR.yml b/config/locales/enrollment.pt-BR.yml
+index 7c256888..78faad10 100644
+--- a/config/locales/enrollment.pt-BR.yml
++++ b/config/locales/enrollment.pt-BR.yml
+@@ -21,6 +21,7 @@ pt-BR:
+         enrollment_number: "Número de Matrícula"
+         enrollment_status: "Tipo de Matrícula"
+         research_area: "Área de Concentração"
++        research_line: "Linha de Pesquisa"
+         level: "Nível"
+         phase: "Etapa"
+         phase_completions: "Realização de Etapas"
+@@ -51,6 +52,7 @@ pt-BR:
+           main_advisor_required: "Um dos orientadores deve ser Orientador Principal"
+           main_advisor_uniqueness: "Apenas um orientador pode ser Orientador Principal"
+           thesis_defense_date_before_admission_date: "anterior a Data de Admissão"
++          research_line_different_from_research_area: "não pertence à área de concentração selecionada"
+           research_area_different_from_professors: "diferente de áreas de pesquisa do(s) orientador(es)"
+ 
+     models:
+diff --git a/config/locales/navigation.pt-BR.yml b/config/locales/navigation.pt-BR.yml
+index 52f9a30c..c909e442 100644
+--- a/config/locales/navigation.pt-BR.yml
++++ b/config/locales/navigation.pt-BR.yml
+@@ -41,6 +41,7 @@ pt-BR:
+     courses:
+       label: Disciplinas
+       research_area: Áreas de Pesquisa
++      research_line: Linhas de Pesquisa
+       course: Disciplinas
+       course_type: Tipos de Disciplinas
+       course_class: Turmas
+diff --git a/config/locales/research_line.pt-BR.yml b/config/locales/research_line.pt-BR.yml
+new file mode 100644
+index 00000000..c726f1a8
+--- /dev/null
++++ b/config/locales/research_line.pt-BR.yml
+@@ -0,0 +1,19 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++pt-BR:
++  activerecord:
++    attributes:
++      research_line:
++        name: "Nome"
++        research_area: "Área de Pesquisa"
++        research_lines: "Linhas de Pesquisa"
++        enrollments: "Matrículas"
++
++    models:
++      research_line:
++        one: "Linha de Pesquisa"
++        other: "Linhas de Pesquisa"
++
++  active_scaffold:
++    create_research_line_label: "Adicionar Linha de Pesquisa"
+diff --git a/config/routes.rb b/config/routes.rb
+index a65ffc5a..9c57e434 100644
+--- a/config/routes.rb
++++ b/config/routes.rb
+@@ -118,6 +118,10 @@ Rails.application.routes.draw do
+     get "autocomplete", on: :collection
+   end
+ 
++  resources :research_lines do
++    concerns :active_scaffold
++  end
++
+   resources :states do
+     concerns :active_scaffold
+     get "cities", on: :member
+diff --git a/db/migrate/20250701000000_create_research_lines.rb b/db/migrate/20250701000000_create_research_lines.rb
+new file mode 100644
+index 00000000..bb7cdb3b
+--- /dev/null
++++ b/db/migrate/20250701000000_create_research_lines.rb
+@@ -0,0 +1,13 @@
++# frozen_string_literal: true
++
++class CreateResearchLines < ActiveRecord::Migration[7.0]
++  def change
++    create_table :research_lines do |t|
++      t.string :name, limit: 255, null: false
++      t.references :research_area, null: false, index: true
++      t.timestamps
++    end
++    add_index :research_lines, [:research_area_id, :name], unique: true
++    add_reference :enrollments, :research_line, null: true, index: true
++  end
++end
+diff --git a/db/schema.rb b/db/schema.rb
+index 07cfbcd3..02efb573 100644
+--- a/db/schema.rb
++++ b/db/schema.rb
+@@ -10,7 +10,7 @@
+ #
+ # It's strongly recommended that you check this file into your version control system.
+ 
+-ActiveRecord::Schema[7.0].define(version: 2025_06_27_135451) do
++ActiveRecord::Schema[7.0].define(version: 2025_07_01_000000) do
+   create_table "accomplishments", force: :cascade do |t|
+     t.integer "enrollment_id"
+     t.integer "phase_id"
+@@ -522,10 +522,12 @@ ActiveRecord::Schema[7.0].define(version: 2025_06_27_135451) do
+     t.date "thesis_defense_date"
+     t.integer "research_area_id"
+     t.text "obs_to_academic_transcript"
++    t.bigint "research_line_id"
+     t.index ["enrollment_number"], name: "index_enrollments_on_enrollment_number"
+     t.index ["enrollment_status_id"], name: "index_enrollments_on_enrollment_status_id"
+     t.index ["level_id"], name: "index_enrollments_on_level_id"
+     t.index ["research_area_id"], name: "index_enrollments_on_research_area_id"
++    t.index ["research_line_id"], name: "index_enrollments_on_research_line_id"
+     t.index ["student_id"], name: "index_enrollments_on_student_id"
+   end
+ 
+@@ -930,6 +932,15 @@ ActiveRecord::Schema[7.0].define(version: 2025_06_27_135451) do
+     t.datetime "updated_at", precision: nil, null: false
+   end
+ 
++  create_table "research_lines", force: :cascade do |t|
++    t.string "name", limit: 255, null: false
++    t.bigint "research_area_id", null: false
++    t.datetime "created_at", null: false
++    t.datetime "updated_at", null: false
++    t.index ["research_area_id", "name"], name: "index_research_lines_on_research_area_id_and_name", unique: true
++    t.index ["research_area_id"], name: "index_research_lines_on_research_area_id"
++  end
++
+   create_table "roles", force: :cascade do |t|
+     t.string "name", limit: 50, null: false
+     t.string "description", limit: 255, null: false
+diff --git a/spec/factories/factory_research_line.rb b/spec/factories/factory_research_line.rb
+new file mode 100644
+index 00000000..15940444
+--- /dev/null
++++ b/spec/factories/factory_research_line.rb
+@@ -0,0 +1,13 @@
++# Copyright (c) Universidade Federal Fluminense (UFF).
++# This file is part of SAPOS. Please, consult the license terms in the LICENSE file.
++
++# frozen_string_literal: true
++
++FactoryBot.define do
++  factory :research_line do
++    sequence :name do |name|
++      "ResearchLine_#{name}"
++    end
++    research_area
++  end
++end

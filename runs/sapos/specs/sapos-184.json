@@ -1,0 +1,193 @@
+{
+ "duration_api_ms": 22984,
+ "stop_reason": "end_turn",
+ "session_id": "f82f92b7-23b0-4d7d-b940-5e6242d480c2",
+ "total_cost_usd": 0.0567699,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 657,
+  "cache_read_input_tokens": 4361,
+  "output_tokens": 2525,
+  "output_tokens_details": {
+   "thinking_tokens": 0
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 657,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 2525,
+    "cache_read_input_tokens": 4361,
+    "cache_creation_input_tokens": 657,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 657
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1227,
+   "outputTokens": 22,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001337,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 2525,
+   "cacheReadInputTokens": 4361,
+   "cacheCreationInputTokens": 657,
+   "webSearchRequests": 0,
+   "costUSD": 0.0566362,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "cacheCreationEphemeral5mInputTokens": 0,
+   "cacheCreationEphemeral1hInputTokens": 657,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Busca na tela de Desligamentos\n\n## Objetivo\n\nAmpliar os filtros de busca da tela de Desligamentos. Hoje a tela n\u00e3o oferece todos os crit\u00e9rios de que os usu\u00e1rios precisam. Ser\u00e3o inclu\u00eddos tr\u00eas novos filtros:\n\n1. **Ano**\n2. **Tipo de desligamento**\n3. **N\u00edvel da matr\u00edcula**\n\n**Usu\u00e1rio:** quem consulta registros de desligamento nessa tela. O perfil exato n\u00e3o foi informado na issue.\n\n**Por qu\u00ea:** permitir localizar desligamentos com mais precis\u00e3o e rapidez, sem depender s\u00f3 dos filtros atuais.\n\n**Hist\u00f3rias de usu\u00e1rio:**\n- Como usu\u00e1rio da tela de Desligamentos, quero filtrar por **ano** para ver apenas os desligamentos de um per\u00edodo.\n- Como usu\u00e1rio da tela de Desligamentos, quero filtrar por **tipo de desligamento** para analisar um tipo espec\u00edfico.\n- Como usu\u00e1rio da tela de Desligamentos, quero filtrar por **n\u00edvel da matr\u00edcula** para restringir os resultados a um n\u00edvel.\n\n## Premissas\n\n1. A tela de Desligamentos j\u00e1 existe e j\u00e1 tem algum mecanismo de busca/filtro. Os novos campos ser\u00e3o acrescentados a ele, sem substitu\u00ed-lo.\n2. Os filtros existentes continuam funcionando como hoje.\n3. Os filtros s\u00e3o combin\u00e1veis entre si e com os j\u00e1 existentes, usando l\u00f3gica **E** (AND).\n4. Todos os novos campos s\u00e3o **opcionais**. Campo vazio n\u00e3o restringe o resultado.\n5. \"Ano\" se refere ao ano da **data do desligamento**, e n\u00e3o ao ano de admiss\u00e3o, de matr\u00edcula ou de outra data.\n6. \"Ano\" \u00e9 um valor \u00fanico, sem intervalo de anos.\n7. \"Tipo de desligamento\" e \"n\u00edvel da matr\u00edcula\" j\u00e1 existem como dados estruturados no sistema, de prefer\u00eancia como listas de valores pr\u00e9-definidos. Por isso ser\u00e3o exibidos como campos de sele\u00e7\u00e3o, e n\u00e3o como texto livre.\n8. Cada um desses dois filtros aceita **um \u00fanico valor** por busca, sem sele\u00e7\u00e3o m\u00faltipla.\n9. A filtragem \u00e9 feita no mesmo lugar da busca atual (servidor ou cliente, o que j\u00e1 for usado), respeitando a pagina\u00e7\u00e3o existente, se houver.\n10. N\u00e3o h\u00e1 mudan\u00e7a de permiss\u00f5es. Quem j\u00e1 acessa a tela pode usar os novos filtros.\n11. N\u00e3o \u00e9 necess\u00e1ria altera\u00e7\u00e3o de esquema de banco de dados.\n\n## Stack Tecnol\u00f3gica\n\nN\u00e3o informado na issue original. Linguagem, framework, banco de dados e vers\u00f5es s\u00e3o desconhecidos.\n\n## Comandos\n\nN\u00e3o informado na issue original.\n\n- Build: desconhecido\n- Testes: desconhecido\n- Lint: desconhecido\n- Dev: desconhecido\n\n## Estrutura do Projeto\n\nN\u00e3o informado na issue original. A localiza\u00e7\u00e3o da tela de Desligamentos, da camada de consulta/API e dos testes \u00e9 desconhecida.\n\n## Estilo de C\u00f3digo\n\nN\u00e3o informado na issue original. Seguir as conven\u00e7\u00f5es j\u00e1 usadas na tela de Desligamentos e nos filtros existentes.\n\n## Estrat\u00e9gia de Testes\n\nO framework e a localiza\u00e7\u00e3o dos testes n\u00e3o foram informados na issue original. N\u00edveis de teste esperados, sujeitos ao que o projeto j\u00e1 usa:\n\n- **Unit\u00e1rio/integra\u00e7\u00e3o (consulta):**\n  - filtro por ano;\n  - filtro por tipo;\n  - filtro por n\u00edvel;\n  - combina\u00e7\u00f5es entre os tr\u00eas;\n  - combina\u00e7\u00e3o com os filtros existentes;\n  - campos vazios n\u00e3o restringem o resultado;\n  - combina\u00e7\u00e3o que n\u00e3o retorna nenhum resultado.\n- **Interface:** os tr\u00eas campos aparecem, s\u00e3o preench\u00edveis/selecion\u00e1veis e disparam a busca. A a\u00e7\u00e3o de limpar filtros, se existir, reinicia os novos campos.\n- **Regress\u00e3o:** os filtros existentes continuam retornando os mesmos resultados de antes.\n\n## Limites\n\n- **Sempre:**\n  - manter o comportamento dos filtros existentes;\n  - tratar os novos campos como opcionais;\n  - validar a entrada (ano num\u00e9rico de 4 d\u00edgitos);\n  - seguir o padr\u00e3o visual e de c\u00f3digo da tela atual;\n  - rodar os testes antes de commitar.\n- **Perguntar antes:**\n  - alterar o esquema do banco ou criar \u00edndices;\n  - adicionar depend\u00eancias;\n  - mudar o contrato de API usado por outros consumidores;\n  - mudar as permiss\u00f5es de acesso \u00e0 tela;\n  - alterar ou remover filtros j\u00e1 existentes.\n- **Nunca:**\n  - remover filtros existentes sem aprova\u00e7\u00e3o;\n  - commitar segredos;\n  - remover ou desativar testes que estejam falhando sem aprova\u00e7\u00e3o.\n\n## Crit\u00e9rios de Sucesso\n\n1. A tela de Desligamentos exibe tr\u00eas novos campos de busca: **Ano**, **Tipo de desligamento** e **N\u00edvel da matr\u00edcula**.\n2. Ao informar um ano, apenas desligamentos cuja data de desligamento pertence a esse ano s\u00e3o exibidos.\n3. Ao selecionar um tipo, apenas desligamentos desse tipo s\u00e3o exibidos.\n4. Ao selecionar um n\u00edvel, apenas desligamentos de matr\u00edculas desse n\u00edvel s\u00e3o exibidos.\n5. Ao combinar os novos filtros entre si e com os existentes, o resultado atende a **todos** os crit\u00e9rios informados.\n6. Com os novos campos vazios, o resultado \u00e9 id\u00eantico ao da busca atual (sem regress\u00e3o).\n7. As op\u00e7\u00f5es de \"Tipo de desligamento\" e \"N\u00edvel da matr\u00edcula\" refletem os valores existentes no sistema.\n8. Um ano inv\u00e1lido (n\u00e3o num\u00e9rico ou fora do formato) n\u00e3o \u00e9 aceito ou gera mensagem de valida\u00e7\u00e3o clara.\n9. Uma busca sem resultados exibe o estado vazio j\u00e1 usado pela tela.\n10. A pagina\u00e7\u00e3o e a ordena\u00e7\u00e3o existentes, se houver, continuam corretas com os novos filtros aplicados.\n11. Os testes automatizados cobrindo os itens acima passam.\n\n## Quest\u00f5es em Aberto\n\n1. **Ano de qu\u00ea?** \u00c9 o ano da data de desligamento ou de outra data (admiss\u00e3o, matr\u00edcula, compet\u00eancia)?\n2. **Ano \u00fanico ou intervalo?** Basta um ano ou deve ser poss\u00edvel informar de/at\u00e9?\n3. **Tipos de desligamento:** quais valores existem e de onde v\u00eam (tabela de dom\u00ednio, enum, texto livre)?\n4. **N\u00edvel da matr\u00edcula:** o que \u00e9 exatamente o \"n\u00edvel\" e quais valores possui? Ele est\u00e1 associado \u00e0 matr\u00edcula no momento do desligamento ou ao estado atual?\n5. **Sele\u00e7\u00e3o m\u00faltipla:** os filtros de tipo e n\u00edvel devem permitir mais de um valor ao mesmo tempo?\n6. **Filtros atuais:** quais filtros a tela j\u00e1 possui? A filtragem \u00e9 feita no servidor ou no cliente?\n7. **Valores padr\u00e3o:** algum dos novos campos deve vir preenchido por padr\u00e3o (por exemplo, o ano corrente)?\n8. **Persist\u00eancia:** os filtros devem ser mantidos ao navegar ou ser refletidos na URL, para compartilhamento?\n9. **Exporta\u00e7\u00e3o/relat\u00f3rios:** se a tela tiver exporta\u00e7\u00e3o, ela deve respeitar os novos filtros?\n10. **Volume de dados e desempenho:** h\u00e1 metas de tempo de resposta? Pode ser necess\u00e1rio criar \u00edndices para esses campos?\n11. **Permiss\u00f5es:** algum dos novos filtros exp\u00f5e informa\u00e7\u00e3o restrita a determinados perfis?",
+ "ttft_ms": 22670,
+ "type": "result",
+ "duration_ms": 22808,
+ "uuid": "282be89c-870d-4b82-9318-b0c4a137059e",
+ "ttft_stream_ms": 1495,
+ "time_to_request_ms": 602,
+ "time_to_request_phases_ms": {
+  "other": 12,
+  "system_prompt": 2,
+  "resume_other": 0,
+  "process_user_input": 7,
+  "input_attachments": 19,
+  "input_hooks": 5,
+  "conversation_append": 1,
+  "tool_pool_refresh": 3,
+  "init_message": 19,
+  "init_frame_send": 8,
+  "engine_pickup": 3,
+  "loop_entry": 8,
+  "message_prep": 2,
+  "model_config_wait": 484,
+  "autocompact": 4,
+  "request_announcements": 10,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 3,
+  "message_normalization": 2,
+  "client_creation": 2,
+  "request_build": 7
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 142,
+ "time_to_request_cpu_ms": 668,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 4,
+  "cpu_ms": 21,
+  "major_faults": 0,
+  "setup_ms": 0,
+  "prompt_producers_ms": 1,
+  "ambient_start_ms": 6,
+  "ambient_wait_ms": 4,
+  "render_ms": 5,
+  "producers": 46,
+  "token_counts": 0
+ },
+ "tool_schema_build_detail": {
+  "betas_ms": 1,
+  "waits_ms": 0,
+  "placement_ms": 1,
+  "render_ms": 0,
+  "after_ms": 0,
+  "other_ms": 1,
+  "tools": 0,
+  "new_schemas": 0
+ },
+ "message_normalization_detail": {
+  "before_ms": 0,
+  "normalize_ms": 2,
+  "images_ms": 0,
+  "post_process_ms": 0,
+  "after_ms": 0,
+  "other_ms": 0,
+  "messages": 6,
+  "wire_messages": 2
+ },
+ "request_build_detail": {
+  "records_ms": 0,
+  "system_ms": 1,
+  "headers_ms": 1,
+  "cache_break_record_ms": 1,
+  "plans_ms": 2,
+  "retry_setup_ms": 1,
+  "sent_build_ms": 1,
+  "record_attempt_ms": 0,
+  "other_ms": 0,
+  "sent_build_safety_context_ms": 0,
+  "sent_build_cache_breakpoints_ms": 0,
+  "sent_build_surrogate_scan_ms": 1
+ },
+ "first_content_frame_ms": 1496,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

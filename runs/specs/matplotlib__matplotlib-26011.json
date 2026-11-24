@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 33394,
+ "stop_reason": "end_turn",
+ "session_id": "83399b6a-d5a2-42f5-9913-5f3f25b5bf77",
+ "total_cost_usd": 0.07506159999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1126,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3250,
+  "output_tokens_details": {
+   "thinking_tokens": 46
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1126,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3250,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1126,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1126
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1708,
+   "outputTokens": 24,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00018280000000000003,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3250,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1126,
+   "webSearchRequests": 0,
+   "costUSD": 0.0748788,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 46,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: Emit `xlim_changed` on Axes Whose Limits Change via a Shared Axis\n\n## Objective\n\n**Problem.** If two Axes share an x-axis (e.g. `sharex=`), calling `set_xlim` on one Axes also updates the limits of its siblings. The siblings' registered `xlim_changed` callbacks do not fire. Code listening on a sibling never learns that its visible x-range changed.\n\n**Root cause, as quoted in the issue** (`lib/matplotlib/axes/_base.py`, `set_xlim`):\n\n```python\nif emit:\n    self.callbacks.process('xlim_changed', self)\n    # Call all of the other x-axes that are shared with this one\n    for other in self._shared_x_axes.get_siblings(self):\n        if other is not self:\n            other.set_xlim(self.viewLim.intervalx,\n                           emit=False, auto=auto)\n```\n\nSiblings are updated with `emit=False`. In this code `emit` controls two separate things:\n\n1. Whether this Axes processes its own `xlim_changed` callbacks.\n2. Whether this Axes propagates the change to its shared siblings.\n\nPassing `emit=False` to siblings prevents infinite mutual recursion between siblings. That is behaviour (2). It also suppresses their callbacks, which is behaviour (1).\n\n**Reporter's observations.**\n- Passing `emit=True` to siblings causes a recursion problem.\n- Moving `callbacks.process('xlim_changed', ...)` outside the `if emit:` block appeared to fix the problem in local testing. This is a candidate approach, not a validated decision.\n\n**Users.**\n- Users who register `ax.callbacks.connect('xlim_changed', ...)` on Axes in shared-axis layouts. Examples include linked views, custom tick and annotation updates, and data reloading on zoom or pan.\n- Downstream libraries that rely on `xlim_changed` to stay in sync with the view.\n\n**User story.** As a user with Axes `A` and `B` sharing an x-axis and a `xlim_changed` callback on `B`, I want that callback to fire when `A`'s x-limits change. `B`'s limits changed too, so `B`'s listeners need to know.\n\n**Success.** Every Axes whose x view limits change because of a shared-axis update fires its `xlim_changed` callbacks:\n- exactly once per change,\n- without infinite recursion,\n- without changing which Axes end up with which limits.\n\n## Assumptions\n\n1. The intended meaning of `xlim_changed` is \"this Axes' x view limits changed\", whatever the source of the change, including propagation from a shared sibling.\n2. The same defect almost certainly exists for `ylim_changed` in `set_ylim`, which most likely mirrors `set_xlim`. It may also exist for the z-axis equivalent in 3D Axes. This is unverified because only the `set_xlim` snippet is visible.\n3. Sibling propagation should remain one level deep from the originating Axes, as it is today. `get_siblings` returns the whole share group, so siblings do not need to re-propagate.\n4. A call to `set_xlim(..., emit=False)` made directly by user code is assumed to still suppress callbacks on that Axes. Only internally propagated updates to siblings are in scope. See Open Questions, because the reporter's proposed fix would change this.\n5. The callback receives the sibling Axes whose limits changed, not the originating Axes. This matches the existing `process('xlim_changed', self)` signature.\n6. Python version, supported matplotlib branch, and the code layout outside `_base.py` are unknown.\n\n## Tech Stack\n\n- Python, matplotlib (version or branch affected: **unknown**).\n- Relevant component: `lib/matplotlib/axes/_base.py`, specifically `set_xlim` (and probably `set_ylim`), the Axes `callbacks` registry, and `_shared_x_axes` / `get_siblings`.\n- Other modules involved, such as the 3D Axes or the axis-sharing grouper implementation: **unknown**.\n\n## Commands\n\n**Unknown.** No build, test, or lint commands are given in the issue.\n- Build: unknown\n- Test: unknown (the project likely uses pytest, but the exact invocation is not confirmed)\n- Lint: unknown\n\n## Project Structure\n\nOnly the following is known from the issue:\n\n```\nlib/matplotlib/axes/_base.py   \u2192 Axes base class; contains set_xlim and shared-axis propagation\n```\n\nThe test file locations for Axes behaviour and the location of 3D Axes code are **unknown**.\n\n## Code Style\n\n- Follow the existing style of `_base.py`, as shown in the snippet above.\n- The existing convention for firing callbacks is `self.callbacks.process('<signal>', self)`. Keep it.\n- No further conventions are visible.\n\n## Testing Strategy\n\n- **Framework:** unknown (presumed pytest, unconfirmed).\n- **Test level:** unit tests on Axes objects. No rendering or image comparison is needed.\n- **Scenarios to cover:**\n  1. Two Axes share x. A callback is registered on `B`. Calling `A.set_xlim(...)` fires `B`'s callback exactly once, and the callback receives `B`.\n  2. The callback on `A` still fires exactly once when `A.set_xlim(...)` is called.\n  3. Three or more Axes in a share group: every sibling's callback fires exactly once, and no recursion error occurs.\n  4. Limit values on all siblings after the change are identical to current behaviour.\n  5. The direct `A.set_xlim(..., emit=False)` case behaves as decided in Open Questions Q1.\n  6. Equivalent tests for `ylim_changed`, and for 3D if it is in scope.\n  7. Interactive-style changes such as pan, zoom, and autoscale that route through `set_xlim` also notify siblings. The exact entry points are unknown, so these tests are optional and depend on the scope decision.\n- **Coverage expectation:** unknown. At minimum, every scenario above must have a regression test.\n\n## Boundaries\n\n- **Always:**\n  - Keep the recursion guard so that sibling propagation terminates.\n  - Preserve the final limit values on all shared Axes.\n  - Add regression tests.\n  - Apply the same fix consistently to x and y, and to z if in scope.\n- **Ask first:**\n  - Changing the public meaning of the `emit` parameter on `set_xlim` / `set_ylim`.\n  - Adding a new public or private parameter to these methods.\n  - Extending the fix to 3D Axes.\n  - Any change to the order in which callbacks fire, for example originator before or after siblings.\n- **Never:**\n  - Pass `emit=True` to siblings in a way that reintroduces recursion.\n  - Fire a callback more than once per Axes per change.\n  - Change which Axes are considered siblings.\n  - Remove or weaken existing tests.\n\n## Success Criteria\n\n1. After `A.set_xlim(new)`, where `A` and `B` share x, every `xlim_changed` callback registered on `B` has been called exactly once with `B` as its argument.\n2. The same holds for every member of a share group of size 3 or more.\n3. `A`'s own `xlim_changed` callbacks still fire exactly once.\n4. No `RecursionError` occurs and no infinite loop occurs, for any share-group size.\n5. Final `get_xlim()` values on all shared Axes are unchanged from current behaviour.\n6. Criteria 1\u20135 hold for `ylim_changed` / `set_ylim`.\n7. The behaviour of a direct user call with `emit=False` matches the documented decision from Q1, and that behaviour is covered by a test.\n8. All existing tests pass. The exact test command is unknown.\n\n## Open Questions\n\n1. **Semantics of `emit=False` for direct calls.** Should `A.set_xlim(..., emit=False)` called directly by user code still suppress `A`'s own callbacks?\n   - The reporter's proposed fix moves the callback outside `if emit:`. That would always fire callbacks and make `emit` control only propagation, which is a public behaviour change.\n   - The alternative is to separate the two concerns, so that internal propagation fires sibling callbacks but does not re-propagate.\n   - Which is preferred?\n2. **Silent updates for siblings.** If callbacks are always fired, will user code that uses `emit=False` to avoid callback feedback loops break? This applies to code that sets limits from inside a `xlim_changed` handler. Is there a known downstream reliance on this?\n3. **Scope.** Is the fix limited to 2D `set_xlim` and `set_ylim`, or should it include 3D Axes, for example z-limits and any equivalent shared-axis logic?\n4. **Siblings whose limits do not change.** Should a sibling's callback fire if its limits were already equal to the new values? Does the originator's callback currently fire in that case?\n5. **Callback order.** Should the originator's callback fire before or after its siblings' callbacks? Do any callers depend on the current order?\n6. **Callbacks that modify limits.** If a sibling's `xlim_changed` handler itself calls `set_xlim`, what is the expected behaviour, and what recursion protection is required?\n7. **Versioning.** Which matplotlib versions or branches should receive the fix? Does the behaviour change need a changelog or API-change note?\n8. **Project details.** What are the project's test and lint commands, and where should the regression tests go? All three are unknown.",
+ "ttft_ms": 1894,
+ "type": "result",
+ "duration_ms": 32519,
+ "uuid": "54076d52-1cd4-4087-a279-1d0d030361cf",
+ "ttft_stream_ms": 1225,
+ "time_to_request_ms": 248,
+ "time_to_request_phases_ms": {
+  "other": 10,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 8,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 10,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 204,
+  "autocompact": 1,
+  "query_setup": 0,
+  "model_gates": 1,
+  "tool_schema_build": 1,
+  "message_normalization": 1,
+  "client_creation": 2,
+  "request_build": 4
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 1,
+ "time_to_request_cpu_ms": 137,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "session_settings",
+  "slowest_producer_ms": 5,
+  "cpu_ms": 10,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1226,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

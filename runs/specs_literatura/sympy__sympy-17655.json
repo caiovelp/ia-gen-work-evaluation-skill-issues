@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 14809,
+ "stop_reason": "end_turn",
+ "session_id": "2cfc03b5-ec03-4c3c-b32e-bacb6b147352",
+ "total_cost_usd": 0.0476995,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1674,
+  "cache_read_input_tokens": 0,
+  "output_tokens": 1705,
+  "output_tokens_details": {
+   "thinking_tokens": 134
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1674,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 1705,
+    "cache_read_input_tokens": 0,
+    "cache_creation_input_tokens": 1674,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1674
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1880,
+   "outputTokens": 23,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.00019950000000000002,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 1705,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 1674,
+   "webSearchRequests": 0,
+   "costUSD": 0.0475,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 134,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "## Summary\n\nAdding a `sympy.geometry.Point` to the product of a number and another `Point` fails when the number is on the left (`number * point`). The same expression with the number on the right (`point * number`) works. With `sympy.sympify(2.0) * point2`, `Point.__add__` raises a `GeometryError`.\n\n## Steps to reproduce\n\n1. Import the modules and create two points:\n   ```python\n   from sympy import geometry as ge\n   import sympy\n\n   point1 = ge.Point(0, 0)\n   point2 = ge.Point(1, 1)\n   ```\n2. Evaluate the expression with the number on the right. It works:\n   ```python\n   point1 + point2 * sympy.sympify(2.0)\n   ```\n3. Evaluate the same expression with the number on the left. It raises an exception:\n   ```python\n   point1 + sympy.sympify(2.0) * point2\n   ```\n\n## Observed behavior\n\n- `point1 + point2 * sympy.sympify(2.0)` evaluates without error.\n- `point1 + sympy.sympify(2.0) * point2` raises `GeometryError: Don't know how to add 2.0*Point2D(1, 1) and a Point object`.\n\nThe traceback shows that `sympy.sympify(2.0) * point2` evaluates to a `Mul` object (`2.0*Point2D(1, 1)`), not a `Point`. `Point.__add__` then tries to convert this `Mul` into a `Point`. That conversion raises `TypeError: Expecting sequence of coordinates, not 'Mul'`, which is re-raised as a `GeometryError`.\n\n## Expected behavior\n\nBoth expressions should give the same result. `point1 + sympy.sympify(2.0) * point2` should work like `point1 + point2 * sympy.sympify(2.0)`.\n\n## Stack trace / error output\n\n```\n---------------------------------------------------------------------------\nTypeError                                 Traceback (most recent call last)\n~/.virtualenvs/test/lib/python3.6/site-packages/sympy/geometry/point.py in __add__(self, other)\n    219         try:\n--> 220             s, o = Point._normalize_dimension(self, Point(other, evaluate=False))\n    221         except TypeError:\n\n~/.virtualenvs/test/lib/python3.6/site-packages/sympy/geometry/point.py in __new__(cls, *args, **kwargs)\n    128                 Expecting sequence of coordinates, not `{}`'''\n--> 129                                        .format(func_name(coords))))\n    130         # A point where only `dim` is specified is initialized\n\nTypeError: \nExpecting sequence of coordinates, not `Mul`\n\nDuring handling of the above exception, another exception occurred:\n\nGeometryError                             Traceback (most recent call last)\n<ipython-input-20-6dcbddac1ee2> in <module>\n----> 1 point1 + sympy.sympify(2.0)* point2\n\n~/.virtualenvs/test/lib/python3.6/site-packages/sympy/geometry/point.py in __add__(self, other)\n    220             s, o = Point._normalize_dimension(self, Point(other, evaluate=False))\n    221         except TypeError:\n--> 222             raise GeometryError(\"Don't know how to add {} and a Point object\".format(other))\n    223 \n    224         coords = [simplify(a + b) for a, b in zip(s, o)]\n\nGeometryError: Don't know how to add 2.0*Point2D(1, 1) and a Point object\n```\n\n## Test case\n\nMinimal test based on the snippet in the report:\n\n```python\nfrom sympy import geometry as ge\nimport sympy\n\ndef test_point_add_number_times_point():\n    point1 = ge.Point(0, 0)\n    point2 = ge.Point(1, 1)\n\n    right = point1 + point2 * sympy.sympify(2.0)   # works\n    left = point1 + sympy.sympify(2.0) * point2    # currently raises GeometryError\n\n    assert left == right\n```\n\n## Code example\n\n```python\nfrom sympy import geometry as ge\nimport sympy\n\npoint1 = ge.Point(0, 0)\npoint2 = ge.Point(1, 1)\n\n# Works\npoint1 + point2 * sympy.sympify(2.0)\n\n# Raises GeometryError\npoint1 + sympy.sympify(2.0) * point2\n```\n\n## Version and environment\n\n- SymPy version: Not provided in the original report.\n- Python 3.6. This comes from the traceback path `~/.virtualenvs/test/lib/python3.6/site-packages/sympy/...`.\n- The code was run in an IPython session (`<ipython-input-20-...>`) inside a virtualenv.\n- Operating system: Not provided in the original report.",
+ "ttft_ms": 2723,
+ "type": "result",
+ "duration_ms": 14142,
+ "uuid": "0b9d9734-5c06-45f3-9dee-2f8b9f6bfeba",
+ "ttft_stream_ms": 1404,
+ "time_to_request_ms": 217,
+ "time_to_request_phases_ms": {
+  "other": 7,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 2,
+  "input_attachments": 4,
+  "input_hooks": 2,
+  "tool_pool_refresh": 0,
+  "init_message": 6,
+  "engine_pickup": 1,
+  "message_prep": 0,
+  "model_config_wait": 189,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 14,
+ "time_to_request_cpu_ms": 105,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1405,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

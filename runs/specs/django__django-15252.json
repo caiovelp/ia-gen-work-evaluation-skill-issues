@@ -1,0 +1,144 @@
+{
+ "duration_api_ms": 36680,
+ "stop_reason": "end_turn",
+ "session_id": "4339a95a-b256-484e-aff9-54db78b2d9d5",
+ "total_cost_usd": 0.08378509999999999,
+ "usage": {
+  "input_tokens": 2,
+  "cache_creation_input_tokens": 1089,
+  "cache_read_input_tokens": 4314,
+  "output_tokens": 3701,
+  "output_tokens_details": {
+   "thinking_tokens": 434
+  },
+  "server_tool_use": {
+   "web_search_requests": 0,
+   "web_fetch_requests": 0
+  },
+  "service_tier": "standard",
+  "cache_creation": {
+   "ephemeral_1h_input_tokens": 1089,
+   "ephemeral_5m_input_tokens": 0
+  },
+  "inference_geo": "global",
+  "iterations": [
+   {
+    "input_tokens": 2,
+    "output_tokens": 3701,
+    "cache_read_input_tokens": 4314,
+    "cache_creation_input_tokens": 1089,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 1089
+    },
+    "type": "message"
+   }
+  ],
+  "speed": "standard",
+  "fallback_credit": null
+ },
+ "modelUsage": {
+  "claude-haiku-5-5": {
+   "inputTokens": 1678,
+   "outputTokens": 29,
+   "cacheReadInputTokens": 0,
+   "cacheCreationInputTokens": 0,
+   "webSearchRequests": 0,
+   "costUSD": 0.0001823,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 0,
+   "canonicalModel": "claude-haiku-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  },
+  "claude-opus-5-5": {
+   "inputTokens": 2,
+   "outputTokens": 3701,
+   "cacheReadInputTokens": 4314,
+   "cacheCreationInputTokens": 1089,
+   "webSearchRequests": 0,
+   "costUSD": 0.08360279999999999,
+   "contextWindow": 1000000,
+   "maxOutputTokens": 128000,
+   "thinkingTokens": 434,
+   "canonicalModel": "claude-opus-5-5",
+   "provider": "firstParty",
+   "costBasis": "list"
+  }
+ },
+ "permission_denials": [],
+ "terminal_reason": "completed",
+ "fast_mode_state": "off",
+ "fast_mode_disabled_reason": "preference",
+ "subagent_stats": {
+  "spawned": 0,
+  "requested": {
+   "background": 0,
+   "foreground": 0,
+   "unset": 0
+  },
+  "started_in_background": 0,
+  "max_depth": 0,
+  "spawned_by_subagents": 0,
+  "completed": 0,
+  "failed": 0,
+  "killed": {
+   "parent": 0,
+   "user": 0,
+   "system": 0
+  },
+  "refused": {
+   "depth_limit": 0,
+   "concurrency_limit": 0,
+   "budget": 0
+  },
+  "by_type": {}
+ },
+ "safety_stops": 0,
+ "is_error": false,
+ "num_turns": 1,
+ "subtype": "success",
+ "api_error_status": null,
+ "result": "# Spec: MigrationRecorder Respects Database Router `allow_migrate` Rules\n\n## Objective\n\nMake Django's `MigrationRecorder` follow the configured database routers' `allow_migrate` rules. If the routers do not allow migrations on a connection, the recorder must not create the `django_migrations` table there.\n\n**Who is affected:** projects with multiple databases where:\n\n- one connection (e.g. `'default'`) holds the Django-managed schema, and\n- other connections are read-only or externally owned sources (e.g. models with `managed = False`).\n\nFor these projects, Django must never create tables on the non-managed connections.\n\n**Current behaviour (from the issue):**\n\n1. The test runner calls `migrate` against every connection when it creates the test databases. The issue points to `setup_databases` in `django/test/runner.py`, which calls `create_test_db` in `django/db/backends/creation.py`.\n2. `MigrationExecutor.apply_migration` (`django/db/migrations/executor.py`) calls `self.recorder.record_applied`.\n3. `MigrationRecorder.record_applied` (`django/db/migrations/recorder.py`) calls `self.ensure_schema()` first.\n4. `ensure_schema()` creates the `django_migrations` table if it is missing. It does not consult the routers.\n5. As a result, the table gets created on connections where the router says `allow_migrate` is `False`.\n\nThe reporter suspects that `applied_migrations` and `record_unapplied` have the same problem.\n\n**Desired behaviour:** on a connection where routers disallow migrating the recorder's `Migration` model:\n\n- the recorder never creates its table;\n- it never writes rows to it;\n- it never reads from it in a way that requires the table to exist.\n\nOn allowed connections, behaviour is unchanged.\n\n### User stories / acceptance criteria\n\n- **US1.** Given a router whose `allow_migrate` returns `True` only for `'default'`, when `migrate` runs against a non-default connection (directly or via test database setup), then no `django_migrations` table is created on that connection.\n- **US2.** Given the same router, when `migrate` runs against `'default'`, then `django_migrations` is created and migrations are recorded exactly as today.\n- **US3.** Given no routers configured, or routers that return `None` for the recorder's model, behaviour is identical to today: the table is created and used on every connection that is migrated.\n- **US4.** On a disallowed connection:\n  - `record_applied` and `record_unapplied` complete without error and without touching the database;\n  - `applied_migrations` reports no applied migrations without raising.\n\n## Assumptions\n\n1. The recorder is gated by the standard router check `allow_migrate(db, app_label, **hints)` (exposed as `router.allow_migrate` / `allow_migrate_model`). It is evaluated against the recorder's internal `Migration` model, the same way schema operations are gated today. The exact model/app_label used is an implementation detail to confirm in Plan.\n2. The router in the issue uses the legacy signature `allow_migrate(self, db, model)`. We assume the fix targets the current router API, and the legacy signature is out of scope.\n3. A router returning `None` means \"no opinion\". If all routers return `None`, migration is allowed (existing router-chain semantics).\n4. Schema operations inside migrations (`CreateModel`, etc.) already consult `allow_migrate`. Only the recorder bypasses it, and only the recorder is in scope.\n5. On a disallowed connection, \"no applied migrations\" is the correct answer for `applied_migrations`. It returns an empty result of the same type it returns today.\n6. The fix lives in `django/db/migrations/recorder.py`. Changes to callers (executor, loader, `migrate` command, test runner) are only made if required. This needs confirming during Plan.\n7. The behaviour must hold both for the test-runner path and for a direct `manage.py migrate --database=<alias>` invocation.\n\n## Tech Stack\n\n- Python / Django. Exact supported Python and Django versions are **unknown** from the issue.\n- Components named in the issue:\n  - `django/db/migrations/recorder.py`\n  - `django/db/migrations/executor.py`\n  - `django/test/runner.py`\n  - `django/db/backends/creation.py`\n\n## Commands\n\n| Purpose | Command |\n|---|---|\n| Build | **Unknown** (not stated in the issue) |\n| Test (full suite) | **Unknown** (not stated in the issue) |\n| Test (targeted: migrations / multi-db) | **Unknown** (not stated in the issue) |\n| Lint | **Unknown** (not stated in the issue) |\n\n## Project Structure\n\nOnly the paths named in the issue are known:\n\n```\ndjango/db/migrations/recorder.py   \u2192 MigrationRecorder (ensure_schema, record_applied, record_unapplied, applied_migrations)\ndjango/db/migrations/executor.py   \u2192 MigrationExecutor.apply_migration (calls recorder.record_applied)\ndjango/test/runner.py              \u2192 setup_databases (runs migrate per connection for test DBs)\ndjango/db/backends/creation.py     \u2192 create_test_db (invokes migrate)\n```\n\nThe test location for this change is **unknown**. It should sit beside the existing migration-recorder and multi-db router tests.\n\n## Code Style\n\nFollow the existing conventions of the files above. No code snippet is available from the issue, and the conventions are **unknown** beyond \"match surrounding code\".\n\n## Testing Strategy\n\n- **Framework:** Django's own test suite (runner and invocation **unknown**).\n- **Unit level (recorder).** Use a test router that disallows migrations on a secondary alias, then assert:\n  - `ensure_schema()` does not create the table on the disallowed alias;\n  - `record_applied()` and `record_unapplied()` are silent no-ops there;\n  - `applied_migrations()` returns an empty result and does not raise when the table is absent.\n- **Integration level (executor / migrate).** Run `migrate` against a disallowed alias with migrations present. Assert that:\n  - the command succeeds;\n  - `django_migrations` does not exist on that alias;\n  - the allowed alias is recorded normally.\n- **Regression.**\n  - With no routers, every existing recorder and migrate test passes unchanged.\n  - With a router returning `None`, the table is still created.\n- **Test-DB setup path.** Test database creation with a router like the one in the issue must not create `django_migrations` on non-default test databases.\n- **Coverage expectation:** every public recorder method (`ensure_schema`, `record_applied`, `record_unapplied`, `applied_migrations`, plus `flush` if it exists) has an allowed-case and a disallowed-case test.\n\n## Boundaries\n\n- **Always:**\n  - consult the router chain before any DDL or DML the recorder issues;\n  - preserve current behaviour when routing allows it or has no opinion;\n  - add tests for both allowed and disallowed connections.\n- **Ask first:**\n  - changing the return type or semantics of `applied_migrations`;\n  - changing the router API or `allow_migrate` hints;\n  - modifying the `migrate` command, the loader, or test-runner behaviour beyond the recorder;\n  - any change that affects `migrate --fake` / `--fake-initial` or `showmigrations` output.\n- **Never:**\n  - create the migrations table on a connection the routers disallow;\n  - silently change behaviour for single-database projects;\n  - remove or weaken existing migration tests.\n\n## Success Criteria\n\n1. With a router allowing migrations only on `'default'`, running `migrate` on any other alias leaves that database with **no** `django_migrations` table, and exits successfully.\n2. With the same router, `'default'` gets `django_migrations` populated with every applied migration, identical to current behaviour.\n3. On a disallowed alias:\n   - `MigrationRecorder.record_applied` and `record_unapplied` execute no SQL;\n   - `applied_migrations` returns an empty result without querying a nonexistent table.\n4. Test database setup for a multi-db project with such a router creates no `django_migrations` table on non-default test databases.\n5. With no routers configured, the full existing migrations test suite passes unchanged.\n6. New tests cover the cases in criteria 1\u20134 and fail on the current code.\n\n## Open Questions\n\n1. **Router check.** Which `app_label` / model should the check use: the recorder's internal `Migration` model (`allow_migrate_model`), or `allow_migrate(db, 'migrations', model_name='migration')`? Routers that key on `app_label` will behave differently depending on the choice.\n2. **Disallowed reads.** On a disallowed connection, should `applied_migrations` return empty, or should it still read an existing table if one is already present (e.g. created by an older Django)?\n3. **Plan display.** On a disallowed connection, `migrate` will \"apply\" migrations whose operations are all skipped by the router, but it will record nothing. Every subsequent run will therefore re-plan them all. Is that acceptable, or should the executor or `migrate` short-circuit when the recorder is disallowed?\n4. **Other commands.** Should `showmigrations`, `migrate --plan`, and `makemigrations` consistency checks adopt the same rule, or are they out of scope?\n5. **`RunSQL` / `RunPython`.** Operations that rely on hints rather than a model may still run on disallowed connections. Is that out of scope for this issue?\n6. **Version scope.** Which Django version(s) should receive the fix, and should the legacy `allow_migrate(db, model)` signature in the issue be considered at all?\n7. **Release notes.** Is this classified as a bug fix (release-notes entry) or a behaviour change needing a deprecation path?",
+ "ttft_ms": 5666,
+ "type": "result",
+ "duration_ms": 35692,
+ "uuid": "e8d9752a-b6e7-4172-8031-0a86e47e1b24",
+ "ttft_stream_ms": 1024,
+ "time_to_request_ms": 231,
+ "time_to_request_phases_ms": {
+  "other": 8,
+  "system_prompt": 1,
+  "resume_other": 0,
+  "process_user_input": 1,
+  "input_attachments": 4,
+  "input_hooks": 1,
+  "tool_pool_refresh": 1,
+  "init_message": 5,
+  "engine_pickup": 0,
+  "message_prep": 1,
+  "model_config_wait": 204,
+  "autocompact": 1,
+  "query_setup": 1,
+  "model_gates": 0,
+  "tool_schema_build": 0,
+  "message_normalization": 1,
+  "client_creation": 0,
+  "request_build": 2
+ },
+ "turn_start_resume_kind": "none",
+ "process_turn_index": 0,
+ "time_to_request_loop_lag_ms": 2,
+ "time_to_request_cpu_ms": 111,
+ "time_to_request_major_faults": 0,
+ "input_attachments_detail": {
+  "slowest_producer": "queued_commands",
+  "slowest_producer_ms": 2,
+  "cpu_ms": 7,
+  "major_faults": 0
+ },
+ "first_content_frame_ms": 1024,
+ "queued_turn_count": 0,
+ "result_index": 0
+}

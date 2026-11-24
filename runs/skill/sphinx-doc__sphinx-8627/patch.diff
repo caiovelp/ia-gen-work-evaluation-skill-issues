@@ -1,0 +1,43 @@
+diff --git a/sphinx/util/typing.py b/sphinx/util/typing.py
+index 2d4f67bba..3cabd7ade 100755
+--- a/sphinx/util/typing.py
++++ b/sphinx/util/typing.py
+@@ -10,6 +10,7 @@
+ 
+ import sys
+ import typing
++from struct import Struct
+ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, TypeVar, Union
+ 
+ from docutils import nodes
+@@ -86,6 +87,12 @@ def is_system_TypeVar(typ: Any) -> bool:
+     return modname == 'typing' and isinstance(typ, TypeVar)
+ 
+ 
++# classes implemented in C that report a misleading __module__
++INVALID_BUILTIN_CLASSES = {
++    Struct: 'struct.Struct',  # Before Python 3.9
++}
++
++
+ def restify(cls: Optional["Type"]) -> str:
+     """Convert python class to a reST reference."""
+     from sphinx.util import inspect  # lazy loading
+@@ -96,6 +103,8 @@ def restify(cls: Optional["Type"]) -> str:
+         return '...'
+     elif inspect.isNewType(cls):
+         return ':class:`%s`' % cls.__name__
++    elif isinstance(cls, type) and cls in INVALID_BUILTIN_CLASSES:
++        return ':class:`%s`' % INVALID_BUILTIN_CLASSES[cls]
+     elif cls.__module__ in ('__builtin__', 'builtins'):
+         return ':class:`%s`' % cls.__name__
+     else:
+@@ -300,6 +309,8 @@ def stringify(annotation: Any) -> str:
+         return repr(annotation)
+     elif annotation is NoneType:
+         return 'None'
++    elif isinstance(annotation, type) and annotation in INVALID_BUILTIN_CLASSES:
++        return INVALID_BUILTIN_CLASSES[annotation]
+     elif (getattr(annotation, '__module__', None) == 'builtins' and
+           hasattr(annotation, '__qualname__')):
+         return annotation.__qualname__
